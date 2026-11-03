@@ -1,0 +1,1780 @@
+<title>BAUET ICT Club</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+
+<style>
+/* =============================================
+   DESIGN TOKENS
+   ============================================= */
+:root {
+  --bg: #FFFFFF;
+  --bg-s: #FFFFFF;
+  --bg-s2: #F5F6FA;
+  --fg: #121828;
+  --fg2: #4B5068;
+  --fg3: #8A8FA6;
+  --accent: #C9A84C;
+  --accent-h: #B89530;
+  --accent-l: rgba(201,168,76,0.12);
+  --tech: #0096C7;
+  --tech-l: #E4F5FB;
+  --navy: #0B1628;
+  --navy-l: #162240;
+  --ok: #22C55E;
+  --warn: #F59E0B;
+  --err: #EF4444;
+  --bdr: #E0E3EE;
+  --sh: 0 2px 12px rgba(11,22,40,0.07);
+  --sh-l: 0 8px 32px rgba(11,22,40,0.12);
+  --r: 14px;
+  --rs: 8px;
+  --font-d: 'Outfit', system-ui, sans-serif;
+  --font-b: 'Inter', system-ui, sans-serif;
+  --font-m: 'JetBrains Mono', monospace;
+  --gutter: max(16px, env(safe-area-inset-left, 0px));
+  --gutter-r: max(16px, env(safe-area-inset-right, 0px));
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #080E1A;
+    --bg-s: #0F1829;
+    --bg-s2: #141F35;
+    --fg: #E6E9F0;
+    --fg2: #9BA1B8;
+    --fg3: #5C6280;
+    --accent: #D9BC62;
+    --accent-h: #E8CC72;
+    --accent-l: rgba(217,188,98,0.1);
+    --tech: #38BDF8;
+    --tech-l: #0B1E30;
+    --navy: #0B1628;
+    --navy-l: #162240;
+    --bdr: #1C2A44;
+    --sh: 0 2px 12px rgba(0,0,0,0.3);
+    --sh-l: 0 8px 32px rgba(0,0,0,0.4);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #080E1A;
+  --bg-s: #0F1829;
+  --bg-s2: #141F35;
+  --fg: #E6E9F0;
+  --fg2: #9BA1B8;
+  --fg3: #5C6280;
+  --accent: #D9BC62;
+  --accent-h: #E8CC72;
+  --accent-l: rgba(217,188,98,0.1);
+  --tech: #38BDF8;
+  --tech-l: #0B1E30;
+  --navy: #0B1628;
+  --navy-l: #162240;
+  --bdr: #1C2A44;
+  --sh: 0 2px 12px rgba(0,0,0,0.3);
+  --sh-l: 0 8px 32px rgba(0,0,0,0.4);
+  color-scheme: dark;
+}
+
+/* =============================================
+   BASE
+   ============================================= */
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-b);
+  line-height: 1.6;
+  padding-left: var(--gutter);
+  padding-right: var(--gutter-r);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0 0 auto;
+  height: env(safe-area-inset-top, 0px);
+  background: var(--navy);
+  z-index: 200;
+}
+*, *::before, *::after { box-sizing: border-box; }
+h1,h2,h3,h4,h5,h6 { font-family: var(--font-d); line-height: 1.15; margin: 0; text-wrap: balance; }
+a { color: var(--tech); text-decoration: none; }
+img { max-width: 100%; display: block; }
+button { font-family: var(--font-b); cursor: pointer; border: none; }
+
+/* =============================================
+   NAVIGATION
+   ============================================= */
+.nav {
+  position: fixed; top: env(safe-area-inset-top, 0px); left: 0; right: 0;
+  z-index: 100; padding: 0 var(--gutter);
+  background: rgba(255,255,255,0.8);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 1px solid var(--bdr);
+  transition: all 0.3s ease;
+}
+:root[data-theme="dark"] .nav,
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .nav {
+  background: rgba(8,14,26,0.85);
+}}
+.nav-inner {
+  max-width: 1200px; margin: 0 auto;
+  display: flex; align-items: center; justify-content: space-between;
+  height: 64px; gap: 16px;
+}
+.nav-brand {
+  display: flex; align-items: center; gap: 10px;
+  font-family: var(--font-d); font-weight: 700; font-size: 18px; color: var(--fg);
+}
+.nav-brand .logo {
+  width: 36px; height: 36px; border-radius: 8px;
+  background: linear-gradient(135deg, var(--navy), var(--tech));
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 13px; font-weight: 800;
+}
+.nav-links { display: flex; gap: 4px; }
+.nav-links a {
+  padding: 6px 14px; border-radius: 8px; font-size: 14px; font-weight: 500;
+  color: var(--fg2); transition: all 0.2s;
+}
+.nav-links a:hover, .nav-links a.active {
+  color: var(--accent); background: var(--accent-l);
+}
+.nav-actions { display: flex; align-items: center; gap: 8px; }
+.btn-icon {
+  width: 36px; height: 36px; border-radius: 8px; background: var(--bg-s2);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--fg2); font-size: 16px; transition: all 0.2s;
+}
+.btn-icon:hover { background: var(--accent-l); color: var(--accent); }
+.btn-admin {
+  padding: 6px 16px; border-radius: 8px; font-size: 13px; font-weight: 600;
+  background: linear-gradient(135deg, var(--accent), var(--accent-h));
+  color: #fff; letter-spacing: 0.3px;
+}
+.hamburger { display: none; flex-direction: column; gap: 5px; padding: 8px; background: none; }
+.hamburger span { width: 20px; height: 2px; background: var(--fg); border-radius: 2px; transition: all 0.3s; }
+
+@media (max-width: 768px) {
+  .nav-links { display: none; }
+  .hamburger { display: flex; }
+  .btn-admin span { display: none; }
+}
+
+/* Mobile Menu */
+.mobile-menu {
+  position: fixed; inset: 0; z-index: 150;
+  background: var(--bg); padding: 80px var(--gutter) 32px;
+  transform: translateX(100%); transition: transform 0.4s cubic-bezier(0.16,1,0.3,1);
+  display: flex; flex-direction: column; gap: 8px;
+}
+.mobile-menu.open { transform: translateX(0); }
+.mobile-menu a {
+  padding: 14px 20px; border-radius: var(--r); font-size: 18px; font-weight: 600;
+  color: var(--fg); font-family: var(--font-d); transition: all 0.2s;
+}
+.mobile-menu a:hover { background: var(--accent-l); color: var(--accent); }
+
+/* =============================================
+   HERO
+   ============================================= */
+.hero {
+  min-height: 100vh; display: flex; align-items: center; justify-content: center;
+  text-align: center; position: relative; overflow: hidden;
+  margin: 0 calc(-1 * var(--gutter)); padding: 120px var(--gutter) 80px;
+  background: var(--navy);
+}
+.hero-bg {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 20% 40%, rgba(0,150,199,0.15), transparent),
+    radial-gradient(ellipse 60% 50% at 80% 60%, rgba(201,168,76,0.1), transparent),
+    radial-gradient(ellipse 90% 80% at 50% 50%, rgba(11,22,40,0.8), transparent);
+  animation: heroPulse 8s ease-in-out infinite alternate;
+}
+@keyframes heroPulse {
+  0% { opacity: 0.8; transform: scale(1); }
+  100% { opacity: 1; transform: scale(1.05); }
+}
+.hero-particles {
+  position: absolute; inset: 0; overflow: hidden;
+}
+.hero-particle {
+  position: absolute; width: 3px; height: 3px; background: rgba(56,189,248,0.4);
+  border-radius: 50%; animation: float linear infinite;
+}
+@keyframes float {
+  0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateY(-10vh) rotate(720deg); opacity: 0; }
+}
+.hero-content { position: relative; z-index: 2; max-width: 800px; }
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 8px 20px; border-radius: 50px;
+  background: rgba(201,168,76,0.15); border: 1px solid rgba(201,168,76,0.3);
+  color: var(--accent); font-size: 13px; font-weight: 600;
+  letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 24px;
+}
+.hero h1 {
+  font-size: clamp(2.8rem, 6vw, 5rem); font-weight: 800; color: #FFFFFF;
+  letter-spacing: -1px; margin-bottom: 16px;
+}
+.hero h1 .accent { color: var(--accent); }
+.hero-sub {
+  font-size: clamp(1rem, 2vw, 1.25rem); color: rgba(255,255,255,0.7);
+  max-width: 600px; margin: 0 auto 40px; line-height: 1.7;
+}
+.hero-stats {
+  display: flex; justify-content: center; gap: 40px; margin-bottom: 40px; flex-wrap: wrap;
+}
+.hero-stat { text-align: center; }
+.hero-stat .num {
+  font-family: var(--font-m); font-size: 2.2rem; font-weight: 700; color: var(--accent);
+}
+.hero-stat .label { font-size: 13px; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 1px; }
+.hero-btns { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+.btn-primary {
+  padding: 14px 32px; border-radius: 12px; font-size: 15px; font-weight: 600;
+  background: linear-gradient(135deg, var(--accent), var(--accent-h));
+  color: #fff; transition: all 0.3s; box-shadow: 0 4px 20px rgba(201,168,76,0.3);
+}
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(201,168,76,0.4); }
+.btn-outline {
+  padding: 14px 32px; border-radius: 12px; font-size: 15px; font-weight: 600;
+  background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2);
+  color: #fff; transition: all 0.3s;
+}
+.btn-outline:hover { background: rgba(255,255,255,0.15); transform: translateY(-2px); }
+.scroll-indicator {
+  position: absolute; bottom: 32px; left: 50%; transform: translateX(-50%);
+  width: 24px; height: 40px; border: 2px solid rgba(255,255,255,0.3); border-radius: 12px;
+  display: flex; justify-content: center;
+}
+.scroll-dot {
+  width: 4px; height: 8px; background: var(--accent); border-radius: 4px;
+  margin-top: 6px; animation: scrollBounce 2s ease-in-out infinite;
+}
+@keyframes scrollBounce {
+  0%,100% { transform: translateY(0); opacity: 1; }
+  50% { transform: translateY(12px); opacity: 0.3; }
+}
+
+/* =============================================
+   SECTIONS COMMON
+   ============================================= */
+.section {
+  max-width: 1200px; margin: 0 auto;
+  padding: 100px 0;
+}
+.section-header {
+  text-align: center; margin-bottom: 56px;
+}
+.section-tag {
+  display: inline-block; font-size: 12px; font-weight: 700;
+  letter-spacing: 2px; text-transform: uppercase; color: var(--accent);
+  margin-bottom: 12px;
+}
+.section-title {
+  font-size: clamp(1.8rem, 4vw, 2.6rem); font-weight: 800; color: var(--fg);
+  margin-bottom: 16px;
+}
+.section-desc {
+  font-size: 1.05rem; color: var(--fg2); max-width: 600px; margin: 0 auto;
+}
+.divider {
+  width: 60px; height: 3px; background: linear-gradient(90deg, var(--accent), var(--tech));
+  border-radius: 2px; margin: 16px auto 0;
+}
+
+/* =============================================
+   CARDS
+   ============================================= */
+.card {
+  background: var(--bg-s); border: 1px solid var(--bdr); border-radius: var(--r);
+  overflow: hidden; transition: all 0.35s cubic-bezier(0.16,1,0.3,1);
+}
+.card:hover {
+  transform: translateY(-6px); box-shadow: var(--sh-l);
+  border-color: var(--accent);
+}
+.card-img {
+  width: 100%; aspect-ratio: 16/9; object-fit: cover;
+  background: var(--bg-s2);
+}
+.card-body { padding: 20px; }
+.card-date {
+  font-family: var(--font-m); font-size: 12px; color: var(--accent);
+  font-weight: 500; margin-bottom: 8px;
+}
+.card-title {
+  font-size: 1.1rem; font-weight: 700; margin-bottom: 8px; color: var(--fg);
+}
+.card-text { font-size: 14px; color: var(--fg2); line-height: 1.6; }
+.card-footer {
+  padding: 12px 20px; border-top: 1px solid var(--bdr);
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 13px; color: var(--fg3);
+}
+.badge {
+  display: inline-flex; padding: 4px 10px; border-radius: 6px;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase;
+}
+.badge-gold { background: var(--accent-l); color: var(--accent); }
+.badge-tech { background: var(--tech-l); color: var(--tech); }
+.badge-err { background: rgba(239,68,68,0.1); color: var(--err); }
+.badge-ok { background: rgba(34,197,94,0.1); color: var(--ok); }
+
+.grid-3 {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 24px;
+}
+.grid-4 {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 20px;
+}
+@media (max-width: 768px) {
+  .grid-3, .grid-4 { grid-template-columns: 1fr; }
+}
+
+/* =============================================
+   ABOUT
+   ============================================= */
+.about-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 24px; margin-bottom: 56px;
+}
+.about-card {
+  background: var(--bg-s); border: 1px solid var(--bdr); border-radius: var(--r);
+  padding: 32px; text-align: center; transition: all 0.35s;
+}
+.about-card:hover { transform: translateY(-4px); box-shadow: var(--sh-l); border-color: var(--accent); }
+.about-icon {
+  width: 56px; height: 56px; border-radius: 14px;
+  background: var(--accent-l); color: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px; margin: 0 auto 16px;
+}
+.about-card h3 { font-size: 1.15rem; margin-bottom: 10px; }
+.about-card p { font-size: 14px; color: var(--fg2); }
+
+.features-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 16px;
+}
+.feature-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 16px; background: var(--bg-s); border: 1px solid var(--bdr);
+  border-radius: var(--rs); font-size: 14px; font-weight: 500; color: var(--fg);
+  transition: all 0.2s;
+}
+.feature-item:hover { border-color: var(--accent); }
+.feature-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--accent); flex-shrink: 0;
+}
+
+/* =============================================
+   FILTER TABS
+   ============================================= */
+.filter-tabs {
+  display: flex; gap: 8px; margin-bottom: 32px;
+  flex-wrap: wrap; justify-content: center;
+}
+.filter-tab {
+  padding: 8px 20px; border-radius: 8px; font-size: 13px; font-weight: 600;
+  background: var(--bg-s); border: 1px solid var(--bdr); color: var(--fg2);
+  transition: all 0.2s; cursor: pointer;
+}
+.filter-tab:hover { border-color: var(--accent); color: var(--accent); }
+.filter-tab.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+/* =============================================
+   NOTICES
+   ============================================= */
+.notice-list { display: flex; flex-direction: column; gap: 12px; }
+.notice-item {
+  display: flex; gap: 16px; padding: 20px; background: var(--bg-s);
+  border: 1px solid var(--bdr); border-radius: var(--r); transition: all 0.2s;
+  align-items: flex-start; cursor: pointer;
+}
+.notice-item:hover { border-color: var(--accent); box-shadow: var(--sh); }
+.notice-pin { color: var(--accent); font-size: 18px; flex-shrink: 0; margin-top: 2px; }
+.notice-content { flex: 1; min-width: 0; }
+.notice-title { font-size: 1rem; font-weight: 600; margin-bottom: 4px; }
+.notice-meta { font-size: 13px; color: var(--fg3); display: flex; gap: 12px; flex-wrap: wrap; }
+
+/* =============================================
+   TEAM
+   ============================================= */
+.member-card {
+  background: var(--bg-s); border: 1px solid var(--bdr); border-radius: var(--r);
+  padding: 28px; text-align: center; transition: all 0.35s;
+}
+.member-card:hover { transform: translateY(-4px); box-shadow: var(--sh-l); border-color: var(--accent); }
+.member-avatar {
+  width: 88px; height: 88px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--navy-l), var(--tech));
+  margin: 0 auto 16px; display: flex; align-items: center; justify-content: center;
+  font-size: 28px; color: #fff; font-family: var(--font-d); font-weight: 700;
+  overflow: hidden;
+}
+.member-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.member-name { font-size: 1.05rem; font-weight: 700; margin-bottom: 4px; }
+.member-role { font-size: 13px; color: var(--accent); font-weight: 600; margin-bottom: 4px; }
+.member-dept { font-size: 12px; color: var(--fg3); }
+.member-social {
+  display: flex; gap: 8px; justify-content: center; margin-top: 12px;
+  opacity: 0; transform: translateY(8px); transition: all 0.3s;
+}
+.member-card:hover .member-social { opacity: 1; transform: translateY(0); }
+.member-social a {
+  width: 32px; height: 32px; border-radius: 8px; background: var(--bg-s2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; color: var(--fg2); transition: all 0.2s;
+}
+.member-social a:hover { background: var(--accent-l); color: var(--accent); }
+
+/* =============================================
+   GALLERY
+   ============================================= */
+.gallery-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+}
+.gallery-item {
+  position: relative; border-radius: var(--r); overflow: hidden;
+  aspect-ratio: 4/3; cursor: pointer; background: var(--bg-s2);
+}
+.gallery-item img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s; }
+.gallery-item:hover img { transform: scale(1.08); }
+.gallery-overlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(to top, rgba(11,22,40,0.8), transparent);
+  display: flex; align-items: flex-end; padding: 16px;
+  opacity: 0; transition: opacity 0.3s;
+}
+.gallery-item:hover .gallery-overlay { opacity: 1; }
+.gallery-overlay span { color: #fff; font-size: 14px; font-weight: 600; }
+
+/* =============================================
+   ACHIEVEMENTS
+   ============================================= */
+.timeline { position: relative; padding-left: 32px; }
+.timeline::before {
+  content: ''; position: absolute; left: 11px; top: 0; bottom: 0;
+  width: 2px; background: var(--bdr);
+}
+.timeline-item { position: relative; margin-bottom: 32px; }
+.timeline-dot {
+  position: absolute; left: -32px; top: 4px;
+  width: 24px; height: 24px; border-radius: 50%;
+  background: var(--accent); border: 3px solid var(--bg);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; color: #fff;
+}
+.timeline-card {
+  background: var(--bg-s); border: 1px solid var(--bdr); border-radius: var(--r);
+  padding: 20px; transition: all 0.2s;
+}
+.timeline-card:hover { border-color: var(--accent); box-shadow: var(--sh); }
+.timeline-date { font-family: var(--font-m); font-size: 12px; color: var(--accent); margin-bottom: 6px; }
+.timeline-title { font-size: 1rem; font-weight: 700; margin-bottom: 6px; }
+.timeline-text { font-size: 14px; color: var(--fg2); }
+
+/* =============================================
+   CONTACT
+   ============================================= */
+.contact-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 20px; margin-bottom: 40px;
+}
+.contact-card {
+  background: var(--bg-s); border: 1px solid var(--bdr); border-radius: var(--r);
+  padding: 24px; display: flex; gap: 16px; align-items: flex-start; transition: all 0.2s;
+}
+.contact-card:hover { border-color: var(--accent); }
+.contact-icon {
+  width: 44px; height: 44px; border-radius: 12px;
+  background: var(--accent-l); color: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; flex-shrink: 0;
+}
+.contact-label { font-size: 12px; color: var(--fg3); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+.contact-value { font-size: 15px; font-weight: 500; color: var(--fg); word-break: break-all; }
+.contact-form {
+  max-width: 600px; margin: 0 auto;
+  display: flex; flex-direction: column; gap: 16px;
+}
+
+/* =============================================
+   FORM ELEMENTS
+   ============================================= */
+.form-group { display: flex; flex-direction: column; gap: 6px; }
+.form-label { font-size: 13px; font-weight: 600; color: var(--fg2); }
+.form-input, .form-textarea, .form-select {
+  padding: 12px 16px; border-radius: var(--rs);
+  background: var(--bg-s2); border: 1px solid var(--bdr);
+  color: var(--fg); font-size: 14px; font-family: var(--font-b);
+  transition: border-color 0.2s;
+}
+.form-input:focus, .form-textarea:focus, .form-select:focus {
+  outline: none; border-color: var(--accent);
+}
+.form-textarea { resize: vertical; min-height: 100px; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 540px) { .form-row { grid-template-columns: 1fr; } }
+
+/* =============================================
+   FOOTER
+   ============================================= */
+.footer {
+  margin: 0 calc(-1 * var(--gutter)); padding: 60px var(--gutter) 24px;
+  background: var(--navy); color: rgba(255,255,255,0.7);
+}
+.footer-inner { max-width: 1200px; margin: 0 auto; }
+.footer-grid {
+  display: grid; grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 40px; margin-bottom: 40px;
+}
+@media (max-width: 768px) { .footer-grid { grid-template-columns: 1fr; } }
+.footer h4 { color: #fff; font-size: 1rem; margin-bottom: 16px; }
+.footer-desc { font-size: 14px; line-height: 1.7; margin-bottom: 16px; }
+.footer-links { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.footer-links a { color: rgba(255,255,255,0.6); font-size: 14px; transition: color 0.2s; }
+.footer-links a:hover { color: var(--accent); }
+.footer-social { display: flex; gap: 10px; }
+.footer-social a {
+  width: 36px; height: 36px; border-radius: 8px;
+  background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.6);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; transition: all 0.2s;
+}
+.footer-social a:hover { background: var(--accent); color: #fff; }
+.footer-bottom {
+  padding-top: 24px; border-top: 1px solid rgba(255,255,255,0.1);
+  text-align: center; font-size: 13px;
+}
+
+/* =============================================
+   ADMIN PANEL
+   ============================================= */
+.admin-overlay {
+  position: fixed; inset: 0; z-index: 300;
+  background: var(--bg);
+  transform: translateX(100%);
+  transition: transform 0.5s cubic-bezier(0.16,1,0.3,1);
+}
+.admin-overlay.open { transform: translateX(0); }
+.admin-layout {
+  display: grid; grid-template-columns: 240px 1fr;
+  height: 100vh; height: 100dvh;
+}
+@media (max-width: 768px) { .admin-layout { grid-template-columns: 1fr; } }
+.admin-sidebar {
+  background: var(--bg-s); border-right: 1px solid var(--bdr);
+  padding: 20px; display: flex; flex-direction: column; overflow-y: auto;
+}
+@media (max-width: 768px) {
+  .admin-sidebar {
+    position: fixed; left: 0; top: 0; bottom: 0; width: 240px; z-index: 10;
+    transform: translateX(-100%); transition: transform 0.3s;
+  }
+  .admin-sidebar.open { transform: translateX(0); }
+}
+.admin-sidebar-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--bdr);
+}
+.admin-sidebar-header h3 { font-size: 16px; color: var(--accent); }
+.admin-nav { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+.admin-nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px; border-radius: var(--rs); font-size: 14px; font-weight: 500;
+  color: var(--fg2); cursor: pointer; transition: all 0.2s; background: none;
+  text-align: left; width: 100%;
+}
+.admin-nav-item:hover { background: var(--bg-s2); color: var(--fg); }
+.admin-nav-item.active { background: var(--accent-l); color: var(--accent); }
+.admin-main {
+  padding: 24px; overflow-y: auto;
+}
+.admin-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 24px; flex-wrap: wrap; gap: 16px;
+}
+.admin-header h2 { font-size: 1.5rem; }
+.btn-add {
+  padding: 10px 24px; border-radius: var(--rs); font-size: 14px; font-weight: 600;
+  background: var(--accent); color: #fff; transition: all 0.2s;
+}
+.btn-add:hover { background: var(--accent-h); }
+.stats-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px; margin-bottom: 32px;
+}
+.stat-card {
+  background: var(--bg-s); border: 1px solid var(--bdr); border-radius: var(--r);
+  padding: 20px;
+}
+.stat-card .label { font-size: 13px; color: var(--fg3); margin-bottom: 8px; }
+.stat-card .value {
+  font-family: var(--font-m); font-size: 1.8rem; font-weight: 700; color: var(--accent);
+}
+.data-table {
+  width: 100%; border-collapse: collapse; font-size: 14px;
+}
+.data-table th {
+  text-align: left; padding: 12px 16px; font-size: 12px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.5px; color: var(--fg3);
+  border-bottom: 2px solid var(--bdr); background: var(--bg-s2);
+}
+.data-table td {
+  padding: 12px 16px; border-bottom: 1px solid var(--bdr); color: var(--fg2);
+}
+.data-table tr:hover td { background: var(--bg-s); }
+.table-wrap { overflow-x: auto; border-radius: var(--r); border: 1px solid var(--bdr); }
+.action-btns { display: flex; gap: 6px; }
+.btn-sm {
+  padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600;
+  transition: all 0.2s;
+}
+.btn-edit { background: var(--tech-l); color: var(--tech); }
+.btn-edit:hover { background: var(--tech); color: #fff; }
+.btn-del { background: rgba(239,68,68,0.1); color: var(--err); }
+.btn-del:hover { background: var(--err); color: #fff; }
+.btn-share { background: var(--accent-l); color: var(--accent); }
+.btn-share:hover { background: var(--accent); color: #fff; }
+
+/* =============================================
+   MODAL
+   ============================================= */
+.modal-backdrop {
+  position: fixed; inset: 0; z-index: 400;
+  background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px; opacity: 0; pointer-events: none; transition: opacity 0.3s;
+}
+.modal-backdrop.open { opacity: 1; pointer-events: auto; }
+.modal-box {
+  background: var(--bg-s); border: 1px solid var(--bdr); border-radius: var(--r);
+  width: 100%; max-width: 560px; max-height: 80vh; overflow-y: auto;
+  transform: translateY(20px) scale(0.96); transition: transform 0.3s;
+}
+.modal-backdrop.open .modal-box { transform: translateY(0) scale(1); }
+.modal-top {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 20px 24px; border-bottom: 1px solid var(--bdr);
+}
+.modal-top h3 { font-size: 1.1rem; }
+.modal-close { background: none; font-size: 20px; color: var(--fg3); padding: 4px; }
+.modal-body { padding: 24px; display: flex; flex-direction: column; gap: 16px; }
+.modal-footer {
+  padding: 16px 24px; border-top: 1px solid var(--bdr);
+  display: flex; gap: 12px; justify-content: flex-end;
+}
+.btn-cancel {
+  padding: 10px 20px; border-radius: var(--rs); font-size: 14px; font-weight: 500;
+  background: var(--bg-s2); color: var(--fg2); transition: all 0.2s;
+}
+.btn-save {
+  padding: 10px 24px; border-radius: var(--rs); font-size: 14px; font-weight: 600;
+  background: var(--accent); color: #fff; transition: all 0.2s;
+}
+.btn-save:hover { background: var(--accent-h); }
+
+/* =============================================
+   LIGHTBOX
+   ============================================= */
+.lightbox {
+  position: fixed; inset: 0; z-index: 500;
+  background: rgba(0,0,0,0.92); display: flex; align-items: center; justify-content: center;
+  padding: 24px; opacity: 0; pointer-events: none; transition: opacity 0.3s;
+}
+.lightbox.open { opacity: 1; pointer-events: auto; }
+.lightbox img { max-width: 100%; max-height: 85vh; object-fit: contain; border-radius: 8px; }
+.lightbox-close {
+  position: absolute; top: 20px; right: 20px;
+  background: rgba(255,255,255,0.1); color: #fff;
+  width: 40px; height: 40px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; font-size: 20px;
+}
+
+/* =============================================
+   TOAST
+   ============================================= */
+.toast-container {
+  position: fixed; top: calc(env(safe-area-inset-top, 0px) + 80px); right: 20px;
+  z-index: 600; display: flex; flex-direction: column; gap: 8px;
+}
+.toast {
+  padding: 12px 20px; border-radius: var(--rs);
+  background: var(--bg-s); border: 1px solid var(--bdr);
+  box-shadow: var(--sh-l); font-size: 14px; color: var(--fg);
+  display: flex; align-items: center; gap: 10px;
+  animation: toastIn 0.3s ease, toastOut 0.3s ease 2.7s forwards;
+}
+@keyframes toastIn { from { transform: translateX(100%); opacity: 0; } }
+@keyframes toastOut { to { transform: translateX(100%); opacity: 0; } }
+
+/* =============================================
+   SHARE MENU
+   ============================================= */
+.share-menu {
+  position: absolute; right: 0; top: 100%;
+  background: var(--bg-s); border: 1px solid var(--bdr); border-radius: var(--rs);
+  box-shadow: var(--sh-l); padding: 8px; min-width: 160px;
+  display: none; z-index: 10;
+}
+.share-menu.open { display: block; }
+.share-menu a, .share-menu button {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  padding: 8px 12px; border-radius: 6px; font-size: 13px; font-weight: 500;
+  color: var(--fg2); background: none; text-align: left; transition: all 0.15s;
+}
+.share-menu a:hover, .share-menu button:hover { background: var(--bg-s2); color: var(--fg); }
+
+/* =============================================
+   ANIMATIONS
+   ============================================= */
+.reveal {
+  opacity: 0; transform: translateY(28px);
+  transition: opacity 0.7s cubic-bezier(0.16,1,0.3,1), transform 0.7s cubic-bezier(0.16,1,0.3,1);
+}
+.reveal.vis { opacity: 1; transform: translateY(0); }
+.reveal-left {
+  opacity: 0; transform: translateX(-28px);
+  transition: opacity 0.7s cubic-bezier(0.16,1,0.3,1), transform 0.7s cubic-bezier(0.16,1,0.3,1);
+}
+.reveal-left.vis { opacity: 1; transform: translateX(0); }
+.stagger-1 { transition-delay: 0.05s; }
+.stagger-2 { transition-delay: 0.1s; }
+.stagger-3 { transition-delay: 0.15s; }
+.stagger-4 { transition-delay: 0.2s; }
+.stagger-5 { transition-delay: 0.25s; }
+.stagger-6 { transition-delay: 0.3s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal, .reveal-left { opacity: 1; transform: none; transition: none; }
+  .hero-particle { animation: none; }
+  .scroll-dot { animation: none; }
+  .hero-bg { animation: none; }
+}
+
+/* =============================================
+   BACK TO TOP
+   ============================================= */
+.back-top {
+  position: fixed; bottom: 24px; right: 24px; z-index: 50;
+  width: 44px; height: 44px; border-radius: 12px;
+  background: var(--accent); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; box-shadow: 0 4px 16px rgba(201,168,76,0.3);
+  opacity: 0; pointer-events: none; transform: translateY(10px);
+  transition: all 0.3s;
+}
+.back-top.vis { opacity: 1; pointer-events: auto; transform: translateY(0); }
+
+/* =============================================
+   LOADING SKELETON
+   ============================================= */
+.skeleton {
+  background: linear-gradient(90deg, var(--bg-s2) 25%, var(--bg-s) 50%, var(--bg-s2) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--rs);
+}
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+/* =============================================
+   EMPTY STATE
+   ============================================= */
+.empty-state {
+  text-align: center; padding: 60px 20px; color: var(--fg3);
+}
+.empty-state .icon { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
+.empty-state p { font-size: 15px; }
+</style>
+
+<div id="root"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/htm/3.1.1/htm.js"></script>
+
+<script>
+const html = htm.bind(React.createElement);
+const {useState,useEffect,useRef,useCallback,useMemo,createContext,useContext} = React;
+
+/* =============================================
+   ICONS (inline SVG helpers)
+   ============================================= */
+const IC = {
+  sun: '☀', moon: '☽', menu: '☰', x: '✕', pin: '\u{1F4CC}',
+  arrow: '↑', fb: 'f', wa: 'W', tw: 'X', li: 'in', gh: 'G',
+  mail: '✉', phone: '☎', loc: '\u{1F4CD}', web: '\u{1F310}',
+  edit: '✎', del: '\u{1F5D1}', add: '+', share: '\u{1F517}',
+  dash: '\u{1F4CA}', event: '\u{1F4C5}', notice: '\u{1F4E2}', team: '\u{1F465}',
+  gallery: '\u{1F5BC}', trophy: '\u{1F3C6}', post: '\u{1F4DD}', msg: '\u{1F4E9}',
+  settings: '⚙', star: '⭐', check: '✓', copy: '\u{1F4CB}',
+};
+
+/* =============================================
+   DATA CONTEXT
+   ============================================= */
+const DataCtx = createContext(null);
+
+function DataProvider({children}) {
+  const [st, setSt] = useState({
+    db:null, user:null, assets:null, isAdmin:false, loading:true,
+    events:[], notices:[], members:[], gallery:[], achievements:[], posts:[], messages:[],
+    settings: {
+      heroTitle:'BAUET ICT CLUB', heroSub:'Where Technology Meets Innovation',
+      aboutText:'BAUET ICT Club is the premier technology club of Bangladesh Army University of Engineering & Technology, Rajshahi. We empower students through workshops, hackathons, tech talks, and hands-on projects.',
+      mission:'To foster a culture of innovation and technological excellence among BAUET students.',
+      vision:'To become the leading university tech community in Bangladesh, producing industry-ready engineers.',
+      goal:'Bridge the gap between academic knowledge and real-world technology through practical learning.',
+      socialLinks: {fb:'https://www.facebook.com/bauetictclub',email:'ictclubbauet@gmail.com',phone:'01707-533471',website:'bauet.ac.bd'},
+    }
+  });
+  const unsubs = useRef([]);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const db = await window.claude?.use?.('db');
+        const user = await window.claude?.use?.('user');
+        const assets = await window.claude?.use?.('assets');
+        let isAdmin = false;
+        if (user) { try { isAdmin = await user.canEdit(); } catch(e){} }
+        if (mounted) setSt(p=>({...p, db, user, assets, isAdmin, loading:false}));
+
+        if (db) {
+          const cols = ['events','notices','members','gallery','achievements','posts'];
+          cols.forEach(col => {
+            const u = db.collection(col).onSnapshot(
+              snap => { if(mounted) setSt(p=>({...p,[col]:snap.docs.map(d=>({id:d.id,...d.data()}))})); },
+              err => console.error(col, err)
+            );
+            unsubs.current.push(u);
+          });
+          if (isAdmin) {
+            const u = db.collection('messages').onSnapshot(
+              snap => { if(mounted) setSt(p=>({...p,messages:snap.docs.map(d=>({id:d.id,...d.data()}))})); },
+              err => {}
+            );
+            unsubs.current.push(u);
+          }
+          const u2 = db.doc('settings/site').onSnapshot(
+            snap => { if(snap.exists && mounted) setSt(p=>({...p,settings:{...p.settings,...snap.data()}})); },
+            err => {}
+          );
+          unsubs.current.push(u2);
+        } else {
+          if (mounted) setSt(p=>({...p, loading:false}));
+        }
+      } catch(e) { if(mounted) setSt(p=>({...p,loading:false})); }
+    })();
+    const t = setTimeout(()=>{ if(mounted) setSt(p=>({...p,loading:false})); }, 10000);
+    return () => { mounted=false; clearTimeout(t); unsubs.current.forEach(fn=>fn()); };
+  }, []);
+
+  const api = useMemo(()=>({
+    ...st,
+    addDoc: async (col, data) => {
+      if(!st.db) return; await st.db.collection(col).add({...data, createdAt:Date.now()});
+    },
+    updateDoc: async (col, id, data) => {
+      if(!st.db) return; await st.db.doc(col+'/'+id).update(data);
+    },
+    deleteDoc: async (col, id) => {
+      if(!st.db) return; await st.db.doc(col+'/'+id).delete();
+    },
+    uploadImage: async (file) => {
+      if(!st.assets) return null;
+      const r = await st.assets.upload(file);
+      return r.url;
+    },
+    setSetting: async (key, val) => {
+      if(!st.db) return;
+      try { await st.db.doc('settings/site').update({[key]:val}); }
+      catch(e) { await st.db.doc('settings/site').set({...st.settings,[key]:val}); }
+    },
+  }), [st]);
+
+  return html`<${DataCtx.Provider} value=${api}>${children}<//>`;
+}
+function useData() { return useContext(DataCtx); }
+
+/* =============================================
+   TOAST
+   ============================================= */
+let _toasts = [];
+let _setToasts = null;
+function showToast(msg) {
+  if(!_setToasts) return;
+  const id = Date.now();
+  _setToasts(p=>[...p, {id, msg}]);
+  setTimeout(()=> _setToasts(p=>p.filter(t=>t.id!==id)), 3000);
+}
+function Toasts() {
+  const [toasts, setToasts] = useState([]);
+  _setToasts = setToasts;
+  return html`<div class="toast-container">${toasts.map(t=>html`<div class="toast" key=${t.id}>${IC.check} ${t.msg}</div>`)}</div>`;
+}
+
+/* =============================================
+   THEME
+   ============================================= */
+function getTheme() { try { return localStorage.getItem('bauet-theme')||'light'; } catch(e){ return 'light'; } }
+function setThemeAttr(t) {
+  if(t==='dark') document.documentElement.setAttribute('data-theme','dark');
+  else if(t==='light') document.documentElement.setAttribute('data-theme','light');
+  else document.documentElement.removeAttribute('data-theme');
+}
+
+/* =============================================
+   NAVBAR
+   ============================================= */
+function Navbar({onAdmin}) {
+  const [scrolled, setScrolled] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [theme, setTheme] = useState(getTheme);
+  const d = useData();
+
+  useEffect(()=>{
+    const h = ()=>setScrolled(window.scrollY>50);
+    window.addEventListener('scroll',h,{passive:true});
+    return ()=>window.removeEventListener('scroll',h);
+  },[]);
+
+  const toggleTheme = useCallback(()=>{
+    const next = theme==='dark'?'light':theme==='light'?'system':'dark';
+    setTheme(next); setThemeAttr(next);
+    try { localStorage.setItem('bauet-theme',next); } catch(e){}
+  },[theme]);
+
+  const scrollTo = useCallback((id)=>{
+    setMobileOpen(false);
+    document.getElementById(id)?.scrollIntoView({behavior:'smooth'});
+  },[]);
+
+  const links = [['home','Home'],['about','About'],['events','Events'],['notices','Notices'],['team','Team'],['gallery','Gallery'],['achievements','Achievements'],['contact','Contact']];
+
+  return html`
+    <nav class="nav" style=${{boxShadow: scrolled?'var(--sh)':'none'}}>
+      <div class="nav-inner">
+        <div class="nav-brand">
+          <div class="logo">ICT</div>
+          <span>BAUET ICT Club</span>
+        </div>
+        <div class="nav-links">
+          ${links.map(([id,label])=>html`<a key=${id} href="#" onClick=${e=>{e.preventDefault();scrollTo(id)}}>${label}</a>`)}
+        </div>
+        <div class="nav-actions">
+          <button class="btn-icon" onClick=${toggleTheme} title="Toggle theme">
+            ${theme==='dark'?IC.sun:IC.moon}
+          </button>
+          ${d.isAdmin && html`<button class="btn-admin" onClick=${onAdmin}>${IC.settings} <span>Admin</span></button>`}
+          <button class="hamburger" onClick=${()=>setMobileOpen(!mobileOpen)}>
+            <span/><span/><span/>
+          </button>
+        </div>
+      </div>
+    </nav>
+    <div class=${'mobile-menu'+(mobileOpen?' open':'')}>
+      ${links.map(([id,label])=>html`<a key=${id} href="#" onClick=${e=>{e.preventDefault();scrollTo(id)}}>${label}</a>`)}
+      ${d.isAdmin && html`<a href="#" onClick=${e=>{e.preventDefault();setMobileOpen(false);onAdmin()}} style=${{color:'var(--accent)'}}>${IC.settings} Admin Panel</a>`}
+    </div>
+  `;
+}
+
+/* =============================================
+   HERO
+   ============================================= */
+function Hero() {
+  const d = useData();
+  const [counts, setCounts] = useState([0,0,0,0]);
+  const ref = useRef(null);
+  const targets = [d.members.length||120, d.events.length||50, 30, 5];
+  const labels = ['Members','Events','Projects','Years'];
+
+  useEffect(()=>{
+    const obs = new IntersectionObserver(([e])=>{
+      if(e.isIntersecting) {
+        let start = Date.now();
+        const dur = 1800;
+        const step = ()=>{
+          const p = Math.min((Date.now()-start)/dur, 1);
+          const ease = 1-Math.pow(1-p,3);
+          setCounts(targets.map(t=>Math.round(t*ease)));
+          if(p<1) requestAnimationFrame(step);
+        };
+        requestAnimationFrame(step);
+        obs.disconnect();
+      }
+    },{threshold:0.3});
+    if(ref.current) obs.observe(ref.current);
+    return ()=>obs.disconnect();
+  },[targets[0],targets[1]]);
+
+  const particles = useMemo(()=>Array.from({length:20},(_,i)=>({
+    id:i, left:Math.random()*100+'%',
+    size:2+Math.random()*3,
+    dur:8+Math.random()*12,
+    delay:Math.random()*10
+  })),[]);
+
+  return html`
+    <section id="home" class="hero" ref=${ref}>
+      <div class="hero-bg"/>
+      <div class="hero-particles">
+        ${particles.map(p=>html`<div key=${p.id} class="hero-particle"
+          style=${{left:p.left,width:p.size+'px',height:p.size+'px',animationDuration:p.dur+'s',animationDelay:p.delay+'s'}}/>`)}
+      </div>
+      <div class="hero-content">
+        <div class="hero-badge">${IC.star} Bangladesh Army University of Engineering & Technology</div>
+        <h1><span class="accent">BAUET</span> ICT CLUB</h1>
+        <p class="hero-sub">${d.settings.heroSub||'Where Technology Meets Innovation'}</p>
+        <div class="hero-stats">
+          ${counts.map((c,i)=>html`<div class="hero-stat" key=${i}><div class="num">${c}+</div><div class="label">${labels[i]}</div></div>`)}
+        </div>
+        <div class="hero-btns">
+          <button class="btn-primary" onClick=${()=>document.getElementById('events')?.scrollIntoView({behavior:'smooth'})}>Explore Events</button>
+          <a class="btn-outline" href="https://www.facebook.com/bauetictclub" target="_blank" rel="noopener">Join Us</a>
+        </div>
+      </div>
+      <div class="scroll-indicator"><div class="scroll-dot"/></div>
+    </section>
+  `;
+}
+
+/* =============================================
+   SCROLL REVEAL HOOK
+   ============================================= */
+function useReveal() {
+  useEffect(()=>{
+    const obs = new IntersectionObserver((entries)=>{
+      entries.forEach(e=>{ if(e.isIntersecting) { e.target.classList.add('vis'); obs.unobserve(e.target); }});
+    },{threshold:0.1, rootMargin:'0px 0px -40px 0px'});
+    document.querySelectorAll('.reveal,.reveal-left').forEach(el=>obs.observe(el));
+    return ()=>obs.disconnect();
+  });
+}
+
+/* =============================================
+   ABOUT SECTION
+   ============================================= */
+function About() {
+  const d = useData();
+  const cards = [
+    {icon:IC.star, title:'Our Mission', text:d.settings.mission},
+    {icon:IC.trophy, title:'Our Vision', text:d.settings.vision},
+    {icon:IC.check, title:'Our Goal', text:d.settings.goal},
+  ];
+  const features = ['Workshops','Hackathons','Tech Talks','Projects','Competitions','Community','Mentorship','Networking'];
+  return html`
+    <section id="about" class="section">
+      <div class="section-header reveal">
+        <div class="section-tag">Who We Are</div>
+        <h2 class="section-title">About Our Club</h2>
+        <p class="section-desc">${d.settings.aboutText}</p>
+        <div class="divider"/>
+      </div>
+      <div class="about-grid">
+        ${cards.map((c,i)=>html`<div key=${i} class=${'about-card reveal stagger-'+(i+1)}>
+          <div class="about-icon">${c.icon}</div><h3>${c.title}</h3><p>${c.text}</p>
+        </div>`)}
+      </div>
+      <h3 class="reveal" style=${{textAlign:'center',marginBottom:'24px',fontSize:'1.2rem'}}>What We Do</h3>
+      <div class="features-grid">
+        ${features.map((f,i)=>html`<div key=${i} class=${'feature-item reveal stagger-'+(i%6+1)}><div class="feature-dot"/>${f}</div>`)}
+      </div>
+    </section>
+  `;
+}
+
+/* =============================================
+   SHARE BUTTON
+   ============================================= */
+function ShareBtn({title, text}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  useEffect(()=>{
+    const h = e=>{if(ref.current&&!ref.current.contains(e.target))setOpen(false);};
+    document.addEventListener('click',h);
+    return ()=>document.removeEventListener('click',h);
+  },[]);
+  const shareText = title+' - '+text;
+  return html`<div style=${{position:'relative',display:'inline-block'}} ref=${ref}>
+    <button class="btn-sm btn-share" onClick=${()=>setOpen(!open)}>${IC.share}</button>
+    <div class=${'share-menu'+(open?' open':'')}>
+      <a href=${'https://www.facebook.com/sharer/sharer.php?quote='+encodeURIComponent(shareText)} target="_blank" rel="noopener">${IC.fb} Facebook</a>
+      <a href=${'https://wa.me/?text='+encodeURIComponent(shareText)} target="_blank" rel="noopener">${IC.wa} WhatsApp</a>
+      <a href=${'https://twitter.com/intent/tweet?text='+encodeURIComponent(shareText)} target="_blank" rel="noopener">${IC.tw} Twitter/X</a>
+      <button onClick=${()=>{try{navigator.clipboard.writeText(shareText);showToast('Copied!');}catch(e){}}}>
+        ${IC.copy} Copy Text
+      </button>
+    </div>
+  </div>`;
+}
+
+/* =============================================
+   EVENTS SECTION
+   ============================================= */
+function Events() {
+  const d = useData();
+  const [filter, setFilter] = useState('all');
+  const cats = ['all','Workshop','Competition','Seminar','Social'];
+  const sorted = useMemo(()=>{
+    let items = [...d.events].sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+    if(filter!=='all') items = items.filter(e=>e.category===filter);
+    return items;
+  },[d.events, filter]);
+
+  const placeholder = d.events.length===0 && !d.loading ? html`
+    <div class="empty-state reveal"><div class="icon">${IC.event}</div><p>No events yet. Check back soon!</p></div>
+  ` : null;
+
+  return html`
+    <section id="events" class="section">
+      <div class="section-header reveal">
+        <div class="section-tag">Stay Updated</div>
+        <h2 class="section-title">Events</h2>
+        <p class="section-desc">Workshops, hackathons, seminars, and more</p>
+        <div class="divider"/>
+      </div>
+      <div class="filter-tabs reveal">
+        ${cats.map(c=>html`<button key=${c} class=${'filter-tab'+(filter===c?' active':'')} onClick=${()=>setFilter(c)}>
+          ${c==='all'?'All':c}
+        </button>`)}
+      </div>
+      ${placeholder}
+      <div class="grid-3">
+        ${sorted.map((ev,i)=>html`<div key=${ev.id} class=${'card reveal stagger-'+(i%6+1)}>
+          ${ev.imageUrl?html`<img class="card-img" src=${ev.imageUrl} alt=${ev.title}/>`:html`<div class="card-img" style=${{display:'flex',alignItems:'center',justifyContent:'center',fontSize:'32px',color:'var(--fg3)'}}>${IC.event}</div>`}
+          <div class="card-body">
+            <div class="card-date">${ev.date||''}${ev.time?' • '+ev.time:''}</div>
+            <div class="card-title">${ev.title}</div>
+            <div class="card-text">${(ev.description||'').slice(0,120)}${(ev.description||'').length>120?'...':''}</div>
+          </div>
+          <div class="card-footer">
+            <span>${ev.location||''}</span>
+            <div style=${{display:'flex',gap:'6px',alignItems:'center'}}>
+              ${ev.category&&html`<span class="badge badge-tech">${ev.category}</span>`}
+              <${ShareBtn} title=${ev.title} text=${ev.description||''} />
+            </div>
+          </div>
+        </div>`)}
+      </div>
+    </section>
+  `;
+}
+
+/* =============================================
+   NOTICES SECTION
+   ============================================= */
+function Notices() {
+  const d = useData();
+  const [expanded, setExpanded] = useState(null);
+  const sorted = useMemo(()=>{
+    return [...d.notices].sort((a,b)=>{
+      if(a.pinned && !b.pinned) return -1;
+      if(!a.pinned && b.pinned) return 1;
+      return (b.createdAt||0)-(a.createdAt||0);
+    });
+  },[d.notices]);
+  const prioColor = p=>p==='urgent'?'badge-err':p==='normal'?'badge-gold':'badge-tech';
+
+  return html`
+    <section id="notices" class="section" style=${{background:'var(--bg-s2)',margin:'0 calc(-1 * var(--gutter))',padding:'100px var(--gutter)'}}>
+      <div style=${{maxWidth:'1200px',margin:'0 auto'}}>
+        <div class="section-header reveal">
+          <div class="section-tag">Announcements</div>
+          <h2 class="section-title">Notice Board</h2>
+          <p class="section-desc">Important updates and announcements</p>
+          <div class="divider"/>
+        </div>
+        ${d.notices.length===0 && !d.loading ? html`<div class="empty-state reveal"><div class="icon">${IC.notice}</div><p>No notices yet.</p></div>` : null}
+        <div class="notice-list" style=${{maxWidth:'800px',margin:'0 auto'}}>
+          ${sorted.map((n,i)=>html`<div key=${n.id} class=${'notice-item reveal stagger-'+(i%6+1)} onClick=${()=>setExpanded(expanded===n.id?null:n.id)}>
+            <div class="notice-pin">${n.pinned?IC.pin:''}</div>
+            <div class="notice-content">
+              <div style=${{display:'flex',gap:'8px',alignItems:'center',marginBottom:'4px',flexWrap:'wrap'}}>
+                <div class="notice-title">${n.title}</div>
+                ${n.priority&&html`<span class=${'badge '+prioColor(n.priority)}>${n.priority}</span>`}
+              </div>
+              <div class="notice-meta">
+                <span>${n.date||''}</span>
+              </div>
+              ${expanded===n.id && n.content && html`<p style=${{marginTop:'12px',fontSize:'14px',color:'var(--fg2)',lineHeight:'1.7'}}>${n.content}</p>`}
+            </div>
+            <${ShareBtn} title=${n.title} text=${n.content||''} />
+          </div>`)}
+        </div>
+      </div>
+    </section>
+  `;
+}
+
+/* =============================================
+   TEAM SECTION
+   ============================================= */
+function Team() {
+  const d = useData();
+  const sorted = useMemo(()=>[...d.members].sort((a,b)=>(a.order||99)-(b.order||99)),[d.members]);
+  const initials = name=>(name||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  return html`
+    <section id="team" class="section">
+      <div class="section-header reveal">
+        <div class="section-tag">Our People</div>
+        <h2 class="section-title">Executive Committee</h2>
+        <p class="section-desc">The dedicated team behind BAUET ICT Club</p>
+        <div class="divider"/>
+      </div>
+      ${d.members.length===0 && !d.loading ? html`<div class="empty-state reveal"><div class="icon">${IC.team}</div><p>Team info coming soon.</p></div>` : null}
+      <div class="grid-4">
+        ${sorted.map((m,i)=>html`<div key=${m.id} class=${'member-card reveal stagger-'+(i%6+1)}>
+          <div class="member-avatar">
+            ${m.imageUrl?html`<img src=${m.imageUrl} alt=${m.name}/>`:initials(m.name)}
+          </div>
+          <div class="member-name">${m.name}</div>
+          <div class="member-role">${m.position||m.role||''}</div>
+          <div class="member-dept">${[m.department,m.batch].filter(Boolean).join(' • ')}</div>
+          <div class="member-social">
+            ${m.social?.fb&&html`<a href=${m.social.fb} target="_blank" rel="noopener">${IC.fb}</a>`}
+            ${m.social?.li&&html`<a href=${m.social.li} target="_blank" rel="noopener">${IC.li}</a>`}
+            ${m.social?.gh&&html`<a href=${m.social.gh} target="_blank" rel="noopener">${IC.gh}</a>`}
+          </div>
+        </div>`)}
+      </div>
+    </section>
+  `;
+}
+
+/* =============================================
+   GALLERY SECTION
+   ============================================= */
+function Gallery() {
+  const d = useData();
+  const [lightbox, setLightbox] = useState(null);
+  const [filter, setFilter] = useState('all');
+  const cats = useMemo(()=>['all',...new Set(d.gallery.map(g=>g.category).filter(Boolean))],[d.gallery]);
+  const filtered = useMemo(()=>{
+    let items = [...d.gallery].sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+    if(filter!=='all') items = items.filter(g=>g.category===filter);
+    return items;
+  },[d.gallery,filter]);
+
+  return html`
+    <section id="gallery" class="section" style=${{background:'var(--bg-s2)',margin:'0 calc(-1 * var(--gutter))',padding:'100px var(--gutter)'}}>
+      <div style=${{maxWidth:'1200px',margin:'0 auto'}}>
+        <div class="section-header reveal">
+          <div class="section-tag">Visual Stories</div>
+          <h2 class="section-title">Gallery</h2>
+          <p class="section-desc">Moments captured from our events and activities</p>
+          <div class="divider"/>
+        </div>
+        ${cats.length>1&&html`<div class="filter-tabs reveal">
+          ${cats.map(c=>html`<button key=${c} class=${'filter-tab'+(filter===c?' active':'')} onClick=${()=>setFilter(c)}>${c==='all'?'All':c}</button>`)}
+        </div>`}
+        ${d.gallery.length===0 && !d.loading ? html`<div class="empty-state reveal"><div class="icon">${IC.gallery}</div><p>Gallery coming soon!</p></div>` : null}
+        <div class="gallery-grid">
+          ${filtered.map((g,i)=>html`<div key=${g.id} class=${'gallery-item reveal stagger-'+(i%6+1)} onClick=${()=>setLightbox(g)}>
+            <img src=${g.imageUrl||''} alt=${g.title||''} loading="lazy"/>
+            <div class="gallery-overlay"><span>${g.title||''}</span></div>
+          </div>`)}
+        </div>
+      </div>
+      ${lightbox&&html`<div class=${'lightbox open'} onClick=${()=>setLightbox(null)}>
+        <button class="lightbox-close">${IC.x}</button>
+        <img src=${lightbox.imageUrl} alt=${lightbox.title||''}/>
+      </div>`}
+    </section>
+  `;
+}
+
+/* =============================================
+   ACHIEVEMENTS SECTION
+   ============================================= */
+function Achievements() {
+  const d = useData();
+  const sorted = useMemo(()=>[...d.achievements].sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)),[d.achievements]);
+  return html`
+    <section id="achievements" class="section">
+      <div class="section-header reveal">
+        <div class="section-tag">Our Pride</div>
+        <h2 class="section-title">Achievements</h2>
+        <p class="section-desc">Milestones and accomplishments</p>
+        <div class="divider"/>
+      </div>
+      ${d.achievements.length===0 && !d.loading ? html`<div class="empty-state reveal"><div class="icon">${IC.trophy}</div><p>Achievements coming soon!</p></div>` : null}
+      <div class="timeline" style=${{maxWidth:'700px',margin:'0 auto'}}>
+        ${sorted.map((a,i)=>html`<div key=${a.id} class=${'timeline-item reveal stagger-'+(i%6+1)}>
+          <div class="timeline-dot">${IC.trophy}</div>
+          <div class="timeline-card">
+            <div class="timeline-date">${a.date||''}</div>
+            <div class="timeline-title">${a.title}</div>
+            <div class="timeline-text">${a.description||''}</div>
+          </div>
+        </div>`)}
+      </div>
+    </section>
+  `;
+}
+
+/* =============================================
+   CONTACT SECTION
+   ============================================= */
+function Contact() {
+  const d = useData();
+  const [form, setForm] = useState({name:'',email:'',subject:'',message:''});
+  const [sending, setSending] = useState(false);
+  const s = d.settings.socialLinks||{};
+
+  const submit = async (e)=>{
+    e.preventDefault();
+    if(!form.name||!form.email||!form.message) return;
+    setSending(true);
+    try {
+      await d.addDoc('messages',{...form, read:false});
+      showToast('Message sent!');
+      setForm({name:'',email:'',subject:'',message:''});
+    } catch(e) { showToast('Could not send. Please email us directly.'); }
+    setSending(false);
+  };
+
+  const contacts = [
+    {icon:IC.mail, label:'Email', value:s.email||'ictclubbauet@gmail.com'},
+    {icon:IC.phone, label:'Phone', value:s.phone||'01707-533471'},
+    {icon:IC.loc, label:'Location', value:'BAUET, Qadirabad Cantonment, Natore, Rajshahi'},
+    {icon:IC.web, label:'Website', value:s.website||'bauet.ac.bd'},
+  ];
+
+  return html`
+    <section id="contact" class="section">
+      <div class="section-header reveal">
+        <div class="section-tag">Get In Touch</div>
+        <h2 class="section-title">Contact Us</h2>
+        <p class="section-desc">Have a question or want to collaborate?</p>
+        <div class="divider"/>
+      </div>
+      <div class="contact-grid">
+        ${contacts.map((c,i)=>html`<div key=${i} class=${'contact-card reveal stagger-'+(i+1)}>
+          <div class="contact-icon">${c.icon}</div>
+          <div><div class="contact-label">${c.label}</div><div class="contact-value">${c.value}</div></div>
+        </div>`)}
+      </div>
+      <form class="contact-form reveal" onSubmit=${submit}>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Name</label><input class="form-input" value=${form.name} onInput=${e=>setForm(p=>({...p,name:e.target.value}))} required/></div>
+          <div class="form-group"><label class="form-label">Email</label><input class="form-input" type="email" value=${form.email} onInput=${e=>setForm(p=>({...p,email:e.target.value}))} required/></div>
+        </div>
+        <div class="form-group"><label class="form-label">Subject</label><input class="form-input" value=${form.subject} onInput=${e=>setForm(p=>({...p,subject:e.target.value}))}/></div>
+        <div class="form-group"><label class="form-label">Message</label><textarea class="form-textarea" value=${form.message} onInput=${e=>setForm(p=>({...p,message:e.target.value}))} required/></div>
+        <button type="submit" class="btn-primary" style=${{alignSelf:'flex-start'}} disabled=${sending}>${sending?'Sending...':'Send Message'}</button>
+      </form>
+    </section>
+  `;
+}
+
+/* =============================================
+   FOOTER
+   ============================================= */
+function Footer() {
+  const d = useData();
+  const s = d.settings.socialLinks||{};
+  const scrollTop = ()=>window.scrollTo({top:0,behavior:'smooth'});
+  return html`
+    <footer class="footer">
+      <div class="footer-inner">
+        <div class="footer-grid">
+          <div>
+            <h4>BAUET ICT Club</h4>
+            <p class="footer-desc">The premier technology club of Bangladesh Army University of Engineering & Technology. Empowering students through innovation and hands-on learning.</p>
+            <div class="footer-social">
+              ${s.fb&&html`<a href=${s.fb} target="_blank" rel="noopener" title="Facebook">${IC.fb}</a>`}
+              <a href=${'mailto:'+(s.email||'ictclubbauet@gmail.com')} title="Email">${IC.mail}</a>
+            </div>
+          </div>
+          <div>
+            <h4>Quick Links</h4>
+            <ul class="footer-links">
+              ${['About','Events','Notice Board','Team','Gallery'].map(l=>html`<li key=${l}><a href="#" onClick=${e=>{e.preventDefault();document.getElementById(l.toLowerCase().split(' ')[0])?.scrollIntoView({behavior:'smooth'});}}>${l}</a></li>`)}
+            </ul>
+          </div>
+          <div>
+            <h4>Activities</h4>
+            <ul class="footer-links">
+              ${['Workshops','Hackathons','Tech Talks','Projects','Competitions'].map(l=>html`<li key=${l}><a href="#">${l}</a></li>`)}
+            </ul>
+          </div>
+          <div>
+            <h4>Contact</h4>
+            <ul class="footer-links">
+              <li><a href=${'mailto:'+(s.email||'ictclubbauet@gmail.com')}>${s.email||'ictclubbauet@gmail.com'}</a></li>
+              <li style=${{color:'rgba(255,255,255,0.6)',fontSize:'14px'}}>${s.phone||'01707-533471'}</li>
+              <li style=${{color:'rgba(255,255,255,0.6)',fontSize:'14px'}}>BAUET, Qadirabad Cantonment, Natore, Rajshahi</li>
+            </ul>
+          </div>
+        </div>
+        <div class="footer-bottom">
+          © ${new Date().getFullYear()} BAUET ICT Club. All rights reserved. Made with pride.
+        </div>
+      </div>
+    </footer>
+  `;
+}
+
+/* =============================================
+   ADMIN PANEL
+   ============================================= */
+const CONTENT_TYPES = {
+  events: {
+    name:'Event', icon:IC.event,
+    fields:[
+      {key:'title',label:'Title',type:'text',required:true},
+      {key:'date',label:'Date',type:'date',required:true},
+      {key:'time',label:'Time',type:'time'},
+      {key:'location',label:'Location',type:'text'},
+      {key:'category',label:'Category',type:'select',options:['Workshop','Competition','Seminar','Social','Other']},
+      {key:'description',label:'Description',type:'textarea'},
+      {key:'featured',label:'Featured',type:'checkbox'},
+      {key:'imageUrl',label:'Image',type:'image'},
+    ],
+    cols:['title','date','category'],
+  },
+  notices: {
+    name:'Notice', icon:IC.notice,
+    fields:[
+      {key:'title',label:'Title',type:'text',required:true},
+      {key:'date',label:'Date',type:'date',required:true},
+      {key:'content',label:'Content',type:'textarea',required:true},
+      {key:'priority',label:'Priority',type:'select',options:['urgent','normal','low']},
+      {key:'pinned',label:'Pinned',type:'checkbox'},
+    ],
+    cols:['title','date','priority','pinned'],
+  },
+  members: {
+    name:'Member', icon:IC.team,
+    fields:[
+      {key:'name',label:'Name',type:'text',required:true},
+      {key:'position',label:'Position',type:'text',required:true},
+      {key:'department',label:'Department',type:'text'},
+      {key:'batch',label:'Batch',type:'text'},
+      {key:'order',label:'Display Order',type:'number'},
+      {key:'imageUrl',label:'Photo',type:'image'},
+    ],
+    cols:['name','position','department','batch'],
+  },
+  gallery: {
+    name:'Photo', icon:IC.gallery,
+    fields:[
+      {key:'title',label:'Title',type:'text'},
+      {key:'category',label:'Category',type:'select',options:['Events','Workshops','Competitions','Campus','Team','Other']},
+      {key:'imageUrl',label:'Image',type:'image',required:true},
+      {key:'date',label:'Date',type:'date'},
+    ],
+    cols:['title','category','date'],
+  },
+  achievements: {
+    name:'Achievement', icon:IC.trophy,
+    fields:[
+      {key:'title',label:'Title',type:'text',required:true},
+      {key:'date',label:'Date',type:'date'},
+      {key:'description',label:'Description',type:'textarea'},
+    ],
+    cols:['title','date'],
+  },
+  posts: {
+    name:'Post', icon:IC.post,
+    fields:[
+      {key:'title',label:'Title',type:'text',required:true},
+      {key:'content',label:'Content',type:'textarea',required:true},
+      {key:'imageUrl',label:'Image',type:'image'},
+    ],
+    cols:['title'],
+  },
+};
+
+function AdminPanel({open, onClose}) {
+  const d = useData();
+  const [view, setView] = useState('dashboard');
+  const [modal, setModal] = useState(null);
+  const [form, setForm] = useState({});
+  const [uploading, setUploading] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const navItems = [
+    {key:'dashboard',icon:IC.dash,label:'Dashboard'},
+    {key:'events',icon:IC.event,label:'Events'},
+    {key:'notices',icon:IC.notice,label:'Notices'},
+    {key:'members',icon:IC.team,label:'Members'},
+    {key:'gallery',icon:IC.gallery,label:'Gallery'},
+    {key:'achievements',icon:IC.trophy,label:'Achievements'},
+    {key:'posts',icon:IC.post,label:'Posts'},
+    {key:'messages',icon:IC.msg,label:'Messages'},
+    {key:'settings',icon:IC.settings,label:'Settings'},
+  ];
+
+  const openAdd = (type)=>{ setForm({}); setModal({type,mode:'add'}); };
+  const openEdit = (type,item)=>{ setForm({...item}); setModal({type,mode:'edit',id:item.id}); };
+
+  const handleImage = async (key)=>{
+    const input = document.createElement('input');
+    input.type='file'; input.accept='image/*';
+    input.onchange = async e=>{
+      const file = e.target.files[0]; if(!file) return;
+      setUploading(true);
+      try {
+        const url = await d.uploadImage(file);
+        if(url) setForm(p=>({...p,[key]:url}));
+        else showToast('Upload not available here');
+      } catch(e){ showToast('Upload failed'); }
+      setUploading(false);
+    };
+    input.click();
+  };
+
+  const save = async ()=>{
+    if(!modal) return;
+    const {type,mode,id} = modal;
+    const data = {...form}; delete data.id;
+    try {
+      if(mode==='add') await d.addDoc(type, data);
+      else await d.updateDoc(type, id, data);
+      showToast((mode==='add'?'Added':'Updated')+' successfully!');
+      setModal(null);
+    } catch(e) { showToast('Error: '+e.message); }
+  };
+
+  const del = async (type, id)=>{
+    if(!confirm('Delete this item?')) return;
+    try { await d.deleteDoc(type,id); showToast('Deleted!'); }
+    catch(e) { showToast('Error: '+e.message); }
+  };
+
+  const renderField = (f)=>{
+    if(f.type==='textarea') return html`<div class="form-group" key=${f.key}>
+      <label class="form-label">${f.label}</label>
+      <textarea class="form-textarea" value=${form[f.key]||''} onInput=${e=>setForm(p=>({...p,[f.key]:e.target.value}))} required=${f.required}/>
+    </div>`;
+    if(f.type==='select') return html`<div class="form-group" key=${f.key}>
+      <label class="form-label">${f.label}</label>
+      <select class="form-select" value=${form[f.key]||''} onChange=${e=>setForm(p=>({...p,[f.key]:e.target.value}))}>
+        <option value="">Select...</option>
+        ${f.options.map(o=>html`<option key=${o} value=${o}>${o}</option>`)}
+      </select>
+    </div>`;
+    if(f.type==='checkbox') return html`<div class="form-group" key=${f.key} style=${{flexDirection:'row',alignItems:'center',gap:'10px'}}>
+      <input type="checkbox" checked=${!!form[f.key]} onChange=${e=>setForm(p=>({...p,[f.key]:e.target.checked}))} id=${'f_'+f.key}/>
+      <label htmlFor=${'f_'+f.key} style=${{fontSize:'14px'}}>${f.label}</label>
+    </div>`;
+    if(f.type==='image') return html`<div class="form-group" key=${f.key}>
+      <label class="form-label">${f.label}</label>
+      <div style=${{display:'flex',gap:'8px',alignItems:'center'}}>
+        <button type="button" class="btn-add" style=${{fontSize:'13px',padding:'8px 16px'}} onClick=${()=>handleImage(f.key)} disabled=${uploading}>
+          ${uploading?'Uploading...':'Choose Image'}
+        </button>
+        ${form[f.key]&&html`<img src=${form[f.key]} style=${{width:'48px',height:'48px',objectFit:'cover',borderRadius:'8px'}}/>`}
+      </div>
+      <input class="form-input" style=${{marginTop:'6px'}} placeholder="Or paste image URL" value=${form[f.key]||''} onInput=${e=>setForm(p=>({...p,[f.key]:e.target.value}))}/>
+    </div>`;
+    return html`<div class="form-group" key=${f.key}>
+      <label class="form-label">${f.label}</label>
+      <input class="form-input" type=${f.type||'text'} value=${form[f.key]||''} onInput=${e=>setForm(p=>({...p,[f.key]:e.target.value}))} required=${f.required}/>
+    </div>`;
+  };
+
+  const renderTable = (type)=>{
+    const cfg = CONTENT_TYPES[type];
+    const items = d[type]||[];
+    return html`<div>
+      <div class="admin-header">
+        <h2>${cfg.icon} ${cfg.name}s</h2>
+        <button class="btn-add" onClick=${()=>openAdd(type)}>${IC.add} Add ${cfg.name}</button>
+      </div>
+      ${items.length===0?html`<div class="empty-state"><p>No ${cfg.name.toLowerCase()}s yet. Click "Add" to create one.</p></div>`:html`
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr>
+              ${cfg.cols.map(c=>html`<th key=${c}>${c}</th>`)}
+              <th>Actions</th>
+            </tr></thead>
+            <tbody>
+              ${items.map(item=>html`<tr key=${item.id}>
+                ${cfg.cols.map(c=>html`<td key=${c}>${typeof item[c]==='boolean'?(item[c]?'Yes':'No'):String(item[c]||'')}</td>`)}
+                <td><div class="action-btns">
+                  <button class="btn-sm btn-edit" onClick=${()=>openEdit(type,item)}>${IC.edit}</button>
+                  <button class="btn-sm btn-del" onClick=${()=>del(type,item.id)}>${IC.del}</button>
+                  <${ShareBtn} title=${item.title||item.name||''} text=${item.description||item.content||''} />
+                </div></td>
+              </tr>`)}
+            </tbody>
+          </table>
+        </div>
+      `}
+    </div>`;
+  };
+
+  const renderDashboard = ()=>html`<div>
+    <div class="admin-header"><h2>${IC.dash} Dashboard</h2></div>
+    <div class="stats-grid">
+      ${[['Events',d.events.length,IC.event],['Notices',d.notices.length,IC.notice],['Members',d.members.length,IC.team],['Gallery',d.gallery.length,IC.gallery],['Messages',d.messages.filter(m=>!m.read).length+' unread',IC.msg]].map(([l,v,ic])=>html`
+        <div class="stat-card" key=${l}><div class="label">${ic} ${l}</div><div class="value">${v}</div></div>
+      `)}
+    </div>
+    <h3 style=${{marginBottom:'16px'}}>Recent Messages</h3>
+    ${d.messages.length===0?html`<p style=${{color:'var(--fg3)'}}>No messages yet.</p>`:html`
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>From</th><th>Subject</th><th>Date</th><th>Status</th></tr></thead>
+          <tbody>${d.messages.slice(0,5).map(m=>html`<tr key=${m.id}>
+            <td>${m.name}</td><td>${m.subject||'-'}</td>
+            <td>${m.createdAt?new Date(m.createdAt).toLocaleDateString():''}</td>
+            <td><span class=${'badge '+(m.read?'badge-ok':'badge-err')}>${m.read?'Read':'New'}</span></td>
+          </tr>`)}</tbody>
+        </table>
+      </div>
+    `}
+  </div>`;
+
+  const renderMessages = ()=>html`<div>
+    <div class="admin-header"><h2>${IC.msg} Messages</h2></div>
+    ${d.messages.length===0?html`<div class="empty-state"><p>No messages yet.</p></div>`:html`
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>From</th><th>Email</th><th>Subject</th><th>Message</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody>${d.messages.map(m=>html`<tr key=${m.id}>
+            <td>${m.name}</td><td>${m.email}</td><td>${m.subject||'-'}</td>
+            <td style=${{maxWidth:'200px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>${m.message}</td>
+            <td><span class=${'badge '+(m.read?'badge-ok':'badge-err')}>${m.read?'Read':'New'}</span></td>
+            <td><div class="action-btns">
+              <button class="btn-sm btn-edit" onClick=${async()=>{await d.updateDoc('messages',m.id,{read:!m.read});showToast(m.read?'Marked unread':'Marked read');}}>${m.read?'Unread':'Read'}</button>
+              <button class="btn-sm btn-del" onClick=${()=>del('messages',m.id)}>${IC.del}</button>
+            </div></td>
+          </tr>`)}</tbody>
+        </table>
+      </div>
+    `}
+  </div>`;
+
+  const [sForm, setSForm] = useState(null);
+  useEffect(()=>{ if(view==='settings'&&!sForm) setSForm({...d.settings}); },[view,d.settings]);
+  const renderSettings = ()=>html`<div>
+    <div class="admin-header"><h2>${IC.settings} Site Settings</h2>
+      <button class="btn-add" onClick=${async()=>{
+        if(!sForm) return;
+        try { for(const[k,v]of Object.entries(sForm)){ if(k!=='socialLinks') await d.setSetting(k,v); }
+          if(sForm.socialLinks) await d.setSetting('socialLinks',sForm.socialLinks);
+          showToast('Settings saved!');
+        } catch(e){ showToast('Error: '+e.message); }
+      }}>Save Settings</button>
+    </div>
+    ${sForm&&html`<div style=${{display:'flex',flexDirection:'column',gap:'16px',maxWidth:'600px'}}>
+      <div class="form-group"><label class="form-label">Hero Title</label><input class="form-input" value=${sForm.heroTitle||''} onInput=${e=>setSForm(p=>({...p,heroTitle:e.target.value}))}/></div>
+      <div class="form-group"><label class="form-label">Hero Subtitle</label><input class="form-input" value=${sForm.heroSub||sForm.heroSubtitle||''} onInput=${e=>setSForm(p=>({...p,heroSub:e.target.value}))}/></div>
+      <div class="form-group"><label class="form-label">About Text</label><textarea class="form-textarea" value=${sForm.aboutText||''} onInput=${e=>setSForm(p=>({...p,aboutText:e.target.value}))}/></div>
+      <div class="form-group"><label class="form-label">Mission</label><textarea class="form-textarea" value=${sForm.mission||''} onInput=${e=>setSForm(p=>({...p,mission:e.target.value}))}/></div>
+      <div class="form-group"><label class="form-label">Vision</label><textarea class="form-textarea" value=${sForm.vision||''} onInput=${e=>setSForm(p=>({...p,vision:e.target.value}))}/></div>
+      <div class="form-group"><label class="form-label">Goal</label><textarea class="form-textarea" value=${sForm.goal||''} onInput=${e=>setSForm(p=>({...p,goal:e.target.value}))}/></div>
+      <h3 style=${{marginTop:'16px'}}>Social Links</h3>
+      <div class="form-group"><label class="form-label">Facebook URL</label><input class="form-input" value=${sForm.socialLinks?.fb||''} onInput=${e=>setSForm(p=>({...p,socialLinks:{...p.socialLinks,fb:e.target.value}}))}/></div>
+      <div class="form-group"><label class="form-label">Email</label><input class="form-input" value=${sForm.socialLinks?.email||''} onInput=${e=>setSForm(p=>({...p,socialLinks:{...p.socialLinks,email:e.target.value}}))}/></div>
+      <div class="form-group"><label class="form-label">Phone</label><input class="form-input" value=${sForm.socialLinks?.phone||''} onInput=${e=>setSForm(p=>({...p,socialLinks:{...p.socialLinks,phone:e.target.value}}))}/></div>
+    </div>`}
+  </div>`;
+
+  return html`
+    <div class=${'admin-overlay'+(open?' open':'')}>
+      <div class="admin-layout">
+        <div class=${'admin-sidebar'+(sidebarOpen?' open':'')}>
+          <div class="admin-sidebar-header">
+            <h3>${IC.settings} Admin</h3>
+            <button class="btn-icon" onClick=${onClose} title="Close">${IC.x}</button>
+          </div>
+          <div class="admin-nav">
+            ${navItems.map(n=>html`<button key=${n.key} class=${'admin-nav-item'+(view===n.key?' active':'')}
+              onClick=${()=>{setView(n.key);setSidebarOpen(false);}}>
+              <span>${n.icon}</span> ${n.label}
+            </button>`)}
+          </div>
+        </div>
+        <div class="admin-main">
+          <button class="hamburger" style=${{display:'none',marginBottom:'16px'}} onClick=${()=>setSidebarOpen(!sidebarOpen)}>
+            <span/><span/><span/>
+          </button>
+          ${view==='dashboard'&&renderDashboard()}
+          ${view==='messages'&&renderMessages()}
+          ${view==='settings'&&renderSettings()}
+          ${CONTENT_TYPES[view]&&renderTable(view)}
+        </div>
+      </div>
+    </div>
+    ${modal&&html`<div class="modal-backdrop open" onClick=${e=>{if(e.target===e.currentTarget)setModal(null);}}>
+      <div class="modal-box">
+        <div class="modal-top">
+          <h3>${modal.mode==='add'?'Add':'Edit'} ${CONTENT_TYPES[modal.type]?.name||''}</h3>
+          <button class="modal-close" onClick=${()=>setModal(null)}>${IC.x}</button>
+        </div>
+        <div class="modal-body">${(CONTENT_TYPES[modal.type]?.fields||[]).map(renderField)}</div>
+        <div class="modal-footer">
+          <button class="btn-cancel" onClick=${()=>setModal(null)}>Cancel</button>
+          <button class="btn-save" onClick=${save}>Save</button>
+        </div>
+      </div>
+    </div>`}
+  `;
+}
+
+/* =============================================
+   BACK TO TOP
+   ============================================= */
+function BackToTop() {
+  const [vis, setVis] = useState(false);
+  useEffect(()=>{
+    const h = ()=>setVis(window.scrollY>400);
+    window.addEventListener('scroll',h,{passive:true});
+    return ()=>window.removeEventListener('scroll',h);
+  },[]);
+  return html`<button class=${'back-top'+(vis?' vis':'')} onClick=${()=>window.scrollTo({top:0,behavior:'smooth'})}>${IC.arrow}</button>`;
+}
+
+/* =============================================
+   APP
+   ============================================= */
+function App() {
+  const [adminOpen, setAdminOpen] = useState(false);
+  useReveal();
+
+  useEffect(()=>{
+    setThemeAttr(getTheme());
+  },[]);
+
+  return html`
+    <${DataProvider}>
+      <${Navbar} onAdmin=${()=>setAdminOpen(true)} />
+      <main>
+        <${Hero} />
+        <${About} />
+        <${Events} />
+        <${Notices} />
+        <${Team} />
+        <${Gallery} />
+        <${Achievements} />
+        <${Contact} />
+      </main>
+      <${Footer} />
+      <${BackToTop} />
+      <${AdminPanel} open=${adminOpen} onClose=${()=>setAdminOpen(false)} />
+      <${Toasts} />
+    <//>
+  `;
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(html`<${App}/>`);
+</script>
