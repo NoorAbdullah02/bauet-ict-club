@@ -12,5 +12,5 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   </React.StrictMode>
 );
 
-console.log('%c</> BAUET ICT Club', 'font:700 18px monospace;color:#9A88FF');
-console.log('%cLike reading the console? Join us → /join', 'font:12px monospace;color:#3DE3FF');
+console.log('%c</> BAUET ICT Club', 'font:700 18px monospace;color:#6C9BFF');
+console.log('%cLike reading the console? Join us → /join', 'font:12px monospace;color:#38C8F0');

@@ -22,6 +22,11 @@ const useStore = create((set, get) => ({
   user: null,
   loading: true,
   theme: localStorage.getItem('bauet-theme') || 'dark',
+  adminTheme: localStorage.getItem('bauet-admin-theme') || 'light',
+  setAdminTheme: (adminTheme) => {
+    localStorage.setItem('bauet-admin-theme', adminTheme);
+    set({ adminTheme });
+  },
 
   setTheme: (theme) => {
     localStorage.setItem('bauet-theme', theme);

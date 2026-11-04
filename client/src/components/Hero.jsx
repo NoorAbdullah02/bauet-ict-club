@@ -4,7 +4,7 @@ import { motion, useScroll, useTransform } from 'framer-motion';
 import { TypeAnimation } from 'react-type-animation';
 import CountUp from 'react-countup';
 import { useInView } from 'react-intersection-observer';
-import { ArrowDown, ArrowUpRight, Sparkles } from 'lucide-react';
+import { ArrowDown, ArrowUpRight, GraduationCap } from 'lucide-react';
 import Backdrop3D from './Backdrop3D';
 import { useShallow } from 'zustand/react/shallow';
 import Logo from './Logo';
@@ -68,7 +68,7 @@ export default function Hero() {
 
         <motion.div {...rise(0.1)}
           className="mx-auto mb-8 inline-flex items-center gap-2 rounded-full border border-line bg-surface/60 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.18em] text-tech backdrop-blur">
-          <Sparkles size={13} />
+          <GraduationCap size={14} />
           <span className="max-sm:hidden">Bangladesh Army University of Engineering &amp; Technology</span>
           <span className="sm:hidden">BAUET · Rajshahi</span>
         </motion.div>

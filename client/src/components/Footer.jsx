@@ -1,28 +1,14 @@
 import { Link } from 'react-router-dom';
-import { Facebook, Mail, Phone, MapPin, ArrowUp, ArrowUpRight, Crown, Users, Heart } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Facebook, Mail, Phone, MapPin, ArrowUp } from 'lucide-react';
 import useStore from '../context/store';
 import Logo from './Logo';
 
-const EXPLORE = [['Home', '/'], ['About', '/about'], ['Events', '/events'], ['Notices', '/notices'], ['Team', '/team'], ['Gallery', '/gallery'], ['Awards', '/achievements']];
-const INVOLVED = [['Join the club', '/join'], ['Committee member', '/join/committee'], ['General member', '/join/general'], ['Contact us', '/contact']];
+const EXPLORE = [['About', '/about'], ['Events', '/events'], ['Notices', '/notices'], ['Team', '/team'], ['Gallery', '/gallery']];
+const INVOLVED = [['Join the club', '/join'], ['Committee', '/join/committee'], ['General member', '/join/general'], ['Contact', '/contact']];
 
-const link = 'group flex items-center gap-2 text-sm text-white/70 transition hover:text-white';
-const social = 'grid size-11 place-items-center rounded-full border border-white/20 bg-white/10 text-white transition hover:-translate-y-1 hover:bg-white hover:text-[#2B1B8A]';
+const link = 'text-[13px] text-white/70 transition-colors hover:text-white';
+const social = 'grid size-9 place-items-center rounded-full border border-white/20 bg-white/10 text-white transition hover:-translate-y-0.5 hover:bg-white hover:text-[#0A1A4A]';
 const prefetchAdmin = () => import('../admin/AdminApp');
-
-function Col({ title, items }) {
-  return (
-    <nav aria-label={title}>
-      <h4 className="mb-5 font-mono text-[11px] uppercase tracking-[0.22em] text-white/50">{title}</h4>
-      <ul className="space-y-3">
-        {items.map(([label, to]) => (
-          <li key={to}><Link to={to} className={link}><span className="h-px w-0 bg-white transition-all duration-300 group-hover:w-4" />{label}</Link></li>
-        ))}
-      </ul>
-    </nav>
-  );
-}
 
 export default function Footer() {
   const settings = useStore((s) => s.settings);
@@ -31,64 +17,51 @@ export default function Footer() {
   const phone = s.phone || '01707-533471';
 
   return (
-    <footer className="px-3 pb-3 pt-10 sm:px-5 sm:pb-5">
-      <div className="relative isolate mx-auto max-w-[1400px] overflow-hidden rounded-[36px] text-white sm:rounded-[44px]"
-        style={{ background: 'linear-gradient(135deg, #1B1464 0%, #3B2BB8 38%, #2B6BFF 72%, #17B7FF 100%)' }}>
-        {/* soft light blobs + dotted texture */}
-        <div className="pointer-events-none absolute inset-0 -z-10">
-          <div className="absolute -left-24 -top-24 size-[26rem] rounded-full bg-[#FF7AE0]/35 blur-[110px]" />
-          <div className="absolute -bottom-28 right-0 size-[30rem] rounded-full bg-[#3DE3FF]/30 blur-[120px]" />
-          <div className="absolute inset-0 opacity-[0.18]" style={{ backgroundImage: 'radial-gradient(rgba(255,255,255,0.9) 1px, transparent 1px)', backgroundSize: '26px 26px', maskImage: 'linear-gradient(to bottom, black, transparent 80%)' }} />
-        </div>
+    <footer className="px-3 pb-3 pt-8 sm:px-5 sm:pb-4">
+      <div className="relative isolate mx-auto max-w-[1280px] overflow-hidden rounded-[28px] text-white"
+        style={{ background: 'linear-gradient(120deg, #081A4D 0%, #0F2F82 55%, #0E6E86 120%)' }}>
+        <div className="pointer-events-none absolute -right-16 -top-20 -z-10 size-72 rounded-full bg-[#35D989]/20 blur-[90px]" />
+        <div className="pointer-events-none absolute -left-16 bottom-0 -z-10 size-64 rounded-full bg-[#38C8F0]/20 blur-[90px]" />
 
-        {/* top: headline + CTAs */}
-        <div className="flex flex-wrap items-end justify-between gap-8 px-7 pb-10 pt-14 sm:px-14 sm:pt-16">
-          <div className="max-w-2xl">
-            <div className="mb-4 font-mono text-[11px] uppercase tracking-[0.24em] text-white/60">// ready when you are</div>
-            <h2 className="font-display text-[clamp(2.2rem,5vw,4rem)] leading-[1.02]">Let’s build the future, <span className="italic text-[#FFE27A]">together.</span></h2>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            <Link to="/join/committee" className="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3.5 text-sm font-semibold text-[#2B1B8A] shadow-xl transition hover:-translate-y-0.5 hover:shadow-2xl"><Crown size={16} /> Committee</Link>
-            <Link to="/join/general" className="inline-flex items-center gap-2 rounded-full border border-white/40 bg-white/10 px-6 py-3.5 text-sm font-semibold text-white backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/20"><Users size={16} /> General member</Link>
-          </div>
-        </div>
-
-        {/* middle: brand card + links + contact */}
-        <div className="mx-4 grid gap-10 rounded-[28px] border border-white/15 bg-white/[0.08] p-7 backdrop-blur-xl sm:mx-8 sm:p-10 lg:grid-cols-[1.4fr_0.8fr_0.9fr_1.2fr]">
+        <div className="grid gap-8 px-6 py-8 sm:px-10 md:grid-cols-[1.3fr_0.7fr_0.8fr_1.2fr]">
           <div>
-            <div className="inline-flex items-center gap-4 rounded-2xl bg-white p-4 shadow-xl">
-              <Logo kind="crest" height={58} className="!filter-none" />
-              <span className="h-10 w-px bg-slate-200" />
-              <Logo kind="club" height={62} className="!filter-none" />
+            <div className="inline-flex items-center gap-3 rounded-2xl bg-white px-3.5 py-2.5 shadow-lg">
+              <Logo kind="crest" height={40} className="!filter-none" />
+              <span className="h-7 w-px bg-slate-200" />
+              <Logo kind="club" height={42} className="!filter-none" />
             </div>
-            <p className="mt-5 max-w-xs text-sm font-semibold text-white">BAUET ICT Club</p>
-            <p className="mt-1 max-w-xs text-sm leading-7 text-white/70">Bangladesh Army University of Engineering &amp; Technology, Rajshahi. Workshops, hackathons, contests and a community of builders.</p>
-            <div className="mt-5 flex gap-2.5">
-              {s.fb && <a href={s.fb} target="_blank" rel="noopener noreferrer" aria-label="Facebook" className={social}><Facebook size={17} /></a>}
-              <a href={`mailto:${email}`} aria-label="Email" className={social}><Mail size={17} /></a>
-              <a href={`tel:${phone}`} aria-label="Phone" className={social}><Phone size={17} /></a>
+            <p className="mt-3 max-w-xs text-[13px] leading-6 text-white/65">Bangladesh Army University of Engineering &amp; Technology, Rajshahi.</p>
+            <div className="mt-3 flex gap-2">
+              {s.fb && <a href={s.fb} target="_blank" rel="noopener noreferrer" aria-label="Facebook" className={social}><Facebook size={15} /></a>}
+              <a href={`mailto:${email}`} aria-label="Email" className={social}><Mail size={15} /></a>
+              <a href={`tel:${phone}`} aria-label="Phone" className={social}><Phone size={15} /></a>
             </div>
           </div>
 
-          <Col title="Explore" items={EXPLORE} />
-          <Col title="Get involved" items={INVOLVED} />
+          <nav aria-label="Explore">
+            <h4 className="mb-3 font-mono text-[10px] uppercase tracking-[0.22em] text-white/45">Explore</h4>
+            <ul className="space-y-2">{EXPLORE.map(([l, to]) => <li key={to}><Link to={to} className={link}>{l}</Link></li>)}</ul>
+          </nav>
+
+          <nav aria-label="Get involved">
+            <h4 className="mb-3 font-mono text-[10px] uppercase tracking-[0.22em] text-white/45">Get involved</h4>
+            <ul className="space-y-2">{INVOLVED.map(([l, to]) => <li key={to}><Link to={to} className={link}>{l}</Link></li>)}</ul>
+          </nav>
 
           <div>
-            <h4 className="mb-5 font-mono text-[11px] uppercase tracking-[0.22em] text-white/50">Contact</h4>
-            <ul className="space-y-4 text-sm text-white/80">
-              <li><a href={`mailto:${email}`} className="flex items-start gap-3 text-white/85 transition hover:text-white"><Mail size={16} className="mt-0.5 shrink-0 text-[#FFE27A]" /><span className="break-all">{email}</span></a></li>
-              <li><a href={`tel:${phone}`} className="flex items-start gap-3 text-white/85 transition hover:text-white"><Phone size={16} className="mt-0.5 shrink-0 text-[#FFE27A]" />{phone}</a></li>
-              <li><a href="https://maps.google.com/?q=BAUET+Qadirabad+Cantonment+Natore" target="_blank" rel="noopener noreferrer" className="flex items-start gap-3 text-white/85 transition hover:text-white"><MapPin size={16} className="mt-0.5 shrink-0 text-[#FFE27A]" />BAUET, Qadirabad Cantonment, Natore</a></li>
+            <h4 className="mb-3 font-mono text-[10px] uppercase tracking-[0.22em] text-white/45">Contact</h4>
+            <ul className="space-y-2.5 text-[13px]">
+              <li><a href={`mailto:${email}`} className="flex items-start gap-2.5 text-white/80 transition hover:text-white"><Mail size={14} className="mt-0.5 shrink-0 text-[#7CF0B2]" /><span className="break-all">{email}</span></a></li>
+              <li><a href={`tel:${phone}`} className="flex items-start gap-2.5 text-white/80 transition hover:text-white"><Phone size={14} className="mt-0.5 shrink-0 text-[#7CF0B2]" />{phone}</a></li>
+              <li><a href="https://maps.google.com/?q=BAUET+Qadirabad+Cantonment+Natore" target="_blank" rel="noopener noreferrer" className="flex items-start gap-2.5 text-white/80 transition hover:text-white"><MapPin size={14} className="mt-0.5 shrink-0 text-[#7CF0B2]" />Qadirabad Cantonment, Natore</a></li>
             </ul>
-            <Link to="/contact" className="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-white underline decoration-white/40 underline-offset-4 transition hover:decoration-white">Send us a message <ArrowUpRight size={15} /></Link>
           </div>
         </div>
 
-        {/* bottom bar */}
-        <div className="flex flex-wrap items-center justify-between gap-3 px-7 py-6 text-xs text-white/65 sm:px-14">
-          <span>© {new Date().getFullYear()} BAUET ICT Club · All rights reserved</span>
-          <span className="flex items-center gap-1.5">Made with <Heart size={12} className="fill-[#FF7AE0] text-[#FF7AE0]" /> by the ICT Club · <Link to="/admin" onMouseEnter={prefetchAdmin} onFocus={prefetchAdmin} className="text-white/85 hover:text-white">Admin login</Link></span>
-          <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} aria-label="Back to top" className="flex items-center gap-1.5 font-medium text-white transition hover:-translate-y-0.5">Back to top <span className="grid size-7 place-items-center rounded-full bg-white/15"><ArrowUp size={13} /></span></button>
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/12 px-6 py-3.5 text-[12px] text-white/60 sm:px-10">
+          <span>© {new Date().getFullYear()} BAUET ICT Club</span>
+          <span><Link to="/admin" onMouseEnter={prefetchAdmin} onFocus={prefetchAdmin} className="text-white/75 hover:text-white">Admin</Link></span>
+          <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} aria-label="Back to top" className="flex items-center gap-1.5 text-white/80 transition hover:text-white">Top <ArrowUp size={13} /></button>
         </div>
       </div>
     </footer>

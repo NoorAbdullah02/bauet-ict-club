@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { NavLink, Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, Sun, Moon, Shield, Sparkles } from 'lucide-react';
+import { Menu, X, Sun, Moon, Shield, ArrowRight } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import Logo from './Logo';
 import useStore from '../context/store';
@@ -42,11 +42,7 @@ export default function Navbar() {
         className="fixed inset-x-0 top-0 z-[100] flex justify-center px-3 pt-3">
         <nav className={cn('flex w-full max-w-6xl items-center justify-between rounded-full border px-3 py-2 pl-4 transition-all duration-500',
           scrolled ? 'border-line bg-[var(--glass)] shadow-[var(--shadow-lg)] backdrop-blur-xl backdrop-saturate-150' : 'border-transparent bg-transparent')}>
-          <Link to="/" className="flex items-center gap-3" aria-label="BAUET ICT Club home">
-            <Logo kind="crest" height={38} priority className="max-sm:hidden" />
-            <span className="h-7 w-px bg-line max-sm:hidden" />
-            <Logo kind="club" height={40} priority />
-          </Link>
+          <Link to="/" className="flex items-center" aria-label="BAUET ICT Club home"><Logo kind="club" height={42} priority /></Link>
 
           <ul className="hidden items-center gap-0.5 lg:flex">
             {LINKS.map((l) => (
@@ -67,7 +63,7 @@ export default function Navbar() {
               {isDark ? <Sun size={16} /> : <Moon size={16} />}
             </button>
             <Link to="/admin" onMouseEnter={() => import("../admin/AdminApp")} className={cn(iconBtn, 'max-sm:hidden')} aria-label="Admin"><Shield size={16} /></Link>
-            <Link to="/join" className="btn-primary !px-5 !py-2.5 text-xs"><Sparkles size={14} /> Join</Link>
+            <Link to="/join" className="btn-join"><span>Join us</span><i><ArrowRight size={14} /></i></Link>
             <button onClick={() => setMobileOpen((o) => !o)} className={cn(iconBtn, 'lg:hidden')} aria-label="Menu">
               {mobileOpen ? <X size={18} /> : <Menu size={18} />}
             </button>

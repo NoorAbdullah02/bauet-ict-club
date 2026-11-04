@@ -25,7 +25,7 @@ const JoinGeneralPage = named('JoinGeneralPage');
 const Fallback = () => <div className="grid min-h-[60vh] place-items-center"><span className="size-8 animate-spin rounded-full border-2 border-line border-t-accent" /></div>;
 
 export default function App() {
-  const { fetchAll, theme } = useStore(useShallow((s) => ({ fetchAll: s.fetchAll, theme: s.theme })));
+  const { fetchAll, theme, adminTheme } = useStore(useShallow((s) => ({ fetchAll: s.fetchAll, theme: s.theme, adminTheme: s.adminTheme })));
   const { pathname } = useLocation();
   const isAdmin = pathname.startsWith('/admin');
 
@@ -36,7 +36,11 @@ export default function App() {
     const id = 'requestIdleCallback' in window ? requestIdleCallback(warm, { timeout: 2500 }) : setTimeout(warm, 1500);
     return () => ('cancelIdleCallback' in window ? cancelIdleCallback(id) : clearTimeout(id));
   }, []);
-  useEffect(() => { document.documentElement.setAttribute('data-theme', theme); }, [theme]);
+  // the admin console has its own theme (white by default); the public site keeps the visitor's choice
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', isAdmin ? adminTheme : theme);
+    document.body.classList.toggle('admin-mode', isAdmin);
+  }, [theme, adminTheme, isAdmin]);
 
   // smooth inertial scrolling (site only — the admin console keeps native scrolling)
   useEffect(() => {

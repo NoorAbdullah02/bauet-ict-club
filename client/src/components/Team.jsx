@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Users, Facebook, Github, Linkedin, Shield, Star, Crown, Award, Sparkles, ChevronRight } from 'lucide-react';
+import { Users, Facebook, Github, Linkedin, Shield, Star, Crown, Award, ChevronRight } from 'lucide-react';
 import { useInView } from 'react-intersection-observer';
 import useStore from '../context/store';
 
@@ -235,7 +235,7 @@ export default function Team() {
         <motion.div initial={{ opacity: 0, y: 30 }} animate={inView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.6 }}
           style={{ textAlign: 'center', marginBottom: 44 }}>
           <div className="section-tag" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-            <Sparkles size={13} /> Our People
+            Our People
           </div>
           <h2 className="section-title">Executive Committee</h2>
           <p className="section-desc">The dedicated team driving innovation at BAUET ICT Club</p>
