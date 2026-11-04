@@ -57,3 +57,11 @@ How images are handled:
 ## Using the admin from another device
 
 Run `npm run dev` on your PC. It prints a *Network* address such as `http://192.168.0.12:5173`; open it on your phone or another laptop on the same Wi-Fi and log in with the same admin username and password. To reach it from anywhere, deploy the site and use the deployed address.
+
+
+## AI assistant (chat bubble)
+
+1. Create a free key at https://console.groq.com/keys and put it in `.env` as `GROQ_API_KEY=...` (optionally `GROQ_MODEL`).
+2. Restart the server. Admin → Settings → Connections shows *AI assistant on*.
+3. The assistant reads your live **events, notices, committee, projects, collaborations and FAQ** every minute, so keep those up to date and it stays correct. It never sees applicant data, and it says it is not sure instead of guessing.
+4. Without a key (or if Groq is down) visitors still get an answer from the FAQ, events and committee, so the chat never shows an error.

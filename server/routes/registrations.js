@@ -61,7 +61,7 @@ function validate(body) {
     photo_url: clean(body.photo_url, 500),
   };
 
-  if (data.full_name.length < 2 || !/^[\p{L}\s.'-]+$/u.test(data.full_name)) errors.full_name = 'Enter your full name';
+  if (data.full_name.length < 2 || !/^[\p{L}\p{M}\s.'-]+$/u.test(data.full_name)) errors.full_name = 'Enter your full name';
   if (data.student_id.length < 2) errors.student_id = 'Student ID is required';
   if (!/^\d{1,3}$/.test(data.batch)) errors.batch = 'Select your batch';
   if (!DEPARTMENTS.includes(data.department)) errors.department = 'Select your department';
@@ -132,7 +132,7 @@ async function buildExport(src) {
   const type = TYPES.includes(src.type) ? src.type : 'all';
   const status = STATUSES.includes(src.status) ? src.status : 'all';
   const q = String(src.q || '').trim().toLowerCase();
-  const ids = new Set((Array.isArray(src.ids) ? src.ids : String(src.ids || '').split(',')).map(Number).filter(Number.isInteger));
+  const ids = new Set((Array.isArray(src.ids) ? src.ids : String(src.ids || '').split(',')).filter((v) => String(v).trim() !== '').map(Number).filter(Number.isInteger));
   let { rows } = await pool.query('SELECT * FROM registrations WHERE deleted_at IS NULL ORDER BY created_at DESC');
   rows = rows.filter((r) => (type === 'all' || r.type === type) && (status === 'all' || r.status === status)
     && (!ids.size || ids.has(r.id))

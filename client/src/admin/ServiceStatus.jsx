@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
-import { Mail, Cloud, Loader2, Send, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Mail, Cloud, Bot, Loader2, Send, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { api } from '../context/store';
 import { Panel, inputCls } from './ui';
 
@@ -10,11 +10,13 @@ const Dot = ({ ok }) => (ok ? <CheckCircle2 size={16} className="text-emerald-50
 export default function ServiceStatus() {
   const [mail, setMail] = useState(null);
   const [img, setImg] = useState(null);
+  const [ai, setAi] = useState(null);
   const [to, setTo] = useState('');
   const [busy, setBusy] = useState(false);
 
   const load = () => {
     api.get('/email/status').then((r) => setMail(r.data)).catch(() => setMail({ configured: false }));
+    api.get('/chat/status').then((r) => setAi(r.data)).catch(() => setAi({ configured: false }));
     api.get('/upload/status').then((r) => setImg(r.data)).catch(() => setImg({ configured: false }));
   };
   useEffect(load, []);
@@ -52,6 +54,16 @@ export default function ServiceStatus() {
         <div className="min-w-0 text-sm">
           <div className="flex items-center gap-2 font-semibold text-fg"><Dot ok={img?.provider === 'cloudinary' && img?.ok} /> Images {img === null ? '…' : img.provider === 'cloudinary' ? (img.ok ? `on Cloudinary (${img.cloud})` : 'Cloudinary keys rejected') : 'saved on this server'}</div>
           <p className="mt-1 text-fg2">{img?.provider === 'cloudinary' ? (img.ok ? 'Photos are optimised and stored on Cloudinary; deleting from Trash removes them there too.' : img.error) : (img?.note || 'Add CLOUDINARY_* keys to .env to store photos on Cloudinary.')}</p>
+        </div>
+      </div>
+
+      <div className="flex gap-3">
+        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-emerald-500/10 text-emerald-600"><Bot size={18} /></span>
+        <div className="min-w-0 text-sm">
+          <div className="flex items-center gap-2 font-semibold text-fg"><Dot ok={ai?.configured && !ai?.lastError} /> AI assistant {ai === null ? '…' : ai.configured ? `on (${ai.model})` : 'using built-in answers'}</div>
+          <p className="mt-1 text-fg2">{ai?.configured
+            ? `It answers from your live events, notices, committee and FAQ. Answered ${ai.ok}, fell back ${ai.failed}${ai.lastError ? `, last error: ${ai.lastError}` : ''}.`
+            : <>Add <code className="text-accent">GROQ_API_KEY</code> (free at console.groq.com/keys) to <code>.env</code> and restart. Until then the chat answers from your FAQ, events and committee.</>}</p>
         </div>
       </div>
     </Panel>
