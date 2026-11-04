@@ -1,5 +1,6 @@
 import Select from '../components/Select';
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Upload, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -103,7 +104,8 @@ export function ConfirmHost() {
   useEffect(() => { openConfirm = setDlg; return () => { openConfirm = null; }; }, []);
   const close = (v) => { dlg?.resolve(v); setDlg(null); };
 
-  return (
+  // portalled to <body> so it always sits above other pop-ups (e.g. the applicant details dialog)
+  return createPortal(
     <AnimatePresence>
       {dlg && (
         <div className="fixed inset-0 z-[400] grid place-items-center p-4">
@@ -119,7 +121,8 @@ export function ConfirmHost() {
           </motion.div>
         </div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   );
 }
 

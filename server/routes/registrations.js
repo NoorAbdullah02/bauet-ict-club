@@ -132,8 +132,10 @@ async function buildExport(src) {
   const type = TYPES.includes(src.type) ? src.type : 'all';
   const status = STATUSES.includes(src.status) ? src.status : 'all';
   const q = String(src.q || '').trim().toLowerCase();
+  const ids = new Set((Array.isArray(src.ids) ? src.ids : String(src.ids || '').split(',')).map(Number).filter(Number.isInteger));
   let { rows } = await pool.query('SELECT * FROM registrations WHERE deleted_at IS NULL ORDER BY created_at DESC');
   rows = rows.filter((r) => (type === 'all' || r.type === type) && (status === 'all' || r.status === status)
+    && (!ids.size || ids.has(r.id))
     && (!q || `${r.full_name} ${r.email} ${r.student_id}`.toLowerCase().includes(q)));
   const buffer = await (format === 'docx' ? exporters.toDocx : exporters.toPdf)(rows, { type, status });
   return {
