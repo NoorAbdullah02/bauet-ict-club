@@ -10,7 +10,7 @@ The Express server serves the built website, so you deploy **one** web service. 
 ## 2. Create the service
 **Easiest:** Render dashboard → *New* → *Blueprint* → pick this GitHub repository. Render reads `render.yaml`.
 
-**By hand:** *New* → *Web Service* → this repository, branch `main`:
+**By hand:** *New* → *Web Service* → this repository, branch `master`:
 
 | Setting | Value |
 | --- | --- |
@@ -40,7 +40,7 @@ See [AFTER_DEPLOY.md](AFTER_DEPLOY.md) for the one-line app address and the chec
 - Admin → Settings → *Connections*: email, AI and pictures should show green.
 - Admin → Settings → *Load demo data* if you want sample content; *Remove demo data* when you are done.
 - The free plan sleeps after 15 minutes without visitors, so the first visit after a pause is slow. A paid plan, or a free uptime pinger on `/robots.txt`, avoids that.
-- Every push to `main` redeploys automatically.
+- Every push to `master` redeploys automatically.
 
 ## Run it like production on your own computer
 ```bash
