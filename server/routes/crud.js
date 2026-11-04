@@ -77,8 +77,10 @@ function createCrudRouter(table, opts = {}) {
     try {
       const old = (await pool.query(`SELECT * FROM ${table} WHERE id = $1 AND deleted_at IS NULL`, [req.params.id])).rows[0];
       if (!old) return res.status(404).json({ error: 'Not found' });
-      const problem = validate && await validate({ ...old, ...data }, old);
+      const merged = { ...old, ...data };
+      const problem = validate && await validate(merged, old);
       if (problem) return res.status(409).json({ error: problem });
+      Object.keys(data).forEach((k) => { data[k] = merged[k]; }); // keep what validate() cleaned or defaulted
       const keys = Object.keys(data);
       const sets = keys.map((k, i) => `${k} = $${i + 1}`);
       const { rows } = await pool.query(

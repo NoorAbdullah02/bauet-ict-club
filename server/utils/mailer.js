@@ -135,6 +135,38 @@ const templates = {
     html: layout({ title: 'You are selected 🎉', body: `<p>Dear ${esc(r.full_name)},</p><p>We are happy to tell you that you have been selected as <b>${esc(position)}</b> for the <b>${esc(session)}</b> session.</p>${r.post && r.type === 'committee' && r.post !== position ? `<p>You applied for <b>${esc(r.post)}</b>; after reviewing all applications the committee has placed you as <b>${esc(position)}</b>, where we think you will do great work.</p>` : ''}<p>Your photo and post are now published on our Team page. Welcome to the team!</p>`, button: { href: `${siteUrl()}/team`, label: 'See the team page' } }),
     text: `Congratulations ${r.full_name}! You are selected as ${position} for ${session}.`,
   }),
+  // sent the moment someone registers for ONE event: it names that event, its time and place, and carries the organiser's own note
+  eventRegistered: (r, ev, fDate, fTime) => ({
+    subject: `You are registered: ${ev.title}`,
+    html: layout({ title: 'You are registered', body: `<p>Hi ${esc(r.full_name)},</p><p>You are registered for <b>${esc(ev.title)}</b>.</p><p>${esc(fDate(ev.date))}${ev.time ? ` · ${esc(fTime(ev.time))}` : ''}${ev.location ? `<br>${esc(ev.location)}` : ''}</p>${ev.reg_form?.email_note ? `<p style="white-space:pre-line">${esc(ev.reg_form.email_note)}</p>` : '<p>Please bring your student ID. See you there!</p>'}`, button: { href: `${siteUrl()}/events/${ev.id}`, label: 'Event details' } }),
+    text: `Hi ${r.full_name}, you are registered for ${ev.title} on ${fDate(ev.date)}${ev.time ? ` at ${fTime(ev.time)}` : ''}.${ev.reg_form?.email_note ? `\n${ev.reg_form.email_note}` : ''}\n${siteUrl()}/events/${ev.id}`,
+  }),
+  // paid events: sent at once, the place is confirmed when the admin verifies the payment
+  registrationPending: (r, ev, pay, fDate, fTime) => ({
+    subject: `We received your registration: ${ev.title}`,
+    html: layout({ title: 'Registration received', body: `<p>Hi ${esc(r.full_name || 'there')},</p><p>We received your registration for <b>${esc(ev.title)}</b>${ev.date ? ` (${esc(fDate(ev.date))}${ev.time ? ` · ${esc(fTime(ev.time))}` : ''})` : ''}.</p><p>Your payment of <b>${esc(pay.amount)} BDT</b> by ${esc(pay.method)} (transaction ID <b>${esc(pay.trx_id)}</b>) is being checked. We will email you again as soon as your place is confirmed.</p>`, button: { href: `${siteUrl()}${ev.path || `/events/${ev.id}`}`, label: 'Details' } }),
+    text: `We received your registration for ${ev.title}. Your payment (${pay.method}, ${pay.trx_id}) is being checked; we will email you when it is confirmed.`,
+  }),
+  paymentVerified: (r, ev, fDate) => ({
+    subject: `Payment received: ${ev.title}`,
+    html: layout({ title: 'Payment confirmed', body: `<p>Hi ${esc(r.full_name || 'there')},</p><p>We received your payment for <b>${esc(ev.title)}</b>${ev.date ? ` (${esc(fDate(ev.date))})` : ''}. Your place is confirmed.</p>${ev.email_note ? `<p style="white-space:pre-line">${esc(ev.email_note)}</p>` : ''}`, button: { href: `${siteUrl()}${ev.path || `/events/${ev.id}`}`, label: 'Details' } }),
+    text: `Your payment for ${ev.title} is confirmed. ${siteUrl()}${ev.path || `/events/${ev.id}`}`,
+  }),
+  paymentRejected: (r, ev, note) => ({
+    subject: `We could not verify your payment: ${ev.title}`,
+    html: layout({ title: 'Payment not verified', body: `<p>Hi ${esc(r.full_name || 'there')},</p><p>We could not verify your payment for <b>${esc(ev.title)}</b>.${note ? ` ${esc(note)}` : ''}</p><p>Please check the transaction ID and register again, or write to us.</p>`, button: { href: `${siteUrl()}${ev.path || `/events/${ev.id}`}`, label: 'Open the page' } }),
+    text: `We could not verify your payment for ${ev.title}. ${note || ''} ${siteUrl()}${ev.path || `/events/${ev.id}`}`,
+  }),
+  formReceived: (r, form) => ({
+    subject: `We received your response: ${form.title}`,
+    html: layout({ title: 'Response received', body: `<p>Hi ${esc(r.full_name || 'there')},</p><p>Thank you. We received your response to <b>${esc(form.title)}</b>.</p>${form.reg_form?.email_note ? `<p style="white-space:pre-line">${esc(form.reg_form.email_note)}</p>` : ''}` }),
+    text: `Thank you. We received your response to ${form.title}.`,
+  }),
+  adminNewSignup: (ev, summary) => ({
+    subject: `New registration: ${ev.title}`,
+    html: layout({ title: 'New registration', body: `<p>${esc(summary)}</p>`, button: { href: `${siteUrl()}${ev.adminPath || '/admin/events'}`, label: 'Open responses' } }),
+    text: `New registration for ${ev.title}: ${summary}`,
+  }),
   applicationApproved: (r) => ({
     subject: 'Your application is approved | BAUET ICT Club',
     html: layout({ title: 'Welcome to the club 🎉', body: `<p>Dear ${esc(r.full_name)},</p><p>Great news: your ${esc(typeLabel(r).toLowerCase())} has been <b>approved</b>. Welcome to the BAUET ICT Club family!</p><p>Watch our Events and Notices pages for your first workshop, and keep an eye on your inbox.</p>`, button: { href: `${siteUrl()}/events`, label: 'See upcoming events' } }),

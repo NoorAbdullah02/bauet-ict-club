@@ -54,6 +54,15 @@ The applicant gets an email when they apply, are approved, rejected or selected.
 
 Admin → Applications: export PDF, Word or CSV (tick *All types* for everyone), or email the PDF/Word as an attachment. Tick applicants to export or act on only those. The post an applicant asked for can be changed on the card; *Select for session* can also place them in a different post, and the selection email says so. Bangla names are supported in the PDF.
 
+## Forms, event registration and payments
+
+- **Admin → Forms** builds any form like Google Forms: short and long answers, email, mobile, number, dropdown, multiple choice, checkboxes (each can add an "Other" the person types), date, time, yes/no, rating scale, picture upload, headings, and "show this question only if…" conditions. Each form has its own link `/f/<name>`, a limit, a closing time, an optional fee, a thank-you message and a summary with charts.
+- **Every event** has its own page and registration link `/events/<id>` with the same builder (Admin → Events → the form icon). The link previews correctly on Facebook and WhatsApp. Open registrations, the limit and the closing time are set there too.
+- **Payments:** the admin turns on a fee and enters the bKash, Nagad or Rocket number. People send money, then enter their number and the **transaction ID**; one ID can be used only once. The admin verifies or rejects each payment in the responses list and the person gets an email.
+- **Emails for each registration:** the person gets an email about that exact event or form, with the admin's own note. For paid ones they first get "we are checking your payment", then "confirmed".
+- **Downloads, one per event / form / committee / application list:** CSV, PDF, Word and a ZIP that also holds every uploaded picture in full quality (choose Original, JPG or PNG).
+- **Events page:** Upcoming (soonest first), Past events (newest first) grouped by semester, search, semester and category filters; every committee's events stay available.
+
 ## Visitors
 
 Admin → Visitors shows people per day and per week, page views, top pages, devices, where they came from and the IP address of every visitor (search by IP or page, export CSV). The website reports each page it shows to `POST /api/analytics/hit`; bots, the admin area and "Do Not Track" visitors are not counted. IP addresses are deleted after `ANALYTICS_RETENTION_DAYS` days (default 180), and every Monday the admin gets last week's numbers by email. Because IP addresses are personal data, mention visitor statistics in your privacy notice.

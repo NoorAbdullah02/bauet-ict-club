@@ -4,6 +4,7 @@ const helmet = require('helmet');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
+const fs = require('fs');
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
 const pool = require('./config/db');
@@ -14,6 +15,7 @@ const mail = require('./utils/mailer');
 const createCrudRouter = require('./routes/crud');
 const { notifySubscribers } = require('./utils/notify');
 const { formalDate, formalTime } = require('./utils/format');
+const { sanitizeForm } = require('./utils/forms');
 const { authMiddleware } = require('./middleware/auth');
 
 const app = express();
@@ -67,10 +69,10 @@ const apiLimiter = rateLimit({
 });
 app.use('/api/', apiLimiter);
 
-// short browser/CDN cache for public read-only lists (admin routes stay uncached)
+// public read-only lists are revalidated on every visit (cheap 304 answers), so admin changes appear immediately (admin routes stay uncached)
 const PUBLIC_LISTS = ['/events', '/notices', '/members', '/gallery', '/achievements', '/settings'];
 app.use('/api', (req, res, next) => {
-  if (['GET', 'HEAD'].includes(req.method) && PUBLIC_LISTS.some((p) => req.path === p)) res.set('Cache-Control', 'public, max-age=30, stale-while-revalidate=120');
+  if (['GET', 'HEAD'].includes(req.method) && PUBLIC_LISTS.some((p) => req.path === p)) res.set('Cache-Control', 'public, max-age=0, must-revalidate'); // always asks the server, which answers 304 (no body) when nothing changed, so new items show at once
   else res.set('Cache-Control', 'no-store');
   next();
 });
@@ -81,12 +83,14 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/upload', authMiddleware, require('./routes/upload'));
 app.use('/api/chat', require('./routes/chat'));
 app.use('/api/analytics', require('./routes/analytics'));
+app.use('/api/event-registrations', require('./routes/eventRegs'));
+app.use('/api/forms', require('./routes/forms'));
 app.use('/api/email', require('./routes/email'));
 app.use('/api/registrations', require('./routes/registrations'));
 app.use('/api/settings', require('./routes/settings'));
 
 const COLS = {
-  events: ['title', 'date', 'time', 'location', 'description', 'image_url', 'featured', 'category'],
+  events: ['title', 'date', 'time', 'location', 'description', 'image_url', 'featured', 'category', 'reg_url', 'capacity', 'reg_open', 'reg_form'],
   notices: ['title', 'date', 'content', 'priority', 'pinned', 'expiry_date', 'image_url'],
   members: ['name', 'position', 'department', 'batch', 'committee_session', 'image_url', 'social_fb', 'social_gh', 'social_li', 'display_order', 'active'],
   gallery: ['title', 'image_url', 'category', 'date', 'description'],
@@ -94,6 +98,7 @@ const COLS = {
   posts: ['title', 'content', 'image_url', 'author'],
 };
 app.use('/api/events', createCrudRouter('events', { orderBy: 'date', orderDir: 'DESC', columns: COLS.events, imageCols: ['image_url'], auth: authMiddleware,
+  validate: async (d) => { if (d.reg_form === undefined) return null; const r = sanitizeForm(d.reg_form); if (r.error) return r.error; d.reg_form = r.form ? JSON.stringify(r.form) : null; return null; },
   onCreate: (r) => notifySubscribers('event', { title: r.title, when: [formalDate(r.date), formalTime(r.time), r.location].filter(Boolean).join(' · '), summary: r.description, path: '/events' }) }));
 app.use('/api/notices', createCrudRouter('notices', { orderBy: 'pinned DESC, created_at', orderDir: 'DESC', columns: COLS.notices, imageCols: ['image_url'], auth: authMiddleware,
   onCreate: (r) => { if (!r.expiry_date || String(r.expiry_date).slice(0, 10) >= new Date().toISOString().slice(0, 10)) notifySubscribers('notice', { title: r.title, summary: r.content, path: '/notices' }); } }));
@@ -157,13 +162,20 @@ app.get('/api/bootstrap', async (_req, res) => {
   res.json(out);
 });
 
+// every event has its own page and registration link: /events/ID
+app.get('/sitemap-events.xml', async (req, res) => {
+  try {
+    const { rows } = await pool.query('SELECT id FROM events WHERE deleted_at IS NULL');
+    res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${rows.map((r) => `  <url><loc>${origin(req)}/events/${r.id}</loc></url>`).join('\n')}\n</urlset>\n`);
+  } catch { res.status(500).end(); }
+});
 const SITE_PATHS = ['/', '/about', '/events', '/notices', '/projects', '/team', '/ambassadors', '/gallery', '/achievements', '/faq', '/contact', '/join', '/join/committee', '/join/general', '/join/ambassador'];
 const origin = (req) => (process.env.PUBLIC_URL || process.env.RENDER_EXTERNAL_URL || '').replace(/\/$/, '') || `${req.protocol}://${req.get('host')}`;
 app.get('/sitemap.xml', (req, res) => {
   const base = origin(req);
   res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${SITE_PATHS.map((p) => `  <url><loc>${base}${p}</loc></url>`).join('\n')}\n</urlset>\n`);
 });
-app.get('/robots.txt', (req, res) => res.type('text/plain').send(`User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /api/\nSitemap: ${origin(req)}/sitemap.xml\n`));
+app.get('/robots.txt', (req, res) => res.type('text/plain').send(`User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /f/\nDisallow: /api/\nSitemap: ${origin(req)}/sitemap.xml\n`));
 app.use('/api/trash', require('./routes/trash'));
 app.use('/api/committees', require('./routes/committees'));
 app.use('/api/messages', require('./routes/messages'));
@@ -172,8 +184,39 @@ if (process.env.NODE_ENV === 'production') {
   app.use('/assets', express.static(path.join(__dirname, '..', 'client', 'dist', 'assets'), { maxAge: '1y', immutable: true }));
   // the page itself is never cached for long (it names the hashed files); the hashed files above are cached for a year
   app.use(express.static(path.join(__dirname, '..', 'client', 'dist'), { maxAge: '1h', setHeaders: (res, file) => { if (file.endsWith('.html')) res.set('Cache-Control', 'no-cache'); } }));
+  // The page head is filled in by the server for shared links, because Facebook and WhatsApp do not run JavaScript.
+  const INDEX = path.join(__dirname, '..', 'client', 'dist', 'index.html');
+  const escAttr = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const page = (req, meta = {}) => {
+    const base = origin(req);
+    const m = { title: 'BAUET ICT Club', description: 'Where Technology Meets Innovation. Bangladesh Army University of Engineering & Technology, Rajshahi.', image: '/logos/ict-club.png', url: base + req.path, ...meta };
+    const abs = (u) => (/^https?:\/\//.test(u) ? u : base + (u.startsWith('/') ? u : `/${u}`));
+    let html = fs.readFileSync(INDEX, 'utf8');
+    html = html.replace(/<title>[^<]*<\/title>/, `<title>${escAttr(m.title)}</title>`)
+      .replace(/(<meta property="og:title" content=")[^"]*(")/, `$1${escAttr(m.title)}$2`)
+      .replace(/(<meta property="og:description" content=")[^"]*(")/, `$1${escAttr(m.description)}$2`)
+      .replace(/(<meta property="og:image" content=")[^"]*(")/, `$1${escAttr(abs(m.image))}$2`)
+      .replace('</head>', `  <meta property="og:url" content="${escAttr(m.url)}" />\n  <meta name="twitter:card" content="summary_large_image" />\n  <link rel="canonical" href="${escAttr(m.url)}" />\n</head>`);
+    return html;
+  };
+  app.get('/f/:slug', async (req, res, next) => {
+    try {
+      const f = (await pool.query('SELECT title, description FROM forms WHERE slug = $1 AND deleted_at IS NULL', [req.params.slug])).rows[0];
+      if (!f) return next();
+      res.set('Cache-Control', 'no-cache').type('html').send(page(req, { title: `${f.title} | BAUET ICT Club`, description: f.description || 'Fill in this form' }));
+    } catch { next(); }
+  });
+  app.get('/events/:id', async (req, res, next) => {
+    try {
+      const ev = (await pool.query('SELECT * FROM events WHERE id = $1 AND deleted_at IS NULL', [req.params.id])).rows[0];
+      if (!ev) return next();
+      const when = [formalDate(ev.date), formalTime(ev.time), ev.location].filter(Boolean).join(' · ');
+      const image = ev.image_url && /^(https?:\/\/|\/uploads\/)/.test(ev.image_url) ? ev.image_url.replace('/upload/', '/upload/c_fill,w_1200,h_630,f_jpg,q_auto/') : '/logos/ict-club.png';
+      res.set('Cache-Control', 'no-cache').type('html').send(page(req, { title: `${ev.title} | BAUET ICT Club`, description: `${when}${ev.description ? `. ${String(ev.description).slice(0, 160)}` : ''}`, image }));
+    } catch { next(); }
+  });
   app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '..', 'client', 'dist', 'index.html'));
+    res.set('Cache-Control', 'no-cache').type('html').send(page(req));
   });
 }
 

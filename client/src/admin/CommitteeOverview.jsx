@@ -6,6 +6,7 @@ import useStore from '../context/store';
 import { sessionRank } from '../lib/sessions';
 import { Panel, askConfirm } from './ui';
 import { cn } from '../lib/cn';
+import { saveFile } from '../lib/download';
 
 const STEPS = [
   [CalendarPlus, 'Launch', 'Press “Launch new committee”, pick Summer or Winter and the year.'],
@@ -61,6 +62,7 @@ export default function CommitteeOverview({ onLaunch, onTransfer, onOpen }) {
                 <div className="mt-4 flex flex-wrap gap-2">
                   <button onClick={() => onOpen(s.label)} className="rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-fg2 transition hover:border-tech hover:text-tech">View people</button>
                   <button onClick={() => onTransfer(s.label)} className="rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-fg2 transition hover:border-tech hover:text-tech">Copy people to…</button>
+                  <button disabled={!s.members} onClick={() => saveFile(`/committees/${encodeURIComponent(s.label)}/zip`, {}, `committee-${s.label.replace(/\s+/g, '-')}.zip`)} title="List and every picture in full quality" className="rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-fg2 transition hover:border-tech hover:text-tech disabled:opacity-40">Download</button>
                   <button disabled={busy === s.label} onClick={() => del(s)} aria-label={`Delete ${s.label}`} className="ml-auto grid size-8 place-items-center rounded-lg text-fg2 transition hover:bg-red-500/10 hover:text-red-500 disabled:opacity-50"><Trash2 size={15} /></button>
                 </div>
               </div>

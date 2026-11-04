@@ -2,6 +2,7 @@ const express = require('express');
 const { fail } = require('../utils/http');
 const mail = require('../utils/mailer');
 const exporters = require('../utils/exporters');
+const { sendZip, safe } = require('../utils/zipper');
 const { storeImage, cloneImage } = require('../utils/images');
 const multer = require('multer');
 const rateLimit = require('express-rate-limit');
@@ -128,8 +129,7 @@ router.post('/', submitLimiter, async (req, res) => {
 });
 
 // Build the PDF/Word file for the applications that match ?format=pdf|docx&type=committee|general|ambassador|all&status=all|pending|approved|rejected&q=
-async function buildExport(src) {
-  const format = src.format === 'docx' ? 'docx' : 'pdf';
+async function selectRows(src) {
   const type = TYPES.includes(src.type) ? src.type : 'all';
   const status = STATUSES.includes(src.status) ? src.status : 'all';
   const q = String(src.q || '').trim().toLowerCase();
@@ -138,6 +138,12 @@ async function buildExport(src) {
   rows = rows.filter((r) => (type === 'all' || r.type === type) && (status === 'all' || r.status === status)
     && (!ids.size || ids.has(r.id))
     && (!q || `${r.full_name} ${r.email} ${r.student_id}`.toLowerCase().includes(q)));
+  return { rows, type, status };
+}
+
+async function buildExport(src) {
+  const format = src.format === 'docx' ? 'docx' : 'pdf';
+  const { rows, type, status } = await selectRows(src);
   const buffer = await (format === 'docx' ? exporters.toDocx : exporters.toPdf)(rows, { type, status });
   return {
     buffer, count: rows.length, format,
@@ -145,6 +151,23 @@ async function buildExport(src) {
     mime: format === 'docx' ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' : 'application/pdf',
   };
 }
+
+/** Admin: applications as one ZIP: the list (PDF, Word, CSV) and every applicant's photo in full quality. Same filters as the export. ?format=original|jpg|png */
+router.get('/zip', authMiddleware, async (req, res) => {
+  try {
+    const { rows, type, status } = await selectRows(req.query);
+    const cell = (v) => `"${String(Array.isArray(v) ? v.join('; ') : v ?? '').replace(/"/g, '""')}"`;
+    const cols = ['full_name', 'type', 'post', 'student_id', 'batch', 'department', 'gender', 'phone', 'email', 'interests', 'experience', 'note', 'status', 'created_at'];
+    const csv = `\uFEFF${[cols.join(','), ...rows.map((r) => cols.map((c) => cell(r[c])).join(','))].join('\n')}`;
+    const entries = [
+      { name: 'applications.csv', data: csv },
+      { name: 'applications.pdf', data: await exporters.toPdf(rows, { type, status }) },
+      { name: 'applications.docx', data: await exporters.toDocx(rows, { type, status }) },
+      ...rows.filter((r) => r.photo_url).map((r) => ({ name: `photos/${r.type}-${safe(r.full_name, `applicant-${r.id}`)}-${safe(r.student_id, r.id)}`, image: r.photo_url })),
+    ];
+    await sendZip(res, `applications-${type}-${new Date().toISOString().slice(0, 10)}`, entries, { format: req.query.format });
+  } catch (e) { if (!res.headersSent) fail(res, e); else res.end(); }
+});
 
 router.get('/export', authMiddleware, async (req, res) => {
   try {

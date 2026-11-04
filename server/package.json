@@ -9,6 +9,7 @@
     "admin:reset": "node config/resetAdmin.js"
   },
   "dependencies": {
+    "archiver": "^7.0.1",
     "bcryptjs": "^2.4.3",
     "cloudinary": "^2.5.1",
     "compression": "^1.8.2",

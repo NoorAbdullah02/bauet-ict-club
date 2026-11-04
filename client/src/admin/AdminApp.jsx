@@ -15,6 +15,7 @@ import AdminApplications from '../components/AdminApplications';
 import { FEATURES } from './config';
 import Newsletter from './Newsletter';
 import Visitors from './Visitors';
+import FormsAdmin from './FormsAdmin';
 import Logo from '../components/Logo';
 import { cn } from '../lib/cn';
 
@@ -22,7 +23,7 @@ const NAV = [
   ['Overview', [['/admin', LayoutDashboard, 'Dashboard', true], ['/admin/visitors', Eye, 'Visitors']]],
   ['People', [['/admin/applications', ClipboardList, 'Applications', false, 'pending'], ['/admin/members', Users, 'Committee']]],
   ['Content', [['/admin/events', Calendar, 'Events'], ['/admin/notices', Bell, 'Notices'], ['/admin/gallery', Image, 'Gallery'], ['/admin/achievements', Trophy, 'Achievements'], ['/admin/posts', FileText, 'Posts']]],
-  ['System', [['/admin/messages', MessageSquare, 'Messages', false, 'unread'], ['/admin/newsletter', Mail, 'Newsletter'], ['/admin/trash', Trash2, 'Trash', false, 'trash'], ['/admin/settings', Settings, 'Settings']]],
+  ['System', [['/admin/forms', ClipboardList, 'Forms'], ['/admin/messages', MessageSquare, 'Messages', false, 'unread'], ['/admin/newsletter', Mail, 'Newsletter'], ['/admin/trash', Trash2, 'Trash', false, 'trash'], ['/admin/settings', Settings, 'Settings']]],
 ];
 FEATURES.forEach((f) => {
   const group = NAV.find(([g]) => g === (f.nav || 'Content')) || NAV[2];
@@ -122,6 +123,7 @@ export default function AdminApp() {
             <Route path="messages" element={<Inbox />} />
             <Route path="newsletter" element={<Newsletter />} />
             <Route path="visitors" element={<Visitors />} />
+            <Route path="forms" element={<FormsAdmin />} />
             <Route path="trash" element={<Trash />} />
             <Route path="settings" element={<SettingsView />} />
             <Route path="*" element={<Navigate to="/admin" replace />} />
