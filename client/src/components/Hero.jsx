@@ -55,8 +55,11 @@ export default function Hero() {
     <section id="home" ref={root} className="relative flex min-h-screen items-center overflow-hidden">
       <Backdrop3D variant="hero" className="absolute inset-0 opacity-90" />
 
-      <motion.div style={{ y: orbY }} className="hero-orb pointer-events-none absolute -right-32 top-1/4 size-[34rem] rounded-full opacity-40 blur-3xl"
-        style={{ background: 'radial-gradient(circle, rgba(var(--accent-rgb),0.5), transparent 65%)' }} />
+      <motion.div className="hero-orb pointer-events-none absolute -right-32 top-1/4 size-[34rem] rounded-full opacity-40 blur-3xl"
+        style={{ y: orbY, background: 'radial-gradient(circle, rgba(var(--accent-rgb),0.5), transparent 65%)' }} />
+      <div className="hero-orb pointer-events-none absolute -left-40 bottom-10 size-[28rem] rounded-full opacity-30 blur-3xl"
+        style={{ background: 'radial-gradient(circle, rgba(var(--tech-rgb),0.45), transparent 65%)', animationDelay: '-6s' }} />
+      <div className="hero-grid pointer-events-none absolute inset-0" />
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-bg to-transparent" />
 
       <motion.div style={{ y: contentY, opacity: contentOpacity }} className="container relative z-10 pb-24 pt-36 text-center">
@@ -67,7 +70,7 @@ export default function Hero() {
         </motion.div>
 
         <motion.div {...rise(0.1)}
-          className="mx-auto mb-8 inline-flex items-center gap-2 rounded-full border border-line bg-surface/60 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.18em] text-tech backdrop-blur">
+          className="chip-live mx-auto mb-8 inline-flex items-center gap-2 rounded-full border border-line bg-surface/60 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.18em] text-tech backdrop-blur">
           <GraduationCap size={14} />
           <span className="max-sm:hidden">Bangladesh Army University of Engineering &amp; Technology</span>
           <span className="sm:hidden">BAUET · Rajshahi</span>
@@ -95,7 +98,7 @@ export default function Hero() {
         </motion.div>
 
         <motion.div {...rise(1)}
-          className="mx-auto mt-16 grid max-w-3xl grid-cols-2 divide-line rounded-3xl border border-line bg-surface/50 backdrop-blur-md sm:grid-cols-4 sm:divide-x">
+          className="glass-edge mx-auto mt-16 grid max-w-3xl grid-cols-2 divide-line rounded-3xl bg-surface/60 backdrop-blur-md sm:grid-cols-4 sm:divide-x">
           {stats.map((s) => <Stat key={s.label} {...s} />)}
         </motion.div>
       </motion.div>

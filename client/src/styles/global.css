@@ -391,3 +391,55 @@ body.admin-mode .cursor-glow { display: none; }
 .team-flex > * { flex: 1 1 170px; max-width: 232px; min-width: 0; }
 .team-flex-lg > * { flex-basis: 190px; max-width: 250px; }
 @media (max-width: 520px) { .team-flex > * { flex-basis: calc(50% - 8px); max-width: none; } }
+
+/* ==========================================================
+   Polish layer
+   ========================================================== */
+@keyframes orbDrift { 0%,100% { transform: translate3d(0,0,0) scale(1); } 50% { transform: translate3d(-24px,18px,0) scale(1.08); } }
+.hero-orb { animation: orbDrift 14s ease-in-out infinite; }
+
+/* faint blueprint grid fading out toward the edges of the hero */
+.hero-grid {
+  background-image:
+    linear-gradient(rgba(var(--accent-rgb),0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(var(--accent-rgb),0.07) 1px, transparent 1px);
+  background-size: 56px 56px;
+  -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 45%, #000 20%, transparent 75%);
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 45%, #000 20%, transparent 75%);
+}
+
+/* live pulse dot on the hero chip */
+.chip-live::before {
+  content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--tech);
+  box-shadow: 0 0 0 0 rgba(var(--tech-rgb),0.6); animation: ping 2s ease-out infinite;
+}
+@keyframes ping { to { box-shadow: 0 0 0 10px rgba(var(--tech-rgb),0); } }
+
+/* gradient hairline border (blue → aqua → green) */
+.glass-edge { position: relative; box-shadow: var(--shadow-lg); }
+.glass-edge::before, .spot.card-edge::before { content: none; }
+.glass-edge::after {
+  content: ''; position: absolute; inset: 0; border-radius: inherit; padding: 1.2px; pointer-events: none;
+  background: linear-gradient(135deg, rgba(var(--accent-rgb),0.6), rgba(23,162,216,0.25) 45%, rgba(var(--tech-rgb),0.6));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+}
+
+/* cards: softer lift, gradient top edge on hover */
+.spot { box-shadow: var(--shadow-sm); }
+.spot:hover { transform: translateY(-6px); box-shadow: var(--shadow-lg); border-color: rgba(var(--accent-rgb),0.35) !important; }
+.spot::after {
+  content: ''; position: absolute; left: 14%; right: 14%; top: -1px; height: 2px; border-radius: 2px;
+  background: var(--grad-text); opacity: 0; transform: scaleX(0.4); transition: opacity 0.4s, transform 0.5s var(--ease); pointer-events: none;
+}
+.spot:hover::after { opacity: 1; transform: scaleX(1); }
+
+/* section headings: tag as a pill, gradient divider glow */
+.section-tag { padding: 6px 14px; border-radius: 999px; background: var(--tech-light); border: 1px solid rgba(var(--tech-rgb),0.2); }
+.divider { width: 84px; height: 3px; }
+
+/* tidier alternating section edge */
+.section-alt { border-block: 1px solid color-mix(in srgb, var(--border) 60%, transparent); backdrop-filter: blur(2px); }
+
+/* smooth gradient on primary heading emphasis */
+::selection { background: rgba(var(--accent-rgb),0.9); }

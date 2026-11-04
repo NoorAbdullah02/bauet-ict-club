@@ -218,9 +218,16 @@ export default function Team() {
           transition: all 0.25s ease; border: 1px solid var(--border); background: transparent; color: var(--fg-muted); }
         .dept-chip.active { color: #fff; }
         .dept-chip:not(.active):hover { background: var(--bg-alt); }
-        @media (max-width: 768px) {
-          .vp-row { flex-direction: column !important; }
-        }
+        .lead-link { width: 1px; height: 26px; margin: 0 auto; background: linear-gradient(var(--tech), transparent); opacity: 0.7; }
+        .vp-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; margin-top: 4px; }
+        .vp-card { flex: 1 1 220px; max-width: 280px; min-width: 0; padding: 22px 18px 20px; border-radius: 20px; text-align: center;
+          background: linear-gradient(160deg, rgba(255,255,255,0.12), rgba(255,255,255,0.04));
+          border: 1px solid rgba(255,255,255,0.16); backdrop-filter: blur(8px);
+          transition: transform 0.4s var(--ease), border-color 0.3s, box-shadow 0.4s; }
+        .vp-card:hover { transform: translateY(-5px); border-color: rgba(var(--tech-rgb),0.7); box-shadow: 0 18px 44px rgba(0,0,0,0.35), 0 0 30px rgba(var(--tech-rgb),0.2); }
+        .vp-name { margin-top: 12px; font-size: 16px; font-weight: 700; color: #fff; font-family: var(--font-display); line-height: 1.25; }
+        .vp-role { display: inline-block; margin-top: 8px; padding: 4px 12px; border-radius: 999px; font-size: 10px; font-weight: 700;
+          letter-spacing: 1.2px; text-transform: uppercase; color: #fff; background: linear-gradient(120deg, rgba(31,79,216,0.85), rgba(14,159,110,0.85)); }
       `}</style>
 
       <div className="container">
@@ -289,19 +296,16 @@ export default function Team() {
                       </div>
                     ))}
                   </div>
-                  <div className="vp-row" style={{ display: 'flex', justifyContent: 'center', gap: 12, flexWrap: 'wrap' }}>
-                    {committee.vps.map((vp) => (
-                      <div key={vp.name} style={{
-                        padding: '10px 22px 10px 12px', background: 'rgba(255,255,255,0.06)', borderRadius: 999,
-                        border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(6px)',
-                        display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left',
-                      }}>
-                        <Avatar person={vp} size={40} />
-                        <div>
-                          <div style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>{vp.name}</div>
-                          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', marginTop: 1, textTransform: 'uppercase', letterSpacing: 1 }}>{vp.title || 'Vice President'}</div>
-                        </div>
-                      </div>
+                  {committee.vps.length > 0 && committee.presidents.length > 0 && <div className="lead-link" />}
+                  <div className="vp-row">
+                    {committee.vps.map((vp, i) => (
+                      <motion.div key={vp.name + vp.title} className="vp-card"
+                        initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+                        transition={{ duration: 0.5, delay: i * 0.1, ease: [0.16, 1, 0.3, 1] }}>
+                        <Avatar person={vp} size={68} ring />
+                        <div className="vp-name">{vp.name}</div>
+                        <div className="vp-role">{vp.title || 'Vice President'}</div>
+                      </motion.div>
                     ))}
                   </div>
                 </div>
