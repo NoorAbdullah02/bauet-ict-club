@@ -51,7 +51,7 @@ class _AdminApplicationsScreenState extends State<AdminApplicationsScreen> {
       _error = null;
     });
     try {
-      final rows = await _state.api.list('registrations');
+      final rows = await _state.api.list('registrations', fresh: true);
       if (!mounted) return;
       setState(() => _all = rows.map(Registration.fromJson).toList());
     } on ApiException catch (e) {
@@ -106,9 +106,10 @@ class _AdminApplicationsScreenState extends State<AdminApplicationsScreen> {
       isScrollControlled: true,
       builder: (ctx) => _SelectSheet(reg: r, sessions: sessions),
     );
+    final isAmb = r.type == 'ambassador';
     if (result == null) return;
     await _run(() async {
-      await _state.api.selectRegistration(r.id, result.$1, result.$2, (kCommitteePosts.indexOf(result.$2) + 1).clamp(1, 999).toInt());
+      await _state.api.selectRegistration(r.id, result.$1, result.$2, (isAmb ? 50 : (kCommitteePosts.indexOf(result.$2) + 1).clamp(1, 999)).toInt());
       if (mounted) setState(() => r.status = 'approved');
       await _state.reloadMembers();
     }, '${r.fullName} added to ${result.$1} as ${result.$2}');
@@ -135,7 +136,9 @@ class _AdminApplicationsScreenState extends State<AdminApplicationsScreen> {
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
               child: Row(children: [
                 Expanded(child: _TypeTab(label: 'Committee', count: _all.where((r) => r.type == 'committee').length, selected: _type == 'committee', color: p.accent, onTap: () => setState(() => _type = 'committee'))),
-                const SizedBox(width: 10),
+                const SizedBox(width: 8),
+                Expanded(child: _TypeTab(label: 'Ambassador', count: _all.where((r) => r.type == 'ambassador').length, selected: _type == 'ambassador', color: p.tech, onTap: () => setState(() => _type = 'ambassador'))),
+                const SizedBox(width: 8),
                 Expanded(child: _TypeTab(label: 'General', count: _all.where((r) => r.type == 'general').length, selected: _type == 'general', color: p.third, onTap: () => setState(() => _type = 'general'))),
               ]),
             ),
@@ -205,8 +208,8 @@ class _TypeTab extends StatelessWidget {
           border: Border.all(color: selected ? color : p.line),
         ),
         child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Text(label, style: bodyStyle(context, weight: FontWeight.w700, color: selected ? p.fg : p.muted)),
-          const SizedBox(width: 8),
+          Flexible(child: Text(label, overflow: TextOverflow.ellipsis, style: bodyStyle(context, size: 12.5, weight: FontWeight.w700, color: selected ? p.fg : p.muted))),
+          const SizedBox(width: 6),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
             decoration: BoxDecoration(borderRadius: BorderRadius.circular(99), color: color.withValues(alpha: 0.25)),
@@ -229,7 +232,7 @@ class _AppCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = context.pal;
     final r = reg;
-    final committee = r.type == 'committee';
+    final canSelect = r.type != 'general';
     return GlassCard(
       padding: const EdgeInsets.all(16),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -244,7 +247,7 @@ class _AppCard extends StatelessWidget {
               ]),
               const SizedBox(height: 3),
               Text('ID ${r.studentId} · ${r.department} · Batch ${r.batch}', style: bodyStyle(context, size: 12.5, color: p.muted)),
-              if (committee && r.post.isNotEmpty) ...[const SizedBox(height: 6), Text(r.post, style: bodyStyle(context, size: 13, color: p.accent, weight: FontWeight.w700))],
+              if (r.type != 'general' && r.post.isNotEmpty) ...[const SizedBox(height: 6), Text(r.post, style: bodyStyle(context, size: 13, color: p.accent, weight: FontWeight.w700))],
             ]),
           ),
         ]),
@@ -252,19 +255,19 @@ class _AppCard extends StatelessWidget {
         _Line(Icons.call_outlined, r.phone, onTap: () => openUrl(context, 'tel:${r.phone}')),
         _Line(Icons.mail_outline_rounded, r.email, onTap: () => openUrl(context, 'mailto:${r.email}')),
         if (r.gender.isNotEmpty) _Line(Icons.person_outline_rounded, r.gender),
-        if (!committee && r.interests.isNotEmpty)
+        if (r.type == 'general' && r.interests.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(top: 8),
             child: Wrap(spacing: 6, runSpacing: 6, children: [for (final i in r.interests) Tag(i, color: p.third)]),
           ),
-        if (!committee && r.experience.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 8), child: Text('Level: ${r.experience}', style: bodyStyle(context, size: 12.5, color: p.muted))),
+        if (r.type == 'general' && r.experience.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 8), child: Text('Level: ${r.experience}', style: bodyStyle(context, size: 12.5, color: p.muted))),
         if (r.note.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 8), child: Text(r.note, style: bodyStyle(context, size: 13, color: p.muted))),
         if (r.createdAt != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text('APPLIED ${fmtDate(r.createdAt)}'.toUpperCase(), style: monoStyle(context, size: 9.5))),
         const SizedBox(height: 12),
         Divider(color: p.line, height: 1),
         const SizedBox(height: 10),
         Wrap(spacing: 8, runSpacing: 8, children: [
-          if (committee) FilledButton.icon(onPressed: onSelect, icon: const Icon(Icons.how_to_reg_rounded, size: 18), label: const Text('Select for team'), style: FilledButton.styleFrom(backgroundColor: p.accent, foregroundColor: Colors.white)),
+          if (canSelect) FilledButton.icon(onPressed: onSelect, icon: const Icon(Icons.how_to_reg_rounded, size: 18), label: const Text('Select for team'), style: FilledButton.styleFrom(backgroundColor: p.accent, foregroundColor: Colors.white)),
           if (r.status != 'approved') OutlinedButton.icon(onPressed: () => onStatus('approved'), icon: const Icon(Icons.check_rounded, size: 18), label: const Text('Approve'), style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFF34D399))),
           if (r.status != 'rejected') OutlinedButton.icon(onPressed: () => onStatus('rejected'), icon: const Icon(Icons.close_rounded, size: 18), label: const Text('Reject'), style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFFFFA04D))),
           IconButton(onPressed: onDelete, tooltip: 'Delete', icon: const Icon(Icons.delete_outline_rounded, color: Color(0xFFEF4444))),
@@ -310,7 +313,8 @@ class _SelectSheet extends StatefulWidget {
 
 class _SelectSheetState extends State<_SelectSheet> {
   late final TextEditingController _session = TextEditingController(text: widget.sessions.isEmpty ? '' : widget.sessions.first);
-  late String _post = kCommitteePosts.contains(widget.reg.post) ? widget.reg.post : kCommitteePosts.first;
+  bool get _amb => widget.reg.type == 'ambassador';
+  late String _post = _amb ? kAmbassadorPost : (kCommitteePosts.contains(widget.reg.post) ? widget.reg.post : kCommitteePosts.first);
   String? _error;
 
   @override
@@ -328,7 +332,7 @@ class _SelectSheetState extends State<_SelectSheet> {
         child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text('Select for team', style: displayStyle(context, 26)),
           const SizedBox(height: 4),
-          Text('Add ${widget.reg.fullName} to the Team page.', style: bodyStyle(context, color: p.muted, size: 13.5)),
+          Text(_amb ? 'Add ${widget.reg.fullName} to the Ambassadors page.' : 'Add ${widget.reg.fullName} to the Team page.', style: bodyStyle(context, color: p.muted, size: 13.5)),
           const SizedBox(height: 18),
           AppField(controller: _session, label: 'Committee session (e.g. Summer 2026)', error: _error, icon: Icons.calendar_today_rounded, onChanged: () => setState(() => _error = null)),
           if (widget.sessions.isNotEmpty) ...[
@@ -338,7 +342,10 @@ class _SelectSheetState extends State<_SelectSheet> {
             ]),
           ],
           const SizedBox(height: 14),
-          PickerField(label: 'Position', value: _post, options: kCommitteePosts, icon: Icons.workspace_premium_outlined, onChanged: (v) => setState(() => _post = v)),
+          if (_amb)
+            Tag(kAmbassadorPost, color: p.tech)
+          else
+            PickerField(label: 'Position', value: _post, options: kCommitteePosts, icon: Icons.workspace_premium_outlined, onChanged: (v) => setState(() => _post = v)),
           const SizedBox(height: 20),
           GradientButton(
             label: 'Add to team',

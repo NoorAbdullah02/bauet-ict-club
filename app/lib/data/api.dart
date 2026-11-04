@@ -62,14 +62,25 @@ class Api {
   }
 
   // ---- public reads ----
-  Future<List<Map<String, dynamic>>> list(String table) async {
-    final data = await _send(() => _dio.get('/$table', options: _auth));
+  /// [fresh] bypasses the server's 30s public list cache (admin screens, pull-to-refresh).
+  Future<List<Map<String, dynamic>>> list(String table, {bool fresh = false}) async {
+    final data = await _send(() => _dio.get(
+          '/$table',
+          queryParameters: fresh ? {'_': DateTime.now().millisecondsSinceEpoch} : null,
+          options: fresh
+              ? Options(headers: {'Cache-Control': 'no-cache', 'Pragma': 'no-cache', if (token != null) 'Authorization': 'Bearer $token'})
+              : _auth,
+        ));
     if (data is! List) return [];
     return data.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
   }
 
-  Future<Map<String, dynamic>> settings() async {
-    final data = await _send(() => _dio.get('/settings'));
+  Future<Map<String, dynamic>> settings({bool fresh = false}) async {
+    final data = await _send(() => _dio.get(
+          '/settings',
+          queryParameters: fresh ? {'_': DateTime.now().millisecondsSinceEpoch} : null,
+          options: fresh ? Options(headers: {'Cache-Control': 'no-cache'}) : null,
+        ));
     return data is Map ? Map<String, dynamic>.from(data) : {};
   }
 

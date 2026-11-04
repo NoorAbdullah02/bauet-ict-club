@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Link, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutDashboard, ClipboardList, Users, Calendar, Bell, Image, Trophy, FileText, MessageSquare, Settings, LogOut, Sun, Moon, Menu, ExternalLink, Loader2, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, ClipboardList, Users, Calendar, Bell, Image, Trophy, FileText, MessageSquare, Settings, Trash2, LogOut, Sun, Moon, Menu, ExternalLink, Loader2, ChevronRight } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import useStore from '../context/store';
 import Login from './Login';
 import Dashboard from './Dashboard';
 import DataView from './DataView';
 import Inbox from './Inbox';
+import Trash from './Trash';
+import { ConfirmHost } from './ui';
 import SettingsView from './SettingsView';
 import AdminApplications from '../components/AdminApplications';
 import Logo from '../components/Logo';
@@ -17,7 +19,7 @@ const NAV = [
   ['Overview', [['/admin', LayoutDashboard, 'Dashboard', true]]],
   ['People', [['/admin/applications', ClipboardList, 'Applications', false, 'pending'], ['/admin/members', Users, 'Committee']]],
   ['Content', [['/admin/events', Calendar, 'Events'], ['/admin/notices', Bell, 'Notices'], ['/admin/gallery', Image, 'Gallery'], ['/admin/achievements', Trophy, 'Achievements'], ['/admin/posts', FileText, 'Posts']]],
-  ['System', [['/admin/messages', MessageSquare, 'Messages', false, 'unread'], ['/admin/settings', Settings, 'Settings']]],
+  ['System', [['/admin/messages', MessageSquare, 'Messages', false, 'unread'], ['/admin/trash', Trash2, 'Trash', false, 'trash'], ['/admin/settings', Settings, 'Settings']]],
 ];
 const TITLES = Object.fromEntries(NAV.flatMap(([, items]) => items.map(([to, , label]) => [to, label])));
 
@@ -59,28 +61,29 @@ function Sidebar({ badges, onNavigate }) {
 }
 
 export default function AdminApp() {
-  const { user, logout, checkAuth, adminTheme, setAdminTheme, registrations, messages, fetchRegistrations, fetchMessages } = useStore(useShallow((s) => ({
+  const { user, logout, checkAuth, adminTheme, setAdminTheme, registrations, messages, trash, fetchTrash, fetchRegistrations, fetchMessages } = useStore(useShallow((s) => ({
     user: s.user, logout: s.logout, checkAuth: s.checkAuth, adminTheme: s.adminTheme, setAdminTheme: s.setAdminTheme,
-    registrations: s.registrations, messages: s.messages, fetchRegistrations: s.fetchRegistrations, fetchMessages: s.fetchMessages,
+    registrations: s.registrations, messages: s.messages, trash: s.trash, fetchTrash: s.fetchTrash, fetchRegistrations: s.fetchRegistrations, fetchMessages: s.fetchMessages,
   })));
   const [ready, setReady] = useState(false);
   const [open, setOpen] = useState(false);
   const { pathname } = useLocation();
 
   useEffect(() => { Promise.resolve(checkAuth()).finally(() => setReady(true)); }, []);
-  useEffect(() => { if (user) { fetchRegistrations().catch(() => {}); fetchMessages().catch(() => {}); } }, [user]);
+  useEffect(() => { if (user) { fetchRegistrations().catch(() => {}); fetchMessages().catch(() => {}); fetchTrash().catch(() => {}); useStore.getState().fetchSessions().catch(() => {}); } }, [user]);
   useEffect(() => setOpen(false), [pathname]);
 
   if (!ready) return <div className="grid min-h-screen place-items-center"><Loader2 className="animate-spin text-accent" /></div>;
   if (!user) return <Login />;
 
-  const badges = { pending: registrations.filter((r) => r.status === 'pending').length, unread: messages.filter((m) => !m.is_read).length };
+  const badges = { pending: registrations.filter((r) => r.status === 'pending').length, unread: messages.filter((m) => !m.is_read).length, trash: trash.items.length };
   const isDark = adminTheme === 'dark';
   const title = TITLES[pathname.replace(/\/$/, '')] || 'Dashboard';
   const btn = 'grid size-10 place-items-center rounded-full border border-line bg-surface text-fg2 transition hover:border-accent hover:text-accent';
 
   return (
     <div className="flex min-h-screen">
+      <ConfirmHost />
       <aside className="sticky top-0 hidden h-screen w-64 shrink-0 border-r border-line bg-surface p-5 lg:block"><Sidebar badges={badges} /></aside>
 
       <AnimatePresence>
@@ -98,10 +101,7 @@ export default function AdminApp() {
           </div>
           <div className="flex items-center gap-2">
             <button onClick={() => setAdminTheme(isDark ? 'light' : 'dark')} className={btn} aria-label="Toggle theme">{isDark ? <Sun size={16} /> : <Moon size={16} />}</button>
-            <div className="flex items-center gap-2.5 rounded-full border border-line bg-surface py-1 pl-1 pr-4">
-              <span className="grid size-8 place-items-center rounded-full text-xs font-bold uppercase text-white" style={{ background: 'var(--grad-btn)' }}>{user.username?.[0]}</span>
-              <span className="text-sm font-medium text-fg max-sm:hidden">{user.username}</span>
-            </div>
+            <div className="flex items-center gap-2.5 rounded-full border border-line bg-surface py-1 pl-1.5 pr-4"><span className="grid size-8 place-items-center rounded-full bg-white ring-1 ring-line"><Logo kind="club" height={18} className="!filter-none" /></span><span className="text-sm font-medium text-fg max-sm:hidden">Admin</span></div>
             <button onClick={logout} className={btn} aria-label="Log out" title="Log out"><LogOut size={16} /></button>
           </div>
         </header>
@@ -112,6 +112,7 @@ export default function AdminApp() {
             <Route path="applications" element={<AdminApplications />} />
             {['members', 'events', 'notices', 'gallery', 'achievements', 'posts'].map((t) => <Route key={t} path={t} element={<DataView type={t} />} />)}
             <Route path="messages" element={<Inbox />} />
+            <Route path="trash" element={<Trash />} />
             <Route path="settings" element={<SettingsView />} />
             <Route path="*" element={<Navigate to="/admin" replace />} />
           </Routes>

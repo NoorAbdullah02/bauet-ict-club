@@ -5,7 +5,7 @@ import { useShallow } from 'zustand/react/shallow';
 import useStore from '../context/store';
 import Tilt from './Tilt';
 import CodeWindow from './CodeWindow';
-import { latestPanel } from '../lib/panel';
+import PanelShowcase from './PanelShowcase';
 
 const fmt = (d) => { try { return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }); } catch { return ''; } };
 
@@ -30,7 +30,6 @@ function Head({ tag, title, to, cta }) {
 
 export default function HomeSections() {
   const { events, notices, members } = useStore(useShallow((s) => ({ events: s.events, notices: s.notices, members: s.members })));
-  const panel = latestPanel(members);
   const upcoming = [...events].sort((a, b) => new Date(a.date) - new Date(b.date)).slice(0, 3);
   const pinned = [...notices].sort((a, b) => Number(b.pinned) - Number(a.pinned)).slice(0, 3);
 
@@ -63,44 +62,7 @@ export default function HomeSections() {
         </div>
       </section>
 
-      {panel.label && (
-        <section className="section section-alt">
-          <div className="container">
-            <Head tag="Current panel" title={`Meet the ${panel.label} committee`} to="/team" cta="Full team" />
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-              {[...panel.leaders, ...panel.core, ...panel.chiefs].slice(0, 10).map((m, i) => (
-                <motion.div key={m.id} initial={{ opacity: 0, y: 22 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: Math.min(i, 8) * 0.05 }}
-                  className="overflow-hidden rounded-3xl border border-line bg-surface text-center transition hover:-translate-y-1.5 hover:shadow-[var(--shadow-lg)]">
-                  <div className="aspect-square w-full bg-alt">
-                    {m.image_url ? <img src={m.image_url} alt={m.name} loading="lazy" decoding="async" className="size-full object-cover" />
-                      : <div className="grid size-full place-items-center font-display text-4xl text-accent" style={{ background: 'var(--accent-light)' }}>{m.name.split(' ').slice(0, 2).map((w) => w[0]).join('')}</div>}
-                  </div>
-                  <div className="p-3.5">
-                    <div className="truncate font-display text-base text-fg">{m.name}</div>
-                    <div className="mt-1 truncate font-mono text-[10px] uppercase tracking-wider text-tech">{m.position}</div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-            {panel.ambassadors.length > 0 && (
-              <div className="mt-14 flex flex-wrap items-center justify-between gap-6 rounded-3xl border border-line bg-surface p-6">
-                <div>
-                  <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-tech">Department ambassadors · {panel.ambLabel}</div>
-                  <div className="mt-1 font-display text-2xl text-fg">{panel.ambassadors.length} students representing their departments</div>
-                </div>
-                <div className="flex items-center">
-                  {panel.ambassadors.slice(0, 7).map((m, i) => (
-                    <span key={m.id} title={`${m.name} · ${m.department}`} className="-ml-3 size-12 overflow-hidden rounded-full border-2 border-surface bg-alt first:ml-0" style={{ zIndex: 10 - i }}>
-                      {m.image_url ? <img src={m.image_url} alt={m.name} loading="lazy" className="size-full object-cover" /> : <span className="grid size-full place-items-center text-xs font-semibold text-accent">{m.name[0]}</span>}
-                    </span>
-                  ))}
-                  <Link to="/ambassadors" className="ml-4 flex items-center gap-1 text-sm font-semibold text-accent">See all <ArrowUpRight size={15} /></Link>
-                </div>
-              </div>
-            )}
-          </div>
-        </section>
-      )}
+      <PanelShowcase members={members} />
 
       <section className="section">
         <div className="container grid gap-12 lg:grid-cols-[1.5fr_1fr]">

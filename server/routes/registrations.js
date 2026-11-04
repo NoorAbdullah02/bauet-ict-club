@@ -5,6 +5,7 @@ const pool = require('../config/db');
 const cloudinary = require('../config/cloudinary');
 const { authMiddleware } = require('../middleware/auth');
 const { saveImage, cloudinaryReady } = require('../utils/saveImage');
+const { positionRank, isPresident, sessionHasPresident } = require('../utils/positions');
 
 const router = express.Router();
 
@@ -31,6 +32,7 @@ const upload = { single: () => (req, res, next) => uploader(req, res, (err) => (
   ? res.status(400).json({ error: err.code === 'LIMIT_FILE_SIZE' ? 'Photo must be under 3MB' : 'Upload a JPG or PNG photo' })
   : next())) };
 
+const ordinal = (n) => `${n}${[11, 12, 13].includes(n % 100) ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' }[n % 10] || 'th')}`;
 const clean = (v, max) => String(v ?? '').trim().slice(0, max);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -144,7 +146,7 @@ router.post('/', submitLimiter, async (req, res) => {
 
 router.get('/', authMiddleware, async (_req, res) => {
   try {
-    const { rows } = await pool.query('SELECT * FROM registrations ORDER BY created_at DESC');
+    const { rows } = await pool.query('SELECT * FROM registrations WHERE deleted_at IS NULL ORDER BY created_at DESC');
     res.json(rows);
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -154,7 +156,7 @@ router.get('/', authMiddleware, async (_req, res) => {
 router.patch('/:id/status', authMiddleware, async (req, res) => {
   if (!STATUSES.includes(req.body.status)) return res.status(400).json({ error: 'Invalid status' });
   try {
-    const { rows } = await pool.query('UPDATE registrations SET status = $1 WHERE id = $2 RETURNING *', [req.body.status, req.params.id]);
+    const { rows } = await pool.query('UPDATE registrations SET status = $1 WHERE id = $2 AND deleted_at IS NULL RETURNING *', [req.body.status, req.params.id]);
     if (!rows.length) return res.status(404).json({ error: 'Not found' });
     res.json(rows[0]);
   } catch (e) {
@@ -166,22 +168,23 @@ router.patch('/:id/status', authMiddleware, async (req, res) => {
 router.post('/:id/select', authMiddleware, async (req, res) => {
   const session = clean(req.body.session, 50);
   const requested = clean(req.body.position, 100);
-  const order = Number.isInteger(req.body.display_order) ? req.body.display_order : 99;
   if (!session || !requested) return res.status(400).json({ error: 'Session and position are required' });
 
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    const { rows } = await client.query("SELECT * FROM registrations WHERE id = $1 AND type IN ('committee', 'ambassador') FOR UPDATE", [req.params.id]);
+    const { rows } = await client.query("SELECT * FROM registrations WHERE id = $1 AND type IN ('committee', 'ambassador') AND deleted_at IS NULL FOR UPDATE", [req.params.id]);
     if (!rows.length) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'Committee or ambassador application not found' }); }
     const r = rows[0];
     const position = r.type === 'ambassador' ? 'Department Ambassador' : requested;
-    const dup = await client.query('SELECT 1 FROM members WHERE name = $1 AND committee_session = $2 AND position = $3', [r.full_name, session, position]);
+    if (isPresident(position) && await sessionHasPresident(client, session)) { await client.query('ROLLBACK'); return res.status(409).json({ error: `${session} already has a President. Only one President is allowed — all other posts can have several people.` }); }
+    const order = r.type === 'ambassador' ? 50 : positionRank(position);
+    const dup = await client.query('SELECT 1 FROM members WHERE name = $1 AND committee_session = $2 AND position = $3 AND deleted_at IS NULL', [r.full_name, session, position]);
     if (dup.rows.length) { await client.query('ROLLBACK'); return res.status(409).json({ error: 'Already selected for this session and post' }); }
     const member = await client.query(
       `INSERT INTO members (name, position, department, batch, committee_session, image_url, display_order)
        VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
-      [r.full_name, position, r.department, r.batch ? `${r.batch}th` : null, session, r.photo_url, order]
+      [r.full_name, position, r.department, r.batch && /^\d+$/.test(r.batch) ? ordinal(Number(r.batch)) : (r.batch || null), session, r.photo_url, order]
     );
     const updated = await client.query("UPDATE registrations SET status = 'approved' WHERE id = $1 RETURNING *", [r.id]);
     await client.query('COMMIT');
@@ -196,8 +199,8 @@ router.post('/:id/select', authMiddleware, async (req, res) => {
 
 router.delete('/:id', authMiddleware, async (req, res) => {
   try {
-    await pool.query('DELETE FROM registrations WHERE id = $1', [req.params.id]);
-    res.json({ success: true });
+    await pool.query('UPDATE registrations SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL', [req.params.id]);
+    res.json({ success: true, trashed: true });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }

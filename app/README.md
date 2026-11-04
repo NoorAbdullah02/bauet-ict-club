@@ -4,10 +4,10 @@ A native Flutter app that mirrors the club website and talks to the **same Expre
 
 **Features:** animated splash, home (parallax hero, stats, next events, pinned notices, join CTA), events, notices,
 team (session chips + leadership banner), gallery (grid + fullscreen pinch-zoom viewer), achievements, contact form,
-**Join hub -> Committee flow (2 steps, photo picker, post picker) and General flow (interest chips, level, optional photo)**,
+**Join hub -> Committee flow, Department Ambassador flow (2 steps, photo picker, post picker) and General flow (interest chips, level, optional photo)**,
 AI chat assistant, and an **Admin area** (login, dashboard, applications with approve / reject / delete /
 *Select for team*, CRUD for events, notices, members, gallery, achievements, and the contact inbox).
-Light + dark themes (toggle in the app bar) using the website's colour system.
+Ambassadors screen (grouped by session, department filters). Light + dark themes (toggle in the app bar) using the website's colour system.
 
 > **Status:** this code was written without a Flutter SDK available, so it has **not been compiled or run**.
 > Expect to fix a few small analyzer errors on the first `flutter analyze` (typos, API drift between package versions).

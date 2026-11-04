@@ -128,6 +128,18 @@ async function initDb() {
       ALTER TABLE registrations DROP CONSTRAINT IF EXISTS registrations_type_check;
       ALTER TABLE registrations ADD CONSTRAINT registrations_type_check CHECK (type IN ('committee', 'general', 'ambassador'));
     `);
+    // soft-delete support: every manageable table gets a deleted_at column
+    for (const t of ['events', 'notices', 'members', 'gallery', 'achievements', 'posts', 'messages', 'registrations']) {
+      await client.query(`ALTER TABLE ${t} ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ`);
+    }
+    for (const t of ['events', 'notices', 'members', 'achievements', 'registrations']) {
+      await client.query(`ALTER TABLE ${t} ADD COLUMN IF NOT EXISTS is_demo BOOLEAN DEFAULT false`);
+    }
+    // applications in the trash must not block the same person from applying again
+    await client.query('ALTER TABLE registrations DROP CONSTRAINT IF EXISTS registrations_type_email_key');
+    await client.query('ALTER TABLE registrations DROP CONSTRAINT IF EXISTS registrations_type_student_id_key');
+    await client.query('CREATE UNIQUE INDEX IF NOT EXISTS uq_reg_type_email ON registrations (type, email) WHERE deleted_at IS NULL');
+    await client.query('CREATE UNIQUE INDEX IF NOT EXISTS uq_reg_type_student ON registrations (type, student_id) WHERE deleted_at IS NULL');
     await client.query(`
       CREATE INDEX IF NOT EXISTS idx_members_session ON members (committee_session, display_order);
       CREATE INDEX IF NOT EXISTS idx_events_date ON events (date);
@@ -165,39 +177,8 @@ async function initDb() {
       console.log(`Seeded ${rows.length} committee members`);
     }
 
-    // Demo content is opt-in so a real database never gets made-up events or awards
-    if (process.env.SEED_SAMPLES === 'true') {
-    // Seed sample events
-    await client.query(`
-      INSERT INTO events (title, date, time, location, category, description, featured) VALUES
-        ('Hackathon 2026: Code for Change', '2026-12-15', '09:00 AM', 'BAUET Main Auditorium', 'Competition', 'Join the biggest coding competition of the year! Teams of 3-4 will tackle real-world problems in a 24-hour hackathon. Prizes worth 50,000 BDT.', true),
-        ('Web Development Workshop', '2026-11-20', '03:00 PM', 'CSE Lab 2', 'Workshop', 'Learn modern web development with React, Node.js, and PostgreSQL. Hands-on session covering frontend, backend, and database fundamentals.', false),
-        ('AI & Machine Learning Seminar', '2026-11-25', '10:00 AM', 'Conference Hall', 'Seminar', 'Guest lecture by industry experts on the latest trends in AI and ML. Topics include Large Language Models, Computer Vision, and career opportunities.', false),
-        ('Competitive Programming Contest', '2026-12-05', '02:00 PM', 'CSE Lab 1', 'Competition', 'Test your algorithmic skills in this intra-university programming contest. Top performers qualify for ICPC regional.', true),
-        ('ICT Club Annual Meetup', '2026-12-20', '05:00 PM', 'University Ground', 'Social', 'End-of-year celebration with fun activities, games, food, and networking.', false)
-      ON CONFLICT DO NOTHING
-    `);
-
-    // Seed sample notices
-    await client.query(`
-      INSERT INTO notices (title, date, content, priority, pinned) VALUES
-        ('Hackathon 2026 Registration Open', '2026-11-03', 'Registration for Hackathon 2026: Code for Change is now open! Form your teams and register before December 1st.', 'urgent', true),
-        ('New Executive Committee Elected', '2026-10-28', 'Congratulations to the newly elected executive committee for 2026-2027!', 'normal', false),
-        ('Workshop Materials Available', '2026-10-20', 'All presentation slides and code samples from the recent Python workshop are now available.', 'low', false)
-      ON CONFLICT DO NOTHING
-    `);
-
-    // Seed achievements
-    await client.query(`
-      INSERT INTO achievements (title, date, description) VALUES
-        ('National Hackathon Champions 2025', '2025-09-15', 'BAUET ICT Club team won first place at the National Inter-University Hackathon, competing against 50+ teams.'),
-        ('ICPC Dhaka Regional Qualifiers', '2025-11-20', 'Three teams from BAUET qualified for the ICPC Asia Dhaka Regional contest.'),
-        ('Best University Tech Club Award', '2025-06-10', 'Recognized as the Best University Tech Club at the Bangladesh Digital Innovation Summit 2025.'),
-        ('Open Source Contribution Milestone', '2025-03-01', 'Club members collectively contributed to 100+ open source projects on GitHub.')
-      ON CONFLICT DO NOTHING
-    `);
-
-    }
+    // Demo content is opt-in (SEED_SAMPLES=true) — or load/remove it any time from Admin → Settings
+    if (process.env.SEED_SAMPLES === 'true') await require('../utils/demo').loadDemo();
 
     const bcrypt = require('bcryptjs');
     // Never ship a well-known password: use ADMIN_PASSWORD, or generate one and print it once.

@@ -3,7 +3,7 @@ import { Eye, EyeOff, Trash2, Mail } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useShallow } from 'zustand/react/shallow';
 import useStore from '../context/store';
-import { Panel, PageTitle } from './ui';
+import { Panel, PageTitle, askConfirm, toastTrashed } from './ui';
 import { cn } from '../lib/cn';
 
 export default function Inbox() {
@@ -27,7 +27,7 @@ export default function Inbox() {
               <p className="mt-2 whitespace-pre-wrap text-sm leading-7 text-fg2">{m.message}</p>
               <div className="mt-4 flex gap-2">
                 <button onClick={() => run(() => updateItem('messages', m.id, { is_read: !m.is_read }))} className="flex items-center gap-1.5 rounded-lg bg-tech/10 px-3 py-1.5 text-xs font-semibold text-tech">{m.is_read ? <EyeOff size={13} /> : <Eye size={13} />} Mark {m.is_read ? 'unread' : 'read'}</button>
-                <button onClick={() => confirm('Delete message?') && run(() => deleteItem('messages', m.id))} className="flex items-center gap-1.5 rounded-lg bg-red-500/10 px-3 py-1.5 text-xs font-semibold text-red-500"><Trash2 size={13} /> Delete</button>
+                <button onClick={async () => { if (await askConfirm({ title: 'Delete this message?', message: 'It will be moved to the Trash.', confirmText: 'Move to Trash', danger: true })) run(async () => { await deleteItem('messages', m.id); toastTrashed('Message', () => useStore.getState().restoreTrash('messages', m.id)); }); }} className="flex items-center gap-1.5 rounded-lg bg-red-500/10 px-3 py-1.5 text-xs font-semibold text-red-500"><Trash2 size={13} /> Delete</button>
               </div>
             </Panel>
           ))}

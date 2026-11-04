@@ -27,7 +27,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   void initState() {
     super.initState();
     // Start fetching content while the intro plays.
-    context.read<AppState>().loadAll();
+    context.read<AppState>().loadAll(fresh: false);
     _timer = Timer(const Duration(milliseconds: 2600), () {
       if (mounted) context.go('/home');
     });

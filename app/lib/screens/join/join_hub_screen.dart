@@ -38,6 +38,16 @@ class JoinHubScreen extends StatelessWidget {
           bullets: const ['One quick form', 'Photo optional', 'Pick interests'],
           onTap: () => context.push('/join/general'),
         ).stagger(2),
+        const SizedBox(height: 18),
+        _PathCard(
+          tag: 'Ambassador',
+          title: 'Department ambassador',
+          body: 'Represent your department (ICE, CSE, EEE, CE, ME) and bring its voice to the club.',
+          icon: Icons.school_rounded,
+          colors: [p.tech, p.gradient.first],
+          bullets: const ['Photo required', 'Pick your department'],
+          onTap: () => context.push('/join/ambassador'),
+        ).stagger(3),
         const SizedBox(height: 24),
         GlassCard(
           padding: const EdgeInsets.all(12),

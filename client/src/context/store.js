@@ -18,6 +18,8 @@ const useStore = create((set, get) => ({
   posts: [],
   messages: [],
   registrations: [],
+  trash: { items: [], retentionDays: 30 },
+  sessions: [],
   settings: null,
   user: null,
   loading: true,
@@ -34,15 +36,16 @@ const useStore = create((set, get) => ({
     set({ theme });
   },
 
-  fetchAll: async () => {
+  fetchAll: async (fresh = false) => {
+    const q = fresh ? { params: { _: Date.now() } } : undefined;
     try {
       const [events, notices, members, gallery, achievements, settings] = await Promise.all([
-        api.get('/events').catch(() => ({ data: [] })),
-        api.get('/notices').catch(() => ({ data: [] })),
-        api.get('/members').catch(() => ({ data: [] })),
-        api.get('/gallery').catch(() => ({ data: [] })),
-        api.get('/achievements').catch(() => ({ data: [] })),
-        api.get('/settings').catch(() => ({ data: null })),
+        api.get('/events', q).catch(() => ({ data: [] })),
+        api.get('/notices', q).catch(() => ({ data: [] })),
+        api.get('/members', q).catch(() => ({ data: [] })),
+        api.get('/gallery', q).catch(() => ({ data: [] })),
+        api.get('/achievements', q).catch(() => ({ data: [] })),
+        api.get('/settings', q).catch(() => ({ data: null })),
       ]);
       set({
         events: events.data,
@@ -100,7 +103,7 @@ const useStore = create((set, get) => ({
   },
 
   fetchMessages: async () => {
-    const res = await api.get('/messages');
+    const res = await api.get('/messages', { params: { _: Date.now() } });
     set({ messages: res.data });
   },
 
@@ -121,8 +124,58 @@ const useStore = create((set, get) => ({
     return res.data.url;
   },
 
+  fetchSessions: async () => {
+    const res = await api.get('/committees', { params: { _: Date.now() } });
+    set({ sessions: res.data });
+  },
+
+  launchCommittee: async (payload) => {
+    const res = await api.post('/committees/launch', payload);
+    await Promise.all([get().fetchSessions(), get().fetchList('members')]);
+    return res.data;
+  },
+
+  demoStatus: async () => (await api.get('/committees/demo')).data.count,
+
+  loadDemo: async () => {
+    const res = await api.post('/committees/demo');
+    await Promise.all([get().fetchAll(true), get().fetchSessions(), get().fetchRegistrations()]);
+    return res.data;
+  },
+
+  removeDemo: async () => {
+    const res = await api.delete('/committees/demo');
+    await Promise.all([get().fetchAll(true), get().fetchSessions(), get().fetchRegistrations()]);
+    return res.data;
+  },
+
+  fetchTrash: async () => {
+    const res = await api.get('/trash', { params: { _: Date.now() } });
+    set({ trash: res.data });
+  },
+
+  restoreTrash: async (type, id) => {
+    await api.post(`/trash/${type}/${id}/restore`);
+    set((s) => ({ trash: { ...s.trash, items: s.trash.items.filter((i) => !(i.type === type && i.id === id)) } }));
+    // bring the restored row back into its list
+    if (type === 'registrations') await get().fetchRegistrations();
+    else if (type === 'messages') await get().fetchMessages();
+    else await get().fetchList(type);
+  },
+
+  purgeTrash: async (type, id) => {
+    await api.delete(`/trash/${type}/${id}`);
+    set((s) => ({ trash: { ...s.trash, items: s.trash.items.filter((i) => !(i.type === type && i.id === id)) } }));
+  },
+
+  emptyTrash: async () => {
+    const res = await api.delete('/trash');
+    set((s) => ({ trash: { ...s.trash, items: [] } }));
+    return res.data.count;
+  },
+
   fetchRegistrations: async () => {
-    const res = await api.get('/registrations');
+    const res = await api.get('/registrations', { params: { _: Date.now() } });
     set({ registrations: res.data });
   },
 

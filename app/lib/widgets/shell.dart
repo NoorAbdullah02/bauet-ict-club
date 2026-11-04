@@ -27,6 +27,7 @@ const _tabs = [
 
 const _more = [
   _NavItem('/notices', 'Notices', Icons.campaign_outlined, Icons.campaign_rounded),
+  _NavItem('/ambassadors', 'Ambassadors', Icons.school_outlined, Icons.school_rounded),
   _NavItem('/gallery', 'Gallery', Icons.photo_library_outlined, Icons.photo_library_rounded),
   _NavItem('/achievements', 'Achievements', Icons.emoji_events_outlined, Icons.emoji_events_rounded),
   _NavItem('/about', 'About', Icons.info_outline_rounded, Icons.info_rounded),

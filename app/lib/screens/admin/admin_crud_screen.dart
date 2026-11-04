@@ -161,7 +161,7 @@ class _AdminCrudScreenState extends State<AdminCrudScreen> {
       _error = null;
     });
     try {
-      final rows = await _state.api.list(widget.table);
+      final rows = await _state.api.list(widget.table, fresh: true);
       if (mounted) setState(() => _rows = rows);
     } on ApiException catch (e) {
       await _state.handleAuthError(e);
