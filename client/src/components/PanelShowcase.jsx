@@ -49,16 +49,6 @@ export default function PanelShowcase({ members }) {
               <div className="absolute inset-x-0 bottom-0 p-7">
                 <span className="inline-block rounded-full bg-white/15 px-3.5 py-1 font-mono text-[10px] uppercase tracking-[0.22em] text-white backdrop-blur">{president.position}</span>
                 <h3 className="mt-3 font-display text-3xl leading-tight text-white sm:text-4xl">{president.name}</h3>
-                {vps.length > 0 && (
-                  <div className="mt-5 flex flex-wrap gap-2.5">
-                    {vps.slice(0, 3).map((v, i) => (
-                      <span key={v.id} className="flex items-center gap-2.5 rounded-full border border-white/20 bg-white/10 py-1.5 pl-1.5 pr-4 backdrop-blur">
-                        <span className="size-8 overflow-hidden rounded-full bg-alt"><Photo m={v} i={i + 1} textSize="text-xs" className="!group-hover:scale-100" /></span>
-                        <span className="text-xs leading-tight text-white"><b className="block font-semibold">{v.name}</b><span className="text-white/65">{v.position.replace('Vice President', 'VP')}</span></span>
-                      </span>
-                    ))}
-                  </div>
-                )}
               </div>
             </motion.div>
           )}
@@ -77,6 +67,23 @@ export default function PanelShowcase({ members }) {
             ))}
           </div>
         </div>
+
+        {/* vice presidents: each on their own card */}
+        {vps.length > 0 && (
+          <div className="mt-6 flex flex-wrap justify-center gap-5 [&>*]:min-w-0">
+            {vps.map((v, i) => (
+              <motion.article key={v.id} {...fade(i + 1)}
+                className="group relative w-full max-w-[22rem] flex-1 basis-64 overflow-hidden rounded-3xl border border-line bg-surface transition duration-500 hover:-translate-y-1.5 hover:border-tech/50 hover:shadow-[var(--shadow-lg)]">
+                <div className="aspect-[4/3.4] w-full overflow-hidden bg-alt"><Photo m={v} i={i + 1} textSize="text-6xl" /></div>
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#0A1A4A]/90 via-[#0A1A4A]/10 to-transparent" />
+                <div className="absolute inset-x-0 bottom-0 p-5">
+                  <span className="inline-block rounded-full bg-gradient-to-r from-accent to-tech px-3 py-1 font-mono text-[10px] font-semibold uppercase tracking-[0.18em] text-white">{v.position}</span>
+                  <h3 className="mt-2 font-display text-2xl leading-tight text-white">{v.name}</h3>
+                </div>
+              </motion.article>
+            ))}
+          </div>
+        )}
 
         {/* chief executives */}
         {chiefs.length > 0 && (
