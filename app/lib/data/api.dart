@@ -127,4 +127,39 @@ class Api {
       ));
 
   Future<void> deleteRegistration(int id) => _send(() => _dio.delete('/registrations/$id', options: _auth));
+
+  // ---- trash ----
+  Future<Map<String, dynamic>> trash() async {
+    final data = await _send(() => _dio.get('/trash', queryParameters: {'_': DateTime.now().millisecondsSinceEpoch}, options: Options(headers: {'Cache-Control': 'no-cache', if (token != null) 'Authorization': 'Bearer $token'})));
+    return data is Map ? Map<String, dynamic>.from(data) : {};
+  }
+
+  Future<void> restoreTrash(String type, int id) => _send(() => _dio.post('/trash/$type/$id/restore', options: _auth));
+
+  Future<void> purgeTrash(String type, int id) => _send(() => _dio.delete('/trash/$type/$id', options: _auth));
+
+  Future<void> emptyTrash() => _send(() => _dio.delete('/trash', options: _auth));
+
+  // ---- committees ----
+  Future<List<Map<String, dynamic>>> committees() async {
+    final data = await _send(() => _dio.get('/committees', queryParameters: {'_': DateTime.now().millisecondsSinceEpoch}, options: Options(headers: {'Cache-Control': 'no-cache', if (token != null) 'Authorization': 'Bearer $token'})));
+    if (data is! List) return [];
+    return data.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
+  }
+
+  Future<void> launchCommittee(String session, String? copyFrom, String scope) => _send(() => _dio.post(
+        '/committees/launch',
+        data: {'session': session, 'copyFrom': copyFrom ?? '', 'scope': scope},
+        options: _auth,
+      ));
+
+  // ---- demo data ----
+  Future<int> demoCount() async {
+    final data = await _send(() => _dio.get('/committees/demo', queryParameters: {'_': DateTime.now().millisecondsSinceEpoch}, options: Options(headers: {'Cache-Control': 'no-cache', if (token != null) 'Authorization': 'Bearer $token'})));
+    return data is Map ? (int.tryParse(data['count'].toString()) ?? 0) : 0;
+  }
+
+  Future<void> loadDemo() => _send(() => _dio.post('/committees/demo', options: _auth));
+
+  Future<void> removeDemo() => _send(() => _dio.delete('/committees/demo', options: _auth));
 }
