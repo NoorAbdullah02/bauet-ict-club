@@ -70,6 +70,11 @@ app.use('/api/members', createCrudRouter('members', {
 app.use('/api/gallery', createCrudRouter('gallery', { columns: COLS.gallery, imageCols: ['image_url'], auth: authMiddleware }));
 app.use('/api/achievements', createCrudRouter('achievements', { orderBy: 'date', orderDir: 'DESC', columns: COLS.achievements, auth: authMiddleware }));
 app.use('/api/posts', createCrudRouter('posts', { columns: COLS.posts, imageCols: ['image_url'], auth: authMiddleware }));
+const features = require('./features');
+features.forEach((f) => {
+  app.use(`/api/${f.table}`, createCrudRouter(f.table, { orderBy: f.orderBy, orderDir: f.orderDir, columns: f.columns, imageCols: f.imageCols, validate: f.validate, auth: authMiddleware }));
+  if (f.public) PUBLIC_LISTS.push(`/${f.table}`);
+});
 app.use('/api/trash', require('./routes/trash'));
 app.use('/api/committees', require('./routes/committees'));
 app.use('/api/messages', require('./routes/messages'));

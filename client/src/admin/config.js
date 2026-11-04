@@ -86,3 +86,7 @@ export const TYPES = {
     cols: ['title'],
   },
 };
+
+// drop-in admin sections: every client/src/features/*.js (not starting with "_") becomes a full admin page
+export const FEATURES = Object.values(import.meta.glob(['../features/*.js', '!../features/_*.js'], { eager: true })).map((m) => m.default);
+FEATURES.forEach((f) => { TYPES[f.type] = f; });

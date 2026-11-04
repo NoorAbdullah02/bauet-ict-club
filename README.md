@@ -25,3 +25,7 @@ Set `SEED_SAMPLES=true` before `db:init` if you want demo events, notices and aw
 ## Flutter app
 
 See `app/README.md`.
+
+## Adding features
+
+New managed lists (sponsors, projects, FAQs...) need two small files and no wiring. See [docs/ADD_A_FEATURE.md](docs/ADD_A_FEATURE.md).
