@@ -50,7 +50,7 @@ export const TYPES = {
       { key: 'batch', label: 'Batch', type: 'select', options: BATCHES },
       { key: 'committee_session', label: 'Committee Session', type: 'select', options: [], dynamic: 'sessions', required: true },
       { key: 'display_order', label: 'Display Order', type: 'number' },
-      { key: 'image_url', label: 'Photo', type: 'image' },
+      { key: 'image_url', label: 'Photo', type: 'image', kind: 'avatar' },
       { key: 'social_fb', label: 'Facebook URL', type: 'text' },
       { key: 'social_gh', label: 'GitHub URL', type: 'text' },
       { key: 'social_li', label: 'LinkedIn URL', type: 'text' },

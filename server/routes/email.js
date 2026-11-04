@@ -1,57 +1,44 @@
 const express = require('express');
+const rateLimit = require('express-rate-limit');
+const pool = require('../config/db');
+const { authMiddleware } = require('../middleware/auth');
 const { fail } = require('../utils/http');
+const mail = require('../utils/mailer');
+
 const router = express.Router();
 
-const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+// Kept so older clients (the first app builds) keep working. /api/messages now saves the message AND emails the club.
+router.post('/contact', rateLimit({ windowMs: 60 * 60 * 1000, max: 10 }), (_req, res) => res.json({ success: true }));
 
-let brevoClient = null;
+router.use(authMiddleware);
 
-function getBrevoClient() {
-  if (brevoClient) return brevoClient;
-  if (!process.env.BREVO_API_KEY) return null;
+// Is email set up? (shown on the admin Settings page)
+router.get('/status', (_req, res) => res.json(mail.status()));
+
+// Send a test mail so the admin can confirm the SMTP login works
+router.post('/test', rateLimit({ windowMs: 10 * 60 * 1000, max: 5 }), async (req, res) => {
+  const to = String(req.body?.to || '').trim();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(to)) return res.status(400).json({ error: 'Enter a valid email address' });
   try {
-    const brevo = require('@getbrevo/brevo');
-    const apiInstance = new brevo.TransactionalEmailsApi();
-    apiInstance.setApiKey(brevo.TransactionalEmailsApiApiKeys.apiKey, process.env.BREVO_API_KEY);
-    brevoClient = apiInstance;
-    return apiInstance;
-  } catch {
-    return null;
-  }
-}
-
-const rateLimit = require('express-rate-limit');
-const limiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 10, message: { error: 'Too many messages. Please try again later.' } });
-
-router.post('/contact', limiter, async (req, res) => {
-  const { name, email, subject, message } = req.body;
-  if (!name || !email || !message) {
-    return res.status(400).json({ error: 'Name, email, and message are required' });
-  }
-
-  const api = getBrevoClient();
-  if (!api) {
-    return res.json({ success: true, note: 'Email service not configured — message saved to database only' });
-  }
-
-  try {
-    const sendSmtpEmail = {
-      to: [{ email: 'ictclubbauet@gmail.com', name: 'BAUET ICT Club' }],
-      sender: { email: 'noreply@bauetictclub.com', name: 'BAUET ICT Club Website' },
-      replyTo: { email, name },
-      subject: subject || `Contact Form: ${name}`,
-      htmlContent: `
-        <h2>New Contact Form Submission</h2>
-        <p><strong>Name:</strong> ${esc(name)}</p>
-        <p><strong>Email:</strong> ${esc(email)}</p>
-        <p><strong>Subject:</strong> ${esc(subject) || 'N/A'}</p>
-        <p><strong>Message:</strong></p>
-        <p>${esc(message)}</p>
-      `,
-    };
-
-    await api.sendTransacEmail(sendSmtpEmail);
+    await mail.sendNow({ to, subject: 'Test email | BAUET ICT Club', html: mail.layout({ title: 'Email works', body: '<p>Your BAUET ICT Club website can send email.</p>' }), text: 'Your BAUET ICT Club website can send email.' });
     res.json({ success: true });
+  } catch (e) {
+    console.warn('Test email failed:', e.message);
+    res.status(502).json({ error: `Could not send: ${e.message}` });
+  }
+});
+
+// Newsletter to every subscriber (each mail has its own unsubscribe link). { subject, message, testTo? }
+router.post('/newsletter', rateLimit({ windowMs: 60 * 60 * 1000, max: 10 }), async (req, res) => {
+  const subject = String(req.body?.subject || '').trim().slice(0, 150);
+  const message = String(req.body?.message || '').trim().slice(0, 8000);
+  if (subject.length < 3 || message.length < 10) return res.status(400).json({ error: 'Write a subject and a message' });
+  if (!mail.provider()) return res.status(400).json({ error: 'Email is not configured. Set SMTP_USER and SMTP_PASS in .env.' });
+  try {
+    const testTo = String(req.body?.testTo || '').trim();
+    const recipients = testTo ? [testTo] : (await pool.query('SELECT email FROM subscribers WHERE deleted_at IS NULL')).rows.map((r) => r.email);
+    recipients.forEach((to) => mail.sendMail({ to, ...mail.templates.newsletter(to, subject, message) }));
+    res.json({ success: true, queued: recipients.length, test: !!testTo });
   } catch (e) {
     fail(res, e);
   }

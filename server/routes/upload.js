@@ -1,44 +1,35 @@
 const express = require('express');
-const { fail } = require('../utils/http');
 const multer = require('multer');
 const cloudinary = require('../config/cloudinary');
-const { saveImage, cloudinaryReady } = require('../utils/saveImage');
+const { fail } = require('../utils/http');
+const { storeImage, imageStatus, KINDS } = require('../utils/images');
+const { cloudinaryReady, detect } = require('../utils/saveImage');
+
 const router = express.Router();
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
-const storage = multer.memoryStorage();
-const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } });
+// is Cloudinary connected? (admin Settings page)
+router.get('/status', async (_req, res) => res.json(await imageStatus()));
 
+// POST /api/upload?kind=avatar|cover|logo   (admin only, see index.js)
 router.post('/', upload.single('image'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
-
+  const kind = KINDS[req.query.kind] ? req.query.kind : 'cover';
   try {
-    if (!cloudinaryReady()) return res.json({ url: await saveImage(req.file.buffer) });
-    const b64 = Buffer.from(req.file.buffer).toString('base64');
-    const dataUri = `data:${req.file.mimetype};base64,${b64}`;
-
-    const result = await cloudinary.uploader.upload(dataUri, {
-      folder: 'bauet-ict-club',
-      transformation: [
-        { width: 1200, crop: 'limit' },
-        { quality: 'auto', fetch_format: 'auto' },
-      ],
-    });
-
-    res.json({ url: result.secure_url, public_id: result.public_id });
+    res.json(await storeImage(req.file.buffer, kind));
   } catch (e) {
+    if (e.status) return res.status(e.status).json({ error: e.message });
     fail(res, e);
   }
 });
 
+// optional Cloudinary AI background removal (needs the add-on on your Cloudinary plan)
 router.post('/remove-bg', upload.single('image'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+  if (!cloudinaryReady()) return res.status(400).json({ error: 'Background removal needs Cloudinary. Add CLOUDINARY_* keys to .env.' });
+  if (!detect(req.file.buffer)) return res.status(400).json({ error: 'Only JPG, PNG or WebP images are allowed' });
   try {
-    const b64 = Buffer.from(req.file.buffer).toString('base64');
-    const dataUri = `data:${req.file.mimetype};base64,${b64}`;
-    const result = await cloudinary.uploader.upload(dataUri, {
-      folder: 'bauet-ict-club/members',
-      background_removal: 'cloudinary_ai',
-    });
+    const result = await cloudinary.uploader.upload(`data:image/png;base64,${req.file.buffer.toString('base64')}`, { folder: 'bauet-ict-club/people', background_removal: 'cloudinary_ai' });
     res.json({ url: result.secure_url, public_id: result.public_id });
   } catch (e) {
     fail(res, e);

@@ -27,7 +27,7 @@ async function destroyImage(url) {
   if (!url || typeof url !== 'string') return { removed: false };
   try {
     if (await isReferenced(url)) return { removed: false, reason: 'still in use' };
-    if (/^\/uploads\/[a-f0-9]{24}\.(jpg|png)$/.test(url)) {
+    if (/^\/uploads\/[a-f0-9]{24}\.(jpg|png|webp)$/.test(url)) {
       await fs.promises.unlink(path.join(UPLOAD_DIR, path.basename(url))).catch(() => {});
       return { removed: true, where: 'disk' };
     }

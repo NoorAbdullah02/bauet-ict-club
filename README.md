@@ -29,3 +29,8 @@ See `app/README.md`.
 ## Adding features
 
 New managed lists (sponsors, projects, FAQs...) need two small files and no wiring. See [docs/ADD_A_FEATURE.md](docs/ADD_A_FEATURE.md).
+
+## Email, photos and roadmap
+
+- [Email and Cloudinary setup](docs/SETUP_EMAIL_AND_CLOUDINARY.md)
+- [Roadmap](docs/ROADMAP.md)

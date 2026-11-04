@@ -231,10 +231,10 @@ const useStore = create((set, get) => ({
     }
   },
 
-  uploadImage: async (file) => {
+  uploadImage: async (file, kind = 'cover') => {
     const formData = new FormData();
     formData.append('image', file);
-    const res = await api.post('/upload', formData);
+    const res = await api.post('/upload', formData, { params: { kind } });
     return res.data.url;
   },
 }));

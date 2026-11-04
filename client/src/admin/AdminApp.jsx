@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Link, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutDashboard, ClipboardList, Users, Calendar, Bell, Image, Trophy, FileText, MessageSquare, Settings, Trash2, LogOut, Sun, Moon, Menu, ExternalLink, Loader2, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, ClipboardList, Users, Calendar, Bell, Image, Trophy, FileText, MessageSquare, Mail, Settings, Trash2, LogOut, Sun, Moon, Menu, ExternalLink, Loader2, ChevronRight } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import useStore from '../context/store';
 import Login from './Login';
@@ -13,6 +13,7 @@ import { ConfirmHost } from './ui';
 import SettingsView from './SettingsView';
 import AdminApplications from '../components/AdminApplications';
 import { FEATURES } from './config';
+import Newsletter from './Newsletter';
 import Logo from '../components/Logo';
 import { cn } from '../lib/cn';
 
@@ -20,7 +21,7 @@ const NAV = [
   ['Overview', [['/admin', LayoutDashboard, 'Dashboard', true]]],
   ['People', [['/admin/applications', ClipboardList, 'Applications', false, 'pending'], ['/admin/members', Users, 'Committee']]],
   ['Content', [['/admin/events', Calendar, 'Events'], ['/admin/notices', Bell, 'Notices'], ['/admin/gallery', Image, 'Gallery'], ['/admin/achievements', Trophy, 'Achievements'], ['/admin/posts', FileText, 'Posts']]],
-  ['System', [['/admin/messages', MessageSquare, 'Messages', false, 'unread'], ['/admin/trash', Trash2, 'Trash', false, 'trash'], ['/admin/settings', Settings, 'Settings']]],
+  ['System', [['/admin/messages', MessageSquare, 'Messages', false, 'unread'], ['/admin/newsletter', Mail, 'Newsletter'], ['/admin/trash', Trash2, 'Trash', false, 'trash'], ['/admin/settings', Settings, 'Settings']]],
 ];
 FEATURES.forEach((f) => {
   const group = NAV.find(([g]) => g === (f.nav || 'Content')) || NAV[2];
@@ -117,6 +118,7 @@ export default function AdminApp() {
             <Route path="applications" element={<AdminApplications />} />
             {['members', 'events', 'notices', 'gallery', 'achievements', 'posts', ...FEATURES.map((f) => f.type)].map((t) => <Route key={t} path={t} element={<DataView type={t} />} />)}
             <Route path="messages" element={<Inbox />} />
+            <Route path="newsletter" element={<Newsletter />} />
             <Route path="trash" element={<Trash />} />
             <Route path="settings" element={<SettingsView />} />
             <Route path="*" element={<Navigate to="/admin" replace />} />

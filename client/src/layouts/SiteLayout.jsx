@@ -11,6 +11,9 @@ const TITLES = {
   '/contact': 'Contact', '/join': 'Join the Club', '/join/committee': 'Apply for the Committee', '/join/general': 'Become a General Member', '/join/ambassador': 'Become a Department Ambassador',
 };
 
+// pages whose own hero already renders an h1
+const OWN_H1 = new Set(['/', '/ambassadors', '/join', '/join/ambassador']);
+
 export default function SiteLayout() {
   const { pathname } = useLocation();
   useEffect(() => { window.scrollTo({ top: 0, left: 0, behavior: 'instant' }); }, [pathname]);
@@ -22,6 +25,7 @@ export default function SiteLayout() {
   return (
     <>
       <Navbar />
+      {!OWN_H1.has(pathname) && TITLES[pathname] && <h1 className="sr-only">{TITLES[pathname]}</h1>}
       <motion.main key={pathname} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.22, ease: 'easeOut' }}>
           <Suspense fallback={<div className="grid min-h-[70vh] place-items-center"><span className="size-8 animate-spin rounded-full border-2 border-line border-t-accent" /></div>}>
             <Outlet />

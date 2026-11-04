@@ -10,6 +10,7 @@ const pool = require('./config/db');
 const { UPLOAD_DIR } = require('./utils/saveImage');
 const initDb = require('./config/initDb');
 const { positionRank, leadershipConflict } = require('./utils/positions');
+const mail = require('./utils/mailer');
 const createCrudRouter = require('./routes/crud');
 const { authMiddleware } = require('./middleware/auth');
 
@@ -114,9 +115,21 @@ app.post('/api/subscribers', subscribeLimiter, async (req, res) => {
   if (email.length > 200 || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return res.status(400).json({ error: 'Please enter a valid email address' });
   try {
     const dup = await pool.query('SELECT 1 FROM subscribers WHERE email = $1 AND deleted_at IS NULL', [email]);
-    if (!dup.rows.length) await pool.query('INSERT INTO subscribers (email) VALUES ($1)', [email]);
+    if (!dup.rows.length) {
+      await pool.query('INSERT INTO subscribers (email) VALUES ($1)', [email]);
+      mail.sendMail({ to: email, ...mail.templates.subscribeWelcome(email) });
+    }
     res.status(201).json({ success: true }); // same answer for new and existing emails
   } catch (e) { console.error('subscribe failed:', e.message); res.status(500).json({ error: 'Could not subscribe right now' }); }
+});
+
+// one-click unsubscribe from the link inside every newsletter (signed, so nobody can unsubscribe others)
+app.get('/api/subscribers/unsubscribe', async (req, res) => {
+  const email = String(req.query.e || '').toLowerCase();
+  const page = (msg) => res.type('html').send(`<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><title>Unsubscribe</title><body style="font-family:system-ui;background:#F5F8FF;display:grid;place-items:center;min-height:100vh;margin:0"><div style="background:#fff;padding:32px;border-radius:20px;border:1px solid #D5E1F5;max-width:380px;text-align:center"><h2 style="margin:0 0 8px;color:#0A1A3F">BAUET ICT Club</h2><p style="color:#41527A">${msg}</p><a href="/" style="color:#1F4FD8">Back to the website</a></div>`);
+  if (!email || !mail.validUnsubscribe(email, req.query.t)) return page('This unsubscribe link is not valid.');
+  try { await pool.query('UPDATE subscribers SET deleted_at = NOW() WHERE email = $1 AND deleted_at IS NULL', [email]); } catch (e) { console.warn('unsubscribe failed:', e.message); }
+  return page('You have been unsubscribed. You will not get our emails any more.');
 });
 
 features.forEach((f) => {

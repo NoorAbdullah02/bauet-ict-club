@@ -35,11 +35,6 @@ export default function Contact() {
     setSending(true);
     try {
       await sendMessage(form);
-      fetch('/api/email/contact', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
-      }).catch(() => {});
       toast.success('Message sent successfully!');
       setForm({ name: '', email: '', subject: '', message: '' });
     } catch (err) {
