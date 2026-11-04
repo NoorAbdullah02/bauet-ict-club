@@ -1,4 +1,5 @@
 const express = require('express');
+const { fail } = require('../utils/http');
 const router = express.Router();
 
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -52,7 +53,7 @@ router.post('/contact', limiter, async (req, res) => {
     await api.sendTransacEmail(sendSmtpEmail);
     res.json({ success: true });
   } catch (e) {
-    res.status(500).json({ error: 'Email failed: ' + e.message });
+    fail(res, e);
   }
 });
 

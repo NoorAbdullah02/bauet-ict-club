@@ -1,3 +1,4 @@
+import Select from '../components/Select';
 import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { Rocket, Loader2, CalendarPlus } from 'lucide-react';
@@ -51,7 +52,7 @@ export default function LaunchCommittee({ open, onClose }) {
 
       <div className="grid grid-cols-2 gap-4">
         <label className="block"><span className="mb-1.5 block font-mono text-[11px] uppercase tracking-[0.14em] text-fg2">Semester</span>
-          <select className={inputCls} value={term} onChange={(e) => setTerm(e.target.value)}><option>Summer</option><option>Winter</option></select></label>
+          <Select className={inputCls} value={term} onChange={(e) => setTerm(e.target.value)}><option>Summer</option><option>Winter</option></Select></label>
         <label className="block"><span className="mb-1.5 block font-mono text-[11px] uppercase tracking-[0.14em] text-fg2">Year</span>
           <input className={inputCls} type="number" min="2019" max="2100" value={year} onChange={(e) => setYear(Number(e.target.value))} /></label>
       </div>
@@ -70,7 +71,7 @@ export default function LaunchCommittee({ open, onClose }) {
         </div>
         {scope !== 'none' && ordered.length > 0 && (
           <label className="mt-4 block"><span className="mb-1.5 block font-mono text-[11px] uppercase tracking-[0.14em] text-fg2">Copy from</span>
-            <select className={inputCls} value={source} onChange={(e) => setFrom(e.target.value)}>{ordered.map((s) => <option key={s.label} value={s.label}>{s.label} · {s.members} people</option>)}</select></label>
+            <Select className={inputCls} value={source} onChange={(e) => setFrom(e.target.value)}>{ordered.map((s) => <option key={s.label} value={s.label}>{s.label} · {s.members} people</option>)}</Select></label>
         )}
       </div>
       <p className="mt-6 text-xs leading-6 text-muted">The newest semester becomes the “current committee” on the Home and Team pages automatically.</p>

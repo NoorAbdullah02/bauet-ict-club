@@ -13,6 +13,9 @@ function useLite() {
   );
 }
 
+/** Very weak devices never download the 3D bundle (about 800 kB) at all. */
+const weakDevice = () => typeof navigator !== 'undefined' && ((navigator.hardwareConcurrency || 8) <= 2 || (navigator.deviceMemory || 8) <= 2 || !!navigator.connection?.saveData);
+
 /** Lazy, WebGL-guarded 3D canvas that pauses rendering when scrolled out of view. */
 export default function Backdrop3D({ variant = 'orbs', className }) {
   const dark = useStore((s) => s.theme) === 'dark';
@@ -24,9 +27,12 @@ export default function Backdrop3D({ variant = 'orbs', className }) {
   const lite = useLite();
 
   useEffect(() => {
-    const go = () => setReady(true);
-    const id = 'requestIdleCallback' in window ? requestIdleCallback(go, { timeout: 1200 }) : setTimeout(go, 400);
-    return () => ('cancelIdleCallback' in window ? cancelIdleCallback(id) : clearTimeout(id));
+    if (weakDevice()) return undefined;
+    // start only after the page has loaded and the browser is idle, so the first paint and scroll never compete with three.js parsing
+    let id;
+    const go = () => { id = 'requestIdleCallback' in window ? requestIdleCallback(() => setReady(true), { timeout: 3000 }) : setTimeout(() => setReady(true), 1500); };
+    if (document.readyState === 'complete') go(); else window.addEventListener('load', go, { once: true });
+    return () => { window.removeEventListener('load', go); if (id) ('cancelIdleCallback' in window ? cancelIdleCallback(id) : clearTimeout(id)); };
   }, []);
 
   useEffect(() => {

@@ -16,11 +16,46 @@ const { authMiddleware } = require('./middleware/auth');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }));
+const isProd = process.env.NODE_ENV === 'production';
+if (process.env.TRUST_PROXY) app.set('trust proxy', Number(process.env.TRUST_PROXY) || process.env.TRUST_PROXY); // behind Render/Railway/Nginx: real client IP for rate limits
+
+// the SPA is served by this server in production, so a strict CSP applies to it
+app.use(helmet({
+  crossOriginEmbedderPolicy: false,
+  crossOriginResourcePolicy: { policy: 'cross-origin' }, // uploaded photos are embedded by the site/app
+  contentSecurityPolicy: !isProd ? false : {
+    useDefaults: true,
+    directives: {
+      'default-src': ["'self'"],
+      'script-src': ["'self'"],
+      'style-src': ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+      'font-src': ["'self'", 'https://fonts.gstatic.com', 'data:'],
+      'img-src': ["'self'", 'data:', 'blob:', 'https:'],
+      'connect-src': ["'self'"],
+      'worker-src': ["'self'", 'blob:'],
+      'object-src': ["'none'"],
+      'frame-ancestors': ["'none'"],
+      'base-uri': ["'self'"],
+      'form-action': ["'self'"],
+    },
+  },
+  hsts: isProd ? { maxAge: 31536000, includeSubDomains: true } : false,
+  referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+}));
 app.use(compression());
-app.use(cors());
+
+// browsers only: the site and the admin panel call this API from their own origin. Add other origins (e.g. the mobile web build) via CORS_ORIGINS.
+const allowed = (process.env.CORS_ORIGINS || '').split(',').map((o) => o.trim()).filter(Boolean);
+app.use(cors({
+  origin: (origin, cb) => {
+    if (!origin) return cb(null, true); // mobile apps, curl and same-origin requests send no Origin header
+    if (allowed.includes(origin) || (!isProd && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin))) return cb(null, true);
+    return cb(null, false);
+  },
+  maxAge: 600,
+}));
 app.use(express.json({ limit: '1mb' }));
-app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({ extended: false, limit: '100kb' }));
 
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,

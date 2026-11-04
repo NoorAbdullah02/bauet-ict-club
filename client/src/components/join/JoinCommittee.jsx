@@ -1,3 +1,4 @@
+import Select from '../Select';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Crown, ArrowRight, ArrowLeft, ArrowUpRight, Loader2, BadgeCheck, ScrollText, MessagesSquare, Star, RotateCcw } from 'lucide-react';
@@ -113,24 +114,24 @@ export default function JoinCommittee() {
                   {step === 0 ? (
                     <motion.div key="s0" initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -24 }} className="grid gap-5 sm:grid-cols-2">
                       <div className="sm:col-span-2"><PhotoDrop value={form.photo_url} onFile={onPhoto} uploading={uploading} error={errors.photo_url} /></div>
-                      <Field label="Full name" required error={errors.full_name}><input className={inputCls(errors.full_name)} value={form.full_name} onChange={set('full_name')} placeholder="Your full name" autoComplete="name" /></Field>
-                      <Field label="Student ID" required error={errors.student_id}><input className={inputCls(errors.student_id)} value={form.student_id} onChange={set('student_id')} placeholder="e.g. 2201010" /></Field>
+                      <Field label="Full name" required error={errors.full_name}><input name="name" className={inputCls(errors.full_name)} value={form.full_name} onChange={set('full_name')} placeholder="Your full name" autoComplete="name" /></Field>
+                      <Field label="Student ID" required error={errors.student_id}><input name="student_id" autoComplete="off" inputMode="numeric" className={inputCls(errors.student_id)} value={form.student_id} onChange={set('student_id')} placeholder="e.g. 2201010" /></Field>
                       <Field label="Batch" required error={errors.batch}>
-                        <select className={inputCls(errors.batch)} value={form.batch} onChange={set('batch')}><option value="">Select batch</option>{BATCHES.map((b) => <option key={b} value={b}>{b}th batch</option>)}</select>
+                        <Select className={inputCls(errors.batch)} value={form.batch} onChange={set('batch')}><option value="">Select batch</option>{BATCHES.map((b) => <option key={b} value={b}>{b}th batch</option>)}</Select>
                       </Field>
                       <Field label="Department" required error={errors.department}>
-                        <select className={inputCls(errors.department)} value={form.department} onChange={set('department')}><option value="">Select department</option>{DEPARTMENTS.map((d) => <option key={d}>{d}</option>)}</select>
+                        <Select className={inputCls(errors.department)} value={form.department} onChange={set('department')}><option value="">Select department</option>{DEPARTMENTS.map((d) => <option key={d}>{d}</option>)}</Select>
                       </Field>
-                      <Field label="Phone" required error={errors.phone}><input className={inputCls(errors.phone)} type="tel" value={form.phone} onChange={set('phone')} placeholder="01XXXXXXXXX" autoComplete="tel" /></Field>
-                      <Field label="Email" required error={errors.email}><input className={inputCls(errors.email)} type="email" value={form.email} onChange={set('email')} placeholder="you@example.com" autoComplete="email" /></Field>
+                      <Field label="Phone" required error={errors.phone}><input name="phone" inputMode="tel" className={inputCls(errors.phone)} type="tel" value={form.phone} onChange={set('phone')} placeholder="01XXXXXXXXX" autoComplete="tel" /></Field>
+                      <Field label="Email" required error={errors.email}><input name="email" className={inputCls(errors.email)} type="email" value={form.email} onChange={set('email')} placeholder="you@example.com" autoComplete="email" /></Field>
                       <Field label="Gender" className="sm:col-span-2">
-                        <select className={inputCls()} value={form.gender} onChange={set('gender')}><option value="">Prefer not to say</option><option>Male</option><option>Female</option><option>Other</option></select>
+                        <Select className={inputCls()} value={form.gender} onChange={set('gender')}><option value="">Prefer not to say</option><option>Male</option><option>Female</option><option>Other</option></Select>
                       </Field>
                     </motion.div>
                   ) : (
                     <motion.div key="s1" initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -24 }} className="space-y-6">
                       <Field label="Apply for post" required error={errors.post}>
-                        <select className={inputCls(errors.post)} value={form.post} onChange={set('post')}><option value="">Select a position</option>{POSTS.map((p) => <option key={p}>{p}</option>)}</select>
+                        <Select className={inputCls(errors.post)} value={form.post} onChange={set('post')}><option value="">Select a position</option>{POSTS.map((p) => <option key={p}>{p}</option>)}</Select>
                       </Field>
                       <Field label="Why this post?">
                         <textarea className={cn(inputCls(), 'min-h-28 resize-y')} maxLength={600} value={form.note} onChange={set('note')} placeholder="Your experience and ideas for the club…" />

@@ -1,8 +1,12 @@
 const express = require('express');
+const { fail } = require('../utils/http');
 const Groq = require('groq-sdk');
 require('dotenv').config({ path: '../.env' });
 
+const rateLimit = require('express-rate-limit');
+
 const router = express.Router();
+const chatLimiter = rateLimit({ windowMs: 10 * 60 * 1000, max: 40, standardHeaders: true, legacyHeaders: false, message: { error: 'You are chatting very fast. Please wait a few minutes.' } });
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY || '' });
 
@@ -21,9 +25,10 @@ About the club:
 Be friendly, helpful, and concise. Answer in English or Bengali/Bangla based on the user's language.
 If you don't know something specific about the club, say so honestly and suggest contacting the club directly.`;
 
-router.post('/', async (req, res) => {
-  const { message, history = [] } = req.body;
-  if (!message) return res.status(400).json({ error: 'Message required' });
+router.post('/', chatLimiter, async (req, res) => {
+  const { message } = req.body || {};
+  const history = Array.isArray(req.body?.history) ? req.body.history : [];
+  if (!message || typeof message !== 'string') return res.status(400).json({ error: 'Message required' });
 
   if (!process.env.GROQ_API_KEY) {
     return res.json({
@@ -49,7 +54,7 @@ router.post('/', async (req, res) => {
 
     res.json({ reply: completion.choices[0]?.message?.content || 'Sorry, I could not generate a response.' });
   } catch (e) {
-    res.status(500).json({ error: 'AI error: ' + e.message });
+    fail(res, e);
   }
 });
 

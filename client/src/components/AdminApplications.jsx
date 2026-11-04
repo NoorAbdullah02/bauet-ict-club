@@ -1,3 +1,4 @@
+import Select from './Select';
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { Crown, Users, Megaphone, Check, X, Trash2, Download, Loader2, UserCheck, Search } from 'lucide-react';
@@ -95,9 +96,9 @@ function Card({ r }) {
             <datalist id="session-list">{sessionNames.map((n) => <option key={n} value={n} />)}</datalist>
           </label>
           {r.type === 'committee' ? <label className="text-xs text-fg2">Post (President, VP, …)
-            <select className={cn(inputCls, 'mt-1')} value={position} onChange={(e) => setPosition(e.target.value)}>
+            <Select className={cn(inputCls, 'mt-1')} value={position} onChange={(e) => setPosition(e.target.value)}>
               {[...new Set([r.post, ...POSTS].filter(Boolean))].map((p) => <option key={p}>{p}</option>)}
-            </select>
+            </Select>
           </label> : <p className="self-end text-xs text-fg2">Listed as <b className="text-fg">{r.department} Ambassador</b> on the Ambassadors page.</p>}
           <div className="flex gap-2 sm:col-span-2">
             <button disabled={busy || !session.trim()} onClick={confirmSelect}
@@ -170,9 +171,9 @@ export default function AdminApplications() {
             <Icon size={15} /> {label} <span className="rounded-full bg-black/10 px-2 text-xs">{count(k)}</span>
           </button>
         ))}
-        <select value={status} onChange={(e) => setStatus(e.target.value)} className="rounded-full border border-line bg-surface px-4 py-2 text-sm text-fg2">
+        <Select value={status} onChange={(e) => setStatus(e.target.value)} className="rounded-full border border-line bg-surface px-4 py-2 text-sm text-fg2">
           <option value="all">All status</option><option value="pending">Pending</option><option value="approved">Approved</option><option value="rejected">Rejected</option>
-        </select>
+        </Select>
         <div className="relative min-w-48 flex-1">
           <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" />
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name, email, ID"
