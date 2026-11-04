@@ -10,7 +10,7 @@ async function notifySubscribers(kind, item) {
   if ((process.env.NOTIFY_SUBSCRIBERS || '').toLowerCase() === 'false' || !mail.provider()) return 0;
   try {
     if (item.summary && item.summary.length > 400) item = { ...item, summary: `${item.summary.slice(0, 400).trim()}…` };
-    const { rows } = await pool.query('SELECT email FROM subscribers WHERE deleted_at IS NULL');
+    const { rows } = await pool.query('SELECT email FROM subscribers WHERE deleted_at IS NULL AND COALESCE(is_demo, false) = false');
     rows.forEach((r) => mail.sendMail({ to: r.email, ...mail.templates.announcement(r.email, kind, item) }));
     return rows.length;
   } catch (e) {

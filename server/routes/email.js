@@ -36,7 +36,7 @@ router.post('/newsletter', rateLimit({ windowMs: 60 * 60 * 1000, max: 10 }), asy
   if (!mail.provider()) return res.status(400).json({ error: 'Email is not configured. Set SMTP_USER and SMTP_PASS in .env.' });
   try {
     const testTo = String(req.body?.testTo || '').trim();
-    const recipients = testTo ? [testTo] : (await pool.query('SELECT email FROM subscribers WHERE deleted_at IS NULL')).rows.map((r) => r.email);
+    const recipients = testTo ? [testTo] : (await pool.query('SELECT email FROM subscribers WHERE deleted_at IS NULL AND COALESCE(is_demo, false) = false')).rows.map((r) => r.email);
     recipients.forEach((to) => mail.sendMail({ to, ...mail.templates.newsletter(to, subject, message) }));
     res.json({ success: true, queued: recipients.length, test: !!testTo });
   } catch (e) {
