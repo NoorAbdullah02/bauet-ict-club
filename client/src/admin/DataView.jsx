@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { formalDate, formalTime } from '../lib/format';
 import { useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { Plus, Pencil, Trash2, Search, Loader2, Save, Rocket, ArrowRightLeft } from 'lucide-react';
@@ -6,8 +7,16 @@ import useStore from '../context/store';
 import { TYPES } from './config';
 import LaunchCommittee from './LaunchCommittee';
 import TransferPeople from './TransferPeople';
+import CommitteeOverview from './CommitteeOverview';
 import { sessionRank } from '../lib/sessions';
 import { Panel, PageTitle, Drawer, FormField, inputCls, askConfirm, toastTrashed } from './ui';
+
+/** Which Cloudinary folder a picture goes to: a committee's own folder for people, otherwise the section and year. */
+const AREA = { members: 'committees', events: 'events', gallery: 'gallery', posts: 'posts', projects: 'projects', notices: 'notices', achievements: 'achievements', sponsors: 'branding' };
+const uploadWhere = (type, form) => ({
+  area: AREA[type] || 'misc',
+  scope: type === 'members' ? (form.committee_session || '') : String(form.date || new Date().toISOString()).slice(0, 4),
+});
 
 export default function DataView({ type }) {
   const cfg = TYPES[type];
@@ -18,6 +27,7 @@ export default function DataView({ type }) {
   const [params, setParams] = useSearchParams();
   const [launching, setLaunching] = useState(false);
   const [transferring, setTransferring] = useState(false);
+  const [transferFrom, setTransferFrom] = useState('');
   const sessions = useStore((s) => s.sessions);
   const fields = useMemo(() => cfg.fields.map((f) => (f.dynamic === 'sessions' ? { ...f, options: sessions.map((x) => x.label).sort((a, b) => sessionRank(b) - sessionRank(a)) } : f)), [cfg, sessions]);
   const [form, setForm] = useState({});
@@ -68,6 +78,8 @@ export default function DataView({ type }) {
         <button onClick={openAdd} className="btn-primary !px-5 !py-2.5 text-xs"><Plus size={15} /> Add {cfg.name}</button>
       </PageTitle>
 
+      {type === 'members' && <CommitteeOverview onLaunch={() => setLaunching(true)} onTransfer={(label) => { setTransferFrom(label); setTransferring(true); }} onOpen={(label) => setQ(label)} />}
+
       <Panel className="overflow-hidden">
         {rows.length === 0 ? <p className="p-12 text-center text-sm text-muted">Nothing here yet.</p> : (
           <div className="overflow-x-auto">
@@ -81,7 +93,7 @@ export default function DataView({ type }) {
                   <tr key={item.id} className="border-b border-line/60 transition last:border-0 hover:bg-accent/5">
                     {cfg.cols.map((c, ci) => (
                       <td key={c} className={`max-w-xs truncate px-5 py-3.5 ${ci === 0 ? 'font-medium text-fg' : 'text-fg2'}`}>
-                        {typeof item[c] === 'boolean' ? (item[c] ? <span className="rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-xs text-emerald-500">Yes</span> : '—') : (/^\d{4}-\d{2}-\d{2}T/.test(String(item[c])) ? String(item[c]).slice(0, 10) : String(item[c] ?? '—').slice(0, 80))}
+                        {typeof item[c] === 'boolean' ? (item[c] ? <span className="rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-xs text-emerald-500">Yes</span> : '—') : (/^\d{4}-\d{2}-\d{2}/.test(String(item[c])) ? formalDate(item[c], { short: true }) : c === 'time' ? formalTime(item[c]) : String(item[c] ?? '—').slice(0, 80))}
                       </td>
                     ))}
                     <td className="px-5 py-3.5"><div className="flex justify-end gap-1.5">
@@ -97,11 +109,11 @@ export default function DataView({ type }) {
       </Panel>
 
       {type === 'members' && <LaunchCommittee open={launching} onClose={() => setLaunching(false)} />}
-      {type === 'members' && <TransferPeople open={transferring} onClose={() => setTransferring(false)} />}
+      {type === 'members' && <TransferPeople open={transferring} initialFrom={transferFrom} onClose={() => { setTransferring(false); setTransferFrom(''); }} />}
       <Drawer open={!!drawer} title={`${drawer?.mode === 'add' ? 'Add' : 'Edit'} ${cfg.name}`} onClose={() => setDrawer(null)}
         footer={<><button onClick={() => setDrawer(null)} className="btn-outline !px-5 !py-2.5 text-xs">Cancel</button>
           <button onClick={save} disabled={saving} className="btn-primary !px-5 !py-2.5 text-xs disabled:opacity-60">{saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} Save</button></>}>
-        {fields.map((f) => <FormField key={f.key} field={f} value={form[f.key]} onChange={(k, v) => setForm((p) => ({ ...p, [k]: v }))} />)}
+        {fields.map((f) => <FormField key={f.key} field={f} value={form[f.key]} upload={uploadWhere(type, form)} onChange={(k, v) => setForm((p) => ({ ...p, [k]: v }))} />)}
       </Drawer>
     </div>
   );

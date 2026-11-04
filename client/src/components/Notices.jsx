@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { formalDate, formalTime } from '../lib/format';
 import { thumb } from '../lib/img';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
@@ -84,7 +85,7 @@ export default function Notices() {
                         </span>
                       )}
                     </div>
-                    <div style={{ fontSize: 13, color: 'var(--fg-muted)' }}>{n.date}</div>
+                    <div style={{ fontSize: 13, color: 'var(--fg-muted)' }}>{formalDate(n.date)}</div>
                     <AnimatePresence>
                       {isExpanded && n.content && (
                         <motion.p

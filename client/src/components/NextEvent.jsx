@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { formalTime } from '../lib/format';
 import { Link } from 'react-router-dom';
 import { CalendarPlus, MapPin, Timer } from 'lucide-react';
 import { downloadIcs, eventStart } from '../lib/ics';
@@ -34,7 +35,7 @@ export default function NextEvent({ events }) {
               <div className="mb-3 inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.2em] text-tech"><Timer size={14} /> Next event</div>
               <h3 className="text-[clamp(1.6rem,3.4vw,2.4rem)] leading-tight text-fg">{e.title}</h3>
               <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-fg2">
-                <span>{at.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}{e.time ? `, ${e.time}` : ''}</span>
+                <span>{at.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}{e.time ? `, ${formalTime(e.time)}` : ''}</span>
                 {e.location && <span className="inline-flex items-center gap-1"><MapPin size={14} /> {e.location}</span>}
               </p>
               <div className="mt-5 flex flex-wrap gap-3">

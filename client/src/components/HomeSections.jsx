@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { formalDate, formalTime } from '../lib/format';
 import { motion } from 'framer-motion';
 import { ArrowUpRight, CalendarDays, MapPin, Pin, Crown, Users, Megaphone, Code, Trophy, Lightbulb, Cpu } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
@@ -83,7 +84,7 @@ export default function HomeSections() {
                   <div className="min-w-0 flex-1">
                     <h3 className="truncate font-display text-xl text-fg">{e.title}</h3>
                     <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-xs text-fg2">
-                      {e.time && <span className="flex items-center gap-1"><CalendarDays size={12} />{e.time}</span>}
+                      {e.time && <span className="flex items-center gap-1"><CalendarDays size={12} />{formalTime(e.time)}</span>}
                       {e.location && <span className="flex items-center gap-1"><MapPin size={12} />{e.location}</span>}
                     </div>
                   </div>

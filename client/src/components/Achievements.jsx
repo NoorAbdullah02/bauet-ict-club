@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { formalDate, formalTime } from '../lib/format';
 import { thumb } from '../lib/img';
 import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
@@ -71,7 +72,7 @@ export default function Achievements() {
               >
                 {a.image_url && <img src={thumb(a.image_url, 900)} alt={a.title} loading="lazy" decoding="async" style={{ width: '100%', maxHeight: 260, objectFit: 'cover', borderRadius: 12, marginBottom: 14 }} />}
                 <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--accent)', fontWeight: 600, marginBottom: 8 }}>
-                  {a.date}
+                  {formalDate(a.date)}
                 </div>
                 <h3 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: 8, fontFamily: 'var(--font-display)' }}>{a.title}</h3>
                 <p style={{ fontSize: 14, color: 'var(--fg-secondary)', lineHeight: 1.7 }}>{a.description}</p>

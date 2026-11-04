@@ -6,9 +6,9 @@ import { X, Upload, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useShallow } from 'zustand/react/shallow';
 import useStore from '../context/store';
-import { compressImage } from '../lib/compressImage';
 import { cn } from '../lib/cn';
 import ImageEditor from '../components/ImageEditor';
+import { downloadUrl } from '../lib/img';
 
 export const inputCls = 'w-full rounded-xl border border-line bg-bg/60 px-4 py-2.5 text-sm text-fg outline-none transition placeholder:text-muted focus:border-tech focus:ring-4 focus:ring-tech/15';
 
@@ -49,7 +49,7 @@ export function Drawer({ open, title, onClose, children, footer }) {
   );
 }
 
-export function FormField({ field, value, onChange }) {
+export function FormField({ field, value, onChange, upload }) {
   const { uploadImage } = useStore(useShallow((s) => ({ uploadImage: s.uploadImage })));
   const [busy, setBusy] = useState(false);
   const [editing, setEditing] = useState(null); // picture waiting in the crop / resize editor
@@ -79,11 +79,12 @@ export function FormField({ field, value, onChange }) {
             try { const b = await (await fetch(value)).blob(); setEditing(new File([b], 'picture.jpg', { type: b.type || 'image/jpeg' })); } catch { toast.error('Could not open this picture here. Upload it again to edit.'); }
           }} className="rounded-xl border border-line px-3 py-2.5 text-xs font-semibold text-fg2 transition hover:border-tech hover:text-tech">Crop / resize</button>
         )}
+        {value && !value.startsWith('data:') && <a href={downloadUrl(value, field.label)} download target="_blank" rel="noreferrer" title="Download the full-quality picture (for posters)" className="rounded-xl border border-line px-3 py-2.5 text-xs font-semibold text-fg2 transition hover:border-tech hover:text-tech">Download</a>}
       </div>
       {editing && <ImageEditor file={editing} aspect={field.kind === 'avatar' ? 1 : field.aspect || null} keepPng={field.kind === 'logo'} onCancel={() => setEditing(null)}
         onDone={async (f) => {
           setEditing(null); setBusy(true);
-          try { set(await uploadImage(await compressImage(f, { keepPng: field.kind === 'logo' }), field.kind || 'cover')); toast.success('Image uploaded'); } catch (err) { toast.error(err.response?.data?.error || 'Upload failed'); }
+          try { set(await uploadImage(f, field.kind || 'cover', upload)); toast.success('Image saved as WebP'); } catch (err) { toast.error(err.response?.data?.error || 'Upload failed'); }
           setBusy(false);
         }} />}
       <input className={cn(inputCls, 'mt-2')} placeholder="…or paste an image URL" value={value || ''} onChange={(e) => set(e.target.value)} />
