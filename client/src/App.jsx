@@ -68,6 +68,8 @@ export default function App() {
       el.style.setProperty('--d', `${Math.min(i, 6) * 45}ms`);
       el.classList.add('reveal');
       io.observe(el);
+      // failsafe: never leave something near the viewport invisible if the observer is slow
+      setTimeout(() => { if (el.isConnected && !el.classList.contains('in') && el.getBoundingClientRect().top < innerHeight * 1.2) el.classList.add('in'); }, 2500);
     };
     const scan = (root) => {
       if (root.matches?.(SEL)) tag(root);

@@ -2,13 +2,27 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App';
+import AppBoundary from './components/AppBoundary';
 import './styles/global.css';
+
+// a page chunk that fails to load (new deploy, flaky network) would leave a blank screen: reload once to recover
+window.addEventListener('vite:preloadError', (e) => {
+  e.preventDefault();
+  try {
+    if (sessionStorage.getItem('chunk-reload')) return;
+    sessionStorage.setItem('chunk-reload', '1');
+  } catch { /* storage blocked */ }
+  window.location.reload();
+});
+window.addEventListener('load', () => { try { sessionStorage.removeItem('chunk-reload'); } catch { /* ignore */ } });
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <BrowserRouter>
-      <App />
-    </BrowserRouter>
+    <AppBoundary>
+      <BrowserRouter>
+        <App />
+      </BrowserRouter>
+    </AppBoundary>
   </React.StrictMode>
 );
 

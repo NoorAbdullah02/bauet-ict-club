@@ -19,6 +19,8 @@ export default function Backdrop3D({ variant = 'orbs', className }) {
   const ref = useRef(null);
   const [active, setActive] = useState(true);
   const [ready, setReady] = useState(false);
+  const [lost, setLost] = useState(false);
+  const [visible, setVisible] = useState(true);
   const lite = useLite();
 
   useEffect(() => {
@@ -35,12 +37,34 @@ export default function Backdrop3D({ variant = 'orbs', className }) {
     return () => io.disconnect();
   }, []);
 
-  if (!ready || !hasWebGL() || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return <div ref={ref} className={className} />;
+  // no rendering while the tab is in the background
+  useEffect(() => {
+    const on = () => setVisible(!document.hidden);
+    document.addEventListener('visibilitychange', on);
+    return () => document.removeEventListener('visibilitychange', on);
+  }, []);
+
+  // weak GPU? if the first seconds of rendering run below ~22 fps, drop the 3D layer so the page never janks or freezes
+  const live = ready && !lost && active && visible;
+  useEffect(() => {
+    if (!live) return;
+    let frames = 0, raf = 0, start = 0;
+    const tick = (t) => {
+      if (!start) start = t;
+      frames += 1;
+      if (t - start >= 3000) { if ((frames * 1000) / (t - start) < 22) setLost(true); return; }
+      raf = requestAnimationFrame(tick);
+    };
+    const warm = setTimeout(() => { raf = requestAnimationFrame(tick); }, 1500);
+    return () => { clearTimeout(warm); cancelAnimationFrame(raf); };
+  }, [live]);
+
+  if (!ready || lost || !hasWebGL() || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return <div ref={ref} className={className} />;
 
   return (
     <div ref={ref} className={cn('pointer-events-none', className)} aria-hidden="true">
       <SafeBoundary>
-        <Suspense fallback={null}><Scene3D variant={variant} dark={dark} active={active} lite={lite} /></Suspense>
+        <Suspense fallback={null}><Scene3D variant={variant} dark={dark} active={active && visible} lite={lite} onLost={() => setLost(true)} /></Suspense>
       </SafeBoundary>
     </div>
   );

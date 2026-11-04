@@ -124,11 +124,12 @@ function OrbsScene3D({ p, dark, lite }) {
 
 const SCENES = { hero: HeroScene3D, committee: CommitteeScene3D, general: GeneralScene3D, orbs: OrbsScene3D };
 
-export default function Scene3D({ variant = 'orbs', dark, active = true, lite = false }) {
+export default function Scene3D({ variant = 'orbs', dark, active = true, lite = false, onLost }) {
   const p = palette(dark);
   const Scene = SCENES[variant] || OrbsScene3D;
   return (
-    <Canvas eventSource={document.getElementById('root')} eventPrefix="client" dpr={lite ? [1, 1.25] : [1, 1.75]} camera={{ position: [0, 0, 8], fov: 48 }} frameloop={active ? 'always' : 'never'} gl={{ antialias: !lite, alpha: true, powerPreference: 'high-performance' }}>
+    <Canvas eventSource={document.getElementById('root')} eventPrefix="client" dpr={lite ? [1, 1.25] : [1, 1.5]} camera={{ position: [0, 0, 8], fov: 48 }} frameloop={active ? 'always' : 'never'} gl={{ antialias: !lite, alpha: true, powerPreference: 'default' }}
+      onCreated={({ gl }) => gl.domElement.addEventListener('webglcontextlost', (e) => { e.preventDefault(); onLost?.(); })}>
       <ambientLight intensity={dark ? 0.55 : 0.9} />
       <pointLight position={[6, 5, 6]} intensity={dark ? 60 : 40} color={p.a} />
       <pointLight position={[-6, -4, 5]} intensity={dark ? 45 : 25} color={p.b} />

@@ -55,9 +55,9 @@ export default function Hero() {
     <section id="home" ref={root} className="relative flex min-h-screen items-center overflow-hidden">
       <Backdrop3D variant="hero" className="absolute inset-0 opacity-90" />
 
-      <motion.div className="hero-orb pointer-events-none absolute -right-32 top-1/4 size-[34rem] rounded-full opacity-40 blur-3xl"
+      <motion.div className="hero-orb pointer-events-none absolute -right-32 top-1/4 size-[34rem] rounded-full opacity-40"
         style={{ y: orbY, background: 'radial-gradient(circle, rgba(var(--accent-rgb),0.5), transparent 65%)' }} />
-      <div className="hero-orb pointer-events-none absolute -left-40 bottom-10 size-[28rem] rounded-full opacity-30 blur-3xl"
+      <div className="hero-orb pointer-events-none absolute -left-40 bottom-10 size-[28rem] rounded-full opacity-30"
         style={{ background: 'radial-gradient(circle, rgba(var(--tech-rgb),0.45), transparent 65%)', animationDelay: '-6s' }} />
       <div className="hero-grid pointer-events-none absolute inset-0" />
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-bg to-transparent" />
