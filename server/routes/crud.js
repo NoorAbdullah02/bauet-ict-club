@@ -1,73 +1,104 @@
 const express = require('express');
 const pool = require('../config/db');
+const { destroyImage } = require('../utils/cloud');
 
 const IDENT = /^[a-z_][a-z0-9_]*$/;
 
+/**
+ * Generic list/create/update/delete for a table.
+ * - only whitelisted `columns` are ever written ("" becomes NULL so empty dates/numbers don't fail)
+ * - deletes are soft (deleted_at) so the admin can restore them from the Trash
+ * - replacing an image removes the old file from Cloudinary/disk when nothing else uses it
+ */
 function createCrudRouter(table, opts = {}) {
+  if (!IDENT.test(table)) throw new Error('Bad table name');
   const router = express.Router();
   const orderCol = opts.orderBy || 'created_at';
-  const orderDir = opts.orderDir || 'DESC';
+  const orderDir = opts.orderDir === 'ASC' ? 'ASC' : 'DESC';
+  const columns = opts.columns || [];
+  const imageCols = opts.imageCols || [];
   const auth = opts.auth;
+  const validate = opts.validate; // async (data, existingRow|null) => error string | null
+  const guard = auth ? [auth] : [];
 
-  router.get('/', async (req, res) => {
+  const pick = (body) => {
+    const out = {};
+    columns.forEach((c) => {
+      if (body[c] === undefined) return;
+      out[c] = body[c] === '' ? null : body[c];
+    });
+    return out;
+  };
+
+  router.get('/', async (_req, res) => {
     try {
-      const result = await pool.query(`SELECT * FROM ${table} ORDER BY ${orderCol} ${orderDir}`);
-      res.json(result.rows);
+      const { rows } = await pool.query(`SELECT * FROM ${table} WHERE deleted_at IS NULL ORDER BY ${orderCol} ${orderDir}`);
+      res.json(rows);
     } catch (e) {
-      res.status(500).json({ error: e.message });
+      console.error(`${table} list failed:`, e.message);
+      res.status(500).json({ error: 'Could not load data' });
     }
   });
 
   router.get('/:id', async (req, res) => {
     try {
-      const result = await pool.query(`SELECT * FROM ${table} WHERE id = $1`, [req.params.id]);
-      if (result.rows.length === 0) return res.status(404).json({ error: 'Not found' });
-      res.json(result.rows[0]);
+      const { rows } = await pool.query(`SELECT * FROM ${table} WHERE id = $1 AND deleted_at IS NULL`, [req.params.id]);
+      if (!rows.length) return res.status(404).json({ error: 'Not found' });
+      res.json(rows[0]);
     } catch (e) {
-      res.status(500).json({ error: e.message });
+      res.status(500).json({ error: 'Could not load item' });
     }
   });
 
-  router.post('/', ...(auth ? [auth] : []), async (req, res) => {
+  router.post('/', ...guard, async (req, res) => {
+    const data = pick(req.body);
+    if (!Object.keys(data).length) return res.status(400).json({ error: 'Nothing to save' });
     try {
-      const keys = Object.keys(req.body).filter((k) => k !== 'id');
-      if (!keys.length || !keys.every((k) => IDENT.test(k))) return res.status(400).json({ error: 'Invalid fields' });
-      const vals = keys.map((k) => req.body[k]);
-      const placeholders = keys.map((_, i) => `$${i + 1}`);
-      const result = await pool.query(
-        `INSERT INTO ${table} (${keys.join(',')}) VALUES (${placeholders.join(',')}) RETURNING *`,
-        vals
+      const problem = validate && await validate(data, null);
+      if (problem) return res.status(409).json({ error: problem });
+      const keys = Object.keys(data); // after validate(), which may add defaults such as display_order
+      const { rows } = await pool.query(
+        `INSERT INTO ${table} (${keys.join(',')}) VALUES (${keys.map((_, i) => `$${i + 1}`).join(',')}) RETURNING *`,
+        keys.map((k) => data[k])
       );
-      res.status(201).json(result.rows[0]);
+      res.status(201).json(rows[0]);
     } catch (e) {
-      res.status(500).json({ error: e.message });
+      console.error(`${table} insert failed:`, e.message);
+      res.status(400).json({ error: 'Could not save — please check the fields' });
     }
   });
 
-  router.put('/:id', ...(auth ? [auth] : []), async (req, res) => {
+  router.put('/:id', ...guard, async (req, res) => {
+    const data = pick(req.body);
+    if (!Object.keys(data).length) return res.status(400).json({ error: 'Nothing to save' });
     try {
-      const keys = Object.keys(req.body).filter((k) => k !== 'id');
-      if (!keys.length || !keys.every((k) => IDENT.test(k))) return res.status(400).json({ error: 'Invalid fields' });
-      const vals = keys.map((k) => req.body[k]);
+      const old = (await pool.query(`SELECT * FROM ${table} WHERE id = $1 AND deleted_at IS NULL`, [req.params.id])).rows[0];
+      if (!old) return res.status(404).json({ error: 'Not found' });
+      const problem = validate && await validate({ ...old, ...data }, old);
+      if (problem) return res.status(409).json({ error: problem });
+      const keys = Object.keys(data);
       const sets = keys.map((k, i) => `${k} = $${i + 1}`);
-      vals.push(req.params.id);
-      const result = await pool.query(
-        `UPDATE ${table} SET ${sets.join(',')} WHERE id = $${vals.length} RETURNING *`,
-        vals
+      const { rows } = await pool.query(
+        `UPDATE ${table} SET ${sets.join(',')} WHERE id = $${keys.length + 1} RETURNING *`,
+        [...keys.map((k) => data[k]), req.params.id]
       );
-      if (result.rows.length === 0) return res.status(404).json({ error: 'Not found' });
-      res.json(result.rows[0]);
+      res.json(rows[0]);
+      // the replaced picture would otherwise stay on Cloudinary forever
+      imageCols.forEach((c) => { if (old[c] && old[c] !== rows[0][c]) destroyImage(old[c]); });
     } catch (e) {
-      res.status(500).json({ error: e.message });
+      console.error(`${table} update failed:`, e.message);
+      res.status(400).json({ error: 'Could not save — please check the fields' });
     }
   });
 
-  router.delete('/:id', ...(auth ? [auth] : []), async (req, res) => {
+  // soft delete → Trash
+  router.delete('/:id', ...guard, async (req, res) => {
     try {
-      await pool.query(`DELETE FROM ${table} WHERE id = $1`, [req.params.id]);
-      res.json({ success: true });
+      const { rowCount } = await pool.query(`UPDATE ${table} SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL`, [req.params.id]);
+      if (!rowCount) return res.status(404).json({ error: 'Not found' });
+      res.json({ success: true, trashed: true });
     } catch (e) {
-      res.status(500).json({ error: e.message });
+      res.status(500).json({ error: 'Could not delete' });
     }
   });
 

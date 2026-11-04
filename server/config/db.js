@@ -1,4 +1,5 @@
-const { Pool } = require('pg');
+const { Pool, types } = require('pg');
+types.setTypeParser(1082, (v) => v); // DATE -> '2026-11-05', no timezone shifting
 require('dotenv').config({ path: '../.env' });
 
 const pool = new Pool({

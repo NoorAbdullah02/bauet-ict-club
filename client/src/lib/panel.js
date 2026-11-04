@@ -1,4 +1,4 @@
-import { sessionRank, isAmbassador } from './sessions';
+import { sessionRank, isAmbassador, leaderRank } from './sessions';
 
 const isLeader = (p = '') => /^(Vice )?President/i.test(p);
 const isCore = (p = '') => /Secretary|Treasurer/.test(p) && !/^Executive/.test(p);
@@ -10,7 +10,7 @@ export function latestPanel(members) {
   const label = [...new Set(committee.map((m) => m.committee_session))].sort((a, b) => sessionRank(b) - sessionRank(a))[0];
   const inSession = committee.filter((m) => m.committee_session === label);
   const byOrder = (a, b) => (a.display_order ?? 99) - (b.display_order ?? 99);
-  const leaders = inSession.filter((m) => isLeader(m.position)).sort(byOrder);
+  const leaders = inSession.filter((m) => isLeader(m.position)).sort((a, b) => leaderRank(a.position) - leaderRank(b.position) || byOrder(a, b));
   const core = inSession.filter((m) => !isLeader(m.position) && isCore(m.position)).sort(byOrder);
   const chiefs = inSession.filter((m) => !isLeader(m.position) && !isCore(m.position) && /^Chief/.test(m.position)).sort(byOrder);
 

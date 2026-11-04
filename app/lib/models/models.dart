@@ -81,6 +81,8 @@ class Member {
   final String gh;
   final String li;
 
+  bool get isAmbassador => position.toLowerCase().trim().startsWith('department ambassador');
+
   bool get isLeader {
     final p = position.toLowerCase().trim();
     return p == 'president' || p.startsWith('vice president');
@@ -90,7 +92,7 @@ class Member {
 
   bool get isExecutive => position.toLowerCase().trim().startsWith('executive');
 
-  bool get isCore => !isLeader && !isChief && !isExecutive;
+  bool get isCore => !isAmbassador && !isLeader && !isChief && !isExecutive;
 }
 
 class GalleryItem {

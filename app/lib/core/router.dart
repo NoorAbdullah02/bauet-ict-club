@@ -10,12 +10,14 @@ import '../screens/admin/admin_applications_screen.dart';
 import '../screens/admin/admin_crud_screen.dart';
 import '../screens/admin/admin_home_screen.dart';
 import '../screens/admin/admin_login_screen.dart';
+import '../screens/ambassadors_screen.dart';
 import '../screens/chat_screen.dart';
 import '../screens/contact_screen.dart';
 import '../screens/events_screen.dart';
 import '../screens/not_found_screen.dart';
 import '../screens/gallery_screen.dart';
 import '../screens/home_screen.dart';
+import '../screens/join/join_ambassador_screen.dart';
 import '../screens/join/join_committee_screen.dart';
 import '../screens/join/join_general_screen.dart';
 import '../screens/join/join_hub_screen.dart';
@@ -72,6 +74,7 @@ GoRouter buildRouter(AppState state) {
           GoRoute(path: '/events', pageBuilder: (c, s) => _fade(s, const EventsScreen())),
           GoRoute(path: '/notices', pageBuilder: (c, s) => _fade(s, const NoticesScreen())),
           GoRoute(path: '/team', pageBuilder: (c, s) => _fade(s, const TeamScreen())),
+          GoRoute(path: '/ambassadors', pageBuilder: (c, s) => _fade(s, const AmbassadorsScreen())),
           GoRoute(path: '/gallery', pageBuilder: (c, s) => _fade(s, const GalleryScreen())),
           GoRoute(path: '/achievements', pageBuilder: (c, s) => _fade(s, const AchievementsScreen())),
           GoRoute(path: '/about', pageBuilder: (c, s) => _fade(s, const AboutScreen())),
@@ -80,6 +83,7 @@ GoRouter buildRouter(AppState state) {
         ],
       ),
       GoRoute(path: '/join/committee', pageBuilder: (c, s) => _slide(s, const JoinCommitteeScreen())),
+      GoRoute(path: '/join/ambassador', pageBuilder: (c, s) => _slide(s, const JoinAmbassadorScreen())),
       GoRoute(path: '/join/general', pageBuilder: (c, s) => _slide(s, const JoinGeneralScreen())),
       GoRoute(path: '/chat', pageBuilder: (c, s) => _slide(s, const ChatScreen())),
       GoRoute(path: '/admin/login', pageBuilder: (c, s) => _slide(s, _admin(const AdminLoginScreen()))),

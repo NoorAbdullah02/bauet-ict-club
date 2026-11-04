@@ -36,7 +36,7 @@ router.post('/', contactLimiter, async (req, res) => {
 // Admin only: inbox
 router.get('/', authMiddleware, async (_req, res) => {
   try {
-    const { rows } = await pool.query('SELECT * FROM messages ORDER BY created_at DESC');
+    const { rows } = await pool.query('SELECT * FROM messages WHERE deleted_at IS NULL ORDER BY created_at DESC');
     res.json(rows);
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -46,7 +46,7 @@ router.get('/', authMiddleware, async (_req, res) => {
 router.put('/:id', authMiddleware, async (req, res) => {
   try {
     const { rows } = await pool.query(
-      'UPDATE messages SET is_read = COALESCE($1, is_read), reply_note = COALESCE($2, reply_note) WHERE id = $3 RETURNING *',
+      'UPDATE messages SET is_read = COALESCE($1, is_read), reply_note = COALESCE($2, reply_note) WHERE id = $3 AND deleted_at IS NULL RETURNING *',
       [typeof req.body.is_read === 'boolean' ? req.body.is_read : null, req.body.reply_note ?? null, req.params.id]
     );
     if (!rows.length) return res.status(404).json({ error: 'Not found' });
@@ -58,8 +58,8 @@ router.put('/:id', authMiddleware, async (req, res) => {
 
 router.delete('/:id', authMiddleware, async (req, res) => {
   try {
-    await pool.query('DELETE FROM messages WHERE id = $1', [req.params.id]);
-    res.json({ success: true });
+    await pool.query('UPDATE messages SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL', [req.params.id]);
+    res.json({ success: true, trashed: true });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Upload, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -82,9 +82,51 @@ export function FormField({ field, value, onChange }) {
       {field.type === 'textarea' ? <textarea className={cn(inputCls, 'min-h-28 resize-y')} value={value || ''} required={field.required} onChange={(e) => set(e.target.value)} />
         : field.type === 'select' ? (
           <select className={inputCls} value={value || ''} onChange={(e) => set(e.target.value)}>
-            <option value="">Select…</option>{field.options.map((o) => <option key={o}>{o}</option>)}
+            <option value="">Select…</option>{field.options.map((o) => (typeof o === 'string' ? <option key={o}>{o}</option> : <option key={o.value} value={o.value}>{o.label}</option>))}
           </select>
         ) : <input className={inputCls} type={field.type || 'text'} value={field.type === 'date' ? String(value ?? '').slice(0, 10) : (value ?? '')} required={field.required} onChange={(e) => set(field.type === 'number' ? Number(e.target.value) : e.target.value)} />}
     </label>
   );
+}
+
+/* ---------- confirm dialog (promise based, replaces window.confirm) ---------- */
+let openConfirm = null;
+export const askConfirm = (opts) => new Promise((resolve) => {
+  if (openConfirm) openConfirm({ ...opts, resolve });
+  else resolve(window.confirm(opts.message || opts.title));
+});
+
+export function ConfirmHost() {
+  const [dlg, setDlg] = useState(null);
+  useEffect(() => { openConfirm = setDlg; return () => { openConfirm = null; }; }, []);
+  const close = (v) => { dlg?.resolve(v); setDlg(null); };
+
+  return (
+    <AnimatePresence>
+      {dlg && (
+        <div className="fixed inset-0 z-[400] grid place-items-center p-4">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => close(false)} className="absolute inset-0 bg-black/45" />
+          <motion.div role="alertdialog" initial={{ opacity: 0, y: 16, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, scale: 0.97 }}
+            className="relative w-full max-w-sm rounded-3xl border border-line bg-surface p-7 shadow-[var(--shadow-xl)]">
+            <h3 className="text-xl text-fg">{dlg.title}</h3>
+            {dlg.message && <p className="mt-2 text-sm leading-6 text-fg2">{dlg.message}</p>}
+            <div className="mt-6 flex justify-end gap-3">
+              <button onClick={() => close(false)} className="rounded-full border border-line px-5 py-2.5 text-sm font-medium text-fg2 hover:border-accent">Cancel</button>
+              <button autoFocus onClick={() => close(true)} className={cn('rounded-full px-5 py-2.5 text-sm font-semibold text-white', dlg.danger ? 'bg-red-500 hover:bg-red-600' : 'bg-accent hover:brightness-110')}>{dlg.confirmText || 'Confirm'}</button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+/** "Moved to Trash" toast with an Undo button. */
+export function toastTrashed(label, onUndo) {
+  toast.custom((t) => (
+    <div className={cn('flex items-center gap-4 rounded-2xl border border-line bg-surface px-5 py-3.5 text-sm text-fg shadow-[var(--shadow-lg)] transition', t.visible ? 'opacity-100' : 'opacity-0')}>
+      <span>{label} moved to Trash</span>
+      <button onClick={async () => { toast.dismiss(t.id); try { await onUndo(); toast.success('Restored'); } catch { toast.error('Could not restore'); } }} className="font-semibold text-accent hover:underline">Undo</button>
+    </div>
+  ), { duration: 6000 });
 }

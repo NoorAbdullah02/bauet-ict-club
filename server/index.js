@@ -9,6 +9,7 @@ require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 const pool = require('./config/db');
 const { UPLOAD_DIR } = require('./utils/saveImage');
 const initDb = require('./config/initDb');
+const { positionRank, isPresident, sessionHasPresident } = require('./utils/positions');
 const createCrudRouter = require('./routes/crud');
 const { authMiddleware } = require('./middleware/auth');
 
@@ -45,12 +46,32 @@ app.use('/api/email', require('./routes/email'));
 app.use('/api/registrations', require('./routes/registrations'));
 app.use('/api/settings', require('./routes/settings'));
 
-app.use('/api/events', createCrudRouter('events', { orderBy: 'date', orderDir: 'DESC', auth: authMiddleware }));
-app.use('/api/notices', createCrudRouter('notices', { orderBy: 'pinned DESC, created_at', orderDir: 'DESC', auth: authMiddleware }));
-app.use('/api/members', createCrudRouter('members', { orderBy: 'display_order', orderDir: 'ASC', auth: authMiddleware }));
-app.use('/api/gallery', createCrudRouter('gallery', { auth: authMiddleware }));
-app.use('/api/achievements', createCrudRouter('achievements', { orderBy: 'date', orderDir: 'DESC', auth: authMiddleware }));
-app.use('/api/posts', createCrudRouter('posts', { auth: authMiddleware }));
+const COLS = {
+  events: ['title', 'date', 'time', 'location', 'description', 'image_url', 'featured', 'category'],
+  notices: ['title', 'date', 'content', 'priority', 'pinned', 'expiry_date'],
+  members: ['name', 'position', 'department', 'batch', 'committee_session', 'image_url', 'social_fb', 'social_gh', 'social_li', 'display_order', 'active'],
+  gallery: ['title', 'image_url', 'category', 'date', 'description'],
+  achievements: ['title', 'date', 'description', 'icon'],
+  posts: ['title', 'content', 'image_url', 'author'],
+};
+app.use('/api/events', createCrudRouter('events', { orderBy: 'date', orderDir: 'DESC', columns: COLS.events, imageCols: ['image_url'], auth: authMiddleware }));
+app.use('/api/notices', createCrudRouter('notices', { orderBy: 'pinned DESC, created_at', orderDir: 'DESC', columns: COLS.notices, auth: authMiddleware }));
+app.use('/api/members', createCrudRouter('members', {
+  orderBy: 'display_order', orderDir: 'ASC', columns: COLS.members, imageCols: ['image_url'], auth: authMiddleware,
+  // one President per session; everything else can have several people
+  validate: async (data, old) => {
+    if (data.display_order == null || data.display_order === 99) data.display_order = positionRank(data.position);
+    if (isPresident(data.position || '') && data.committee_session && await sessionHasPresident(pool, data.committee_session, old?.id)) {
+      return `${data.committee_session} already has a President. Change the existing one first — all other posts can have several people.`;
+    }
+    return null;
+  },
+}));
+app.use('/api/gallery', createCrudRouter('gallery', { columns: COLS.gallery, imageCols: ['image_url'], auth: authMiddleware }));
+app.use('/api/achievements', createCrudRouter('achievements', { orderBy: 'date', orderDir: 'DESC', columns: COLS.achievements, auth: authMiddleware }));
+app.use('/api/posts', createCrudRouter('posts', { columns: COLS.posts, imageCols: ['image_url'], auth: authMiddleware }));
+app.use('/api/trash', require('./routes/trash'));
+app.use('/api/committees', require('./routes/committees'));
 app.use('/api/messages', require('./routes/messages'));
 
 if (process.env.NODE_ENV === 'production') {
@@ -72,6 +93,7 @@ async function start() {
     console.log('PostgreSQL connected');
     if (!require('./utils/saveImage').cloudinaryReady()) console.warn('⚠  Cloudinary not configured: photos will be stored in server/uploads. Add CLOUDINARY_CLOUD_NAME / API_KEY / API_SECRET to .env.');
     await initDb(); // creates missing tables, seeds committee data and the admin account (safe to repeat)
+    require('./routes/trash').purgeExpired().catch((e) => console.warn('Trash purge failed:', e.message));
   } catch (e) {
     console.warn('PostgreSQL not connected:', e.message);
     console.warn('Run: npm run db:init after setting DATABASE_URL in .env');

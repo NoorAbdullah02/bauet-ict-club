@@ -53,6 +53,9 @@ const List<String> kCommitteePosts = [
 ];
 
 const List<String> kDepartments = ['ICE', 'CSE', 'EEE', 'CE', 'ME', 'Other'];
+/// Departments an ambassador can represent ('Other' is not allowed).
+const List<String> kAmbassadorDepartments = ['ICE', 'CSE', 'EEE', 'CE', 'ME'];
+const String kAmbassadorPost = 'Department Ambassador';
 const List<String> kGenders = ['Male', 'Female', 'Other'];
 const List<String> kLevels = ['Beginner', 'Intermediate', 'Advanced'];
 const List<String> kInterests = [

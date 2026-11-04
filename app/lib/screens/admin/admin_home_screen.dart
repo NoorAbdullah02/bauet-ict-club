@@ -33,8 +33,8 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
     final state = context.read<AppState>();
     setState(() => _loading = true);
     try {
-      final regs = await state.api.list('registrations');
-      final msgs = await state.api.list('messages');
+      final regs = await state.api.list('registrations', fresh: true);
+      final msgs = await state.api.list('messages', fresh: true);
       if (!mounted) return;
       setState(() {
         _pending = regs.where((r) => (r['status'] ?? 'pending') == 'pending').length;

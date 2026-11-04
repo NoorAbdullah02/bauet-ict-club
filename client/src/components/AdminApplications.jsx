@@ -3,10 +3,11 @@ import toast from 'react-hot-toast';
 import { Crown, Users, Megaphone, Check, X, Trash2, Download, Loader2, UserCheck, Search } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import useStore from '../context/store';
+import { askConfirm, toastTrashed } from '../admin/ui';
 import { cn } from '../lib/cn';
 
 export const POSTS = [
-  'President', 'Vice President', 'Vice President (Technical)', 'General Secretary', 'Assistant General Secretary',
+  'President', 'Vice President (Technical)', 'Vice President (Administration)', 'Vice President', 'General Secretary', 'Assistant General Secretary',
   'Joint Secretary', 'Assistant Joint Secretary', 'Treasurer', 'Financial Secretary', 'Organizing Secretary',
   'Publicity Secretary (Outreach & Activation)', 'Publicity Secretary (Social Media Management)',
   'Office Secretary (Resource Management)', 'Office Secretary (Event Management)',
@@ -45,7 +46,7 @@ function Card({ r }) {
   const [session, setSession] = useState(defaultSession());
   const [position, setPosition] = useState(r.post || POSTS[0]);
   const [busy, setBusy] = useState(false);
-  const sessionNames = [...new Set(useStore((st) => st.members).map((m) => m.committee_session).filter(Boolean))];
+  const sessionNames = useStore((st) => st.sessions).map((x) => x.label);
 
   const run = async (fn, ok) => {
     setBusy(true);
@@ -54,7 +55,7 @@ function Card({ r }) {
   };
 
   const confirmSelect = () => run(async () => {
-    await selectRegistration(r.id, { session: session.trim(), position, display_order: Math.max(1, POSTS.indexOf(position) + 1) });
+    await selectRegistration(r.id, { session: session.trim(), position });
     setPicking(false);
   }, `${r.full_name} selected as ${position}`);
 
@@ -124,9 +125,9 @@ function Card({ r }) {
           className="flex items-center gap-1.5 rounded-lg bg-amber-500/10 px-3 py-1.5 text-xs font-semibold text-amber-600 disabled:opacity-40">
           <X size={13} /> Reject
         </button>
-        <button disabled={busy} onClick={() => confirm(`Delete ${r.full_name}'s application?`) && run(() => deleteRegistration(r.id), 'Deleted')}
+        <button disabled={busy} onClick={async () => { if (await askConfirm({ title: `Delete ${r.full_name}'s application?`, message: 'It will be moved to the Trash. You can restore it for 30 days.', confirmText: 'Move to Trash', danger: true })) { setBusy(true); try { await deleteRegistration(r.id); toastTrashed('Application', () => useStore.getState().restoreTrash('registrations', r.id)); } catch (e) { toast.error(e.response?.data?.error || 'Could not delete'); } setBusy(false); } }}
           className="ml-auto flex items-center gap-1.5 rounded-lg bg-red-500/10 px-3 py-1.5 text-xs font-semibold text-red-600">
-          <Trash2 size={13} /> Delete
+          <Trash2 size={13} /> Trash
         </button>
       </div>
     </div>

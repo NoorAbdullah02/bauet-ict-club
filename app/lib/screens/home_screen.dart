@@ -55,6 +55,26 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: _Stats(state: state).stagger(0),
           ),
+          if (state.featuredCommittee.isNotEmpty) ...[
+            const SizedBox(height: 30),
+            _AvatarStrip(
+              eyebrow: 'The team',
+              title: 'Meet the ${state.latestSession} committee',
+              members: state.featuredCommittee,
+              showRole: true,
+              onSeeAll: () => context.go('/team'),
+            ).stagger(0),
+          ],
+          if (state.ambassadors.isNotEmpty) ...[
+            const SizedBox(height: 30),
+            _AvatarStrip(
+              eyebrow: 'Campus voices',
+              title: 'Department ambassadors',
+              members: state.ambassadors.take(12).toList(),
+              showRole: false,
+              onSeeAll: () => context.go('/ambassadors'),
+            ).stagger(0),
+          ],
           const SizedBox(height: 34),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -350,5 +370,62 @@ class _JoinCta extends StatelessWidget {
         ),
       ]),
     );
+  }
+}
+
+/// Horizontal strip of circular photos with name + role/department.
+class _AvatarStrip extends StatelessWidget {
+  const _AvatarStrip({required this.eyebrow, required this.title, required this.members, required this.showRole, required this.onSeeAll});
+  final String eyebrow;
+  final String title;
+  final List<Member> members;
+  final bool showRole;
+  final VoidCallback onSeeAll;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.pal;
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: SectionHeader(eyebrow: eyebrow, title: title, trailing: TextButton(onPressed: onSeeAll, child: const Text('See all'))),
+      ),
+      const SizedBox(height: 14),
+      SizedBox(
+        height: 132,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          itemCount: members.length,
+          separatorBuilder: (_, __) => const SizedBox(width: 14),
+          itemBuilder: (_, i) {
+            final m = members[i];
+            return GestureDetector(
+              onTap: onSeeAll,
+              child: SizedBox(
+                width: 84,
+                child: Column(children: [
+                  Container(
+                    width: 74,
+                    height: 74,
+                    padding: const EdgeInsets.all(2.5),
+                    decoration: BoxDecoration(shape: BoxShape.circle, gradient: p.brand),
+                    child: ClipOval(child: NetImage(m.imageUrl, fallbackLabel: m.name)),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(m.name.split(' ').first, maxLines: 1, overflow: TextOverflow.ellipsis, style: bodyStyle(context, size: 12.5, weight: FontWeight.w700)),
+                  Text(
+                    showRole ? m.position.replaceAll(RegExp(r'\s*\(.*\)'), '') : m.department,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: bodyStyle(context, size: 10.5, color: p.muted),
+                  ),
+                ]),
+              ),
+            );
+          },
+        ),
+      ),
+    ]);
   }
 }

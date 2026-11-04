@@ -1,5 +1,9 @@
 import { Calendar, Bell, Users, Image, Trophy, FileText } from 'lucide-react';
 
+const ordinal = (n) => `${n}${[11, 12, 13].includes(n % 100) ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' }[n % 10] || 'th')}`;
+export const BATCHES = Array.from({ length: 24 }, (_, i) => ordinal(i + 6));
+const DEPTS = [['ICE', 'ICE — Information & Communication Eng.'], ['CSE', 'CSE — Computer Science & Eng.'], ['EEE', 'EEE — Electrical & Electronic Eng.'], ['CE', 'CE — Civil Eng.'], ['ME', 'ME — Mechanical Eng.'], ['BBA', 'BBA — Business Administration'], ['LLB', 'LLB — Bachelor of Laws'], ['ELL', 'ELL — English Language & Literature']];
+
 export const TYPES = {
   events: {
     name: 'Event', icon: Calendar,
@@ -31,7 +35,7 @@ export const TYPES = {
     fields: [
       { key: 'name', label: 'Name', type: 'text', required: true },
       { key: 'position', label: 'Position', type: 'select', options: [
-        'President', 'Vice President',
+        'President', 'Vice President (Technical)', 'Vice President (Administration)', 'Vice President',
         'General Secretary', 'Asst. General Secretary', 'Joint Secretary',
         'Organizing Secretary', 'Treasurer',
         'Chief Executive (HR)', 'Chief Executive (Logistics)', 'Chief Executive (Development)',
@@ -42,20 +46,9 @@ export const TYPES = {
         'Executive (Cultural)', 'Executive (Media)', 'Executive (Photography)',
         'General Executive', 'General Member', 'Department Ambassador',
       ], required: true },
-      { key: 'department', label: 'Department', type: 'select', options: [
-        'ICE - Information & Communication Engineering',
-        'CSE - Computer Science & Engineering',
-        'EEE - Electrical & Electronic Engineering',
-        'CE - Civil Engineering',
-        'ME - Mechanical Engineering',
-        'BBA - Business Administration',
-        'LLB - Bachelor of Laws',
-        'ELL - English Language & Literature',
-      ] },
-      { key: 'batch', label: 'Batch', type: 'text' },
-      { key: 'committee_session', label: 'Committee Session', type: 'select', options: [
-        'Summer 2026', 'Winter 2025', 'Session 2023-24', 'Session 2022-23',
-      ] },
+      { key: 'department', label: 'Department', type: 'select', options: DEPTS.map(([value, label]) => ({ value, label })) },
+      { key: 'batch', label: 'Batch', type: 'select', options: BATCHES },
+      { key: 'committee_session', label: 'Committee Session', type: 'select', options: [], dynamic: 'sessions', required: true },
       { key: 'display_order', label: 'Display Order', type: 'number' },
       { key: 'image_url', label: 'Photo', type: 'image' },
       { key: 'social_fb', label: 'Facebook URL', type: 'text' },

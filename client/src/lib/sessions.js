@@ -6,3 +6,7 @@ export function sessionRank(label = '') {
 
 export const slug = (t) => t.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 export const isAmbassador = (position = '') => /^Department Ambassador/i.test(position);
+
+// Vice Presidents: Technical first, then Administration, then any other VP
+export const vpRank = (position = '') => (/Technical/i.test(position) ? 0 : /Administration/i.test(position) ? 1 : 2);
+export const leaderRank = (position = '') => (/^President/i.test(position) ? -1 : vpRank(position));

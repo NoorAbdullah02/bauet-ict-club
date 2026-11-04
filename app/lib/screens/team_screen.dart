@@ -22,12 +22,12 @@ class _TeamScreenState extends State<TeamScreen> {
     final state = context.watch<AppState>();
     final p = context.pal;
 
-    final sessions = state.members.map((m) => m.session).where((s) => s.isNotEmpty).toSet().toList()
+    final sessions = state.teamMembers.map((m) => m.session).where((s) => s.isNotEmpty).toSet().toList()
       ..sort((a, b) => sessionRank(b).compareTo(sessionRank(a)));
     final active = (_session != null && sessions.contains(_session)) ? _session : (sessions.isEmpty ? null : sessions.first);
 
     List<Member> pick(bool Function(Member) test) =>
-        state.members.where((m) => (active == null || m.session == active) && test(m)).toList()..sort((a, b) => a.order.compareTo(b.order));
+        state.teamMembers.where((m) => (active == null || m.session == active) && test(m)).toList()..sort((a, b) => a.order.compareTo(b.order));
 
     final leaders = pick((m) => m.isLeader);
     final core = pick((m) => m.isCore);
@@ -57,9 +57,9 @@ class _TeamScreenState extends State<TeamScreen> {
           const SizedBox(height: 20),
           if (state.loading && !state.loadedOnce)
             const ShimmerList(count: 3, height: 200)
-          else if (state.error != null && state.members.isEmpty)
+          else if (state.error != null && state.teamMembers.isEmpty)
             ErrorState(message: state.error!, onRetry: state.loadAll)
-          else if (state.members.isEmpty)
+          else if (state.teamMembers.isEmpty)
             const EmptyState(icon: Icons.groups_outlined, title: 'No members yet')
           else ...[
             if (leaders.isNotEmpty) ...[

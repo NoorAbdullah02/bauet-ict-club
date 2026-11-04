@@ -143,7 +143,7 @@ function MemberCard({ member, index, compact }) {
   );
 }
 
-import { sessionRank, slug, isAmbassador } from '../lib/sessions';
+import { sessionRank, slug, isAmbassador, vpRank } from '../lib/sessions';
 
 function useSessions(dbMembers) {
   return useMemo(() => {
@@ -161,6 +161,7 @@ function useSessions(dbMembers) {
         social_fb: m.social_fb, social_gh: m.social_gh, social_li: m.social_li,
       });
     });
+    Object.values(out).forEach((c) => c.vps.sort((a, b) => vpRank(a.title) - vpRank(b.title)));
     const keys = Object.keys(out).sort((a, b) => sessionRank(out[b].label) - sessionRank(out[a].label));
     return Object.fromEntries(keys.map((k, i) => [k, { ...out[k], tag: i === 0 ? 'Current' : 'Previous' }]));
   }, [dbMembers]);
@@ -218,9 +219,6 @@ export default function Team() {
         .dept-chip.active { color: #fff; }
         .dept-chip:not(.active):hover { background: var(--bg-alt); }
         @media (max-width: 768px) {
-          .team-grid-core { grid-template-columns: repeat(2, 1fr) !important; }
-          .team-grid-chiefs { grid-template-columns: repeat(2, 1fr) !important; }
-          .team-grid-execs { grid-template-columns: repeat(2, 1fr) !important; }
           .vp-row { flex-direction: column !important; }
         }
       `}</style>
@@ -318,7 +316,7 @@ export default function Team() {
                   <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: 2 }}>Core Executives</span>
                   <div style={{ height: 1, width: 40, background: 'var(--accent)', opacity: 0.3 }} />
                 </div>
-                <div className="team-grid-core" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16 }}>
+                <div className="team-flex team-flex-lg">
                   {core.map((m, i) => <MemberCard key={m.name + m.position} member={m} index={i} />)}
                 </div>
               </div>
@@ -332,7 +330,7 @@ export default function Team() {
                   <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--tech)', textTransform: 'uppercase', letterSpacing: 2 }}>Chief Executives</span>
                   <div style={{ height: 1, width: 40, background: 'var(--tech)', opacity: 0.3 }} />
                 </div>
-                <div className="team-grid-chiefs" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: 14 }}>
+                <div className="team-flex">
                   {chiefs.map((m, i) => <MemberCard key={m.name + m.position} member={m} index={i} compact />)}
                 </div>
               </div>
@@ -346,7 +344,7 @@ export default function Team() {
                   <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--fg-muted)', textTransform: 'uppercase', letterSpacing: 2 }}>Executives</span>
                   <div style={{ height: 1, width: 40, background: 'var(--fg-muted)', opacity: 0.2 }} />
                 </div>
-                <div className="team-grid-execs" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 14 }}>
+                <div className="team-flex">
                   {execs.map((m, i) => <MemberCard key={m.name + m.position} member={m} index={i} compact />)}
                 </div>
               </div>

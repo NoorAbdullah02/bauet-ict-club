@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../data/api.dart';
+import '../core/utils.dart';
 import '../models/models.dart';
 
 class AppState extends ChangeNotifier {
@@ -61,10 +62,10 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<List<T>> _fetch<T>(String table, T Function(Map<String, dynamic>) map) async {
+  Future<List<T>> _fetch<T>(String table, T Function(Map<String, dynamic>) map, {bool fresh = false}) async {
     List<Map<String, dynamic>> rows;
     try {
-      rows = await api.list(table);
+      rows = await api.list(table, fresh: fresh);
       await _prefs?.setString('cache_$table', jsonEncode(rows));
     } catch (_) {
       final cached = _readCache(table);
@@ -84,9 +85,9 @@ class AppState extends ChangeNotifier {
     }
   }
 
-  Future<Map<String, dynamic>> _fetchSettings() async {
+  Future<Map<String, dynamic>> _fetchSettings({bool fresh = false}) async {
     try {
-      final data = await api.settings();
+      final data = await api.settings(fresh: fresh);
       await _prefs?.setString('cache_settings', jsonEncode(data));
       return data;
     } catch (_) {
@@ -97,7 +98,7 @@ class AppState extends ChangeNotifier {
     }
   }
 
-  Future<void> loadAll() async {
+  Future<void> loadAll({bool fresh = true}) async {
     loading = true;
     error = null;
     _usedCache = false;
@@ -112,12 +113,12 @@ class AppState extends ChangeNotifier {
     }
 
     await Future.wait([
-      guard(() async => events = await _fetch('events', EventItem.fromJson)),
-      guard(() async => notices = await _fetch('notices', NoticeItem.fromJson)),
-      guard(() async => members = await _fetch('members', Member.fromJson)),
-      guard(() async => gallery = await _fetch('gallery', GalleryItem.fromJson)),
-      guard(() async => achievements = await _fetch('achievements', Achievement.fromJson)),
-      guard(() async => settings = SiteSettings.fromJson(await _fetchSettings())),
+      guard(() async => events = await _fetch('events', EventItem.fromJson, fresh: fresh)),
+      guard(() async => notices = await _fetch('notices', NoticeItem.fromJson, fresh: fresh)),
+      guard(() async => members = await _fetch('members', Member.fromJson, fresh: fresh)),
+      guard(() async => gallery = await _fetch('gallery', GalleryItem.fromJson, fresh: fresh)),
+      guard(() async => achievements = await _fetch('achievements', Achievement.fromJson, fresh: fresh)),
+      guard(() async => settings = SiteSettings.fromJson(await _fetchSettings(fresh: fresh))),
     ]);
     error = firstError;
     offline = _usedCache;
@@ -128,12 +129,33 @@ class AppState extends ChangeNotifier {
 
   Future<void> reloadMembers() async {
     try {
-      members = await _fetch('members', Member.fromJson);
+      members = await _fetch('members', Member.fromJson, fresh: true);
       notifyListeners();
     } catch (_) {}
   }
 
   // ---- derived ----
+  /// Committee members only (ambassadors are listed on their own screen).
+  List<Member> get teamMembers => members.where((m) => !m.isAmbassador).toList();
+
+  List<Member> get ambassadors => members.where((m) => m.isAmbassador).toList();
+
+  /// Newest committee session name, or null.
+  String? get latestSession {
+    final s = teamMembers.map((m) => m.session).where((x) => x.isNotEmpty).toSet().toList()
+      ..sort((a, b) => sessionRank(b).compareTo(sessionRank(a)));
+    return s.isEmpty ? null : s.first;
+  }
+
+  /// Leaders, then core (Secretary/Treasurer...), then chiefs of the latest session; max 10 with photos.
+  List<Member> get featuredCommittee {
+    final session = latestSession;
+    if (session == null) return [];
+    List<Member> pick(bool Function(Member) t) =>
+        teamMembers.where((m) => m.session == session && m.imageUrl.isNotEmpty && t(m)).toList()..sort((a, b) => a.order.compareTo(b.order));
+    return [...pick((m) => m.isLeader), ...pick((m) => m.isCore), ...pick((m) => m.isChief)].take(10).toList();
+  }
+
   List<EventItem> get upcomingEvents {
     final list = events.where((e) => e.isUpcoming).toList()
       ..sort((a, b) => (a.date ?? DateTime(2100)).compareTo(b.date ?? DateTime(2100)));
