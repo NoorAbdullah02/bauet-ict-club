@@ -16,6 +16,9 @@ Ambassadors screen (grouped by session, department filters). Light + dark themes
 - Flutter 3.27+ (Dart 3.4+) - uses `Color.withValues(alpha:)` and records
 - Android Studio / Xcode toolchains for your target
 
+## Server address
+Development uses `http://10.0.2.2:5000/api` (Android emulator). For your deployed backend put its address in `env.production.json` (keep `/api` at the end) and run with `--dart-define-from-file=env.production.json`. See `docs/AFTER_DEPLOY.md`.
+
 ## Setup
 The repo contains only the Dart sources, `pubspec.yaml`, and an Android manifest/network config. Generate the rest of the platform scaffolding once:
 

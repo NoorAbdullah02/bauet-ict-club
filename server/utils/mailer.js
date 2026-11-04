@@ -10,7 +10,8 @@ const provider = () => (env('BREVO_API_KEY') ? 'brevo' : env('SMTP_USER') && env
 const brevoBase = () => (env('BREVO_API_BASE') || 'https://api.brevo.com').replace(/\/$/, '');
 const fromAddress = () => env('MAIL_FROM') || env('SMTP_USER') || 'ictclubbauet@gmail.com';
 const adminAddress = () => env('ADMIN_NOTIFY_EMAIL') || env('SMTP_USER') || 'ictclubbauet@gmail.com';
-const siteUrl = () => (env('PUBLIC_URL') || 'http://localhost:5173').replace(/\/$/, '');
+// the public address used in email links: PUBLIC_URL, else the address Render gives the service, else local
+const siteUrl = () => (env('PUBLIC_URL') || env('RENDER_EXTERNAL_URL') || 'http://localhost:5173').replace(/\/$/, '');
 
 let smtp = null;
 function smtpTransport() {
