@@ -8,7 +8,7 @@ import { sessionRank } from '../lib/sessions';
 import { cn } from '../lib/cn';
 
 /** Copy or move people from one committee into another (a new semester, or to fix a mistake). */
-export default function TransferPeople({ open, onClose }) {
+export default function TransferPeople({ open, onClose, initialFrom = '' }) {
   const sessions = useStore((s) => s.sessions);
   const members = useStore((s) => s.members);
   const transfer = useStore((s) => s.transferPeople);
@@ -19,7 +19,7 @@ export default function TransferPeople({ open, onClose }) {
   const [picked, setPicked] = useState(() => new Set());
   const [busy, setBusy] = useState(false);
 
-  useEffect(() => { if (open && !from && ordered[0]) setFrom(ordered[0].label); }, [open, ordered, from]);
+  useEffect(() => { if (open && initialFrom) setFrom(initialFrom); else if (open && !from && ordered[0]) setFrom(ordered[0].label); }, [open, ordered, from, initialFrom]);
   useEffect(() => { setPicked(new Set()); }, [from]);
 
   const people = useMemo(() => members.filter((m) => m.committee_session === from).sort((a, b) => (a.display_order ?? 99) - (b.display_order ?? 99)), [members, from]);

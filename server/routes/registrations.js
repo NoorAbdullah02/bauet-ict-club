@@ -2,7 +2,7 @@ const express = require('express');
 const { fail } = require('../utils/http');
 const mail = require('../utils/mailer');
 const exporters = require('../utils/exporters');
-const { storeImage } = require('../utils/images');
+const { storeImage, cloneImage } = require('../utils/images');
 const multer = require('multer');
 const rateLimit = require('express-rate-limit');
 const pool = require('../config/db');
@@ -96,7 +96,7 @@ function notify(reg) {
 router.post('/photo', submitLimiter, upload.single('photo'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'Upload a JPG or PNG up to 3MB' });
   try {
-    res.json({ url: (await storeImage(req.file.buffer, 'applicant')).url });
+    res.json({ url: (await storeImage(req.file.buffer, 'applicant', { area: 'applicants', scope: String(new Date().getFullYear()) })).url });
   } catch (e) {
     console.error('Applicant photo upload failed:', e.message);
     res.status(e.status || 500).json({ error: e.status ? e.message : 'Photo upload failed. Please try again.' });
@@ -240,6 +240,8 @@ router.post('/:id/select', authMiddleware, async (req, res) => {
     await client.query('COMMIT');
     mail.sendMail({ to: r.email, ...mail.templates.applicationSelected(r, position, session) });
     res.json({ registration: updated.rows[0], member: member.rows[0] });
+    // the team picture lives in this committee's own Cloudinary folder; until the copy is ready the application photo link works
+    cloneImage(r.photo_url, 'committees', session).then((next) => next && next !== r.photo_url && pool.query('UPDATE members SET image_url = $1 WHERE id = $2', [next, member.rows[0].id])).catch(() => {});
   } catch (e) {
     await client.query('ROLLBACK').catch(() => {});
     fail(res, e);

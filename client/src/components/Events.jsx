@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { formalDate, formalTime } from '../lib/format';
 import { thumb } from '../lib/img';
 import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
@@ -120,10 +121,10 @@ export default function Events() {
                 <div style={{ display: 'flex', gap: 12, marginBottom: 10, flexWrap: 'wrap', alignItems: 'center' }}>
                   <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--accent)', fontWeight: 600 }}>
                     <Calendar size={12} style={{ display: 'inline', verticalAlign: -1, marginRight: 4 }} />
-                    {ev.date}
+                    {formalDate(ev.date, { weekday: true })}
                   </span>
                   {ev.time && <span style={{ fontSize: 12, color: 'var(--fg-muted)' }}>
-                    <Clock size={12} style={{ display: 'inline', verticalAlign: -1, marginRight: 4 }} />{ev.time}
+                    <Clock size={12} style={{ display: 'inline', verticalAlign: -1, marginRight: 4 }} />{formalTime(ev.time)}
                   </span>}
                 </div>
                 <h3 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: 8, fontFamily: 'var(--font-display)' }}>{ev.title}</h3>

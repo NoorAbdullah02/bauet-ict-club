@@ -1,5 +1,5 @@
 import Select from './Select';
-import { thumb } from '../lib/img';
+import { thumb, downloadUrl } from '../lib/img';
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { createPortal } from 'react-dom';
@@ -111,7 +111,7 @@ function ApplicantModal({ r, onClose, onApprove, onReject, onTrash, onPick, busy
           <img src={r.photo_url} alt={r.full_name} onClick={(e) => e.stopPropagation()} className="max-h-[88vh] max-w-[94vw] rounded-2xl object-contain shadow-2xl" />
           <div className="absolute bottom-5 left-1/2 flex -translate-x-1/2 items-center gap-3 rounded-full bg-white/10 px-5 py-2 text-sm text-white backdrop-blur">
             <span className="font-medium">{r.full_name}</span>
-            {/^(https?:)?\/|^\/uploads\//.test(r.photo_url) && <a href={r.photo_url} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="text-white/80 underline decoration-dotted underline-offset-2 hover:text-white">Open in new tab</a>}
+            {/^(https?:)?\/|^\/uploads\//.test(r.photo_url) && <a href={downloadUrl(r.photo_url, r.full_name)} download target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="text-white/80 underline decoration-dotted underline-offset-2 hover:text-white">Download full quality</a>}
           </div>
         </div>
       )}

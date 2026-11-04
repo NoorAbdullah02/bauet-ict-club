@@ -1,3 +1,10 @@
+/** A link that downloads the full-quality stored picture (for posters and print). */
+export function downloadUrl(url, name = 'picture') {
+  if (!url) return '';
+  if (/res\.cloudinary\.com\/[^/]+\/image\/upload\//.test(url) && !url.includes('fl_attachment')) return url.replace('/upload/', `/upload/fl_attachment:${encodeURIComponent(name.replace(/[^\w-]+/g, '-').slice(0, 60) || 'picture')}/`);
+  return url;
+}
+
 /** Smaller, auto-format version of a Cloudinary image URL for thumbnails (other URLs are returned unchanged). */
 export function thumb(url, width = 480) {
   if (!url || !/res\.cloudinary\.com\/[^/]+\/image\/upload\//.test(url) || /\/upload\/[^/]*(w_|c_)/.test(url)) return url;

@@ -13,6 +13,7 @@ const { positionRank, leadershipConflict } = require('./utils/positions');
 const mail = require('./utils/mailer');
 const createCrudRouter = require('./routes/crud');
 const { notifySubscribers } = require('./utils/notify');
+const { formalDate, formalTime } = require('./utils/format');
 const { authMiddleware } = require('./middleware/auth');
 
 const app = express();
@@ -93,7 +94,7 @@ const COLS = {
   posts: ['title', 'content', 'image_url', 'author'],
 };
 app.use('/api/events', createCrudRouter('events', { orderBy: 'date', orderDir: 'DESC', columns: COLS.events, imageCols: ['image_url'], auth: authMiddleware,
-  onCreate: (r) => notifySubscribers('event', { title: r.title, when: [String(r.date || '').slice(0, 10), r.time, r.location].filter(Boolean).join(' · '), summary: r.description, path: '/events' }) }));
+  onCreate: (r) => notifySubscribers('event', { title: r.title, when: [formalDate(r.date), formalTime(r.time), r.location].filter(Boolean).join(' · '), summary: r.description, path: '/events' }) }));
 app.use('/api/notices', createCrudRouter('notices', { orderBy: 'pinned DESC, created_at', orderDir: 'DESC', columns: COLS.notices, imageCols: ['image_url'], auth: authMiddleware,
   onCreate: (r) => { if (!r.expiry_date || String(r.expiry_date).slice(0, 10) >= new Date().toISOString().slice(0, 10)) notifySubscribers('notice', { title: r.title, summary: r.content, path: '/notices' }); } }));
 app.use('/api/members', createCrudRouter('members', {

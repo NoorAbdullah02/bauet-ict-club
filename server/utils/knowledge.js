@@ -4,7 +4,7 @@ const { positionRank } = require('./positions');
 const CACHE_MS = 60 * 1000;
 let cache = { at: 0, data: null };
 
-const d10 = (v) => String(v || '').slice(0, 10);
+const d10 = (v) => require('./format').formalDate(v);
 const safe = async (sql, params = []) => { try { return (await pool.query(sql, params)).rows; } catch { return []; } };
 
 /** Public facts the assistant may talk about, read from the database (cached for a minute). Nothing private is included. */
@@ -38,7 +38,7 @@ function asPrompt(k) {
   if (s.mission) lines.push(`Mission: ${s.mission}`);
   if (s.vision) lines.push(`Vision: ${s.vision}`);
   if (k.current && k.leaders.length) lines.push(`Current committee (${k.current}): ${k.leaders.map((m) => `${m.name} (${m.position})`).join('; ')}`);
-  if (k.events.length) lines.push(`Upcoming events:\n${k.events.map((e) => `- ${e.title}, ${d10(e.date)}${e.time ? ` ${e.time}` : ''}${e.location ? `, ${e.location}` : ''}${e.description ? `. ${String(e.description).slice(0, 160)}` : ''}`).join('\n')}`);
+  if (k.events.length) lines.push(`Upcoming events:\n${k.events.map((e) => `- ${e.title}, ${d10(e.date)}${e.time ? ` at ${require('./format').formalTime(e.time)}` : ''}${e.location ? `, ${e.location}` : ''}${e.description ? `. ${String(e.description).slice(0, 160)}` : ''}`).join('\n')}`);
   else lines.push('Upcoming events: none announced right now.');
   if (k.notices.length) lines.push(`Latest notices:\n${k.notices.map((n) => `- ${n.title} (${d10(n.date)})${n.content ? `: ${String(n.content).slice(0, 160)}` : ''}`).join('\n')}`);
   if (k.projects.length) lines.push(`Projects:\n${k.projects.map((p) => `- ${p.title} [${p.status || 'Active'}]${p.summary ? `: ${String(p.summary).slice(0, 120)}` : ''}`).join('\n')}`);

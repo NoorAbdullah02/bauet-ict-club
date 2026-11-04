@@ -5,7 +5,7 @@ import { X, RotateCw, ZoomIn, Check } from 'lucide-react';
 import { cn } from '../lib/cn';
 
 const SHAPES = [['1:1', 1], ['4:3', 4 / 3], ['16:9', 16 / 9], ['3:4', 3 / 4]];
-const SIZES = [['Small', 640], ['Medium', 1000], ['Large', 1600]];
+const SIZES = [['Small', 640], ['Medium', 1000], ['Large', 1600], ['HD', 2400]]; // HD keeps enough detail to print a poster
 const STAGE_W = 360;
 
 /**
@@ -20,7 +20,7 @@ export default function ImageEditor({ file, aspect = null, keepPng = false, onDo
   const [zoom, setZoom] = useState(1);
   const [rot, setRot] = useState(0);
   const [pos, setPos] = useState({ x: 0, y: 0 });
-  const [size, setSize] = useState(1000);
+  const [size, setSize] = useState(1600);
   const drag = useRef(null);
 
   useEffect(() => {
@@ -28,7 +28,7 @@ export default function ImageEditor({ file, aspect = null, keepPng = false, onDo
     const url = URL.createObjectURL(file);
     const i = new Image();
     i.onload = () => { if (dead) return; setImg(i); setSrc(url); if (!aspect && keepPng) setRatio(i.naturalWidth / i.naturalHeight); };
-    i.onerror = () => { if (!dead) onCancel(); };
+    i.onerror = () => { if (!dead) onDone(file); }; // the browser cannot open it (for example an iPhone HEIC): upload it as it is, the server converts it
     i.src = url;
     return () => { dead = true; URL.revokeObjectURL(url); };
   }, [file]);
@@ -68,10 +68,12 @@ export default function ImageEditor({ file, aspect = null, keepPng = false, onDo
     ctx.rotate((rot * Math.PI) / 180);
     const dw = img.naturalWidth * scale * k, dh = img.naturalHeight * scale * k;
     ctx.drawImage(img, -dw / 2, -dh / 2, dw, dh);
-    const type = keepPng ? 'image/png' : 'image/jpeg';
-    const blob = await new Promise((res) => canvas.toBlob(res, type, 0.88));
+    // WebP keeps transparency and is much smaller; old browsers that cannot make WebP fall back to PNG / JPEG
+    let blob = await new Promise((res) => canvas.toBlob(res, 'image/webp', 0.9));
+    if (!blob || blob.type !== 'image/webp') blob = await new Promise((res) => canvas.toBlob(res, keepPng ? 'image/png' : 'image/jpeg', 0.9));
     if (!blob) return onCancel();
-    onDone(new File([blob], file.name.replace(/\.\w+$/, keepPng ? '.png' : '.jpg'), { type }));
+    const ext = { 'image/webp': 'webp', 'image/png': 'png', 'image/jpeg': 'jpg' }[blob.type] || 'jpg';
+    onDone(new File([blob], file.name.replace(/\.\w+$/, `.${ext}`), { type: blob.type }));
   };
 
   return createPortal(
@@ -111,7 +113,7 @@ export default function ImageEditor({ file, aspect = null, keepPng = false, onDo
             {!aspect && <button type="button" onClick={() => { setKeepShape(true); setPos({ x: 0, y: 0 }); }} className={cn('rounded-full border px-3 py-1 text-xs transition', keepShape ? 'border-accent bg-accent text-white' : 'border-line text-fg2 hover:border-accent')}>Original</button>}
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-2">
-            <span className="font-mono text-[10px] uppercase tracking-wider text-muted">Size</span>
+            <span className="font-mono text-[10px] uppercase tracking-wider text-muted">Quality</span>
             {SIZES.map(([label, v]) => (
               <button key={label} type="button" onClick={() => setSize(v)} className={cn('rounded-full border px-3 py-1 text-xs transition', size === v ? 'border-accent bg-accent text-white' : 'border-line text-fg2 hover:border-accent')}>{label} · {v}px</button>
             ))}

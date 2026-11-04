@@ -151,6 +151,12 @@ const useStore = create((set, get) => ({
     return res.data;
   },
 
+  deleteCommittee: async (session) => {
+    const res = await api.delete(`/committees/${encodeURIComponent(session)}`);
+    await Promise.all([get().fetchSessions(), get().fetchList('members'), get().fetchTrash()]);
+    return res.data;
+  },
+
   transferPeople: async (payload) => {
     const res = await api.post('/committees/transfer', payload);
     await Promise.all([get().fetchSessions(), get().fetchList('members')]);
@@ -248,10 +254,10 @@ const useStore = create((set, get) => ({
     }
   },
 
-  uploadImage: async (file, kind = 'cover') => {
+  uploadImage: async (file, kind = 'cover', where = {}) => {
     const formData = new FormData();
     formData.append('image', file);
-    const res = await api.post('/upload', formData, { params: { kind } });
+    const res = await api.post('/upload', formData, { params: { kind, ...where } });
     return res.data.url;
   },
 }));

@@ -67,3 +67,10 @@ Run `npm run dev` on your PC. It prints a *Network* address such as `http://192.
 - **On the website:** every picture is requested at the size it is shown (for example 420 px for team cards) with `f_auto,q_auto`, so pages stay light. Full-size views use the stored picture.
 - **On delete:** moving to Trash keeps the picture; *Delete for good* removes it from Cloudinary, unless another item still uses the same picture.
 - **Status:** Admin → Settings → Connections shows whether the Cloudinary keys work.
+
+### Storage: one WebP master, one folder per committee
+
+- Whatever you upload (JPG, PNG, WebP; GIF, AVIF and HEIC too when Cloudinary is connected) is converted to **one WebP master** (up to 2400 px wide, `IMAGE_MAX_WIDTH` changes it) and the original is not kept. That is far smaller than the original, yet sharp enough for a printed poster. Admin forms have a **Download** button for the full-quality picture.
+- Pictures are stored in folders: `bauet-ict-club/committees/<semester>` for each committee (for example `summer-2026`), `events/<year>`, `gallery/<year>`, `applicants/<year>` and so on.
+- When people are copied or moved into a new committee, each person gets their **own copy** of the picture in the new committee's folder. Deleting a committee, or its Cloudinary folder, never breaks another committee's pictures.
+- *Delete committee* (Admin → Committee) moves its people to the Trash; permanently deleting removes a picture from Cloudinary only if nothing else still uses it.

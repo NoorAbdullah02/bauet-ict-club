@@ -3,6 +3,29 @@ const pool = require('../config/db');
 const { authMiddleware } = require('../middleware/auth');
 const { loadDemo, removeDemo, demoCount } = require('../utils/demo');
 const { leadershipConflict } = require('../utils/positions');
+const { cloneImage } = require('../utils/images');
+const { destroyImage } = require('../utils/cloud');
+
+/**
+ * Gives each person their own copy of the picture inside the new committee's Cloudinary folder, a few at a time, after the answer has been sent.
+ * Until the copy is ready the old link keeps working. items: [{ id, url, removeOld }]
+ */
+async function rehome(items, session) {
+  const queue = items.filter((i) => i.url);
+  const worker = async () => {
+    while (queue.length) {
+      const it = queue.shift();
+      try {
+        const next = await cloneImage(it.url, 'committees', session);
+        if (next && next !== it.url) {
+          await pool.query('UPDATE members SET image_url = $1 WHERE id = $2', [next, it.id]);
+          if (it.removeOld) await destroyImage(it.url); // only deleted when no other committee still uses it
+        }
+      } catch (e) { console.warn('Picture copy failed:', e.message); }
+    }
+  };
+  await Promise.all([worker(), worker(), worker()]);
+}
 
 const router = express.Router();
 const clean = (v, n) => String(v ?? '').trim().slice(0, n);
@@ -38,14 +61,16 @@ router.post('/launch', authMiddleware, async (req, res) => {
     if (existing.some((s) => s.label.toLowerCase() === session.toLowerCase())) return res.status(409).json({ error: `${session} already exists` });
 
     let copied = 0;
+    const toRehome = [];
     if (scope !== 'none' && copyFrom) {
       const { rows } = await pool.query('SELECT * FROM members WHERE committee_session = $1 AND deleted_at IS NULL ORDER BY display_order', [copyFrom]);
       const take = rows.filter((m) => scope === 'all' || /^((Vice President|VP)\b|President)/i.test(m.position));
       for (const m of take) {
-        await pool.query(
-          'INSERT INTO members (name, position, department, batch, committee_session, image_url, social_fb, social_gh, social_li, display_order) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)',
+        const ins = await pool.query(
+          'INSERT INTO members (name, position, department, batch, committee_session, image_url, social_fb, social_gh, social_li, display_order) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id',
           [m.name, m.position, m.department, m.batch, session, m.image_url, m.social_fb, m.social_gh, m.social_li, m.display_order]
         );
+        toRehome.push({ id: ins.rows[0].id, url: m.image_url });
         copied += 1;
       }
     }
@@ -53,6 +78,7 @@ router.post('/launch', authMiddleware, async (req, res) => {
     const sessions = [...new Set([...(cur.sessions || []), session])];
     await pool.query("INSERT INTO settings (key, value) VALUES ('site', $1::jsonb) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()", [JSON.stringify({ ...cur, sessions })]);
     res.status(201).json({ session, copied });
+    rehome(toRehome, session);
   } catch (e) {
     console.error('Launch committee failed:', e.message);
     res.status(500).json({ error: 'Could not launch the committee' });
@@ -73,15 +99,18 @@ router.post('/transfer', authMiddleware, async (req, res) => {
   if (!/^(Summer|Winter|Spring|Autumn|Session)\s+\S+/i.test(toSession)) return res.status(400).json({ error: 'Use a name like “Winter 2027”' });
   try {
     const { rows } = await pool.query(`SELECT * FROM members WHERE id IN (${ids.map((_, i) => `$${i + 1}`).join(',')}) AND deleted_at IS NULL ORDER BY display_order`, ids);
-    const done = []; const skipped = [];
+    const done = []; const skipped = []; const toRehome = [];
     for (const m of rows) {
       if (m.committee_session === toSession) { skipped.push({ name: m.name, reason: 'already in this committee' }); continue; }
       const dup = await pool.query('SELECT 1 FROM members WHERE name = $1 AND committee_session = $2 AND position = $3 AND deleted_at IS NULL', [m.name, toSession, m.position]);
       if (dup.rows.length) { skipped.push({ name: m.name, reason: 'already has this post there' }); continue; }
       const conflict = await leadershipConflict(pool, toSession, m.position);
       if (conflict) { skipped.push({ name: m.name, reason: conflict }); continue; }
-      if (mode === 'move') await pool.query('UPDATE members SET committee_session = $1 WHERE id = $2', [toSession, m.id]);
-      else await pool.query('INSERT INTO members (name, position, department, batch, committee_session, image_url, social_fb, social_gh, social_li, display_order) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)', [m.name, m.position, m.department, m.batch, toSession, m.image_url, m.social_fb, m.social_gh, m.social_li, m.display_order]);
+      if (mode === 'move') { await pool.query('UPDATE members SET committee_session = $1 WHERE id = $2', [toSession, m.id]); toRehome.push({ id: m.id, url: m.image_url, removeOld: true }); }
+      else {
+        const ins = await pool.query('INSERT INTO members (name, position, department, batch, committee_session, image_url, social_fb, social_gh, social_li, display_order) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id', [m.name, m.position, m.department, m.batch, toSession, m.image_url, m.social_fb, m.social_gh, m.social_li, m.display_order]);
+        toRehome.push({ id: ins.rows[0].id, url: m.image_url });
+      }
       done.push(m.name);
     }
     // make a brand-new semester selectable everywhere
@@ -90,6 +119,7 @@ router.post('/transfer', authMiddleware, async (req, res) => {
       await pool.query("INSERT INTO settings (key, value) VALUES ('site', $1::jsonb) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()", [JSON.stringify({ ...cur, sessions: [...(cur.sessions || []), toSession] })]);
     }
     res.json({ transferred: done.length, mode, toSession, skipped });
+    rehome(toRehome, toSession);
   } catch (e) {
     console.error('Transfer failed:', e.message);
     res.status(500).json({ error: 'Could not transfer the people' });
@@ -104,6 +134,24 @@ router.post('/demo', authMiddleware, async (_req, res) => {
 });
 router.delete('/demo', authMiddleware, async (_req, res) => {
   try { res.json(await removeDemo()); } catch (e) { res.status(500).json({ error: 'Could not remove demo data' }); }
+});
+
+/**
+ * Delete a whole committee. Everyone in it goes to the Trash (restorable for 30 days); nothing else is touched.
+ * Each committee keeps its own pictures in its own folder, so permanently deleting this one never affects another committee.
+ */
+router.delete('/:session', authMiddleware, async (req, res) => {
+  const session = clean(decodeURIComponent(req.params.session), 50);
+  if (!session) return res.status(400).json({ error: 'Choose a committee' });
+  try {
+    const r = await pool.query('UPDATE members SET deleted_at = NOW() WHERE committee_session = $1 AND deleted_at IS NULL', [session]);
+    const cur = await siteSettings();
+    await pool.query("INSERT INTO settings (key, value) VALUES ('site', $1::jsonb) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()", [JSON.stringify({ ...cur, sessions: (cur.sessions || []).filter((s) => s !== session) })]);
+    res.json({ session, trashed: r.rowCount || 0 });
+  } catch (e) {
+    console.error('Delete committee failed:', e.message);
+    res.status(500).json({ error: 'Could not delete the committee' });
+  }
 });
 
 module.exports = router;
