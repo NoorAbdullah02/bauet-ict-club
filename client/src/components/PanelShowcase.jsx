@@ -53,8 +53,24 @@ export default function PanelShowcase({ members }) {
             </motion.div>
           )}
 
-          {/* core team */}
-          <div className={`grid grid-cols-2 gap-4 sm:grid-cols-3 ${president ? 'lg:col-span-8' : 'lg:col-span-12 lg:grid-cols-4'}`}>
+          {/* right column: vice presidents straight after the President, then the core team */}
+          <div className={`flex flex-col gap-6 ${president ? 'lg:col-span-8' : 'lg:col-span-12'}`}>
+            {vps.length > 0 && (
+              <div className="grid gap-4 sm:grid-cols-2">
+                {vps.map((v, i) => (
+                  <motion.article key={v.id} {...fade(i + 2)}
+                    className="group relative overflow-hidden rounded-3xl border border-line bg-surface transition duration-500 hover:-translate-y-1.5 hover:border-tech/50 hover:shadow-[var(--shadow-lg)]">
+                    <div className="aspect-[4/3] w-full overflow-hidden bg-alt"><Photo m={v} i={i + 1} textSize="text-5xl" /></div>
+                    <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#0A1A4A]/90 via-[#0A1A4A]/10 to-transparent" />
+                    <div className="absolute inset-x-0 bottom-0 p-5">
+                      <span className="inline-block rounded-full bg-gradient-to-r from-accent to-tech px-3 py-1 font-mono text-[10px] font-semibold uppercase tracking-[0.18em] text-white">{v.position}</span>
+                      <h3 className="mt-2 font-display text-2xl leading-tight text-white">{v.name}</h3>
+                    </div>
+                  </motion.article>
+                ))}
+              </div>
+            )}
+            <div className={`grid grid-cols-2 gap-4 ${president ? 'sm:grid-cols-3' : 'sm:grid-cols-3 lg:grid-cols-4'}`}>
             {team.map((m, i) => (
               <motion.article key={m.id} {...fade(i + 2)} className="group relative overflow-hidden rounded-3xl border border-line bg-surface transition duration-500 hover:-translate-y-1.5 hover:border-accent/50 hover:shadow-[var(--shadow-lg)]">
                 <div className="aspect-[4/4.4] w-full overflow-hidden bg-alt"><Photo m={m} i={i} textSize="text-4xl" /></div>
@@ -66,24 +82,8 @@ export default function PanelShowcase({ members }) {
               </motion.article>
             ))}
           </div>
-        </div>
-
-        {/* vice presidents: each on their own card */}
-        {vps.length > 0 && (
-          <div className="mt-6 flex flex-wrap justify-center gap-5 [&>*]:min-w-0">
-            {vps.map((v, i) => (
-              <motion.article key={v.id} {...fade(i + 1)}
-                className="group relative w-full max-w-[19rem] flex-1 basis-56 overflow-hidden rounded-3xl border border-line bg-surface transition duration-500 hover:-translate-y-1.5 hover:border-tech/50 hover:shadow-[var(--shadow-lg)]">
-                <div className="aspect-[4/3] w-full overflow-hidden bg-alt"><Photo m={v} i={i + 1} textSize="text-5xl" /></div>
-                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#0A1A4A]/90 via-[#0A1A4A]/10 to-transparent" />
-                <div className="absolute inset-x-0 bottom-0 p-5">
-                  <span className="inline-block rounded-full bg-gradient-to-r from-accent to-tech px-3 py-1 font-mono text-[10px] font-semibold uppercase tracking-[0.18em] text-white">{v.position}</span>
-                  <h3 className="mt-2 font-display text-2xl leading-tight text-white">{v.name}</h3>
-                </div>
-              </motion.article>
-            ))}
           </div>
-        )}
+        </div>
 
         {/* chief executives */}
         {chiefs.length > 0 && (
