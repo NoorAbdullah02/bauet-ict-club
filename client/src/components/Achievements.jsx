@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 import { Trophy, Award } from 'lucide-react';
+import { useShallow } from 'zustand/react/shallow';
 import useStore from '../context/store';
 
 const fadeUp = {
@@ -10,7 +11,7 @@ const fadeUp = {
 };
 
 export default function Achievements() {
-  const { achievements } = useStore();
+  const { achievements } = useStore(useShallow((s) => ({ achievements: s.achievements })));
   const [ref, inView] = useInView({ threshold: 0.05, triggerOnce: true });
   const sorted = useMemo(() => [...achievements].sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0)), [achievements]);
 

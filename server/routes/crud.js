@@ -1,6 +1,8 @@
 const express = require('express');
 const pool = require('../config/db');
 
+const IDENT = /^[a-z_][a-z0-9_]*$/;
+
 function createCrudRouter(table, opts = {}) {
   const router = express.Router();
   const orderCol = opts.orderBy || 'created_at';
@@ -29,6 +31,7 @@ function createCrudRouter(table, opts = {}) {
   router.post('/', ...(auth ? [auth] : []), async (req, res) => {
     try {
       const keys = Object.keys(req.body).filter((k) => k !== 'id');
+      if (!keys.length || !keys.every((k) => IDENT.test(k))) return res.status(400).json({ error: 'Invalid fields' });
       const vals = keys.map((k) => req.body[k]);
       const placeholders = keys.map((_, i) => `$${i + 1}`);
       const result = await pool.query(
@@ -44,6 +47,7 @@ function createCrudRouter(table, opts = {}) {
   router.put('/:id', ...(auth ? [auth] : []), async (req, res) => {
     try {
       const keys = Object.keys(req.body).filter((k) => k !== 'id');
+      if (!keys.length || !keys.every((k) => IDENT.test(k))) return res.status(400).json({ error: 'Invalid fields' });
       const vals = keys.map((k) => req.body[k]);
       const sets = keys.map((k, i) => `${k} = $${i + 1}`);
       vals.push(req.params.id);

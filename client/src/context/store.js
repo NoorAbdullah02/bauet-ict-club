@@ -17,10 +17,11 @@ const useStore = create((set, get) => ({
   achievements: [],
   posts: [],
   messages: [],
+  registrations: [],
   settings: null,
   user: null,
   loading: true,
-  theme: localStorage.getItem('bauet-theme') || 'light',
+  theme: localStorage.getItem('bauet-theme') || 'dark',
 
   setTheme: (theme) => {
     localStorage.setItem('bauet-theme', theme);
@@ -60,6 +61,11 @@ const useStore = create((set, get) => ({
     }
   },
 
+  fetchList: async (type) => {
+    const res = await api.get(`/${type}`);
+    set({ [type]: res.data });
+  },
+
   addItem: async (type, data) => {
     const res = await api.post(`/${type}`, data);
     set((s) => ({ [type]: [...s[type], res.data] }));
@@ -95,6 +101,42 @@ const useStore = create((set, get) => ({
   chatWithAI: async (message, history) => {
     const res = await api.post('/chat', { message, history });
     return res.data.reply;
+  },
+
+  submitRegistration: async (data) => {
+    const res = await api.post('/registrations', data);
+    return res.data;
+  },
+
+  uploadApplicantPhoto: async (file) => {
+    const formData = new FormData();
+    formData.append('photo', file);
+    const res = await api.post('/registrations/photo', formData);
+    return res.data.url;
+  },
+
+  fetchRegistrations: async () => {
+    const res = await api.get('/registrations');
+    set({ registrations: res.data });
+  },
+
+  setRegistrationStatus: async (id, status) => {
+    const res = await api.patch(`/registrations/${id}/status`, { status });
+    set((s) => ({ registrations: s.registrations.map((r) => (r.id === id ? res.data : r)) }));
+  },
+
+  deleteRegistration: async (id) => {
+    await api.delete(`/registrations/${id}`);
+    set((s) => ({ registrations: s.registrations.filter((r) => r.id !== id) }));
+  },
+
+  selectRegistration: async (id, payload) => {
+    const res = await api.post(`/registrations/${id}/select`, payload);
+    set((s) => ({
+      registrations: s.registrations.map((r) => (r.id === id ? res.data.registration : r)),
+      members: [...s.members, res.data.member],
+    }));
+    return res.data;
   },
 
   login: async (username, password) => {

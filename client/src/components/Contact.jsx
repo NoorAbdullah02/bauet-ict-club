@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 import { Mail, Phone, MapPin, Globe, Send } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useShallow } from 'zustand/react/shallow';
 import useStore from '../context/store';
 
 const fadeUp = {
@@ -11,7 +12,7 @@ const fadeUp = {
 };
 
 export default function Contact() {
-  const { settings, sendMessage } = useStore();
+  const { settings, sendMessage } = useStore(useShallow((s) => ({ settings: s.settings, sendMessage: s.sendMessage })));
   const [form, setForm] = useState({ name: '', email: '', subject: '', message: '' });
   const [sending, setSending] = useState(false);
   const [ref, inView] = useInView({ threshold: 0.05, triggerOnce: true });

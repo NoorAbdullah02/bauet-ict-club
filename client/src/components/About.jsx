@@ -1,17 +1,20 @@
 import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
-import { Target, Eye, Rocket, Code, Users, Trophy, BookOpen, Lightbulb, Cpu, Globe, ArrowUpRight } from 'lucide-react';
+import { Target, Eye, Rocket, Code, Users, Trophy, BookOpen, Lightbulb, Cpu, Globe } from 'lucide-react';
+import { useShallow } from 'zustand/react/shallow';
 import useStore from '../context/store';
+import Tilt from './Tilt';
+import { cn } from '../lib/cn';
 
 const fadeUp = {
-  hidden: { opacity: 0, y: 35 },
-  visible: (i) => ({ opacity: 1, y: 0, transition: { duration: 0.55, delay: i * 0.08, ease: [0.16, 1, 0.3, 1] } }),
+  hidden: { opacity: 0, y: 36 },
+  visible: (i) => ({ opacity: 1, y: 0, transition: { duration: 0.7, delay: i * 0.07, ease: [0.16, 1, 0.3, 1] } }),
 };
 
 const cards = [
-  { icon: Target, title: 'Our Mission', key: 'mission', color: '#C9A84C', bg: 'rgba(201,168,76,0.08)' },
-  { icon: Eye, title: 'Our Vision', key: 'vision', color: '#0096C7', bg: 'rgba(0,150,199,0.08)' },
-  { icon: Rocket, title: 'Our Goal', key: 'goal', color: '#8B5CF6', bg: 'rgba(139,92,246,0.08)' },
+  { icon: Target, title: 'Our Mission', key: 'mission', n: '01' },
+  { icon: Eye, title: 'Our Vision', key: 'vision', n: '02' },
+  { icon: Rocket, title: 'Our Goal', key: 'goal', n: '03' },
 ];
 
 const features = [
@@ -26,86 +29,64 @@ const features = [
 ];
 
 export default function About() {
-  const { settings } = useStore();
+  const { settings } = useStore(useShallow((s) => ({ settings: s.settings })));
   const [ref, inView] = useInView({ threshold: 0.08, triggerOnce: true });
+  const state = inView ? 'visible' : 'hidden';
 
   return (
     <section id="about" className="section" ref={ref}>
       <div className="container">
-        <motion.div className="section-header" initial="hidden" animate={inView ? 'visible' : 'hidden'} variants={fadeUp} custom={0}>
+        <motion.div className="section-header" initial="hidden" animate={state} variants={fadeUp} custom={0}>
           <div className="section-tag">Who We Are</div>
           <h2 className="section-title">About Our Club</h2>
           <p className="section-desc">{settings?.aboutText}</p>
           <div className="divider" />
         </motion.div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 20, marginBottom: 64 }}>
-          {cards.map((card, i) => (
-            <motion.div
-              key={card.key} custom={i + 1} initial="hidden" animate={inView ? 'visible' : 'hidden'} variants={fadeUp}
-              whileHover={{ y: -6, transition: { duration: 0.25 } }}
-              style={{
-                background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 16,
-                padding: '32px 28px', textAlign: 'center',
-                transition: 'box-shadow 0.35s ease, border-color 0.35s ease',
-                cursor: 'default', position: 'relative', overflow: 'hidden',
-              }}
-              className="about-card"
-            >
-              <div style={{
-                position: 'absolute', top: -40, right: -40, width: 120, height: 120, borderRadius: '50%',
-                background: card.bg, filter: 'blur(30px)', pointerEvents: 'none',
-              }} />
-              <div style={{
-                width: 56, height: 56, borderRadius: 14,
-                background: card.bg, color: card.color,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                margin: '0 auto 18px', position: 'relative',
-              }}>
-                <card.icon size={24} />
-              </div>
-              <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 10, fontFamily: 'var(--font-display)', color: 'var(--fg)' }}>{card.title}</h3>
-              <p style={{ fontSize: 14, color: 'var(--fg-secondary)', lineHeight: 1.75 }}>{settings?.[card.key]}</p>
+        <div className="mb-20 grid gap-5 md:grid-cols-3">
+          {cards.map((c, i) => (
+            <motion.div key={c.key} custom={i + 1} initial="hidden" animate={state} variants={fadeUp}>
+              <Tilt className={cn(
+                'group h-full rounded-[var(--radius)] border border-line bg-surface p-8 transition-all duration-500',
+                'hover:-translate-y-1 hover:border-accent/50 hover:shadow-[var(--shadow-lg)]',
+                i === 1 && 'md:mt-8'
+              )}>
+                <div className="mb-10 flex items-start justify-between">
+                  <span className="grid size-12 place-items-center rounded-2xl bg-accent/10 text-accent ring-1 ring-accent/20 transition group-hover:scale-110">
+                    <c.icon size={22} />
+                  </span>
+                  <span className="font-mono text-xs text-muted">{c.n}</span>
+                </div>
+                <h3 className="mb-3 text-2xl text-fg">{c.title}</h3>
+                <p className="text-sm leading-7 text-fg2">{settings?.[c.key]}</p>
+              </Tilt>
             </motion.div>
           ))}
         </div>
 
-        <motion.div initial="hidden" animate={inView ? 'visible' : 'hidden'} variants={fadeUp} custom={4}
-          style={{ textAlign: 'center', marginBottom: 24 }}>
-          <h3 style={{ fontSize: 22, fontWeight: 700, fontFamily: 'var(--font-display)', marginBottom: 6 }}>What We Do</h3>
-          <p style={{ fontSize: 13, color: 'var(--fg-muted)' }}>Activities that shape future tech leaders</p>
+        <motion.div initial="hidden" animate={state} variants={fadeUp} custom={4} className="mb-8 flex items-end justify-between gap-4">
+          <div>
+            <h3 className="text-3xl text-fg">What We Do</h3>
+            <p className="mt-1 text-sm text-muted">Activities that shape future tech leaders</p>
+          </div>
+          <span className="hidden h-px flex-1 bg-line sm:block" />
         </motion.div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 12 }}>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {features.map((f, i) => (
-            <motion.div
-              key={f.label} custom={i + 5} initial="hidden" animate={inView ? 'visible' : 'hidden'} variants={fadeUp}
-              whileHover={{ borderColor: 'var(--accent)', y: -3, transition: { duration: 0.2 } }}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 14, padding: '14px 18px',
-                background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 12,
-                transition: 'all 0.25s ease', cursor: 'default',
-              }}
-            >
-              <div style={{
-                width: 38, height: 38, borderRadius: 10, flexShrink: 0,
-                background: 'var(--accent-light)', color: 'var(--accent)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
-                <f.icon size={17} />
-              </div>
+            <motion.div key={f.label} custom={i + 5} initial="hidden" animate={state} variants={fadeUp}
+              className="spot group flex items-center gap-4 rounded-2xl border border-line bg-surface p-4 transition duration-300 hover:-translate-y-1 hover:border-accent/50">
+              <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-tech/10 text-tech transition group-hover:bg-tech group-hover:text-bg">
+                <f.icon size={18} />
+              </span>
               <div>
-                <div style={{ fontSize: 14, fontWeight: 600 }}>{f.label}</div>
-                <div style={{ fontSize: 11, color: 'var(--fg-muted)', marginTop: 1 }}>{f.desc}</div>
+                <div className="text-sm font-semibold text-fg">{f.label}</div>
+                <div className="text-xs text-muted">{f.desc}</div>
               </div>
             </motion.div>
           ))}
         </div>
       </div>
-
-      <style>{`
-        .about-card:hover { box-shadow: 0 12px 40px rgba(0,0,0,0.08) !important; border-color: var(--accent) !important; }
-      `}</style>
     </section>
   );
 }

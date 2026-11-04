@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 import { Pin, ChevronDown, Bell, Share2 } from 'lucide-react';
+import { useShallow } from 'zustand/react/shallow';
 import useStore from '../context/store';
 
 const fadeUp = {
@@ -11,12 +12,12 @@ const fadeUp = {
 
 const prioStyle = {
   urgent: { bg: 'rgba(239,68,68,0.08)', color: '#EF4444', border: 'rgba(239,68,68,0.2)' },
-  normal: { bg: 'var(--accent-light)', color: 'var(--accent)', border: 'rgba(201,168,76,0.2)' },
-  low: { bg: 'var(--tech-light)', color: 'var(--tech)', border: 'rgba(0,150,199,0.2)' },
+  normal: { bg: 'var(--accent-light)', color: 'var(--accent)', border: 'rgba(var(--accent-rgb),0.2)' },
+  low: { bg: 'var(--tech-light)', color: 'var(--tech)', border: 'rgba(var(--tech-rgb),0.2)' },
 };
 
 export default function Notices() {
-  const { notices } = useStore();
+  const { notices } = useStore(useShallow((s) => ({ notices: s.notices })));
   const [expanded, setExpanded] = useState(null);
   const [ref, inView] = useInView({ threshold: 0.05, triggerOnce: true });
 

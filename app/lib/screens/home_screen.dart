@@ -1,0 +1,354 @@
+import 'dart:math' as math;
+
+import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+
+import '../core/theme.dart';
+import '../core/utils.dart';
+import '../models/models.dart';
+import '../state/app_state.dart';
+import '../widgets/coder.dart';
+import '../widgets/common.dart';
+import 'events_screen.dart';
+
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin {
+  final ScrollController _scroll = ScrollController();
+  late final AnimationController _orbit = AnimationController(vsync: this, duration: 12.seconds)..repeat();
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    _orbit.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = context.watch<AppState>();
+    final p = context.pal;
+    final upcoming = state.upcomingEvents.take(5).toList();
+    final notices = state.activeNotices.take(3).toList();
+    final blurb = state.settings.mission.isNotEmpty ? state.settings.mission : state.settings.aboutText;
+
+    return RefreshIndicator(
+      color: p.tech,
+      backgroundColor: p.surface,
+      onRefresh: state.loadAll,
+      child: ListView(
+        controller: _scroll,
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.only(bottom: 130),
+        children: [
+          _Hero(scroll: _scroll, orbit: _orbit, blurb: blurb),
+          const Padding(padding: EdgeInsets.symmetric(horizontal: 20), child: TerminalCard()),
+          const SizedBox(height: 18),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: _Stats(state: state).stagger(0),
+          ),
+          const SizedBox(height: 34),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: SectionHeader(
+              eyebrow: 'Coming up',
+              title: 'Next events',
+              trailing: TextButton(onPressed: () => context.go('/events'), child: const Text('See all')),
+            ),
+          ),
+          const SizedBox(height: 14),
+          if (state.loading && !state.loadedOnce)
+            const Padding(padding: EdgeInsets.symmetric(horizontal: 20), child: ShimmerBox(height: 210, radius: 28))
+          else if (upcoming.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20),
+              child: EmptyState(icon: Icons.event_busy_rounded, title: 'No upcoming events', message: 'New events will show up here.'),
+            )
+          else
+            SizedBox(
+              height: 262,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                itemCount: upcoming.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 14),
+                itemBuilder: (_, i) => SizedBox(width: 280, child: EventCard(event: upcoming[i], compact: true).stagger(i)),
+              ),
+            ),
+          const SizedBox(height: 34),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: SectionHeader(
+              eyebrow: 'Pinned',
+              title: 'Notice board',
+              trailing: TextButton(onPressed: () => context.go('/notices'), child: const Text('See all')),
+            ),
+          ),
+          const SizedBox(height: 14),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: notices.isEmpty
+                ? const EmptyState(icon: Icons.campaign_outlined, title: 'No notices right now')
+                : Column(children: [for (var i = 0; i < notices.length; i++) _NoticeTile(notice: notices[i]).stagger(i)]),
+          ),
+          const SizedBox(height: 28),
+          Padding(padding: const EdgeInsets.symmetric(horizontal: 20), child: const _JoinCta().stagger(0)),
+          if (state.offline)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+              child: GlassCard(
+                onTap: state.loadAll,
+                child: Row(children: [
+                  Icon(Icons.cloud_off_rounded, color: p.pink),
+                  const SizedBox(width: 12),
+                  Expanded(child: Text('// offline: showing cached data. Tap to refresh.', style: monoStyle(context, color: p.fg, size: 11.5))),
+                ]),
+              ),
+            ),
+          if (state.error != null && state.loadedOnce && !state.offline)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+              child: GlassCard(
+                onTap: state.loadAll,
+                child: Row(children: [
+                  Icon(Icons.cloud_off_rounded, color: p.pink),
+                  const SizedBox(width: 12),
+                  Expanded(child: Text('Some content failed to load. Tap to retry.', style: bodyStyle(context, size: 13))),
+                ]),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Hero extends StatelessWidget {
+  const _Hero({required this.scroll, required this.orbit, required this.blurb});
+  final ScrollController scroll;
+  final AnimationController orbit;
+  final String blurb;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.pal;
+    return SizedBox(
+      height: 500,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          // Parallax orb: drifts slower than the page.
+          Positioned.fill(
+            child: AnimatedBuilder(
+            animation: Listenable.merge([scroll, orbit]),
+            builder: (context, _) {
+              final off = scroll.hasClients ? scroll.offset.clamp(0.0, 600.0).toDouble() : 0.0;
+              final t = orbit.value * 2 * math.pi;
+              return Stack(clipBehavior: Clip.none, children: [
+                Positioned(
+                right: -50,
+                top: 30 + off * 0.35,
+                child: Opacity(
+                  opacity: (1 - off / 450).clamp(0.0, 1.0).toDouble(),
+                  child: SizedBox(
+                    width: 260,
+                    height: 260,
+                    child: Stack(alignment: Alignment.center, children: [
+                      Container(
+                        width: 120,
+                        height: 120,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: RadialGradient(colors: [p.tech.withValues(alpha: 0.9), p.accent.withValues(alpha: 0.6), p.accent.withValues(alpha: 0)]),
+                        ),
+                      ),
+                      for (var i = 0; i < 4; i++)
+                        Transform(
+                          alignment: Alignment.center,
+                          transform: Matrix4.identity()
+                            ..setEntry(3, 2, 0.0015)
+                            ..rotateX(t + i * 0.8)
+                            ..rotateY(t * (i.isEven ? 1 : -1) * 0.7 + i * 0.5)
+                            ..rotateZ(i * 0.6),
+                          child: Container(
+                            width: 240 - i * 28.0,
+                            height: 240 - i * 28.0,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(color: [p.accent, p.tech, p.pink, p.accent][i].withValues(alpha: 0.75), width: 1.6),
+                            ),
+                          ),
+                        ),
+                    ]),
+                  ),
+                ),
+              ),
+              ]);
+            },
+          )),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 40, 20, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                  decoration: BoxDecoration(borderRadius: BorderRadius.circular(99), border: Border.all(color: p.line), color: p.surface.withValues(alpha: 0.5)),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Container(width: 7, height: 7, decoration: BoxDecoration(shape: BoxShape.circle, color: p.tech))
+                        .animate(onPlay: (c) => c.repeat(reverse: true))
+                        .fade(begin: 0.3, end: 1, duration: 900.ms),
+                    const SizedBox(width: 8),
+                    Text('// bauet.ict.club', style: monoStyle(context, size: 10.5, color: p.fg)),
+                  ]),
+                ).animate().fadeIn(duration: 500.ms),
+                const SizedBox(height: 22),
+                const Row(children: [LogoImage.crest(height: 46), SizedBox(width: 14), LogoImage.club(height: 40)]),
+                const SizedBox(height: 70),
+                Text('Where code', style: displayStyle(context, 46)).animate().fadeIn(delay: 150.ms, duration: 600.ms).slideY(begin: 0.25, end: 0),
+                GradientText('meets community.', style: displayStyle(context, 46))
+                    .animate()
+                    .fadeIn(delay: 300.ms, duration: 600.ms)
+                    .slideY(begin: 0.25, end: 0),
+                const SizedBox(height: 16),
+                Text(
+                  blurb.isEmpty ? 'Workshops, contests, projects and a community of builders at BAUET.' : blurb,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: bodyStyle(context, color: p.muted, size: 15),
+                ).animate().fadeIn(delay: 500.ms, duration: 600.ms),
+                const SizedBox(height: 24),
+                Row(children: [
+                  Expanded(flex: 5, child: GradientButton(label: 'Join the club', icon: Icons.rocket_launch_rounded, onPressed: () => context.go('/join'))),
+                  const SizedBox(width: 12),
+                  Expanded(flex: 4, child: GhostButton(label: 'Events', onPressed: () => context.go('/events'))),
+                ]).animate().fadeIn(delay: 700.ms, duration: 600.ms).slideY(begin: 0.2, end: 0),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Stats extends StatelessWidget {
+  const _Stats({required this.state});
+  final AppState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final items = <(String, int, IconData)>[
+      ('Members', state.members.length, Icons.groups_rounded),
+      ('Events', state.events.length, Icons.event_rounded),
+      ('Awards', state.achievements.length, Icons.emoji_events_rounded),
+      ('Photos', state.gallery.length, Icons.photo_rounded),
+    ];
+    final p = context.pal;
+    return GlassCard(
+      padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 8),
+      child: Row(children: [
+        for (final s in items)
+          Expanded(
+            child: Column(children: [
+              Icon(s.$3, size: 18, color: p.tech),
+              const SizedBox(height: 6),
+              CountUp(value: s.$2, style: displayStyle(context, 26)),
+              const SizedBox(height: 2),
+              Text(s.$1.toUpperCase(), style: monoStyle(context, size: 9)),
+            ]),
+          ),
+      ]),
+    );
+  }
+}
+
+class _NoticeTile extends StatelessWidget {
+  const _NoticeTile({required this.notice});
+  final NoticeItem notice;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.pal;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: GlassCard(
+        onTap: () => context.go('/notices'),
+        padding: const EdgeInsets.all(16),
+        child: Row(children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(borderRadius: BorderRadius.circular(14), color: noticeColor(p, notice.priority).withValues(alpha: 0.15)),
+            child: Icon(notice.pinned ? Icons.push_pin_rounded : Icons.campaign_rounded, size: 20, color: noticeColor(p, notice.priority)),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(notice.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: bodyStyle(context, weight: FontWeight.w700)),
+              const SizedBox(height: 3),
+              Text(fmtDate(notice.date), style: monoStyle(context, size: 10)),
+            ]),
+          ),
+          Icon(Icons.chevron_right_rounded, color: p.muted),
+        ]),
+      ),
+    );
+  }
+}
+
+Color noticeColor(Pal p, String priority) {
+  switch (priority.toLowerCase()) {
+    case 'high':
+    case 'urgent':
+      return const Color(0xFFFF5C7A);
+    case 'low':
+      return p.muted;
+    default:
+      return p.tech;
+  }
+}
+
+class _JoinCta extends StatelessWidget {
+  const _JoinCta();
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.pal;
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(28),
+        gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [...p.gradient, p.pink.withValues(alpha: 0.9)]),
+        boxShadow: [BoxShadow(color: p.gradient.first.withValues(alpha: 0.4), blurRadius: 30, offset: const Offset(0, 14))],
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('\$ git checkout -b you', style: monoStyle(context, color: Colors.white70, size: 11.5)),
+        const SizedBox(height: 8),
+        Text('Be part of what we build next.', style: displayStyle(context, 28, color: Colors.white)),
+        const SizedBox(height: 8),
+        Text('Apply for the executive committee or become a general member.', style: bodyStyle(context, color: Colors.white.withValues(alpha: 0.85))),
+        const SizedBox(height: 18),
+        FilledButton.icon(
+          onPressed: () => context.go('/join'),
+          style: FilledButton.styleFrom(
+            backgroundColor: Colors.white,
+            foregroundColor: p.dark ? const Color(0xFF0E1231) : p.accent,
+            padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          ),
+          icon: const Icon(Icons.arrow_forward_rounded),
+          label: const Text('Start application'),
+        ),
+      ]),
+    );
+  }
+}
