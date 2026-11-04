@@ -19,6 +19,7 @@ function createCrudRouter(table, opts = {}) {
   const imageCols = opts.imageCols || [];
   const auth = opts.auth;
   const validate = opts.validate; // async (data, existingRow|null) => error string | null
+  const onCreate = opts.onCreate; // (row) => void, runs after a successful create (e.g. email subscribers)
   const guard = auth ? [auth] : [];
   const readGuard = opts.readAuth && auth ? [auth] : []; // private lists (e.g. subscriber emails) need a login to read
 
@@ -63,6 +64,7 @@ function createCrudRouter(table, opts = {}) {
         keys.map((k) => data[k])
       );
       res.status(201).json(rows[0]);
+      if (onCreate) try { onCreate(rows[0]); } catch (e) { console.warn(`${table} onCreate failed:`, e.message); }
     } catch (e) {
       console.error(`${table} insert failed:`, e.message);
       res.status(400).json({ error: 'Could not save — please check the fields' });

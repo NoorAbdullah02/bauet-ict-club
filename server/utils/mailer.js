@@ -26,15 +26,15 @@ function smtpTransport() {
 
 const state = { sent: 0, failed: 0, lastError: null, lastSentAt: null };
 
-async function deliver({ to, subject, html, text, replyTo }) {
+async function deliver({ to, subject, html, text, replyTo, attachments }) {
   const name = 'BAUET ICT Club';
   if (provider() === 'smtp') {
-    await smtpTransport().sendMail({ from: `"${name}" <${fromAddress()}>`, to, subject, html, text, replyTo });
+    await smtpTransport().sendMail({ from: `"${name}" <${fromAddress()}>`, to, subject, html, text, replyTo, attachments });
   } else if (provider() === 'brevo') {
     const brevo = require('@getbrevo/brevo');
     const api = new brevo.TransactionalEmailsApi();
     api.setApiKey(brevo.TransactionalEmailsApiApiKeys.apiKey, env('BREVO_API_KEY'));
-    await api.sendTransacEmail({ to: [{ email: to }], sender: { email: fromAddress(), name }, subject, htmlContent: html, textContent: text, ...(replyTo ? { replyTo: { email: replyTo } } : {}) });
+    await api.sendTransacEmail({ to: [{ email: to }], sender: { email: fromAddress(), name }, subject, htmlContent: html, textContent: text, ...(attachments?.length ? { attachment: attachments.map((a) => ({ name: a.filename, content: a.content.toString('base64') })) } : {}), ...(replyTo ? { replyTo: { email: replyTo } } : {}) });
   }
 }
 
@@ -131,6 +131,16 @@ const templates = {
     subject: 'Welcome to BAUET ICT Club news',
     html: layout({ title: 'You are subscribed', body: '<p>Thanks for subscribing. You will hear about workshops, hackathons, contests and notices.</p>', button: { href: `${siteUrl()}/events`, label: 'See upcoming events' }, footerNote: `Not you? <a href="${esc(unsubscribeUrl(email))}" style="color:#1F4FD8">Unsubscribe</a>` }),
     text: `You are subscribed to BAUET ICT Club news. Unsubscribe: ${unsubscribeUrl(email)}`,
+  }),
+  announcement: (email, kind, item) => ({
+    subject: `New ${kind}: ${item.title}`,
+    html: layout({
+      title: item.title,
+      body: `<p style="color:#5B6B8C;font-size:12px;letter-spacing:.12em;text-transform:uppercase;margin:0 0 8px">New ${esc(kind)}</p>${item.when ? `<p><b>${esc(item.when)}</b></p>` : ''}${item.summary ? `<p>${esc(item.summary).replace(/\n/g, '<br>')}</p>` : ''}`,
+      button: { href: `${siteUrl()}${item.path || '/'}`, label: 'Open on the website' },
+      footerNote: `You get this because you subscribed on our website. <a href="${esc(unsubscribeUrl(email))}" style="color:#1F4FD8">Unsubscribe</a>`,
+    }),
+    text: `New ${kind}: ${item.title}\n${item.when || ''}\n${item.summary || ''}\n${siteUrl()}${item.path || '/'}\n\nUnsubscribe: ${unsubscribeUrl(email)}`,
   }),
   newsletter: (email, subject, message) => ({
     subject,
