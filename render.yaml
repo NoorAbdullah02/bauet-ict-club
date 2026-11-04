@@ -5,7 +5,7 @@ services:
     name: bauet-ict-club
     runtime: node
     plan: free
-    branch: main
+    branch: master
     buildCommand: npm run build:render
     startCommand: npm start
     healthCheckPath: /robots.txt
