@@ -5,9 +5,19 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import ChatBot from '../components/ChatBot';
 
+const TITLES = {
+  '/': 'BAUET ICT Club | Where Technology Meets Innovation', '/about': 'About', '/events': 'Events', '/notices': 'Notices', '/projects': 'Projects',
+  '/team': 'Executive Committee', '/ambassadors': 'Department Ambassadors', '/gallery': 'Gallery', '/achievements': 'Awards & Achievements', '/faq': 'FAQ',
+  '/contact': 'Contact', '/join': 'Join the Club', '/join/committee': 'Apply for the Committee', '/join/general': 'Become a General Member', '/join/ambassador': 'Become a Department Ambassador',
+};
+
 export default function SiteLayout() {
   const { pathname } = useLocation();
   useEffect(() => { window.scrollTo({ top: 0, left: 0, behavior: 'instant' }); }, [pathname]);
+  useEffect(() => {
+    const t = TITLES[pathname.replace(/\/$/, '') || '/'];
+    document.title = !t ? 'Page not found | BAUET ICT Club' : pathname === '/' ? t : `${t} | BAUET ICT Club`;
+  }, [pathname]);
 
   return (
     <>

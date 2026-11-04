@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import axios from 'axios';
 
-const api = axios.create({ baseURL: '/api' });
+export const api = axios.create({ baseURL: '/api' });
 
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('bauet-token');
@@ -15,6 +15,10 @@ const useStore = create((set, get) => ({
   members: [],
   gallery: [],
   achievements: [],
+  projects: [],
+  faqs: [],
+  sponsors: [],
+  subscribers: [],
   posts: [],
   messages: [],
   registrations: [],
@@ -39,13 +43,16 @@ const useStore = create((set, get) => ({
   fetchAll: async (fresh = false) => {
     const q = fresh ? { params: { _: Date.now() } } : undefined;
     try {
-      const [events, notices, members, gallery, achievements, settings] = await Promise.all([
+      const [events, notices, members, gallery, achievements, settings, projects, faqs, sponsors] = await Promise.all([
         api.get('/events', q).catch(() => ({ data: [] })),
         api.get('/notices', q).catch(() => ({ data: [] })),
         api.get('/members', q).catch(() => ({ data: [] })),
         api.get('/gallery', q).catch(() => ({ data: [] })),
         api.get('/achievements', q).catch(() => ({ data: [] })),
         api.get('/settings', q).catch(() => ({ data: null })),
+        api.get('/projects', q).catch(() => ({ data: [] })),
+        api.get('/faqs', q).catch(() => ({ data: [] })),
+        api.get('/sponsors', q).catch(() => ({ data: [] })),
       ]);
       set({
         events: events.data,
@@ -53,6 +60,9 @@ const useStore = create((set, get) => ({
         members: members.data,
         gallery: gallery.data,
         achievements: achievements.data,
+        projects: projects.data,
+        faqs: faqs.data,
+        sponsors: sponsors.data,
         settings: settings.data || {
           heroTitle: 'BAUET ICT CLUB',
           heroSub: 'Where Technology Meets Innovation',

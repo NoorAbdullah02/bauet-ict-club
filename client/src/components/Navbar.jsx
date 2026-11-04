@@ -12,6 +12,7 @@ export const LINKS = [
   { to: '/about', label: 'About' },
   { to: '/events', label: 'Events' },
   { to: '/notices', label: 'Notices' },
+  { to: '/projects', label: 'Projects' },
   { to: '/team', label: 'Team' },
   { to: '/ambassadors', label: 'Ambassadors' },
   { to: '/gallery', label: 'Gallery' },

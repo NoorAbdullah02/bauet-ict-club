@@ -20,6 +20,7 @@ function createCrudRouter(table, opts = {}) {
   const auth = opts.auth;
   const validate = opts.validate; // async (data, existingRow|null) => error string | null
   const guard = auth ? [auth] : [];
+  const readGuard = opts.readAuth && auth ? [auth] : []; // private lists (e.g. subscriber emails) need a login to read
 
   const pick = (body) => {
     const out = {};
@@ -30,7 +31,7 @@ function createCrudRouter(table, opts = {}) {
     return out;
   };
 
-  router.get('/', async (_req, res) => {
+  router.get('/', ...readGuard, async (_req, res) => {
     try {
       const { rows } = await pool.query(`SELECT * FROM ${table} WHERE deleted_at IS NULL ORDER BY ${orderCol} ${orderDir}`);
       res.json(rows);
@@ -40,7 +41,7 @@ function createCrudRouter(table, opts = {}) {
     }
   });
 
-  router.get('/:id', async (req, res) => {
+  router.get('/:id', ...readGuard, async (req, res) => {
     try {
       const { rows } = await pool.query(`SELECT * FROM ${table} WHERE id = $1 AND deleted_at IS NULL`, [req.params.id]);
       if (!rows.length) return res.status(404).json({ error: 'Not found' });

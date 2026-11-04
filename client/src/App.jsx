@@ -18,6 +18,8 @@ const TeamPage = named('TeamPage');
 const GalleryPage = named('GalleryPage');
 const AchievementsPage = named('AchievementsPage');
 const ContactPage = named('ContactPage');
+const ProjectsPage = named('ProjectsPage');
+const FaqPage = named('FaqPage');
 const JoinHubPage = named('JoinHubPage');
 const JoinCommitteePage = named('JoinCommitteePage');
 const JoinGeneralPage = named('JoinGeneralPage');
@@ -120,6 +122,8 @@ export default function App() {
           <Route path="team" element={<TeamPage />} />
           <Route path="gallery" element={<GalleryPage />} />
           <Route path="achievements" element={<AchievementsPage />} />
+          <Route path="projects" element={<ProjectsPage />} />
+          <Route path="faq" element={<FaqPage />} />
           <Route path="contact" element={<ContactPage />} />
           <Route path="join" element={<JoinHubPage />} />
           <Route path="join/committee" element={<JoinCommitteePage />} />

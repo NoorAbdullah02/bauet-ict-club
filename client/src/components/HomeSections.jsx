@@ -6,6 +6,9 @@ import useStore from '../context/store';
 import Tilt from './Tilt';
 import CodeWindow from './CodeWindow';
 import PanelShowcase from './PanelShowcase';
+import Sponsors from './Sponsors';
+import Newsletter from './Newsletter';
+import NextEvent from './NextEvent';
 
 const fmt = (d) => { try { return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }); } catch { return ''; } };
 
@@ -61,6 +64,8 @@ export default function HomeSections() {
           </div>
         </div>
       </section>
+
+      <NextEvent events={events} />
 
       <PanelShowcase members={members} />
 
@@ -128,6 +133,14 @@ export default function HomeSections() {
               </div>
             </div>
           </div>
+        </div>
+      </section>
+
+      <Sponsors />
+
+      <section className="section !pt-4">
+        <div className="container">
+          <Newsletter className="mx-auto max-w-2xl rounded-[28px] border border-line bg-surface/70 p-6 sm:p-8" />
         </div>
       </section>
     </>
