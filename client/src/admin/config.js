@@ -2,7 +2,7 @@ import { Calendar, Bell, Users, Image, Trophy, FileText } from 'lucide-react';
 
 const ordinal = (n) => `${n}${[11, 12, 13].includes(n % 100) ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' }[n % 10] || 'th')}`;
 export const BATCHES = Array.from({ length: 24 }, (_, i) => ordinal(i + 6));
-const DEPTS = [['ICE', 'ICE — Information & Communication Eng.']];
+const DEPTS = [['ICE', 'ICE — Information & Communication Eng.'], ['CSE', 'CSE — Computer Science & Eng.'], ['EEE', 'EEE — Electrical & Electronic Eng.'], ['CE', 'CE — Civil Eng.'], ['ME', 'ME — Mechanical Eng.'], ['BBA', 'BBA — Business Administration'], ['LLB', 'LLB — Bachelor of Laws'], ['ELL', 'ELL — English Language & Literature']];
 
 export const TYPES = {
   events: {

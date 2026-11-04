@@ -11,7 +11,7 @@ const { positionRank, leadershipConflict } = require('../utils/positions');
 const router = express.Router();
 
 const TYPES = ['committee', 'general', 'ambassador'];
-const DEPARTMENTS = ['ICE'];
+const DEPARTMENTS = ['ICE', 'CSE', 'EEE', 'CE', 'ME', 'Other'];
 const GENDERS = ['Male', 'Female', 'Other', ''];
 const STATUSES = ['pending', 'approved', 'rejected'];
 const MAX_INTERESTS = 8;
