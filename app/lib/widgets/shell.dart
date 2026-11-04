@@ -30,6 +30,8 @@ const _more = [
   _NavItem('/ambassadors', 'Ambassadors', Icons.school_outlined, Icons.school_rounded),
   _NavItem('/gallery', 'Gallery', Icons.photo_library_outlined, Icons.photo_library_rounded),
   _NavItem('/achievements', 'Achievements', Icons.emoji_events_outlined, Icons.emoji_events_rounded),
+  _NavItem('/projects', 'Projects', Icons.code_outlined, Icons.code_rounded),
+  _NavItem('/faq', 'FAQ', Icons.help_outline_rounded, Icons.help_rounded),
   _NavItem('/about', 'About', Icons.info_outline_rounded, Icons.info_rounded),
   _NavItem('/contact', 'Contact', Icons.mail_outline_rounded, Icons.mail_rounded),
 ];

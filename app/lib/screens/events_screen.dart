@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../core/calendar.dart';
 import '../core/theme.dart';
 import '../core/utils.dart';
 import '../models/models.dart';
@@ -159,6 +160,10 @@ void showEventSheet(BuildContext context, EventItem e) {
             if (e.location.isNotEmpty) _Meta(icon: Icons.place_rounded, text: e.location),
             const SizedBox(height: 14),
             Text(e.description.isEmpty ? 'More details coming soon.' : e.description, style: bodyStyle(ctx, color: p.muted, size: 15)),
+            if (e.date != null) ...[
+              const SizedBox(height: 20),
+              GradientButton(label: 'Add to calendar', icon: Icons.event_available_rounded, onPressed: () => openUrl(ctx, googleCalendarUri(e).toString())),
+            ],
           ],
         ),
       );

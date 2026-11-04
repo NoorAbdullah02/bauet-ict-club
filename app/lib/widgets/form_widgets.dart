@@ -44,7 +44,15 @@ class AppField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = context.pal;
+    final hints = keyboard == TextInputType.emailAddress
+        ? const [AutofillHints.email]
+        : keyboard == TextInputType.phone
+            ? const [AutofillHints.telephoneNumber]
+            : (label == 'Full name' || label == 'Your name')
+                ? const [AutofillHints.name]
+                : null;
     return TextField(
+      autofillHints: hints,
       controller: controller,
       keyboardType: keyboard,
       maxLines: obscure ? 1 : maxLines,
