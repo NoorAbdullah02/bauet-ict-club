@@ -1,3 +1,4 @@
+import Select from '../Select';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Users, Check, Loader2, ArrowUpRight, ArrowLeft, PartyPopper, RotateCcw, Zap, Gift, MessageCircleHeart } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -71,16 +72,16 @@ export default function JoinGeneral() {
                 <motion.form key="form" noValidate onSubmit={(e) => { e.preventDefault(); submit(); }}>
                   <div className="prompt-line mb-6"><b>$</b> join --member --interests=&lt;you&gt;<span className="code-cursor !h-[0.9em] !w-[6px]" /></div>
                   <div className="grid gap-5 sm:grid-cols-2">
-                    <Field label="Full name" required error={errors.full_name}><input className={inputCls(errors.full_name)} value={form.full_name} onChange={set('full_name')} placeholder="Your full name" autoComplete="name" /></Field>
-                    <Field label="Student ID" required error={errors.student_id}><input className={inputCls(errors.student_id)} value={form.student_id} onChange={set('student_id')} placeholder="e.g. 2201010" /></Field>
+                    <Field label="Full name" required error={errors.full_name}><input name="name" className={inputCls(errors.full_name)} value={form.full_name} onChange={set('full_name')} placeholder="Your full name" autoComplete="name" /></Field>
+                    <Field label="Student ID" required error={errors.student_id}><input name="student_id" autoComplete="off" inputMode="numeric" className={inputCls(errors.student_id)} value={form.student_id} onChange={set('student_id')} placeholder="e.g. 2201010" /></Field>
                     <Field label="Batch" required error={errors.batch}>
-                      <select className={inputCls(errors.batch)} value={form.batch} onChange={set('batch')}><option value="">Select batch</option>{BATCHES.map((b) => <option key={b} value={b}>{b}th batch</option>)}</select>
+                      <Select className={inputCls(errors.batch)} value={form.batch} onChange={set('batch')}><option value="">Select batch</option>{BATCHES.map((b) => <option key={b} value={b}>{b}th batch</option>)}</Select>
                     </Field>
                     <Field label="Department" required error={errors.department}>
-                      <select className={inputCls(errors.department)} value={form.department} onChange={set('department')}><option value="">Select department</option>{DEPARTMENTS.map((d) => <option key={d}>{d}</option>)}</select>
+                      <Select className={inputCls(errors.department)} value={form.department} onChange={set('department')}><option value="">Select department</option>{DEPARTMENTS.map((d) => <option key={d}>{d}</option>)}</Select>
                     </Field>
-                    <Field label="Phone" required error={errors.phone}><input className={inputCls(errors.phone)} type="tel" value={form.phone} onChange={set('phone')} placeholder="01XXXXXXXXX" autoComplete="tel" /></Field>
-                    <Field label="Email" required error={errors.email}><input className={inputCls(errors.email)} type="email" value={form.email} onChange={set('email')} placeholder="you@example.com" autoComplete="email" /></Field>
+                    <Field label="Phone" required error={errors.phone}><input name="phone" inputMode="tel" className={inputCls(errors.phone)} type="tel" value={form.phone} onChange={set('phone')} placeholder="01XXXXXXXXX" autoComplete="tel" /></Field>
+                    <Field label="Email" required error={errors.email}><input name="email" className={inputCls(errors.email)} type="email" value={form.email} onChange={set('email')} placeholder="you@example.com" autoComplete="email" /></Field>
                   </div>
 
                   <div className="mt-7">
@@ -114,7 +115,7 @@ export default function JoinGeneral() {
                       </div>
                     </Field>
                     <Field label="Gender">
-                      <select className={inputCls()} value={form.gender} onChange={set('gender')}><option value="">Prefer not to say</option><option>Male</option><option>Female</option><option>Other</option></select>
+                      <Select className={inputCls()} value={form.gender} onChange={set('gender')}><option value="">Prefer not to say</option><option>Male</option><option>Female</option><option>Other</option></Select>
                     </Field>
                   </div>
 

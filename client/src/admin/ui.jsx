@@ -1,3 +1,4 @@
+import Select from '../components/Select';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Upload, Loader2 } from 'lucide-react';
@@ -81,9 +82,9 @@ export function FormField({ field, value, onChange }) {
       {label}
       {field.type === 'textarea' ? <textarea className={cn(inputCls, 'min-h-28 resize-y')} value={value || ''} required={field.required} onChange={(e) => set(e.target.value)} />
         : field.type === 'select' ? (
-          <select className={inputCls} value={value || ''} onChange={(e) => set(e.target.value)}>
+          <Select className={inputCls} value={value || ''} onChange={(e) => set(e.target.value)}>
             <option value="">Select…</option>{field.options.map((o) => (typeof o === 'string' ? <option key={o}>{o}</option> : <option key={o.value} value={o.value}>{o.label}</option>))}
-          </select>
+          </Select>
         ) : <input className={inputCls} type={field.type || 'text'} value={field.type === 'date' ? String(value ?? '').slice(0, 10) : (value ?? '')} required={field.required} onChange={(e) => set(field.type === 'number' ? Number(e.target.value) : e.target.value)} />}
     </label>
   );

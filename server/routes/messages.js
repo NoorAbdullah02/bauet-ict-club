@@ -1,4 +1,5 @@
 const express = require('express');
+const { fail } = require('../utils/http');
 const rateLimit = require('express-rate-limit');
 const pool = require('../config/db');
 const { authMiddleware } = require('../middleware/auth');
@@ -39,7 +40,7 @@ router.get('/', authMiddleware, async (_req, res) => {
     const { rows } = await pool.query('SELECT * FROM messages WHERE deleted_at IS NULL ORDER BY created_at DESC');
     res.json(rows);
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    fail(res, e);
   }
 });
 
@@ -52,7 +53,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
     if (!rows.length) return res.status(404).json({ error: 'Not found' });
     res.json(rows[0]);
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    fail(res, e);
   }
 });
 
@@ -61,7 +62,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
     await pool.query('UPDATE messages SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL', [req.params.id]);
     res.json({ success: true, trashed: true });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    fail(res, e);
   }
 });
 

@@ -1,4 +1,5 @@
 const express = require('express');
+const { fail } = require('../utils/http');
 const multer = require('multer');
 const cloudinary = require('../config/cloudinary');
 const { saveImage, cloudinaryReady } = require('../utils/saveImage');
@@ -25,7 +26,7 @@ router.post('/', upload.single('image'), async (req, res) => {
 
     res.json({ url: result.secure_url, public_id: result.public_id });
   } catch (e) {
-    res.status(500).json({ error: 'Upload failed: ' + e.message });
+    fail(res, e);
   }
 });
 
@@ -40,7 +41,7 @@ router.post('/remove-bg', upload.single('image'), async (req, res) => {
     });
     res.json({ url: result.secure_url, public_id: result.public_id });
   } catch (e) {
-    res.status(500).json({ error: 'Background removal failed: ' + e.message });
+    fail(res, e);
   }
 });
 

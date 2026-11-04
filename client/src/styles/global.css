@@ -334,7 +334,7 @@ input, textarea, select { font-family: var(--font-body); color: var(--fg); }
   font-family: var(--font-mono); font-weight: 700; letter-spacing: 0.3em; font-size: 12px; color: var(--fg-muted);
 }
 .preloader-bar { width: 140px; height: 2px; background: var(--border); border-radius: 2px; overflow: hidden; margin-top: 18px; }
-.preloader-bar i { display: block; height: 100%; background: var(--grad-text); animation: load 0.8s var(--ease) forwards; }
+.preloader-bar i { display: block; height: 100%; background: var(--grad-text); animation: load 0.45s var(--ease) forwards; }
 @keyframes load { from { width: 0; } to { width: 100%; } }
 
 /* ==========================================================
@@ -441,3 +441,26 @@ body.admin-mode .cursor-glow { display: none; }
 
 /* smooth gradient on primary heading emphasis */
 ::selection { background: rgba(var(--accent-rgb),0.9); }
+
+/* custom dropdown menu */
+.select-menu { transform-origin: top; animation: selectIn 0.18s var(--ease); }
+@keyframes selectIn { from { opacity: 0; transform: translateY(-6px) scale(0.98); } }
+.select-menu::-webkit-scrollbar { width: 6px; }
+
+
+/* ==========================================================
+   Performance layer
+   ========================================================== */
+/* off-screen sections are not laid out or painted until they get near the viewport */
+.section { content-visibility: auto; contain-intrinsic-size: auto 700px; }
+
+/* promote only what animates */
+.cursor-glow, .scroll-progress, .marquee-track { will-change: transform; }
+.reveal.in { will-change: auto; }
+
+/* lite mode (phones, <=4 cores, data saver): drop the costly effects, keep the look */
+.lite [class*="backdrop-blur"]:not(.keep-blur) { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+.lite .cursor-glow { display: none; }
+.lite .grad-anim { animation: none; }
+.lite .spot::after, .lite .spot::before { display: none; }
+.lite .marquee-track { animation-duration: 60s; }
