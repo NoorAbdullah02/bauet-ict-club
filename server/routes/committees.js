@@ -39,7 +39,7 @@ router.post('/launch', authMiddleware, async (req, res) => {
     let copied = 0;
     if (scope !== 'none' && copyFrom) {
       const { rows } = await pool.query('SELECT * FROM members WHERE committee_session = $1 AND deleted_at IS NULL ORDER BY display_order', [copyFrom]);
-      const take = rows.filter((m) => scope === 'all' || /^(Vice )?President/i.test(m.position));
+      const take = rows.filter((m) => scope === 'all' || /^((Vice President|VP)\b|President)/i.test(m.position));
       for (const m of take) {
         await pool.query(
           'INSERT INTO members (name, position, department, batch, committee_session, image_url, social_fb, social_gh, social_li, display_order) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)',

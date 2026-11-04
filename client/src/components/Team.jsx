@@ -22,7 +22,7 @@ const DEPT_COLORS = {
 
 const CORE_POSITIONS = ['General Secretary', 'Asst. General Secretary', 'Joint Secretary', 'Organizing Secretary', 'Treasurer'];
 
-const isLeader = (p) => /^(Vice )?President/i.test(p);
+const isLeader = (p) => /^((Vice President|VP)\b|President)/i.test(p);
 const isCore = (p) => CORE_POSITIONS.includes(p) || (/Secretary|Treasurer/.test(p) && !/^Executive/.test(p));
 
 function getInitials(name) {
@@ -154,7 +154,7 @@ function useSessions(dbMembers) {
       const c = (out[key] ||= { label, presidents: [], vps: [], members: [] });
       const person = { name: m.name, image_url: m.image_url, title: m.position };
       if (/^President/i.test(m.position)) c.presidents.push({ ...person, title: 'President' });
-      else if (/^Vice President/i.test(m.position)) c.vps.push(person);
+      else if (/^(Vice President|VP)\b/i.test(m.position)) c.vps.push(person);
       else c.members.push({
         name: m.name, position: m.position, dept: m.department || 'ICE',
         batch: m.batch || '', image_url: m.image_url, _order: m.display_order,

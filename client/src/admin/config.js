@@ -55,7 +55,7 @@ export const TYPES = {
       { key: 'social_gh', label: 'GitHub URL', type: 'text' },
       { key: 'social_li', label: 'LinkedIn URL', type: 'text' },
     ],
-    cols: ['name', 'position', 'department', 'batch'],
+    cols: ['name', 'position', 'department', 'batch', 'committee_session'],
   },
   gallery: {
     name: 'Photo', icon: Image,

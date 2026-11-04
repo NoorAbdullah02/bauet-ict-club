@@ -28,9 +28,9 @@ class AppConfig {
 /// Application posts a committee applicant can pick (mirrors the website).
 const List<String> kCommitteePosts = [
   'President',
-  'Vice President',
   'Vice President (Technical)',
   'Vice President (Administration)',
+  'Vice President',
   'General Secretary',
   'Assistant General Secretary',
   'Joint Secretary',
@@ -78,20 +78,7 @@ const int kMaxInterests = 8;
 /// Member form choices (admin).
 const List<String> kMemberDepartments = ['ICE', 'CSE', 'EEE', 'CE', 'ME', 'BBA', 'LLB', 'ELL'];
 
-String _ordinal(int n) {
-  final mod100 = n % 100;
-  if (mod100 >= 11 && mod100 <= 13) return '${n}th';
-  switch (n % 10) {
-    case 1:
-      return '${n}st';
-    case 2:
-      return '${n}nd';
-    case 3:
-      return '${n}rd';
-    default:
-      return '${n}th';
-  }
-}
-
 /// "6th" .. "29th"
-final List<String> kBatchOrdinals = [for (var i = 6; i <= 29; i++) _ordinal(i)];
+const List<String> kBatchOrdinals = [
+  '6th', '7th', '8th', '9th', '10th', '11th', '12th', '13th', '14th', '15th', '16th', '17th', '18th', '19th', '20th', '21st', '22nd', '23rd', '24th', '25th', '26th', '27th', '28th', '29th',
+];

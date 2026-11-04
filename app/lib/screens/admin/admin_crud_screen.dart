@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/config.dart';
 import '../../core/theme.dart';
 import '../../core/utils.dart';
 import '../../data/api.dart';
@@ -10,14 +11,15 @@ import '../../widgets/common.dart';
 import '../../widgets/form_widgets.dart';
 import 'admin_widgets.dart';
 
-enum FieldKind { text, multiline, date, boolean, number }
+enum FieldKind { text, multiline, date, boolean, number, choice, session }
 
 class FieldSpec {
-  const FieldSpec(this.key, this.label, [this.kind = FieldKind.text, this.required = false]);
+  const FieldSpec(this.key, this.label, [this.kind = FieldKind.text, this.required = false, this.options = const []]);
   final String key;
   final String label;
   final FieldKind kind;
   final bool required;
+  final List<String> options;
 }
 
 class TableSpec {
@@ -69,9 +71,9 @@ const Map<String, TableSpec> kTables = {
     fields: [
       FieldSpec('name', 'Name', FieldKind.text, true),
       FieldSpec('position', 'Position', FieldKind.text, true),
-      FieldSpec('committee_session', 'Session (e.g. Summer 2026)'),
-      FieldSpec('department', 'Department'),
-      FieldSpec('batch', 'Batch'),
+      FieldSpec('committee_session', 'Committee session', FieldKind.session),
+      FieldSpec('department', 'Department', FieldKind.choice, false, kMemberDepartments),
+      FieldSpec('batch', 'Batch', FieldKind.choice, false, kBatchOrdinals),
       FieldSpec('display_order', 'Display order', FieldKind.number),
       FieldSpec('image_url', 'Photo URL'),
       FieldSpec('social_fb', 'Facebook link'),
@@ -203,8 +205,18 @@ class _AdminCrudScreenState extends State<AdminCrudScreen> {
     );
     if (yes != true) return;
     try {
-      await _state.api.remove(widget.table, int.parse(row['id'].toString()));
-      if (mounted) showSnack(context, 'Deleted');
+      final id = int.parse(row['id'].toString());
+      await _state.api.remove(widget.table, id);
+      if (mounted) {
+        showUndoSnack(context, 'Moved to Trash', () async {
+          try {
+            await _state.api.restoreTrash(widget.table, id);
+            await _afterChange();
+          } on ApiException catch (e) {
+            if (mounted) showSnack(context, e.message, error: true);
+          }
+        });
+      }
       await _afterChange();
     } on ApiException catch (e) {
       await _state.handleAuthError(e);
@@ -350,10 +362,22 @@ class _RowFormState extends State<_RowForm> {
   final Map<String, bool> _bools = {};
   final Map<String, String> _errors = {};
   bool _busy = false;
+  List<String> _sessions = [];
+
+  Future<void> _loadSessions() async {
+    try {
+      final rows = await context.read<AppState>().api.committees();
+      final labels = rows.map((c) => (c['label'] ?? '').toString()).where((s) => s.isNotEmpty).toList();
+      if (mounted) setState(() => _sessions = labels);
+    } on ApiException catch (_) {
+      // keep the free list empty; existing value stays selectable
+    }
+  }
 
   @override
   void initState() {
     super.initState();
+    if (widget.spec.fields.any((f) => f.kind == FieldKind.session)) _loadSessions();
     for (final f in widget.spec.fields) {
       final v = widget.row?[f.key];
       if (f.kind == FieldKind.boolean) {
@@ -442,6 +466,16 @@ class _RowFormState extends State<_RowForm> {
                       value: _bools[f.key] ?? false,
                       onChanged: (v) => setState(() => _bools[f.key] = v),
                     )
+                  : (f.kind == FieldKind.choice || f.kind == FieldKind.session)
+                      ? PickerField(
+                          label: f.label,
+                          value: _ctrl[f.key]!.text,
+                          options: f.kind == FieldKind.session
+                              ? {..._sessions, if (_ctrl[f.key]!.text.isNotEmpty) _ctrl[f.key]!.text}.toList()
+                              : f.options,
+                          error: _errors[f.key],
+                          onChanged: (v) => setState(() => _ctrl[f.key]!.text = v),
+                        )
                   : f.kind == FieldKind.date
                       ? GestureDetector(
                           onTap: () => _pickDate(f),

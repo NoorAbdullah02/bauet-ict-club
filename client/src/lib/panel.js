@@ -1,6 +1,6 @@
 import { sessionRank, isAmbassador, leaderRank } from './sessions';
 
-const isLeader = (p = '') => /^(Vice )?President/i.test(p);
+const isLeader = (p = '') => /^((Vice President|VP)\b|President)/i.test(p);
 const isCore = (p = '') => /Secretary|Treasurer/.test(p) && !/^Executive/.test(p);
 
 /** The newest committee session (by label) with its leaders, core team and department ambassadors. */
