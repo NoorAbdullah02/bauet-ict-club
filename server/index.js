@@ -9,7 +9,7 @@ require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 const pool = require('./config/db');
 const { UPLOAD_DIR } = require('./utils/saveImage');
 const initDb = require('./config/initDb');
-const { positionRank, isPresident, sessionHasPresident } = require('./utils/positions');
+const { positionRank, leadershipConflict } = require('./utils/positions');
 const createCrudRouter = require('./routes/crud');
 const { authMiddleware } = require('./middleware/auth');
 
@@ -93,13 +93,13 @@ app.use('/api/events', createCrudRouter('events', { orderBy: 'date', orderDir: '
 app.use('/api/notices', createCrudRouter('notices', { orderBy: 'pinned DESC, created_at', orderDir: 'DESC', columns: COLS.notices, auth: authMiddleware }));
 app.use('/api/members', createCrudRouter('members', {
   orderBy: 'display_order', orderDir: 'ASC', columns: COLS.members, imageCols: ['image_url'], auth: authMiddleware,
-  // one President per session; everything else can have several people
+  // one President and two Vice Presidents per session; everything else can have several people
   validate: async (data, old) => {
     if (data.display_order == null || data.display_order === 99) data.display_order = positionRank(data.position);
-    if (isPresident(data.position || '') && data.committee_session && await sessionHasPresident(pool, data.committee_session, old?.id)) {
-      return `${data.committee_session} already has a President. Change the existing one first — all other posts can have several people.`;
-    }
-    return null;
+    const position = data.position ?? old?.position;
+    const session = data.committee_session ?? old?.committee_session;
+    if (old && position === old.position && session === old.committee_session) return null; // unrelated edit of an existing row
+    return leadershipConflict(pool, session, position, old?.id);
   },
 }));
 app.use('/api/gallery', createCrudRouter('gallery', { columns: COLS.gallery, imageCols: ['image_url'], auth: authMiddleware }));

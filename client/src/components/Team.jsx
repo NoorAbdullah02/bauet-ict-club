@@ -256,7 +256,7 @@ export default function Team() {
         </motion.div>
 
         {/* Department Filter */}
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={inView ? { opacity: 1, y: 0 } : {}} transition={{ delay: 0.25, duration: 0.5 }}
+        {allDepts.length > 1 && <motion.div initial={{ opacity: 0, y: 16 }} animate={inView ? { opacity: 1, y: 0 } : {}} transition={{ delay: 0.25, duration: 0.5 }}
           style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 36, flexWrap: 'wrap' }}>
           <button className={`dept-chip${filterDept === 'all' ? ' active' : ''}`}
             style={filterDept === 'all' ? { background: 'var(--navy)', borderColor: 'var(--navy)', color: '#fff' } : {}}
@@ -267,7 +267,7 @@ export default function Team() {
               style={filterDept === d ? { background: DEPT_COLORS[d], borderColor: DEPT_COLORS[d], color: '#fff' } : {}}
               onClick={() => setFilterDept(d)}>{d}</button>
           ))}
-        </motion.div>
+        </motion.div>}
 
         <AnimatePresence mode="wait">
           <motion.div key={sessionKey + filterDept}
