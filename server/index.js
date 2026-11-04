@@ -100,8 +100,10 @@ async function start() {
     await initDb(); // creates missing tables, seeds committee data and the admin account (safe to repeat)
     require('./routes/trash').purgeExpired().catch((e) => console.warn('Trash purge failed:', e.message));
   } catch (e) {
-    console.warn('PostgreSQL not connected:', e.message);
-    console.warn('Run: npm run db:init after setting DATABASE_URL in .env');
+    // network failures arrive as an AggregateError with an empty message, so show the real codes
+    const why = e.message || [...new Set((e.errors || []).map((x) => x.code || x.message))].join(', ') || e.code || 'unknown error';
+    console.warn(`PostgreSQL not connected: ${why}`);
+    console.warn('Check DATABASE_URL in .env (Neon: copy the connection string again, make sure the project is not paused) and your internet connection.');
   }
 
   app.listen(PORT, () => {
