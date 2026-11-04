@@ -60,12 +60,14 @@ export default function App() {
   useEffect(() => {
     const SEL = '.section-header, .spot, .team-card, .marquee';
     const io = new IntersectionObserver((entries) => entries.forEach((e) => {
-      if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+      if (e.isIntersecting) { e.target.classList.add('in'); pending.delete(e.target); io.unobserve(e.target); }
     }), { rootMargin: '0px 0px -8% 0px', threshold: 0.08 });
     const seen = new WeakSet();
+    const pending = new Set(); // tagged but not revealed yet
     const tag = (el) => {
       if (seen.has(el) || el.classList.contains('in')) return;
       seen.add(el);
+      pending.add(el);
       const i = [...(el.parentElement?.children || [])].indexOf(el);
       el.style.setProperty('--d', `${Math.min(i, 6) * 45}ms`);
       el.classList.add('reveal');
@@ -77,11 +79,22 @@ export default function App() {
       if (root.matches?.(SEL)) tag(root);
       root.querySelectorAll?.(SEL).forEach(tag);
     };
+    // safety net: whenever scrolling settles, anything visible but still hidden is revealed (covers fast jumps and throttled observers)
+    let settle;
+    const sweep = () => {
+      pending.forEach((el) => {
+        if (!el.isConnected) { pending.delete(el); return; }
+        const r = el.getBoundingClientRect();
+        if (r.bottom > 0 && r.top < innerHeight) { el.classList.add('in'); pending.delete(el); io.unobserve(el); }
+      });
+    };
+    const onScroll = () => { clearTimeout(settle); settle = setTimeout(sweep, 140); };
+    window.addEventListener('scroll', onScroll, { passive: true });
     scan(document.getElementById('root'));
     // only inspect nodes that were actually added (ignores text/typing churn)
-    const mo = new MutationObserver((records) => records.forEach((r) => r.addedNodes.forEach((n) => n.nodeType === 1 && scan(n))));
+    const mo = new MutationObserver((records) => { records.forEach((r) => r.addedNodes.forEach((n) => n.nodeType === 1 && scan(n))); onScroll(); });
     mo.observe(document.getElementById('root'), { childList: true, subtree: true });
-    return () => { io.disconnect(); mo.disconnect(); };
+    return () => { io.disconnect(); mo.disconnect(); clearTimeout(settle); window.removeEventListener('scroll', onScroll); };
   }, []);
 
   // cursor-following aurora + spotlight cards (one rAF-throttled listener)
