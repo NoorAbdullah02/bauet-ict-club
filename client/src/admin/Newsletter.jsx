@@ -32,7 +32,7 @@ export default function Newsletter() {
   return (
     <div>
       <PageTitle title="Newsletter" sub={subs === null ? 'Loading…' : `${subs} subscribers`} />
-      {mail && !mail.configured && <Panel className="mb-5 border-amber-500/40 p-4 text-sm text-fg2">Email is not set up yet. Add <code className="text-accent">SMTP_USER</code> and <code className="text-accent">SMTP_PASS</code> to <code>.env</code>, restart the server, then come back.</Panel>}
+      {mail && !mail.configured && <Panel className="mb-5 border-amber-500/40 p-4 text-sm text-fg2">Email is not set up yet. Add <code className="text-accent">BREVO_API_KEY</code> and <code className="text-accent">MAIL_FROM</code> to <code>.env</code>, restart the server, then come back.</Panel>}
       <Panel className="max-w-2xl space-y-4 p-6">
         <label className="block"><span className="mb-1.5 block font-mono text-[11px] uppercase tracking-[0.14em] text-fg2">Subject</span>
           <input className={inputCls} value={subject} maxLength={150} onChange={(e) => setSubject(e.target.value)} placeholder="Python workshop this Friday" /></label>

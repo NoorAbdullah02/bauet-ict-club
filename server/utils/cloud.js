@@ -5,7 +5,9 @@ const pool = require('../config/db');
 const { UPLOAD_DIR, cloudinaryReady } = require('./saveImage');
 
 // every column that can hold an uploaded image URL
-const IMAGE_COLS = [['events', 'image_url'], ['members', 'image_url'], ['gallery', 'image_url'], ['posts', 'image_url'], ['registrations', 'photo_url']];
+const IMAGE_COLS = [['events', 'image_url'], ['notices', 'image_url'], ['achievements', 'image_url'], ['members', 'image_url'], ['gallery', 'image_url'], ['posts', 'image_url'], ['registrations', 'photo_url'],
+  // drop-in features (projects, sponsors, ...) declare their own picture columns
+  ...require('../features').flatMap((f) => (f.imageCols || []).map((c) => [f.table, c]))];
 
 function cloudinaryPublicId(url) {
   if (!/res\.cloudinary\.com\//.test(url) || !url.includes('/upload/')) return null;

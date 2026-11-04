@@ -1,4 +1,4 @@
-// Email for the club: SMTP (e.g. a Gmail app password) first, Brevo API as an alternative, silently skipped when neither is set up.
+// Email for the club: the Brevo API first (BREVO_API_KEY), SMTP (e.g. a Gmail app password) as the alternative, silently skipped when neither is set up.
 // Sending never throws and never blocks a request: mails go through a small in-process queue with one retry.
 const crypto = require('crypto');
 const { JWT_SECRET } = require('../middleware/auth');
@@ -6,7 +6,8 @@ const { JWT_SECRET } = require('../middleware/auth');
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const env = (k) => (process.env[k] || '').trim();
 
-const provider = () => (env('SMTP_USER') && env('SMTP_PASS') ? 'smtp' : env('BREVO_API_KEY') ? 'brevo' : null);
+const provider = () => (env('BREVO_API_KEY') ? 'brevo' : env('SMTP_USER') && env('SMTP_PASS') ? 'smtp' : null);
+const brevoBase = () => (env('BREVO_API_BASE') || 'https://api.brevo.com').replace(/\/$/, '');
 const fromAddress = () => env('MAIL_FROM') || env('SMTP_USER') || 'ictclubbauet@gmail.com';
 const adminAddress = () => env('ADMIN_NOTIFY_EMAIL') || env('SMTP_USER') || 'ictclubbauet@gmail.com';
 const siteUrl = () => (env('PUBLIC_URL') || 'http://localhost:5173').replace(/\/$/, '');
@@ -31,10 +32,21 @@ async function deliver({ to, subject, html, text, replyTo, attachments }) {
   if (provider() === 'smtp') {
     await smtpTransport().sendMail({ from: `"${name}" <${fromAddress()}>`, to, subject, html, text, replyTo, attachments });
   } else if (provider() === 'brevo') {
-    const brevo = require('@getbrevo/brevo');
-    const api = new brevo.TransactionalEmailsApi();
-    api.setApiKey(brevo.TransactionalEmailsApiApiKeys.apiKey, env('BREVO_API_KEY'));
-    await api.sendTransacEmail({ to: [{ email: to }], sender: { email: fromAddress(), name }, subject, htmlContent: html, textContent: text, ...(attachments?.length ? { attachment: attachments.map((a) => ({ name: a.filename, content: a.content.toString('base64') })) } : {}), ...(replyTo ? { replyTo: { email: replyTo } } : {}) });
+    // Brevo transactional API (https://developers.brevo.com/reference/sendtransacemail); the sender must be verified in Brevo
+    const body = {
+      sender: { email: fromAddress(), name }, to: [{ email: to }], subject, htmlContent: html, textContent: text,
+      ...(replyTo ? { replyTo: { email: replyTo } } : {}),
+      ...(attachments?.length ? { attachment: attachments.map((a) => ({ name: a.filename, content: Buffer.from(a.content).toString('base64') })) } : {}),
+    };
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), 20000);
+    try {
+      const res = await fetch(`${brevoBase()}/v3/smtp/email`, { method: 'POST', headers: { 'api-key': env('BREVO_API_KEY'), 'content-type': 'application/json', accept: 'application/json' }, body: JSON.stringify(body), signal: ctl.signal });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error(`Brevo ${res.status}: ${j.message || res.statusText}`);
+      }
+    } finally { clearTimeout(timer); }
   }
 }
 
@@ -68,9 +80,24 @@ function sendMail(mail) {
 
 /** Same as sendMail but waits for the result; used by the admin "send test email" button. */
 async function sendNow(mail) {
-  if (!provider()) throw new Error('Email is not configured. Set SMTP_USER and SMTP_PASS in .env.');
+  if (!provider()) throw new Error('Email is not configured. Set BREVO_API_KEY and MAIL_FROM in .env.');
   await deliver(mail);
   state.sent += 1; state.lastSentAt = new Date().toISOString();
+}
+
+/** Asks Brevo whether the API key works (cached for a minute). Resolves { ok, email?, error? }. */
+let verified = { at: 0, value: null };
+async function verify() {
+  if (provider() !== 'brevo') return null;
+  if (verified.value && Date.now() - verified.at < 60000) return verified.value;
+  let value;
+  try {
+    const res = await fetch(`${brevoBase()}/v3/account`, { headers: { 'api-key': env('BREVO_API_KEY'), accept: 'application/json' }, signal: AbortSignal.timeout(8000) });
+    const j = await res.json().catch(() => ({}));
+    value = res.ok ? { ok: true, account: j.email || j.companyName || 'connected', senderSet: !!env('MAIL_FROM') } : { ok: false, error: `Brevo ${res.status}: ${j.message || 'key rejected'}` };
+  } catch (e) { value = { ok: false, error: `Could not reach Brevo: ${e.message}` }; }
+  verified = { at: Date.now(), value };
+  return value;
 }
 
 const status = () => ({ configured: !!provider(), provider: provider(), from: provider() ? fromAddress() : null, adminNotify: provider() ? adminAddress() : null, queued: queue.length, ...state });
@@ -149,4 +176,4 @@ const templates = {
   }),
 };
 
-module.exports = { sendMail, sendNow, status, templates, adminAddress, esc, unsubscribeUrl, validUnsubscribe, layout, provider };
+module.exports = { sendMail, sendNow, status, verify, templates, adminAddress, esc, unsubscribeUrl, validUnsubscribe, layout, provider };

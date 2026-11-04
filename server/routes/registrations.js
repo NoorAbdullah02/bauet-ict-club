@@ -159,7 +159,7 @@ router.get('/export', authMiddleware, async (req, res) => {
 router.post('/export/email', authMiddleware, rateLimit({ windowMs: 10 * 60 * 1000, max: 10 }), async (req, res) => {
   const to = String(req.body?.to || '').trim() || mail.adminAddress();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(to)) return res.status(400).json({ error: 'Enter a valid email address' });
-  if (!mail.provider()) return res.status(400).json({ error: 'Email is not configured. Set SMTP_USER and SMTP_PASS in .env.' });
+  if (!mail.provider()) return res.status(400).json({ error: 'Email is not configured. Set BREVO_API_KEY and MAIL_FROM in .env.' });
   try {
     const f = await buildExport(req.body || {});
     const label = `${f.count} application${f.count === 1 ? '' : 's'}`;

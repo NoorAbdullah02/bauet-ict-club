@@ -46,7 +46,7 @@ function Sidebar({ badges, onNavigate }) {
                   <NavLink to={to} end={end} onClick={onNavigate}
                     className={({ isActive }) => cn('group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors', isActive ? 'text-white' : 'text-fg2 hover:bg-accent/8 hover:text-fg')}>
                     {({ isActive }) => (<>
-                      {isActive && <motion.span layoutId="admin-nav" transition={{ type: 'spring', stiffness: 400, damping: 34 }} className="absolute inset-0 rounded-xl shadow-lg" style={{ background: 'var(--grad-btn)' }} />}
+                      {isActive && <motion.span layoutId={onNavigate ? 'admin-nav-mobile' : 'admin-nav'} transition={{ type: 'spring', stiffness: 400, damping: 34 }} className="absolute inset-0 rounded-xl shadow-lg" style={{ background: 'var(--grad-btn)' }} />}
                       <Icon size={17} className={cn('relative', !isActive && 'group-hover:text-accent')} />
                       <span className="relative flex-1">{label}</span>
                       {badge && badges[badge] > 0 && <span className={cn('relative rounded-full px-2 py-0.5 font-mono text-[10px] font-semibold', isActive ? 'bg-white/25 text-white' : 'bg-accent/12 text-accent')}>{badges[badge]}</span>}
@@ -92,11 +92,12 @@ export default function AdminApp() {
       <ConfirmHost />
       <aside className="sticky top-0 hidden h-screen w-64 shrink-0 border-r border-line bg-surface p-5 lg:block"><Sidebar badges={badges} /></aside>
 
+      {/* mobile menu: each child is its own keyed motion element so AnimatePresence can finish the exit and remove the overlay */}
       <AnimatePresence>
-        {open && (<>
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setOpen(false)} className="fixed inset-0 z-[150] bg-black/40 lg:hidden" />
-          <motion.aside initial={{ x: '-100%' }} animate={{ x: 0 }} exit={{ x: '-100%' }} transition={{ type: 'spring', stiffness: 320, damping: 34 }} className="fixed inset-y-0 left-0 z-[160] w-72 border-r border-line bg-surface p-5 lg:hidden"><Sidebar badges={badges} onNavigate={() => setOpen(false)} /></motion.aside>
-        </>)}
+        {open && <motion.div key="menu-backdrop" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setOpen(false)} className="fixed inset-0 z-[150] bg-black/40 lg:hidden" />}
+      </AnimatePresence>
+      <AnimatePresence>
+        {open && <motion.aside key="menu-panel" initial={{ x: '-100%' }} animate={{ x: 0 }} exit={{ x: '-100%' }} transition={{ type: 'spring', stiffness: 320, damping: 34 }} className="fixed inset-y-0 left-0 z-[160] w-72 border-r border-line bg-surface p-5 lg:hidden"><Sidebar badges={badges} onNavigate={() => setOpen(false)} /></motion.aside>}
       </AnimatePresence>
 
       <div className="min-w-0 flex-1">

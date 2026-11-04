@@ -32,8 +32,8 @@ class _TeamScreenState extends State<TeamScreen> {
     int rank(Member m) {
       final p = m.position.toLowerCase();
       if (p.trim() == 'president') return 0;
-      if (p.contains('technical')) return 1;
-      if (p.contains('administration')) return 2;
+      if (p.contains('administration')) return 1;
+      if (p.contains('technical')) return 2;
       return 3;
     }
 

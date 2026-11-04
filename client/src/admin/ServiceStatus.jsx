@@ -36,10 +36,12 @@ export default function ServiceStatus() {
       <div className="flex gap-3">
         <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-accent/10 text-accent"><Mail size={18} /></span>
         <div className="min-w-0 text-sm">
-          <div className="flex items-center gap-2 font-semibold text-fg"><Dot ok={mail?.configured} /> Email {mail === null ? '…' : mail.configured ? `via ${mail.provider.toUpperCase()}` : 'not set up'}</div>
+          <div className="flex items-center gap-2 font-semibold text-fg"><Dot ok={mail?.configured && mail?.check?.ok !== false} /> Email {mail === null ? '…' : mail.configured ? `via ${mail.provider.toUpperCase()}` : 'not set up'}</div>
           {mail?.configured
-            ? <p className="mt-1 text-fg2">Sends from {mail.from}. Admin alerts go to {mail.adminNotify}. Sent {mail.sent}, failed {mail.failed}{mail.lastError ? `, last error: ${mail.lastError}` : ''}.</p>
-            : <p className="mt-1 text-fg2">Add <code className="text-accent">SMTP_USER</code> and <code className="text-accent">SMTP_PASS</code> (a Gmail app password) to <code>.env</code> and restart. Applicants then get confirmation and result emails.</p>}
+            ? <p className="mt-1 text-fg2">Sends from {mail.from}. Admin alerts go to {mail.adminNotify}. Sent {mail.sent}, failed {mail.failed}{mail.lastError ? `, last error: ${mail.lastError}` : ''}.
+              {mail.check && !mail.check.ok && <b className="mt-1 block text-red-500">{mail.check.error}</b>}
+              {mail.check?.ok && !mail.check.senderSet && <b className="mt-1 block text-amber-600">Set MAIL_FROM to a sender you verified in Brevo, or Brevo will refuse to send.</b>}</p>
+            : <p className="mt-1 text-fg2">Add <code className="text-accent">BREVO_API_KEY</code> and <code className="text-accent">MAIL_FROM</code> (your verified Brevo sender) to <code>.env</code> and restart. Applicants then get confirmation and result emails.</p>}
           {mail?.configured && (
             <form onSubmit={sendTest} className="mt-3 flex gap-2">
               <input type="email" required value={to} onChange={(e) => setTo(e.target.value)} placeholder="Send a test email to…" className={inputCls} />

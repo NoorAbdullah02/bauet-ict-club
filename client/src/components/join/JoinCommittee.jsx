@@ -58,7 +58,7 @@ export default function JoinCommittee() {
             <Backdrop3D variant="committee" className="absolute inset-0 opacity-60" />
             <div className="relative p-6 font-mono text-[12.5px] leading-7 sm:p-7">
               <div className="mb-3 text-muted">{'// open posts this session'}</div>
-              {[['President', '1 seat'], ['Vice President', 'Technical · Administration'], ['General Secretary', 'open'], ['Joint / Organizing Secretary', 'open'], ['Treasurer', 'open'], ['Executive Member', 'open']].map(([role, seats]) => (
+              {[['President', '1 seat'], ['Vice President', 'Administration · Technical'], ['General Secretary', 'open'], ['Joint / Organizing Secretary', 'open'], ['Treasurer', 'open'], ['Executive Member', 'open']].map(([role, seats]) => (
                 <div key={role} className="flex items-baseline justify-between gap-4 border-b border-dashed border-line/70 py-1.5 last:border-0">
                   <span className="text-fg">{role}</span>
                   <span className="text-right text-tech">{seats}</span>

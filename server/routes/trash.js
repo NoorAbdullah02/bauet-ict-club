@@ -8,11 +8,11 @@ router.use(authMiddleware);
 
 // what each table is called in the Trash and which columns describe a row
 const KINDS = {
-  events: { label: 'Event', title: (r) => r.title },
-  notices: { label: 'Notice', title: (r) => r.title },
+  events: { label: 'Event', title: (r) => r.title, image: 'image_url' },
+  notices: { label: 'Notice', title: (r) => r.title, image: 'image_url' },
   members: { label: 'Committee entry', title: (r) => r.name, sub: (r) => r.position, image: 'image_url' },
   gallery: { label: 'Photo', title: (r) => r.title || 'Untitled photo', image: 'image_url' },
-  achievements: { label: 'Achievement', title: (r) => r.title },
+  achievements: { label: 'Achievement', title: (r) => r.title, image: 'image_url' },
   posts: { label: 'Post', title: (r) => r.title, image: 'image_url' },
   messages: { label: 'Message', title: (r) => r.subject || r.name, sub: (r) => r.email },
   registrations: { label: 'Application', title: (r) => r.full_name, sub: (r) => r.type, image: 'photo_url' },

@@ -13,7 +13,7 @@ router.post('/contact', rateLimit({ windowMs: 60 * 60 * 1000, max: 10 }), (_req,
 router.use(authMiddleware);
 
 // Is email set up? (shown on the admin Settings page)
-router.get('/status', (_req, res) => res.json(mail.status()));
+router.get('/status', async (_req, res) => res.json({ ...mail.status(), check: await mail.verify() }));
 
 // Send a test mail so the admin can confirm the SMTP login works
 router.post('/test', rateLimit({ windowMs: 10 * 60 * 1000, max: 5 }), async (req, res) => {
@@ -33,7 +33,7 @@ router.post('/newsletter', rateLimit({ windowMs: 60 * 60 * 1000, max: 10 }), asy
   const subject = String(req.body?.subject || '').trim().slice(0, 150);
   const message = String(req.body?.message || '').trim().slice(0, 8000);
   if (subject.length < 3 || message.length < 10) return res.status(400).json({ error: 'Write a subject and a message' });
-  if (!mail.provider()) return res.status(400).json({ error: 'Email is not configured. Set SMTP_USER and SMTP_PASS in .env.' });
+  if (!mail.provider()) return res.status(400).json({ error: 'Email is not configured. Set BREVO_API_KEY and MAIL_FROM in .env.' });
   try {
     const testTo = String(req.body?.testTo || '').trim();
     const recipients = testTo ? [testTo] : (await pool.query('SELECT email FROM subscribers WHERE deleted_at IS NULL AND COALESCE(is_demo, false) = false')).rows.map((r) => r.email);
