@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { thumb } from '../lib/img';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 import { Image, X } from 'lucide-react';
@@ -72,7 +73,7 @@ export default function Gallery() {
               }}
               whileHover={{ scale: 1.02 }}
             >
-              {g.image_url && <img src={g.image_url} alt={g.title || ''} loading="lazy"
+              {g.image_url && <img src={thumb(g.image_url, 720)} alt={g.title || ''} loading="lazy"
                 style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.5s' }} />}
               <div style={{
                 position: 'absolute', inset: 0,
@@ -116,7 +117,7 @@ export default function Gallery() {
             <motion.img
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              src={lightbox.image_url}
+              src={thumb(lightbox.image_url, 1600)}
               alt={lightbox.title || ''}
               style={{ maxWidth: '90%', maxHeight: '85vh', objectFit: 'contain', borderRadius: 12 }}
             />

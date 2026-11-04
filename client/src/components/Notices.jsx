@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { thumb } from '../lib/img';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 import { Pin, ChevronDown, Bell, Share2 } from 'lucide-react';
@@ -69,7 +70,7 @@ export default function Notices() {
               >
                 <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
                   {n.pinned && <Pin size={18} style={{ color: 'var(--accent)', flexShrink: 0, marginTop: 3 }} />}
-                  {n.image_url && <img src={n.image_url} alt="" loading="lazy" decoding="async" style={{ width: 64, height: 64, borderRadius: 12, objectFit: 'cover', flexShrink: 0 }} />}
+                  {n.image_url && <img src={thumb(n.image_url, 160)} alt="" loading="lazy" decoding="async" style={{ width: 64, height: 64, borderRadius: 12, objectFit: 'cover', flexShrink: 0 }} />}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 6, flexWrap: 'wrap' }}>
                       <h3 style={{ fontSize: '1rem', fontWeight: 600, fontFamily: 'var(--font-display)' }}>{n.title}</h3>

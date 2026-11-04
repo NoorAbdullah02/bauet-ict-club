@@ -89,7 +89,7 @@ export default function AdminApp() {
   const btn = 'grid size-10 place-items-center rounded-full border border-line bg-surface text-fg2 transition hover:border-accent hover:text-accent';
 
   return (
-    <div className="flex min-h-screen">
+    <div className="admin-root flex min-h-screen">
       <ConfirmHost />
       <aside className="sticky top-0 hidden h-screen w-64 shrink-0 border-r border-line bg-surface p-5 lg:block"><Sidebar badges={badges} /></aside>
 

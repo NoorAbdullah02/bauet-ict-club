@@ -43,6 +43,12 @@ const useStore = create((set, get) => ({
   fetchAll: async (fresh = false) => {
     const q = fresh ? { params: { _: Date.now() } } : undefined;
     try {
+      let all = null;
+      try { all = (await api.get('/bootstrap', q)).data; } catch { /* older server: use the separate requests below */ }
+      if (all) {
+        set({ events: all.events || [], notices: all.notices || [], members: all.members || [], gallery: all.gallery || [], achievements: all.achievements || [], projects: all.projects || [], faqs: all.faqs || [], sponsors: all.sponsors || [], ...(all.settings ? { settings: all.settings } : {}), loading: false });
+        return;
+      }
       const [events, notices, members, gallery, achievements, settings, projects, faqs, sponsors] = await Promise.all([
         api.get('/events', q).catch(() => ({ data: [] })),
         api.get('/notices', q).catch(() => ({ data: [] })),

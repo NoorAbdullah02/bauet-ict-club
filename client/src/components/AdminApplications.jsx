@@ -1,4 +1,5 @@
 import Select from './Select';
+import { thumb } from '../lib/img';
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { createPortal } from 'react-dom';
@@ -9,17 +10,8 @@ import useStore, { api } from '../context/store';
 import { askConfirm, toastTrashed } from '../admin/ui';
 import { cn } from '../lib/cn';
 import { Donut, HBars, VBars, tally } from '../admin/charts';
+import { POSTS } from '../lib/posts';
 
-export const POSTS = [
-  'President', 'Vice President (Administration)', 'Vice President (Technical)', 'General Secretary', 'Assistant General Secretary',
-  'Joint Secretary', 'Assistant Joint Secretary', 'Treasurer', 'Financial Secretary', 'Organizing Secretary',
-  'Publicity Secretary (Outreach & Activation)', 'Publicity Secretary (Social Media Management)',
-  'Office Secretary (Resource Management)', 'Office Secretary (Event Management)',
-  'IT Secretary (Webmaster)', 'IT Secretary (Design & Creativity)',
-  'Executive Member', 'Executive Member (Logistics)', 'Executive Member (Cultural Activities)',
-  'Executive Member (Social Media Management)', 'Executive Member (Documentation)',
-  'Executive Member (Event Management)', 'Executive Member (IT & Gaming)',
-];
 
 const STATUS_STYLE = {
   pending: 'bg-amber-500/15 text-amber-600',
@@ -72,7 +64,7 @@ function ApplicantModal({ r, onClose, onApprove, onReject, onTrash, onPick, busy
           <div className="relative px-6 pb-6 pt-8 text-white" style={{ background: 'linear-gradient(120deg,#0A1A4A,#1F4FD8 70%,#17A2D8)' }}>
             <div className="flex flex-wrap items-center gap-5">
               <div className="size-28 shrink-0 overflow-hidden rounded-3xl bg-white/15 ring-4 ring-white/25">
-                {r.photo_url ? <button type="button" onClick={() => setZoom(true)} aria-label="View full-size photo" className="group relative block size-full cursor-zoom-in"><img src={r.photo_url} alt={r.full_name} className="size-full object-cover transition duration-500 group-hover:scale-105" /><span className="absolute inset-0 grid place-items-center bg-black/35 text-white opacity-0 transition group-hover:opacity-100"><Eye size={20} /></span></button>
+                {r.photo_url ? <button type="button" onClick={() => setZoom(true)} aria-label="View full-size photo" className="group relative block size-full cursor-zoom-in"><img src={thumb(r.photo_url, 280)} alt={r.full_name} className="size-full object-cover transition duration-500 group-hover:scale-105" /><span className="absolute inset-0 grid place-items-center bg-black/35 text-white opacity-0 transition group-hover:opacity-100"><Eye size={20} /></span></button>
                   : <div className="grid size-full place-items-center font-display text-4xl">{r.full_name[0]}</div>}
               </div>
               <div className="min-w-0 flex-1">
@@ -180,7 +172,7 @@ function Card({ r, selected, onToggle }) {
       </label>
       <div className="flex gap-4 pr-6">
         <button type="button" onClick={() => setView(true)} aria-label={`View ${r.full_name}`} className="group relative size-16 shrink-0 overflow-hidden rounded-xl bg-alt ring-1 ring-line transition hover:ring-2 hover:ring-accent">
-          {r.photo_url ? <img loading="lazy" decoding="async" src={r.photo_url} alt={r.full_name} className="size-full object-cover" />
+          {r.photo_url ? <img loading="lazy" decoding="async" src={thumb(r.photo_url, 200)} alt={r.full_name} className="size-full object-cover" />
             : <div className="grid size-full place-items-center font-display text-lg text-muted">{r.full_name[0]}</div>}
           <span className="absolute inset-0 grid place-items-center bg-[#0A1A4A]/55 text-white opacity-0 transition group-hover:opacity-100"><Eye size={18} /></span>
         </button>

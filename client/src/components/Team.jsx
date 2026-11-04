@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { thumb } from '../lib/img';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Users, Facebook, Github, Linkedin, Shield, Star, Crown, Award, ChevronRight } from 'lucide-react';
 import { useInView } from 'react-intersection-observer';
@@ -40,7 +41,7 @@ function Avatar({ person, size = 48, ring }) {
   return (
     <div style={{
       width: size, height: size, borderRadius: '50%', margin: ring ? '0 auto' : 0, flexShrink: 0,
-      background: person.image_url ? `url(${person.image_url}) center/cover no-repeat` : 'linear-gradient(135deg, var(--accent), var(--tech))',
+      background: person.image_url ? `url(${thumb(person.image_url, 420)}) center/cover no-repeat` : 'linear-gradient(135deg, var(--accent), var(--tech))',
       display: 'grid', placeItems: 'center', color: '#fff', fontWeight: 700, fontSize: size * 0.36,
       fontFamily: 'var(--font-display)',
       boxShadow: ring ? '0 0 0 3px rgba(255,255,255,0.15), 0 0 40px rgba(var(--accent-rgb),0.5)' : 'none',
@@ -79,7 +80,7 @@ function MemberCard({ member, index, compact }) {
           width: compact ? 64 : 76, height: compact ? 64 : 76, borderRadius: '50%',
           margin: '0 auto 14px',
           background: (member.image_url)
-            ? `url(${member.image_url}) center/cover no-repeat`
+            ? `url(${thumb(member.image_url, 420)}) center/cover no-repeat`
             : `linear-gradient(135deg, ${deptColor}18, ${deptColor}35)`,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           border: `2.5px solid ${deptColor}30`,

@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { thumb } from '../lib/img';
 import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 import { Calendar, MapPin, Clock, Share2, CalendarPlus, Facebook, MessageCircle, Link, X as XIcon } from 'lucide-react';
@@ -108,7 +109,7 @@ export default function Events() {
             >
               <div style={{
                 height: 200, background: ev.image_url
-                  ? `url(${ev.image_url}) center/cover`
+                  ? `url(${thumb(ev.image_url, 900)}) center/cover`
                   : 'linear-gradient(135deg, var(--navy), var(--tech))',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 color: 'rgba(255,255,255,0.3)', fontSize: 48,
