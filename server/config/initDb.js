@@ -143,7 +143,7 @@ async function initDb() {
     for (const t of ['events', 'notices', 'members', 'gallery', 'achievements', 'posts', 'messages', 'registrations', ...features.map((f) => f.table)]) {
       await client.query(`ALTER TABLE ${t} ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ`);
     }
-    for (const t of ['events', 'notices', 'members', 'achievements', 'registrations']) {
+    for (const t of ['events', 'notices', 'members', 'achievements', 'registrations', 'gallery', 'posts', 'messages', ...features.map((f) => f.table)]) {
       await client.query(`ALTER TABLE ${t} ADD COLUMN IF NOT EXISTS is_demo BOOLEAN DEFAULT false`);
     }
     // applications in the trash must not block the same person from applying again
