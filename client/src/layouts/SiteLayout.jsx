@@ -1,4 +1,5 @@
 import { useEffect, Suspense } from 'react';
+import { trackPage } from '../lib/track';
 import { Outlet, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import Navbar from '../components/Navbar';
@@ -16,7 +17,7 @@ const OWN_H1 = new Set(['/', '/ambassadors', '/join', '/join/ambassador']);
 
 export default function SiteLayout() {
   const { pathname } = useLocation();
-  useEffect(() => { window.scrollTo({ top: 0, left: 0, behavior: 'instant' }); }, [pathname]);
+  useEffect(() => { window.scrollTo({ top: 0, left: 0, behavior: 'instant' }); trackPage(pathname); }, [pathname]);
   useEffect(() => {
     const t = TITLES[pathname.replace(/\/$/, '') || '/'];
     document.title = !t ? 'Page not found | BAUET ICT Club' : pathname === '/' ? t : `${t} | BAUET ICT Club`;

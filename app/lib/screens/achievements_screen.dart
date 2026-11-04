@@ -87,6 +87,10 @@ class _Row extends StatelessWidget {
             child: GlassCard(
               padding: const EdgeInsets.all(18),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                if (item.imageUrl.isNotEmpty) ...[
+                  ClipRRect(borderRadius: BorderRadius.circular(14), child: SizedBox(height: 150, width: double.infinity, child: NetImage(item.imageUrl, fallbackLabel: item.title))),
+                  const SizedBox(height: 12),
+                ],
                 Text(fmtDate(item.date).toUpperCase(), style: monoStyle(context, color: p.tech, size: 10)),
                 const SizedBox(height: 6),
                 Text(item.title, style: displayStyle(context, 19)),

@@ -102,6 +102,29 @@ class Api {
     return url;
   }
 
+  /// Admin picture upload (any section). `kind` is avatar, cover or logo and picks the server-side crop.
+  Future<String> uploadAdminImage(String path, String filename, String mime, {String kind = 'cover'}) async {
+    final form = FormData.fromMap({
+      'image': await MultipartFile.fromFile(path, filename: filename, contentType: DioMediaType.parse(mime)),
+    });
+    final data = await _send(() => _dio.post('/upload', queryParameters: {'kind': kind}, data: form, options: _auth));
+    final url = data is Map ? (data['url'] ?? '').toString() : '';
+    if (url.isEmpty) throw ApiException('Image upload failed');
+    return url;
+  }
+
+  /// Email the applications export (PDF or Word) to the admin address, or to `to`. Body: format, type, status, q, ids, to.
+  Future<Map<String, dynamic>> emailApplicationsExport(Map<String, dynamic> body) async {
+    final data = await _send(() => _dio.post('/registrations/export/email', data: body, options: _auth));
+    return data is Map ? Map<String, dynamic>.from(data) : {};
+  }
+
+  /// Connection status for admin Settings: path is email/status, chat/status or upload/status.
+  Future<Map<String, dynamic>> serviceStatus(String path) async {
+    final data = await _send(() => _dio.get('/$path', options: _auth));
+    return data is Map ? Map<String, dynamic>.from(data) : {};
+  }
+
   /// Newsletter signup. Throws ApiException (400 invalid email, 429 rate limited).
   Future<void> subscribe(String email) => _send(() => _dio.post('/subscribers', data: {'email': email}));
 
@@ -122,6 +145,9 @@ class Api {
 
   Future<void> setRegistrationStatus(int id, String status) =>
       _send(() => _dio.patch('/registrations/$id/status', data: {'status': status}, options: _auth));
+
+  Future<void> setRegistrationPost(int id, String post) =>
+      _send(() => _dio.patch('/registrations/$id/post', data: {'post': post}, options: _auth));
 
   Future<void> selectRegistration(int id, String session, String position, int order) => _send(() => _dio.post(
         '/registrations/$id/select',

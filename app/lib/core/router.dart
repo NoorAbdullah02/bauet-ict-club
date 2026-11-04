@@ -13,6 +13,7 @@ import '../screens/admin/admin_home_screen.dart';
 import '../screens/admin/admin_login_screen.dart';
 import '../screens/admin/admin_settings_screen.dart';
 import '../screens/admin/admin_trash_screen.dart';
+import '../screens/admin/admin_visitors_screen.dart';
 import '../screens/ambassadors_screen.dart';
 import '../screens/chat_screen.dart';
 import '../screens/contact_screen.dart';
@@ -96,6 +97,7 @@ GoRouter buildRouter(AppState state) {
       GoRoute(path: '/admin/login', pageBuilder: (c, s) => _slide(s, _admin(const AdminLoginScreen()))),
       GoRoute(path: '/admin', pageBuilder: (c, s) => _slide(s, _admin(const AdminHomeScreen()))),
       GoRoute(path: '/admin/applications', pageBuilder: (c, s) => _slide(s, _admin(const AdminApplicationsScreen()))),
+      GoRoute(path: '/admin/visitors', pageBuilder: (c, s) => _slide(s, _admin(const AdminVisitorsScreen()))),
       GoRoute(path: '/admin/trash', pageBuilder: (c, s) => _slide(s, _admin(const AdminTrashScreen()))),
       GoRoute(path: '/admin/committees', pageBuilder: (c, s) => _slide(s, _admin(const AdminCommitteesScreen()))),
       GoRoute(path: '/admin/settings', pageBuilder: (c, s) => _slide(s, _admin(const AdminSettingsScreen()))),

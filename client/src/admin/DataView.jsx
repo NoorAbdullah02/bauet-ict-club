@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { Plus, Pencil, Trash2, Search, Loader2, Save, Rocket } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, Loader2, Save, Rocket, ArrowRightLeft } from 'lucide-react';
 import useStore from '../context/store';
 import { TYPES } from './config';
 import LaunchCommittee from './LaunchCommittee';
+import TransferPeople from './TransferPeople';
 import { sessionRank } from '../lib/sessions';
 import { Panel, PageTitle, Drawer, FormField, inputCls, askConfirm, toastTrashed } from './ui';
 
@@ -16,6 +17,7 @@ export default function DataView({ type }) {
   const [drawer, setDrawer] = useState(null);
   const [params, setParams] = useSearchParams();
   const [launching, setLaunching] = useState(false);
+  const [transferring, setTransferring] = useState(false);
   const sessions = useStore((s) => s.sessions);
   const fields = useMemo(() => cfg.fields.map((f) => (f.dynamic === 'sessions' ? { ...f, options: sessions.map((x) => x.label).sort((a, b) => sessionRank(b) - sessionRank(a)) } : f)), [cfg, sessions]);
   const [form, setForm] = useState({});
@@ -61,6 +63,7 @@ export default function DataView({ type }) {
     <div>
       <PageTitle title={`${cfg.name}s`} sub={`${items.length} total`}>
         <div className="relative"><Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search…" className={`${inputCls} !w-56 !rounded-full !py-2 pl-9`} /></div>
+        {type === 'members' && <button onClick={() => setTransferring(true)} className="flex items-center gap-2 rounded-full border border-line px-5 py-2.5 text-xs font-semibold text-fg2 transition hover:border-tech hover:text-tech"><ArrowRightLeft size={14} /> Transfer people</button>}
         {type === 'members' && <button onClick={() => setLaunching(true)} className="flex items-center gap-2 rounded-full border border-accent px-5 py-2.5 text-xs font-semibold text-accent transition hover:bg-accent hover:text-white"><Rocket size={14} /> Launch new committee</button>}
         <button onClick={openAdd} className="btn-primary !px-5 !py-2.5 text-xs"><Plus size={15} /> Add {cfg.name}</button>
       </PageTitle>
@@ -94,6 +97,7 @@ export default function DataView({ type }) {
       </Panel>
 
       {type === 'members' && <LaunchCommittee open={launching} onClose={() => setLaunching(false)} />}
+      {type === 'members' && <TransferPeople open={transferring} onClose={() => setTransferring(false)} />}
       <Drawer open={!!drawer} title={`${drawer?.mode === 'add' ? 'Add' : 'Edit'} ${cfg.name}`} onClose={() => setDrawer(null)}
         footer={<><button onClick={() => setDrawer(null)} className="btn-outline !px-5 !py-2.5 text-xs">Cancel</button>
           <button onClick={save} disabled={saving} className="btn-primary !px-5 !py-2.5 text-xs disabled:opacity-60">{saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} Save</button></>}>

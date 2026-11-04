@@ -145,6 +145,12 @@ const useStore = create((set, get) => ({
     return res.data;
   },
 
+  transferPeople: async (payload) => {
+    const res = await api.post('/committees/transfer', payload);
+    await Promise.all([get().fetchSessions(), get().fetchList('members')]);
+    return res.data;
+  },
+
   demoStatus: async () => (await api.get('/committees/demo')).data.count,
 
   loadDemo: async () => {
@@ -191,6 +197,11 @@ const useStore = create((set, get) => ({
 
   setRegistrationStatus: async (id, status) => {
     const res = await api.patch(`/registrations/${id}/status`, { status });
+    set((s) => ({ registrations: s.registrations.map((r) => (r.id === id ? res.data : r)) }));
+  },
+
+  setRegistrationPost: async (id, post) => {
+    const res = await api.patch(`/registrations/${id}/post`, { post });
     set((s) => ({ registrations: s.registrations.map((r) => (r.id === id ? res.data : r)) }));
   },
 

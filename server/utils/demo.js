@@ -1,6 +1,6 @@
 const pool = require('../config/db');
 
-const DEMO_TABLES = ['events', 'notices', 'members', 'achievements', 'registrations', 'gallery', 'posts', 'messages', 'projects', 'subscribers'];
+const DEMO_TABLES = ['events', 'notices', 'members', 'achievements', 'registrations', 'gallery', 'posts', 'messages', 'projects', 'subscribers', 'page_views'];
 const SESSION = 'Winter 2026';
 
 const day = (offset) => new Date(Date.now() + offset * 864e5).toISOString().slice(0, 10);
@@ -126,6 +126,28 @@ async function loadDemo() {
   for (const email of SUBSCRIBERS) await pool.query('INSERT INTO subscribers (email, is_demo) VALUES ($1,true)', [email]);
   for (const [name, email, subject, message] of MESSAGES) {
     await pool.query('INSERT INTO messages (name, email, subject, message, is_demo) VALUES ($1,$2,$3,$4,true)', [name, email, subject, message]);
+  }
+  // eight weeks of sample visits (documentation IP ranges, so none of them is a real person)
+  const PAGES = ['/', '/', '/', '/events', '/team', '/join', '/notices', '/gallery', '/projects', '/faq', '/about', '/contact'];
+  const REFS = [null, null, null, 'facebook.com', 'google.com', 'l.facebook.com'];
+  const UAS = [['Desktop', 'Mozilla/5.0 (Windows NT 10.0) Chrome/120'], ['Mobile', 'Mozilla/5.0 (Linux; Android 13) Mobile Chrome/120'], ['Mobile', 'Mozilla/5.0 (iPhone) Mobile Safari'], ['Tablet', 'Mozilla/5.0 (iPad) Safari']];
+  let seed = 7; const rnd = (n) => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed % n; };
+  const visits = [];
+  for (let back = 0; back < 56; back += 1) {
+    const dayStr = day(-back);
+    const weekend = [0, 6].includes(new Date(`${dayStr}T00:00:00Z`).getUTCDay());
+    const people = (weekend ? 6 : 14) + rnd(22) + (back < 7 ? 6 : 0);
+    for (let v = 0; v < people; v += 1) {
+      const ip = `${['192.0.2', '198.51.100', '203.0.113'][rnd(3)]}.${1 + rnd(250)}`;
+      const [dev, ua] = UAS[rnd(10) < 6 ? 1 : rnd(4)];
+      const ref = REFS[rnd(REFS.length)];
+      const pages = 1 + rnd(4);
+      for (let k = 0; k < pages; k += 1) visits.push([ip, PAGES[rnd(PAGES.length)], ref, ua, dev, dayStr, `${dayStr}T${String(8 + rnd(14)).padStart(2, '0')}:${String(rnd(60)).padStart(2, '0')}:00Z`]);
+    }
+  }
+  for (let i = 0; i < visits.length; i += 400) {
+    const chunk = visits.slice(i, i + 400);
+    await pool.query(`INSERT INTO page_views (ip, path, referrer, user_agent, device, is_bot, day, created_at, is_demo) VALUES ${chunk.map((_, k) => `($${k * 7 + 1},$${k * 7 + 2},$${k * 7 + 3},$${k * 7 + 4},$${k * 7 + 5},false,$${k * 7 + 6},$${k * 7 + 7},true)`).join(',')}`, chunk.flat());
   }
   // make the new semester selectable in the admin session lists
   const cur = (await pool.query("SELECT value FROM settings WHERE key = 'site'")).rows[0]?.value || {};

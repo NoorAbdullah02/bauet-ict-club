@@ -79,6 +79,7 @@ app.use('/uploads', express.static(UPLOAD_DIR, { maxAge: '30d', immutable: true,
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/upload', authMiddleware, require('./routes/upload'));
 app.use('/api/chat', require('./routes/chat'));
+app.use('/api/analytics', require('./routes/analytics'));
 app.use('/api/email', require('./routes/email'));
 app.use('/api/registrations', require('./routes/registrations'));
 app.use('/api/settings', require('./routes/settings'));
@@ -179,6 +180,7 @@ async function start() {
 
   app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
+    require('./utils/analyticsJobs').start();
   });
 }
 

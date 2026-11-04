@@ -78,6 +78,11 @@ class _NoticeCardState extends State<_NoticeCard> {
                   ]),
                   const SizedBox(height: 10),
                   Text(n.title, style: displayStyle(context, 19)),
+                  if (n.imageUrl.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 10),
+                      child: ClipRRect(borderRadius: BorderRadius.circular(12), child: SizedBox(height: _open ? 170 : 90, width: double.infinity, child: NetImage(n.imageUrl, fallbackLabel: n.title))),
+                    ),
                   AnimatedSize(
                     duration: 260.ms,
                     curve: Curves.easeOutCubic,
