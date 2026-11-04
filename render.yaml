@@ -23,8 +23,7 @@ services:
         sync: false
       - key: ADMIN_PASSWORD     # the admin login password, 12+ characters
         sync: false
-      - key: PUBLIC_URL         # e.g. https://bauet-ict-club.onrender.com
-        sync: false
+      # PUBLIC_URL is optional: Render fills RENDER_EXTERNAL_URL itself. Set PUBLIC_URL only if you add your own domain.
       - key: BREVO_API_KEY
         sync: false
       - key: MAIL_FROM          # sender you verified in Brevo

@@ -27,7 +27,7 @@ The Express server serves the built website, so you deploy **one** web service. 
 | `JWT_SECRET` | long random text (32+ characters) |
 | `DATABASE_URL` | your Neon connection string |
 | `ADMIN_PASSWORD` | admin password (12+ characters). Username is `admin` |
-| `PUBLIC_URL` | your Render address, for example `https://bauet-ict-club.onrender.com` |
+| `PUBLIC_URL` | leave empty (Render's own `RENDER_EXTERNAL_URL` is used); set it only for your own domain |
 | `BREVO_API_KEY`, `MAIL_FROM`, `ADMIN_NOTIFY_EMAIL` | email |
 | `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | pictures |
 | `GROQ_API_KEY` | AI assistant |
@@ -35,6 +35,8 @@ The Express server serves the built website, so you deploy **one** web service. 
 The tables and the first admin account are created automatically the first time the server starts. Open `https://your-service.onrender.com/admin` and sign in.
 
 ## 4. After the first deploy
+See [AFTER_DEPLOY.md](AFTER_DEPLOY.md) for the one-line app address and the checks.
+
 - Admin → Settings → *Connections*: email, AI and pictures should show green.
 - Admin → Settings → *Load demo data* if you want sample content; *Remove demo data* when you are done.
 - The free plan sleeps after 15 minutes without visitors, so the first visit after a pause is slow. A paid plan, or a free uptime pinger on `/robots.txt`, avoids that.
