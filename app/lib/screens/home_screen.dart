@@ -107,7 +107,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               child: GlassCard(
                 onTap: state.loadAll,
                 child: Row(children: [
-                  Icon(Icons.cloud_off_rounded, color: p.pink),
+                  Icon(Icons.cloud_off_rounded, color: p.third),
                   const SizedBox(width: 12),
                   Expanded(child: Text('// offline: showing cached data. Tap to refresh.', style: monoStyle(context, color: p.fg, size: 11.5))),
                 ]),
@@ -119,7 +119,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               child: GlassCard(
                 onTap: state.loadAll,
                 child: Row(children: [
-                  Icon(Icons.cloud_off_rounded, color: p.pink),
+                  Icon(Icons.cloud_off_rounded, color: p.third),
                   const SizedBox(width: 12),
                   Expanded(child: Text('Some content failed to load. Tap to retry.', style: bodyStyle(context, size: 13))),
                 ]),
@@ -183,7 +183,7 @@ class _Hero extends StatelessWidget {
                             height: 240 - i * 28.0,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              border: Border.all(color: [p.accent, p.tech, p.pink, p.accent][i].withValues(alpha: 0.75), width: 1.6),
+                              border: Border.all(color: [p.accent, p.tech, p.third, p.accent][i].withValues(alpha: 0.75), width: 1.6),
                             ),
                           ),
                         ),
@@ -227,7 +227,7 @@ class _Hero extends StatelessWidget {
                 ).animate().fadeIn(delay: 500.ms, duration: 600.ms),
                 const SizedBox(height: 24),
                 Row(children: [
-                  Expanded(flex: 5, child: GradientButton(label: 'Join the club', icon: Icons.rocket_launch_rounded, onPressed: () => context.go('/join'))),
+                  Expanded(flex: 5, child: JoinPill(onTap: () => context.go('/join'))),
                   const SizedBox(width: 12),
                   Expanded(flex: 4, child: GhostButton(label: 'Events', onPressed: () => context.go('/events'))),
                 ]).animate().fadeIn(delay: 700.ms, duration: 600.ms).slideY(begin: 0.2, end: 0),
@@ -324,16 +324,16 @@ class _JoinCta extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = context.pal;
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(28),
-        gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [...p.gradient, p.pink.withValues(alpha: 0.9)]),
+        borderRadius: BorderRadius.circular(24),
+        gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [...p.gradient, p.third.withValues(alpha: 0.9)]),
         boxShadow: [BoxShadow(color: p.gradient.first.withValues(alpha: 0.4), blurRadius: 30, offset: const Offset(0, 14))],
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text('\$ git checkout -b you', style: monoStyle(context, color: Colors.white70, size: 11.5)),
         const SizedBox(height: 8),
-        Text('Be part of what we build next.', style: displayStyle(context, 28, color: Colors.white)),
+        Text('Be part of what we build next.', style: displayStyle(context, 24, color: Colors.white)),
         const SizedBox(height: 8),
         Text('Apply for the executive committee or become a general member.', style: bodyStyle(context, color: Colors.white.withValues(alpha: 0.85))),
         const SizedBox(height: 18),
@@ -341,7 +341,7 @@ class _JoinCta extends StatelessWidget {
           onPressed: () => context.go('/join'),
           style: FilledButton.styleFrom(
             backgroundColor: Colors.white,
-            foregroundColor: p.dark ? const Color(0xFF0E1231) : p.accent,
+            foregroundColor: p.dark ? const Color(0xFF07122B) : p.accent,
             padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           ),

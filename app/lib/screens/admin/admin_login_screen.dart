@@ -9,6 +9,7 @@ import '../../state/app_state.dart';
 import '../../widgets/coder.dart';
 import '../../widgets/common.dart';
 import '../../widgets/form_widgets.dart';
+import 'admin_widgets.dart';
 
 class AdminLoginScreen extends StatefulWidget {
   const AdminLoginScreen({super.key});
@@ -60,14 +61,15 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(24, 8, 24, 40),
             children: [
-              Align(
-                alignment: Alignment.centerLeft,
-                child: IconButton.filledTonal(
+              Row(children: [
+                IconButton.filledTonal(
                   style: IconButton.styleFrom(backgroundColor: p.surface.withValues(alpha: 0.8), foregroundColor: p.fg),
                   onPressed: () => context.canPop() ? context.pop() : context.go('/home'),
                   icon: const Icon(Icons.arrow_back_rounded),
                 ),
-              ),
+                const Spacer(),
+                const AdminThemeButton(),
+              ]),
               const SizedBox(height: 40),
               Center(
                 child: const LogoImage.club(height: 70).animate().scale(begin: const Offset(0.5, 0.5), duration: 600.ms, curve: Curves.elasticOut),

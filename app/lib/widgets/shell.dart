@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
@@ -60,9 +61,7 @@ class AppShell extends StatelessWidget {
         titleSpacing: 20,
         title: isHome
             ? Row(children: [
-                const LogoImage.crest(height: 34),
-                const SizedBox(width: 10),
-                const LogoImage.club(height: 30),
+                const LogoImage.club(height: 34),
               ])
             : Text(_titleFor(location), style: displayStyle(context, 22)),
         actions: [
@@ -90,13 +89,28 @@ class AppShell extends StatelessWidget {
       ),
       endDrawer: _AppDrawer(location: location, isAdmin: state.isAdmin),
       body: child,
-      floatingActionButton: FloatingActionButton.extended(
-        heroTag: 'chat-fab',
-        onPressed: () => context.push('/chat'),
-        backgroundColor: p.accent,
-        foregroundColor: Colors.white,
-        icon: const Icon(Icons.auto_awesome_rounded),
-        label: const Text('Ask AI'),
+      floatingActionButton: Semantics(
+        button: true,
+        label: 'Chat with us',
+        child: GestureDetector(
+          onTap: () {
+            HapticFeedback.lightImpact();
+            context.push('/chat');
+          },
+          child: Container(
+            width: 60,
+            height: 60,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: p.brand,
+              boxShadow: [BoxShadow(color: p.gradient.first.withValues(alpha: 0.45), blurRadius: 22, offset: const Offset(0, 8))],
+            ),
+            child: const ChatFace(size: 34),
+          )
+              .animate(onPlay: (c) => c.repeat(reverse: true))
+              .moveY(begin: 0, end: -4, duration: 1800.ms, curve: Curves.easeInOut),
+        ),
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: tabIndex < 0 ? 0 : tabIndex,
@@ -141,7 +155,7 @@ class _AppDrawer extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 12, 24, 16),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Row(children: const [LogoImage.crest(height: 44), SizedBox(width: 12), LogoImage.club(height: 38)]),
+                const LogoImage.club(height: 42),
                 const SizedBox(height: 14),
                 const CodeLabel('explore'),
                 const SizedBox(height: 4),
@@ -153,8 +167,8 @@ class _AppDrawer extends StatelessWidget {
             for (final t in _more) tile(t),
             Divider(color: p.line, indent: 24, endIndent: 24),
             ListTile(
-              leading: Icon(Icons.auto_awesome_rounded, color: p.pink),
-              title: Text('AI assistant', style: bodyStyle(context, weight: FontWeight.w600)),
+              leading: ChatFace(size: 24, bubble: p.third, face: p.bg),
+              title: Text('Chat assistant', style: bodyStyle(context, weight: FontWeight.w600)),
               onTap: () {
                 Navigator.pop(context);
                 context.push('/chat');

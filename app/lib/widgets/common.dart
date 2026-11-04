@@ -18,7 +18,7 @@ extension StaggerX on Widget {
   }
 }
 
-/// Aurora gradient backdrop (violet / cyan / pink glows on the base colour).
+/// Aurora gradient backdrop (blue / aqua glows on the base colour).
 class AuroraBackground extends StatelessWidget {
   const AuroraBackground({super.key, required this.child});
   final Widget child;
@@ -43,7 +43,7 @@ class AuroraBackground extends StatelessWidget {
         Positioned(
           bottom: -160,
           left: -60,
-          child: _Glow(color: p.pink.withValues(alpha: a * 0.6), size: 340),
+          child: _Glow(color: p.third.withValues(alpha: a * 0.6), size: 340),
         ),
         Positioned.fill(child: child),
       ],
@@ -446,7 +446,7 @@ class GradientText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cols = colors ?? context.pal.gradient;
+    final cols = colors ?? context.pal.textGradient;
     return ShaderMask(
       blendMode: BlendMode.srcIn,
       shaderCallback: (rect) => LinearGradient(colors: cols).createShader(Rect.fromLTWH(0, 0, rect.width, rect.height)),

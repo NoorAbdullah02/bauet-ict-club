@@ -9,6 +9,8 @@ import Contact from '../components/Contact';
 import JoinCommittee from '../components/join/JoinCommittee';
 import JoinGeneral from '../components/join/JoinGeneral';
 import JoinHub from './JoinHub';
+import JoinAmbassador from '../components/join/JoinAmbassador';
+import Ambassadors from './Ambassadors';
 
 const page = (Comp, variant) => function Page() { return <PageShell variant={variant}><Comp /></PageShell>; };
 
@@ -22,3 +24,5 @@ export const ContactPage = page(Contact, 'orbs');
 export const JoinHubPage = JoinHub;
 export const JoinCommitteePage = JoinCommittee;
 export const JoinGeneralPage = JoinGeneral;
+export const JoinAmbassadorPage = JoinAmbassador;
+export const AmbassadorsPage = Ambassadors;

@@ -66,9 +66,9 @@ export default function Dashboard() {
             <p className="mt-2 max-w-md text-sm text-white/75">{pending > 0 ? `${pending} application${pending > 1 ? 's are' : ' is'} waiting for your review.` : 'You’re all caught up — no applications waiting.'}</p>
           </div>
           <div className="flex flex-wrap gap-2.5">
-            <Link to="/admin/applications" className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-[#0A1A4A] shadow-lg transition hover:-translate-y-0.5"><ClipboardList size={15} /> Review applications</Link>
-            <Link to="/admin/events" className="inline-flex items-center gap-2 rounded-full border border-white/40 bg-white/10 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-white/20"><Plus size={15} /> Add event</Link>
-            <Link to="/admin/notices" className="inline-flex items-center gap-2 rounded-full border border-white/40 bg-white/10 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-white/20"><Megaphone size={15} /> Post notice</Link>
+            <Link to="/admin/applications" className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-[#0A1A4A] shadow-lg transition hover:-translate-y-0.5"><ClipboardList size={15} /> Select committee & ambassadors</Link>
+            <Link to="/admin/events?new=1" className="inline-flex items-center gap-2 rounded-full border border-white/40 bg-white/10 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-white/20"><Plus size={15} /> Add event</Link>
+            <Link to="/admin/notices?new=1" className="inline-flex items-center gap-2 rounded-full border border-white/40 bg-white/10 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-white/20"><Megaphone size={15} /> Post notice</Link>
           </div>
         </div>
       </div>

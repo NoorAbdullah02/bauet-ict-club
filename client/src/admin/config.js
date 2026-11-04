@@ -40,7 +40,7 @@ export const TYPES = {
         'Executive (HR)', 'Executive (Logistics)', 'Executive (Development)',
         'Executive (Event Planning)', 'Executive (Public Relations)',
         'Executive (Cultural)', 'Executive (Media)', 'Executive (Photography)',
-        'General Executive', 'General Member',
+        'General Executive', 'General Member', 'Department Ambassador',
       ], required: true },
       { key: 'department', label: 'Department', type: 'select', options: [
         'ICE - Information & Communication Engineering',

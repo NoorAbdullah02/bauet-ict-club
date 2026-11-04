@@ -8,7 +8,7 @@ const { saveImage, cloudinaryReady } = require('../utils/saveImage');
 
 const router = express.Router();
 
-const TYPES = ['committee', 'general'];
+const TYPES = ['committee', 'general', 'ambassador'];
 const DEPARTMENTS = ['ICE', 'CSE', 'EEE', 'CE', 'ME', 'Other'];
 const GENDERS = ['Male', 'Female', 'Other', ''];
 const STATUSES = ['pending', 'approved', 'rejected'];
@@ -37,7 +37,7 @@ const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&
 function validate(body) {
   const type = clean(body.type, 20);
   const errors = {};
-  if (!TYPES.includes(type)) return { errors: { type: 'Choose Committee or General membership' } };
+  if (!TYPES.includes(type)) return { errors: { type: 'Choose a membership type' } };
 
   const data = {
     type,
@@ -68,6 +68,10 @@ function validate(body) {
   if (type === 'committee') {
     if (data.post.length < 2) errors.post = 'Select the post you are applying for';
     if (!data.photo_url) errors.photo_url = 'A profile photo is required for committee applications';
+  } else if (type === 'ambassador') {
+    data.post = 'Department Ambassador';
+    if (!data.photo_url) errors.photo_url = 'A profile photo is required for ambassador applications';
+    if (data.department === 'Other') errors.department = 'Select your department';
   } else {
     const list = Array.isArray(body.interests) ? body.interests : [];
     data.interests = [...new Set(list.map((i) => clean(i, 40)).filter(Boolean))].slice(0, MAX_INTERESTS);
@@ -83,7 +87,7 @@ async function notify(reg) {
     const brevo = require('@getbrevo/brevo');
     const api = new brevo.TransactionalEmailsApi();
     api.setApiKey(brevo.TransactionalEmailsApiApiKeys.apiKey, process.env.BREVO_API_KEY);
-    const label = reg.type === 'committee' ? `Committee application (${esc(reg.post)})` : 'General membership';
+    const label = reg.type === 'committee' ? `Committee application (${esc(reg.post)})` : reg.type === 'ambassador' ? 'Department Ambassador application' : 'General membership';
     await api.sendTransacEmail({
       to: [{ email: reg.email, name: reg.full_name }],
       sender: { email: 'noreply@bauetictclub.com', name: 'BAUET ICT Club' },
@@ -105,7 +109,7 @@ router.post('/photo', submitLimiter, upload.single('photo'), async (req, res) =>
     const dataUri = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
     const result = await cloudinary.uploader.upload(dataUri, {
       folder: 'bauet-ict-club/applicants',
-      transformation: [{ width: 800, height: 800, crop: 'limit' }, { quality: 'auto', fetch_format: 'auto' }],
+      transformation: [{ width: 700, height: 700, crop: 'fill', gravity: 'face' }, { quality: 'auto', fetch_format: 'auto' }],
     });
     res.json({ url: result.secure_url });
   } catch (e) {
@@ -161,16 +165,17 @@ router.patch('/:id/status', authMiddleware, async (req, res) => {
 // Promote a committee applicant to the public Team page for a given session
 router.post('/:id/select', authMiddleware, async (req, res) => {
   const session = clean(req.body.session, 50);
-  const position = clean(req.body.position, 100);
+  const requested = clean(req.body.position, 100);
   const order = Number.isInteger(req.body.display_order) ? req.body.display_order : 99;
-  if (!session || !position) return res.status(400).json({ error: 'Session and position are required' });
+  if (!session || !requested) return res.status(400).json({ error: 'Session and position are required' });
 
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    const { rows } = await client.query('SELECT * FROM registrations WHERE id = $1 AND type = $2 FOR UPDATE', [req.params.id, 'committee']);
-    if (!rows.length) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'Committee application not found' }); }
+    const { rows } = await client.query("SELECT * FROM registrations WHERE id = $1 AND type IN ('committee', 'ambassador') FOR UPDATE", [req.params.id]);
+    if (!rows.length) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'Committee or ambassador application not found' }); }
     const r = rows[0];
+    const position = r.type === 'ambassador' ? 'Department Ambassador' : requested;
     const dup = await client.query('SELECT 1 FROM members WHERE name = $1 AND committee_session = $2 AND position = $3', [r.full_name, session, position]);
     if (dup.rows.length) { await client.query('ROLLBACK'); return res.status(409).json({ error: 'Already selected for this session and post' }); }
     const member = await client.query(

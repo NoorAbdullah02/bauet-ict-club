@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { Plus, Pencil, Trash2, Search, Loader2, Save } from 'lucide-react';
 import useStore from '../context/store';
@@ -11,6 +12,7 @@ export default function DataView({ type }) {
   const items = useStore((s) => s[type]) || [];
   const [q, setQ] = useState('');
   const [drawer, setDrawer] = useState(null);
+  const [params, setParams] = useSearchParams();
   const [form, setForm] = useState({});
   const [saving, setSaving] = useState(false);
 
@@ -18,7 +20,13 @@ export default function DataView({ type }) {
 
   const rows = useMemo(() => items.filter((i) => !q || JSON.stringify(i).toLowerCase().includes(q.toLowerCase())), [items, q]);
 
-  const openAdd = () => { setForm({}); setDrawer({ mode: 'add' }); };
+  const today = new Date().toISOString().slice(0, 10);
+  const openAdd = () => { setForm(cfg.fields.some((f) => f.key === 'date') ? { date: today } : {}); setDrawer({ mode: 'add' }); };
+
+  // dashboard shortcuts (…/notices?new=1) open the form straight away
+  useEffect(() => {
+    if (params.get('new') === '1') { openAdd(); setParams({}, { replace: true }); }
+  }, [params, type]);
   const openEdit = (item) => { setForm({ ...item }); setDrawer({ mode: 'edit', id: item.id }); };
 
   const save = async () => {
@@ -59,7 +67,7 @@ export default function DataView({ type }) {
                   <tr key={item.id} className="border-b border-line/60 transition last:border-0 hover:bg-accent/5">
                     {cfg.cols.map((c, ci) => (
                       <td key={c} className={`max-w-xs truncate px-5 py-3.5 ${ci === 0 ? 'font-medium text-fg' : 'text-fg2'}`}>
-                        {typeof item[c] === 'boolean' ? (item[c] ? <span className="rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-xs text-emerald-500">Yes</span> : '—') : String(item[c] ?? '—').slice(0, 80)}
+                        {typeof item[c] === 'boolean' ? (item[c] ? <span className="rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-xs text-emerald-500">Yes</span> : '—') : (/^\d{4}-\d{2}-\d{2}T/.test(String(item[c])) ? String(item[c]).slice(0, 10) : String(item[c] ?? '—').slice(0, 80))}
                       </td>
                     ))}
                     <td className="px-5 py-3.5"><div className="flex justify-end gap-1.5">

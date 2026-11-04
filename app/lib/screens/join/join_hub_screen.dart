@@ -34,12 +34,14 @@ class JoinHubScreen extends StatelessWidget {
           title: 'General member',
           body: 'Learn, build and hang out with fellow geeks. Choose your interests and get invited to workshops.',
           icon: Icons.bolt_rounded,
-          colors: [p.pink, p.dark ? p.accent : p.accent],
+          colors: [p.third, p.dark ? p.accent : p.accent],
           bullets: const ['One quick form', 'Photo optional', 'Pick interests'],
           onTap: () => context.push('/join/general'),
         ).stagger(2),
         const SizedBox(height: 24),
         GlassCard(
+          padding: const EdgeInsets.all(12),
+          radius: 18,
           child: Row(children: [
             Icon(Icons.info_outline_rounded, color: p.tech),
             const SizedBox(width: 12),

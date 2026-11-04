@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-/// Colour system shared with the website (dark = midnight aurora, light = editorial paper).
+/// Colour system shared with the website (royal blue / green on cloud-white, aqua on deep navy).
 class Pal {
   const Pal({
     required this.dark,
@@ -13,8 +13,9 @@ class Pal {
     required this.line,
     required this.accent,
     required this.tech,
-    required this.pink,
+    required this.third,
     required this.gradient,
+    required this.textGradient,
   });
 
   final bool dark;
@@ -26,40 +27,43 @@ class Pal {
   final Color line;
   final Color accent;
   final Color tech;
-  final Color pink;
+  final Color third;
   final List<Color> gradient;
+  final List<Color> textGradient;
 
   static const Pal darkPal = Pal(
     dark: true,
-    bg: Color(0xFF0E1231),
-    surface: Color(0xFF161B45),
-    alt: Color(0xFF1D2358),
-    fg: Color(0xFFEEF1FF),
-    muted: Color(0xFF9AA3D6),
-    line: Color(0x26B4BEFF),
-    accent: Color(0xFF9A88FF),
-    tech: Color(0xFF3DE3FF),
-    pink: Color(0xFFFF7AE0),
-    gradient: [Color(0xFF8B6CFF), Color(0xFF17B7FF)],
+    bg: Color(0xFF07122B),
+    surface: Color(0xFF0E1D42),
+    alt: Color(0xFF0A1735),
+    fg: Color(0xFFEAF2FF),
+    muted: Color(0xFFA8B9E0),
+    line: Color(0x3396B4FF),
+    accent: Color(0xFF6C9BFF),
+    tech: Color(0xFF2FD6B0),
+    third: Color(0xFF38C8F0),
+    gradient: [Color(0xFF2F6BFF), Color(0xFF12B5E5)],
+    textGradient: [Color(0xFF6C9BFF), Color(0xFF38C8F0), Color(0xFF35D989)],
   );
 
   static const Pal lightPal = Pal(
     dark: false,
-    bg: Color(0xFFF2F1FF),
+    bg: Color(0xFFF5F8FF),
     surface: Color(0xFFFFFFFF),
-    alt: Color(0xFFE6E4FF),
-    fg: Color(0xFF10112B),
-    muted: Color(0xFF5F6086),
-    line: Color(0x2210112B),
-    accent: Color(0xFF2B3DFF),
-    tech: Color(0xFF0B7A75),
-    pink: Color(0xFFD63DB8),
-    gradient: [Color(0xFF2B3DFF), Color(0xFF0B7A75)],
+    alt: Color(0xFFEBF1FC),
+    fg: Color(0xFF0A1A3F),
+    muted: Color(0xFF41527A),
+    line: Color(0xFFD5E1F5),
+    accent: Color(0xFF1F4FD8),
+    tech: Color(0xFF0E9F6E),
+    third: Color(0xFF17A2D8),
+    gradient: [Color(0xFF1F4FD8), Color(0xFF2E7BFF)],
+    textGradient: [Color(0xFF1F4FD8), Color(0xFF17A2D8), Color(0xFF18A957)],
   );
 
   LinearGradient get brand => LinearGradient(
-        begin: Alignment.centerLeft,
-        end: Alignment.centerRight,
+        begin: const Alignment(-1, -0.6),
+        end: const Alignment(1, 0.6),
         colors: gradient,
       );
 

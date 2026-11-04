@@ -8,6 +8,7 @@ import '../../data/api.dart';
 import '../../state/app_state.dart';
 import '../../widgets/common.dart';
 import '../../widgets/form_widgets.dart';
+import 'admin_widgets.dart';
 
 enum FieldKind { text, multiline, date, boolean, number }
 
@@ -255,6 +256,7 @@ class _AdminCrudScreenState extends State<AdminCrudScreen> {
               child: Row(children: [
                 IconButton(onPressed: () => context.canPop() ? context.pop() : context.go('/admin'), icon: const Icon(Icons.arrow_back_rounded)),
                 Expanded(child: Text(spec.title, style: displayStyle(context, 24))),
+                const AdminThemeButton(),
                 IconButton(onPressed: _load, icon: const Icon(Icons.refresh_rounded)),
               ]),
             ),

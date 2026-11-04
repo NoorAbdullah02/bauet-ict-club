@@ -95,7 +95,7 @@ async function initDb() {
 
       CREATE TABLE IF NOT EXISTS registrations (
         id SERIAL PRIMARY KEY,
-        type VARCHAR(20) NOT NULL CHECK (type IN ('committee', 'general')),
+        type VARCHAR(20) NOT NULL CHECK (type IN ('committee', 'general', 'ambassador')),
         full_name VARCHAR(100) NOT NULL,
         student_id VARCHAR(30) NOT NULL,
         batch VARCHAR(10),
@@ -123,6 +123,11 @@ async function initDb() {
       );
     `);
 
+    // older databases only allowed committee/general — widen the check for ambassadors
+    await client.query(`
+      ALTER TABLE registrations DROP CONSTRAINT IF EXISTS registrations_type_check;
+      ALTER TABLE registrations ADD CONSTRAINT registrations_type_check CHECK (type IN ('committee', 'general', 'ambassador'));
+    `);
     await client.query(`
       CREATE INDEX IF NOT EXISTS idx_members_session ON members (committee_session, display_order);
       CREATE INDEX IF NOT EXISTS idx_events_date ON events (date);

@@ -67,7 +67,8 @@ const useStore = create((set, get) => ({
   },
 
   fetchList: async (type) => {
-    const res = await api.get(`/${type}`);
+    // the admin always wants fresh rows, never the 30s public cache
+    const res = await api.get(`/${type}`, { params: { _: Date.now() } });
     set({ [type]: res.data });
   },
 

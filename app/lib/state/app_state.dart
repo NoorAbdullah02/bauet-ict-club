@@ -14,6 +14,9 @@ class AppState extends ChangeNotifier {
 
   ThemeMode themeMode = ThemeMode.dark;
 
+  /// Admin screens are light by default and have their own toggle.
+  bool adminDark = false;
+
   List<EventItem> events = [];
   List<NoticeItem> notices = [];
   List<Member> members = [];
@@ -38,6 +41,7 @@ class AppState extends ChangeNotifier {
       themeMode = t == 'light' ? ThemeMode.light : ThemeMode.dark;
       api.token = _prefs?.getString('token');
       adminName = _prefs?.getString('admin');
+      adminDark = _prefs?.getBool('admin_dark') ?? false;
     } catch (_) {
       // Storage unavailable: continue with defaults.
     }
@@ -48,6 +52,12 @@ class AppState extends ChangeNotifier {
   void toggleTheme() {
     themeMode = themeMode == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark;
     _prefs?.setString('theme', themeMode == ThemeMode.dark ? 'dark' : 'light');
+    notifyListeners();
+  }
+
+  void toggleAdminTheme() {
+    adminDark = !adminDark;
+    _prefs?.setBool('admin_dark', adminDark);
     notifyListeners();
   }
 

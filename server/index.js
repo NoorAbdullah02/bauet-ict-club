@@ -70,6 +70,7 @@ async function start() {
   try {
     await pool.query('SELECT 1');
     console.log('PostgreSQL connected');
+    if (!require('./utils/saveImage').cloudinaryReady()) console.warn('⚠  Cloudinary not configured: photos will be stored in server/uploads. Add CLOUDINARY_CLOUD_NAME / API_KEY / API_SECRET to .env.');
     await initDb(); // creates missing tables, seeds committee data and the admin account (safe to repeat)
   } catch (e) {
     console.warn('PostgreSQL not connected:', e.message);

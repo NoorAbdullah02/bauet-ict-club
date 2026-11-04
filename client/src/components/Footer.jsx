@@ -3,8 +3,8 @@ import { Facebook, Mail, Phone, MapPin, ArrowUp } from 'lucide-react';
 import useStore from '../context/store';
 import Logo from './Logo';
 
-const EXPLORE = [['About', '/about'], ['Events', '/events'], ['Notices', '/notices'], ['Team', '/team'], ['Gallery', '/gallery']];
-const INVOLVED = [['Join the club', '/join'], ['Committee', '/join/committee'], ['General member', '/join/general'], ['Contact', '/contact']];
+const EXPLORE = [['About', '/about'], ['Events', '/events'], ['Notices', '/notices'], ['Team', '/team'], ['Ambassadors', '/ambassadors']];
+const INVOLVED = [['Join the club', '/join'], ['Committee', '/join/committee'], ['General member', '/join/general'], ['Ambassador', '/join/ambassador']];
 
 const link = 'text-[13px] text-white/70 transition-colors hover:text-white';
 const social = 'grid size-9 place-items-center rounded-full border border-white/20 bg-white/10 text-white transition hover:-translate-y-0.5 hover:bg-white hover:text-[#0A1A4A]';

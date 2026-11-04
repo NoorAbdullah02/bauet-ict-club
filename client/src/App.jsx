@@ -21,6 +21,8 @@ const ContactPage = named('ContactPage');
 const JoinHubPage = named('JoinHubPage');
 const JoinCommitteePage = named('JoinCommitteePage');
 const JoinGeneralPage = named('JoinGeneralPage');
+const JoinAmbassadorPage = named('JoinAmbassadorPage');
+const AmbassadorsPage = named('AmbassadorsPage');
 
 const Fallback = () => <div className="grid min-h-[60vh] place-items-center"><span className="size-8 animate-spin rounded-full border-2 border-line border-t-accent" /></div>;
 
@@ -120,6 +122,8 @@ export default function App() {
           <Route path="join" element={<JoinHubPage />} />
           <Route path="join/committee" element={<JoinCommitteePage />} />
           <Route path="join/general" element={<JoinGeneralPage />} />
+          <Route path="join/ambassador" element={<JoinAmbassadorPage />} />
+          <Route path="ambassadors" element={<AmbassadorsPage />} />
           <Route path="*" element={<NotFound />} />
         </Route>
         <Route path="/admin/*" element={<Suspense fallback={<Fallback />}><AdminApp /></Suspense>} />

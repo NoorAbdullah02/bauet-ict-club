@@ -7,6 +7,7 @@ import '../../core/utils.dart';
 import '../../data/api.dart';
 import '../../state/app_state.dart';
 import '../../widgets/common.dart';
+import 'admin_widgets.dart';
 
 class AdminHomeScreen extends StatefulWidget {
   const AdminHomeScreen({super.key});
@@ -112,6 +113,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                     icon: const Icon(Icons.arrow_back_rounded),
                   ),
                   const Spacer(),
+                  const AdminThemeButton(),
                   TextButton.icon(
                     onPressed: () async {
                       await state.logout();
@@ -134,12 +136,12 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                 Row(children: [
                   stat('Committee apps', _committee, Icons.workspace_premium_rounded, p.accent),
                   const SizedBox(width: 12),
-                  stat('General apps', _general, Icons.bolt_rounded, p.pink),
+                  stat('General apps', _general, Icons.bolt_rounded, p.third),
                 ]).stagger(2),
                 const SizedBox(height: 26),
                 Text('MANAGE', style: monoStyle(context)),
                 const SizedBox(height: 12),
-                nav('Applications', 'Review, approve, select for team', Icons.assignment_ind_rounded, '/admin/applications', p.pink).stagger(3),
+                nav('Applications', 'Review, approve, select for team', Icons.assignment_ind_rounded, '/admin/applications', p.third).stagger(3),
                 nav('Events', 'Create and edit events', Icons.event_rounded, '/admin/data/events').stagger(4),
                 nav('Notices', 'Post announcements', Icons.campaign_rounded, '/admin/data/notices').stagger(5),
                 nav('Team members', 'Edit committee members', Icons.groups_rounded, '/admin/data/members').stagger(6),

@@ -132,7 +132,7 @@ class _JoinGeneralScreenState extends State<JoinGeneralScreen> {
                     GlassCard(
                       padding: const EdgeInsets.all(20),
                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        CodeLabel('your details', color: p.pink),
+                        CodeLabel('your details', color: p.third),
                         const SizedBox(height: 14),
                         AppField(controller: _name, label: 'Full name', error: _errors['full_name'], icon: Icons.person_outline_rounded, textInputAction: TextInputAction.next, onChanged: () => _clear('full_name')),
                         const SizedBox(height: 14),
@@ -170,18 +170,18 @@ class _JoinGeneralScreenState extends State<JoinGeneralScreen> {
                       padding: const EdgeInsets.all(20),
                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                         Row(children: [
-                          CodeLabel('what excites you? *', color: p.pink),
+                          CodeLabel('what excites you? *', color: p.third),
                           const Spacer(),
                           Text('${_interests.length}/$kMaxInterests', style: monoStyle(context, size: 11)),
                         ]),
                         const SizedBox(height: 14),
                         Wrap(spacing: 8, runSpacing: 10, children: [
-                          for (final i in kInterests) PillChip(label: i, selected: _interests.contains(i), color: p.pink, onTap: () => _toggle(i)),
+                          for (final i in kInterests) PillChip(label: i, selected: _interests.contains(i), color: p.third, onTap: () => _toggle(i)),
                         ]),
                         if (_errors['interests'] != null)
                           Padding(padding: const EdgeInsets.only(top: 8), child: Text(_errors['interests']!, style: bodyStyle(context, size: 12, color: const Color(0xFFEF4444)))),
                         const SizedBox(height: 20),
-                        CodeLabel('experience level', color: p.pink),
+                        CodeLabel('experience level', color: p.third),
                         const SizedBox(height: 10),
                         SegmentedLevel(value: _level, onChanged: (v) => setState(() => _level = v)),
                       ]),
@@ -211,7 +211,7 @@ class _JoinGeneralScreenState extends State<JoinGeneralScreen> {
                       label: 'Become a member',
                       icon: Icons.bolt_rounded,
                       loading: _busy,
-                      colors: [p.pink, p.accent],
+                      colors: [p.third, p.accent],
                       onPressed: _submit,
                     ).stagger(5),
                   ],
@@ -232,7 +232,7 @@ class _TicketHeader extends StatelessWidget {
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(28),
-        gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [p.pink, p.accent]),
+        gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [p.third, p.accent]),
       ),
       child: Row(children: [
         Expanded(
@@ -273,7 +273,7 @@ class SegmentedLevel extends StatelessWidget {
                 duration: 220.ms,
                 padding: const EdgeInsets.symmetric(vertical: 11),
                 alignment: Alignment.center,
-                decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), color: value == l ? p.pink : Colors.transparent),
+                decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), color: value == l ? p.third : Colors.transparent),
                 child: Text(l, style: bodyStyle(context, size: 12.5, weight: FontWeight.w700, color: value == l ? Colors.white : p.muted)),
               ),
             ),
