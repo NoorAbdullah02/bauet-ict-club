@@ -8,7 +8,7 @@ import { askConfirm, toastTrashed } from '../admin/ui';
 import { cn } from '../lib/cn';
 
 export const POSTS = [
-  'President', 'Vice President (Technical)', 'Vice President (Administration)', 'Vice President', 'General Secretary', 'Assistant General Secretary',
+  'President', 'Vice President (Technical)', 'Vice President (Administration)', 'General Secretary', 'Assistant General Secretary',
   'Joint Secretary', 'Assistant Joint Secretary', 'Treasurer', 'Financial Secretary', 'Organizing Secretary',
   'Publicity Secretary (Outreach & Activation)', 'Publicity Secretary (Social Media Management)',
   'Office Secretary (Resource Management)', 'Office Secretary (Event Management)',

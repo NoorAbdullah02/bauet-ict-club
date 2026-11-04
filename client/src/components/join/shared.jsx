@@ -6,7 +6,7 @@ import useStore from '../../context/store';
 import { cn } from '../../lib/cn';
 
 export { POSTS } from '../AdminApplications';
-export const DEPARTMENTS = ['ICE', 'CSE', 'EEE', 'CE', 'ME', 'Other'];
+export const DEPARTMENTS = ['ICE'];
 export const BATCHES = Array.from({ length: 19 }, (_, i) => String(12 + i));
 
 export const inputCls = (err) => cn(
@@ -60,7 +60,7 @@ export function PhotoDrop({ value, onFile, uploading, error, optional }) {
   );
 }
 
-const BASE = { full_name: '', student_id: '', batch: '', department: '', phone: '', email: '', gender: '', note: '', photo_url: '' };
+const BASE = { full_name: '', student_id: '', batch: '', department: 'ICE', phone: '', email: '', gender: '', note: '', photo_url: '' };
 
 /** Shared state, validation and submit flow for both application types. */
 export function useApplication(type, extra, extraRules) {

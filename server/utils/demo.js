@@ -39,22 +39,22 @@ const COMMITTEE = [
   ['Rafiq Islam', 'General Secretary', 'ICE', '9th', 4],
   ['Sadia Akter', 'Asst. General Secretary', 'ICE', '9th', 5],
   ['Arif Rahman', 'Joint Secretary', 'ICE', '10th', 6],
-  ['Mim Chowdhury', 'Joint Secretary', 'CSE', '10th', 7],
+  ['Mim Chowdhury', 'Joint Secretary', 'ICE', '10th', 7],
   ['Kamal Uddin', 'Organizing Secretary', 'ICE', '9th', 8],
-  ['Farhana Yeasmin', 'Treasurer', 'EEE', '9th', 9],
+  ['Farhana Yeasmin', 'Treasurer', 'ICE', '9th', 9],
   ['Zubair Alam', 'Chief Executive (HR)', 'ICE', '10th', 10],
   ['Lamia Sultana', 'Chief Executive (Logistics)', 'ICE', '10th', 11],
-  ['Shafin Karim', 'Chief Executive (Development)', 'CSE', '11th', 12],
+  ['Shafin Karim', 'Chief Executive (Development)', 'ICE', '11th', 12],
   ['Priya Das', 'Chief Executive (Media)', 'ICE', '11th', 13],
-  ['Rony Mia', 'Executive (Photography)', 'CE', '12th', 14],
+  ['Rony Mia', 'Executive (Photography)', 'ICE', '12th', 14],
   ['Tasnim Haque', 'Executive (Event Planning)', 'ICE', '12th', 15],
-  ['Hasib Khan', 'Executive (Public Relations)', 'ME', '12th', 16],
+  ['Hasib Khan', 'Executive (Public Relations)', 'ICE', '12th', 16],
 ];
-const AMBASSADORS = [['Sumaiya Tabassum', 'ICE', '11th'], ['Rakib Hasan', 'CSE', '11th'], ['Jannat Ara', 'EEE', '10th'], ['Mehedi Hasan', 'CE', '12th'], ['Tuhin Ahmed', 'ME', '11th'], ['Anika Rahman', 'ICE', '12th']];
+const AMBASSADORS = [['Sumaiya Tabassum', 'ICE', '11th'], ['Rakib Hasan', 'ICE', '11th'], ['Jannat Ara', 'ICE', '10th'], ['Mehedi Hasan', 'ICE', '12th'], ['Tuhin Ahmed', 'ICE', '11th'], ['Anika Rahman', 'ICE', '12th']];
 const APPLICANTS = [
-  ['committee', 'Nafis Iqbal', 'ICE', 'Treasurer'], ['committee', 'Raisa Karim', 'CSE', 'Publicity Secretary (Social Media Management)'],
-  ['ambassador', 'Imran Hossain', 'EEE', 'Department Ambassador'], ['ambassador', 'Shirin Akter', 'CE', 'Department Ambassador'],
-  ['general', 'Rafi Ahmed', 'ICE', ''], ['general', 'Maliha Noor', 'CSE', ''],
+  ['committee', 'Nafis Iqbal', 'ICE', 'Treasurer'], ['committee', 'Raisa Karim', 'ICE', 'Publicity Secretary (Social Media Management)'],
+  ['ambassador', 'Imran Hossain', 'ICE', 'Department Ambassador'], ['ambassador', 'Shirin Akter', 'ICE', 'Department Ambassador'],
+  ['general', 'Rafi Ahmed', 'ICE', ''], ['general', 'Maliha Noor', 'ICE', ''],
 ];
 
 async function count() {

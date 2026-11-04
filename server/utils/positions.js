@@ -1,4 +1,5 @@
-// Display order of posts on the Team page (lower = earlier). Only the President is limited to one person.
+// Display order of posts on the Team page (lower = earlier).
+// Per session: one President and two Vice Presidents (one Technical, one Administration). Every other post can have several people.
 const ORDER = [
   /^President$/i,
   /^(Vice President|VP) \(Technical\)$/i,
@@ -31,4 +32,27 @@ async function sessionHasPresident(pool, session, exceptId = null) {
   return rows.some((r) => String(r.id) !== String(exceptId));
 }
 
-module.exports = { positionRank, isPresident, sessionHasPresident };
+const isVP = (position = '') => /^(Vice President|VP)\b/i.test(position.trim());
+
+/** Returns an error message when adding `position` to `session` would break the President / Vice President limits, else null. */
+async function leadershipConflict(pool, session, position, exceptId = null) {
+  if (!session || !position) return null;
+  const pos = position.trim();
+  if (!isPresident(pos) && !isVP(pos)) return null;
+  const { rows } = await pool.query(
+    'SELECT id, position FROM members WHERE committee_session = $1 AND deleted_at IS NULL', [session]
+  );
+  const others = rows.filter((r) => String(r.id) !== String(exceptId)).map((r) => r.position || '');
+  if (isPresident(pos)) {
+    return others.some(isPresident) ? `${session} already has a President. Only one President is allowed per session.` : null;
+  }
+  const vps = others.filter(isVP);
+  if (vps.length >= 2) return `${session} already has 2 Vice Presidents (Technical and Administration).`;
+  for (const kind of ['Technical', 'Administration']) {
+    const re = new RegExp(kind, 'i');
+    if (re.test(pos) && vps.some((v) => re.test(v))) return `${session} already has a Vice President (${kind}).`;
+  }
+  return null;
+}
+
+module.exports = { positionRank, isPresident, isVP, sessionHasPresident, leadershipConflict };

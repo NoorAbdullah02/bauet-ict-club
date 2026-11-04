@@ -44,7 +44,7 @@ export default function Ambassadors() {
               {sessions.map((s) => <button key={slug(s)} onClick={() => { setSess(s); setDept('all'); }} className={cn('rounded-full border px-5 py-2.5 text-sm font-semibold transition', s === active ? 'border-accent bg-accent text-white shadow-lg' : 'border-line bg-surface text-fg2 hover:border-accent hover:text-accent')}>{s}</button>)}
             </div>
             <div className="mb-10 flex flex-wrap justify-center gap-2">
-              {['all', ...depts].map((d) => <button key={d} onClick={() => setDept(d)} className={cn('rounded-full border px-4 py-1.5 text-xs font-medium transition', dept === d ? 'border-fg bg-fg text-bg' : 'border-line text-fg2 hover:border-accent')}>{d === 'all' ? 'All departments' : d}</button>)}
+              {depts.length > 1 && ['all', ...depts].map((d) => <button key={d} onClick={() => setDept(d)} className={cn('rounded-full border px-4 py-1.5 text-xs font-medium transition', dept === d ? 'border-fg bg-fg text-bg' : 'border-line text-fg2 hover:border-accent')}>{d === 'all' ? 'All departments' : d}</button>)}
             </div>
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
               {list.map((m, i) => (

@@ -6,12 +6,12 @@ const pool = require('../config/db');
 const cloudinary = require('../config/cloudinary');
 const { authMiddleware } = require('../middleware/auth');
 const { saveImage, cloudinaryReady } = require('../utils/saveImage');
-const { positionRank, isPresident, sessionHasPresident } = require('../utils/positions');
+const { positionRank, leadershipConflict } = require('../utils/positions');
 
 const router = express.Router();
 
 const TYPES = ['committee', 'general', 'ambassador'];
-const DEPARTMENTS = ['ICE', 'CSE', 'EEE', 'CE', 'ME', 'Other'];
+const DEPARTMENTS = ['ICE'];
 const GENDERS = ['Male', 'Female', 'Other', ''];
 const STATUSES = ['pending', 'approved', 'rejected'];
 const MAX_INTERESTS = 8;
@@ -178,7 +178,8 @@ router.post('/:id/select', authMiddleware, async (req, res) => {
     if (!rows.length) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'Committee or ambassador application not found' }); }
     const r = rows[0];
     const position = r.type === 'ambassador' ? 'Department Ambassador' : requested;
-    if (isPresident(position) && await sessionHasPresident(client, session)) { await client.query('ROLLBACK'); return res.status(409).json({ error: `${session} already has a President. Only one President is allowed — all other posts can have several people.` }); }
+    const conflict = r.type === 'ambassador' ? null : await leadershipConflict(client, session, position);
+    if (conflict) { await client.query('ROLLBACK'); return res.status(409).json({ error: conflict }); }
     const order = r.type === 'ambassador' ? 50 : positionRank(position);
     const dup = await client.query('SELECT 1 FROM members WHERE name = $1 AND committee_session = $2 AND position = $3 AND deleted_at IS NULL', [r.full_name, session, position]);
     if (dup.rows.length) { await client.query('ROLLBACK'); return res.status(409).json({ error: 'Already selected for this session and post' }); }

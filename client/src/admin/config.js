@@ -2,7 +2,7 @@ import { Calendar, Bell, Users, Image, Trophy, FileText } from 'lucide-react';
 
 const ordinal = (n) => `${n}${[11, 12, 13].includes(n % 100) ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' }[n % 10] || 'th')}`;
 export const BATCHES = Array.from({ length: 24 }, (_, i) => ordinal(i + 6));
-const DEPTS = [['ICE', 'ICE — Information & Communication Eng.'], ['CSE', 'CSE — Computer Science & Eng.'], ['EEE', 'EEE — Electrical & Electronic Eng.'], ['CE', 'CE — Civil Eng.'], ['ME', 'ME — Mechanical Eng.'], ['BBA', 'BBA — Business Administration'], ['LLB', 'LLB — Bachelor of Laws'], ['ELL', 'ELL — English Language & Literature']];
+const DEPTS = [['ICE', 'ICE — Information & Communication Eng.']];
 
 export const TYPES = {
   events: {
@@ -35,7 +35,7 @@ export const TYPES = {
     fields: [
       { key: 'name', label: 'Name', type: 'text', required: true },
       { key: 'position', label: 'Position', type: 'select', options: [
-        'President', 'Vice President (Technical)', 'Vice President (Administration)', 'Vice President',
+        'President', 'Vice President (Technical)', 'Vice President (Administration)',
         'General Secretary', 'Asst. General Secretary', 'Joint Secretary',
         'Organizing Secretary', 'Treasurer',
         'Chief Executive (HR)', 'Chief Executive (Logistics)', 'Chief Executive (Development)',
