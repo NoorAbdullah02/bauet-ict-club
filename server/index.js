@@ -8,6 +8,7 @@ require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
 const pool = require('./config/db');
 const { UPLOAD_DIR } = require('./utils/saveImage');
+const initDb = require('./config/initDb');
 const createCrudRouter = require('./routes/crud');
 const { authMiddleware } = require('./middleware/auth');
 
@@ -69,6 +70,7 @@ async function start() {
   try {
     await pool.query('SELECT 1');
     console.log('PostgreSQL connected');
+    await initDb(); // creates missing tables, seeds committee data and the admin account (safe to repeat)
   } catch (e) {
     console.warn('PostgreSQL not connected:', e.message);
     console.warn('Run: npm run db:init after setting DATABASE_URL in .env');

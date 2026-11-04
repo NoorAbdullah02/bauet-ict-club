@@ -366,3 +366,4 @@ input, textarea, select { font-family: var(--font-body); color: var(--fg); }
 /* logos: a thin light halo keeps the navy lettering readable on the indigo theme */
 .logo-img { object-fit: contain; }
 [data-theme="dark"] .logo-img, .scope-dark .logo-img { filter: drop-shadow(0 0 1px rgba(255,255,255,0.95)) drop-shadow(0 0 12px rgba(255,255,255,0.18)); }
+.logo-img.\!filter-none { filter: none !important; }

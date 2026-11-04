@@ -5,7 +5,8 @@
   "scripts": {
     "start": "node index.js",
     "dev": "node --watch index.js",
-    "db:init": "node config/initDb.js"
+    "db:init": "node config/initDb.js",
+    "admin:reset": "node config/resetAdmin.js"
   },
   "dependencies": {
     "@getbrevo/brevo": "^2.2.0",

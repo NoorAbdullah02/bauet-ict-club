@@ -2,6 +2,7 @@ const pool = require('./db');
 
 async function initDb() {
   const client = await pool.connect();
+  let ok = true;
   try {
     await client.query(`
       CREATE TABLE IF NOT EXISTS events (
@@ -203,13 +204,17 @@ async function initDb() {
     `, [hash]);
     if (created.rows.length && !process.env.ADMIN_PASSWORD) console.log(`\nAdmin account created. Username: admin  Password: ${adminPassword}\n(Save it now — it is not shown again. Set ADMIN_PASSWORD in .env to choose your own.)`);
 
-    console.log('Database initialized successfully!');
+    console.log('Database ready');
   } catch (e) {
     console.error('Database initialization failed:', e.message);
+    ok = false;
   } finally {
     client.release();
-    process.exit(0);
   }
+  return ok;
 }
 
-initDb();
+// `npm run db:init` runs it directly; the API also calls it on boot (everything is idempotent).
+if (require.main === module) initDb().then((ok) => process.exit(ok ? 0 : 1));
+
+module.exports = initDb;

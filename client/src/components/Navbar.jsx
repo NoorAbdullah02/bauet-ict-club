@@ -66,7 +66,7 @@ export default function Navbar() {
             <button onClick={() => setTheme(isDark ? 'light' : 'dark')} className={iconBtn} aria-label="Toggle theme">
               {isDark ? <Sun size={16} /> : <Moon size={16} />}
             </button>
-            <Link to="/admin" className={cn(iconBtn, 'max-sm:hidden')} aria-label="Admin"><Shield size={16} /></Link>
+            <Link to="/admin" onMouseEnter={() => import("../admin/AdminApp")} className={cn(iconBtn, 'max-sm:hidden')} aria-label="Admin"><Shield size={16} /></Link>
             <Link to="/join" className="btn-primary !px-5 !py-2.5 text-xs"><Sparkles size={14} /> Join</Link>
             <button onClick={() => setMobileOpen((o) => !o)} className={cn(iconBtn, 'lg:hidden')} aria-label="Menu">
               {mobileOpen ? <X size={18} /> : <Menu size={18} />}
