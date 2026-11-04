@@ -1,9 +1,9 @@
 // Display order of posts on the Team page (lower = earlier). Only the President is limited to one person.
 const ORDER = [
   /^President$/i,
-  /^Vice President \(Technical\)$/i,
-  /^Vice President \(Administration\)$/i,
-  /^Vice President/i,
+  /^(Vice President|VP) \(Technical\)$/i,
+  /^(Vice President|VP) \(Administration\)$/i,
+  /^(Vice President|VP)\b/i,
   /^General Secretary$/i,
   /^Assistant General Secretary|^Asst\. General Secretary/i,
   /^Joint Secretary/i,

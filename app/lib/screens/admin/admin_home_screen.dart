@@ -6,6 +6,7 @@ import '../../core/theme.dart';
 import '../../core/utils.dart';
 import '../../data/api.dart';
 import '../../state/app_state.dart';
+import '../../widgets/coder.dart';
 import '../../widgets/common.dart';
 import 'admin_widgets.dart';
 
@@ -124,8 +125,11 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                   ),
                 ]),
                 const SizedBox(height: 10),
-                Text('ADMIN', style: monoStyle(context, color: p.tech)),
-                Text('Hello, ${state.adminName ?? 'admin'}', style: displayStyle(context, 32)).stagger(0),
+                Row(children: [
+                  const LogoImage.club(height: 44),
+                  const SizedBox(width: 14),
+                  Text('Admin', style: displayStyle(context, 32)),
+                ]).stagger(0),
                 const SizedBox(height: 22),
                 Row(children: [
                   stat('Pending', _pending, Icons.hourglass_top_rounded, const Color(0xFFFFC857)),
@@ -148,6 +152,9 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                 nav('Gallery', 'Manage photos', Icons.photo_library_rounded, '/admin/data/gallery').stagger(7),
                 nav('Achievements', 'Milestones and awards', Icons.emoji_events_rounded, '/admin/data/achievements').stagger(8),
                 nav('Messages', 'Contact form inbox', Icons.mail_rounded, '/admin/data/messages', p.tech).stagger(9),
+                nav('Committees', 'Launch a new semester committee', Icons.rocket_launch_rounded, '/admin/committees').stagger(10),
+                nav('Trash', 'Restore or permanently delete', Icons.delete_outline_rounded, '/admin/trash', const Color(0xFFEF4444)).stagger(11),
+                nav('Settings', 'Demo data', Icons.settings_rounded, '/admin/settings', p.muted).stagger(12),
               ],
             ),
           ),

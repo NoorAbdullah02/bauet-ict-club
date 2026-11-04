@@ -92,15 +92,35 @@ class _AdminApplicationsScreenState extends State<AdminApplicationsScreen> {
       ),
     );
     if (yes != true) return;
-    await _run(() async {
+    try {
       await _state.api.deleteRegistration(r.id);
-      if (mounted) setState(() => _all.remove(r));
-    }, 'Application deleted');
+      if (!mounted) return;
+      setState(() => _all.remove(r));
+      showUndoSnack(context, 'Moved to Trash', () async {
+        try {
+          await _state.api.restoreTrash('registrations', r.id);
+          await _load();
+        } on ApiException catch (e) {
+          if (mounted) showSnack(context, e.message, error: true);
+        }
+      });
+    } on ApiException catch (e) {
+      await _state.handleAuthError(e);
+      if (mounted) showSnack(context, e.message, error: true);
+    }
   }
 
   Future<void> _select(Registration r) async {
-    final sessions = _state.members.map((m) => m.session).where((s) => s.isNotEmpty).toSet().toList()
-      ..sort((a, b) => sessionRank(b).compareTo(sessionRank(a)));
+    var sessions = _state.members.map((m) => m.session).where((s) => s.isNotEmpty).toSet().toList();
+    try {
+      final rows = await _state.api.committees();
+      final labels = rows.map((c) => (c['label'] ?? '').toString()).where((s) => s.isNotEmpty).toList();
+      if (labels.isNotEmpty) sessions = labels;
+    } on ApiException catch (_) {
+      // fall back to sessions known from the public members list
+    }
+    sessions.sort((a, b) => sessionRank(b).compareTo(sessionRank(a)));
+    if (!mounted) return;
     final result = await showModalBottomSheet<(String, String)>(
       context: context,
       isScrollControlled: true,

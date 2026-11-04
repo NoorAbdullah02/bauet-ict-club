@@ -7,9 +7,12 @@ import 'theme.dart';
 import '../screens/about_screen.dart';
 import '../screens/achievements_screen.dart';
 import '../screens/admin/admin_applications_screen.dart';
+import '../screens/admin/admin_committees_screen.dart';
 import '../screens/admin/admin_crud_screen.dart';
 import '../screens/admin/admin_home_screen.dart';
 import '../screens/admin/admin_login_screen.dart';
+import '../screens/admin/admin_settings_screen.dart';
+import '../screens/admin/admin_trash_screen.dart';
 import '../screens/ambassadors_screen.dart';
 import '../screens/chat_screen.dart';
 import '../screens/contact_screen.dart';
@@ -89,6 +92,9 @@ GoRouter buildRouter(AppState state) {
       GoRoute(path: '/admin/login', pageBuilder: (c, s) => _slide(s, _admin(const AdminLoginScreen()))),
       GoRoute(path: '/admin', pageBuilder: (c, s) => _slide(s, _admin(const AdminHomeScreen()))),
       GoRoute(path: '/admin/applications', pageBuilder: (c, s) => _slide(s, _admin(const AdminApplicationsScreen()))),
+      GoRoute(path: '/admin/trash', pageBuilder: (c, s) => _slide(s, _admin(const AdminTrashScreen()))),
+      GoRoute(path: '/admin/committees', pageBuilder: (c, s) => _slide(s, _admin(const AdminCommitteesScreen()))),
+      GoRoute(path: '/admin/settings', pageBuilder: (c, s) => _slide(s, _admin(const AdminSettingsScreen()))),
       GoRoute(
         path: '/admin/data/:table',
         pageBuilder: (c, s) => _slide(s, _admin(AdminCrudScreen(table: s.pathParameters['table'] ?? 'events'))),
