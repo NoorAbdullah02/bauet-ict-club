@@ -85,15 +85,15 @@ app.use('/api/settings', require('./routes/settings'));
 
 const COLS = {
   events: ['title', 'date', 'time', 'location', 'description', 'image_url', 'featured', 'category'],
-  notices: ['title', 'date', 'content', 'priority', 'pinned', 'expiry_date'],
+  notices: ['title', 'date', 'content', 'priority', 'pinned', 'expiry_date', 'image_url'],
   members: ['name', 'position', 'department', 'batch', 'committee_session', 'image_url', 'social_fb', 'social_gh', 'social_li', 'display_order', 'active'],
   gallery: ['title', 'image_url', 'category', 'date', 'description'],
-  achievements: ['title', 'date', 'description', 'icon'],
+  achievements: ['title', 'date', 'description', 'icon', 'image_url'],
   posts: ['title', 'content', 'image_url', 'author'],
 };
 app.use('/api/events', createCrudRouter('events', { orderBy: 'date', orderDir: 'DESC', columns: COLS.events, imageCols: ['image_url'], auth: authMiddleware,
   onCreate: (r) => notifySubscribers('event', { title: r.title, when: [String(r.date || '').slice(0, 10), r.time, r.location].filter(Boolean).join(' · '), summary: r.description, path: '/events' }) }));
-app.use('/api/notices', createCrudRouter('notices', { orderBy: 'pinned DESC, created_at', orderDir: 'DESC', columns: COLS.notices, auth: authMiddleware,
+app.use('/api/notices', createCrudRouter('notices', { orderBy: 'pinned DESC, created_at', orderDir: 'DESC', columns: COLS.notices, imageCols: ['image_url'], auth: authMiddleware,
   onCreate: (r) => { if (!r.expiry_date || String(r.expiry_date).slice(0, 10) >= new Date().toISOString().slice(0, 10)) notifySubscribers('notice', { title: r.title, summary: r.content, path: '/notices' }); } }));
 app.use('/api/members', createCrudRouter('members', {
   orderBy: 'display_order', orderDir: 'ASC', columns: COLS.members, imageCols: ['image_url'], auth: authMiddleware,
@@ -107,7 +107,7 @@ app.use('/api/members', createCrudRouter('members', {
   },
 }));
 app.use('/api/gallery', createCrudRouter('gallery', { columns: COLS.gallery, imageCols: ['image_url'], auth: authMiddleware }));
-app.use('/api/achievements', createCrudRouter('achievements', { orderBy: 'date', orderDir: 'DESC', columns: COLS.achievements, auth: authMiddleware }));
+app.use('/api/achievements', createCrudRouter('achievements', { orderBy: 'date', orderDir: 'DESC', columns: COLS.achievements, imageCols: ['image_url'], auth: authMiddleware }));
 app.use('/api/posts', createCrudRouter('posts', { columns: COLS.posts, imageCols: ['image_url'], auth: authMiddleware }));
 const features = require('./features');
 

@@ -68,6 +68,7 @@ export default function Achievements() {
                   transition: 'all 0.3s',
                 }}
               >
+                {a.image_url && <img src={a.image_url} alt={a.title} loading="lazy" decoding="async" style={{ width: '100%', maxHeight: 260, objectFit: 'cover', borderRadius: 12, marginBottom: 14 }} />}
                 <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--accent)', fontWeight: 600, marginBottom: 8 }}>
                   {a.date}
                 </div>

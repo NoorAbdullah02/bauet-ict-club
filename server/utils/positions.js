@@ -1,9 +1,9 @@
 // Display order of posts on the Team page (lower = earlier).
-// Per session: one President and two Vice Presidents (one Technical, one Administration). Every other post can have several people.
+// Per session: one President and two Vice Presidents (one Administration, one Technical). Every other post can have several people.
 const ORDER = [
   /^President$/i,
-  /^(Vice President|VP) \(Technical\)$/i,
   /^(Vice President|VP) \(Administration\)$/i,
+  /^(Vice President|VP) \(Technical\)$/i,
   /^(Vice President|VP)\b/i,
   /^General Secretary$/i,
   /^Assistant General Secretary|^Asst\. General Secretary/i,
@@ -47,8 +47,8 @@ async function leadershipConflict(pool, session, position, exceptId = null) {
     return others.some(isPresident) ? `${session} already has a President. Only one President is allowed per session.` : null;
   }
   const vps = others.filter(isVP);
-  if (vps.length >= 2) return `${session} already has 2 Vice Presidents (Technical and Administration).`;
-  for (const kind of ['Technical', 'Administration']) {
+  if (vps.length >= 2) return `${session} already has 2 Vice Presidents (Administration and Technical).`;
+  for (const kind of ['Administration', 'Technical']) {
     const re = new RegExp(kind, 'i');
     if (re.test(pos) && vps.some((v) => re.test(v))) return `${session} already has a Vice President (${kind}).`;
   }

@@ -27,6 +27,7 @@ export const TYPES = {
       { key: 'content', label: 'Content', type: 'textarea', required: true },
       { key: 'priority', label: 'Priority', type: 'select', options: ['urgent', 'normal', 'low'] },
       { key: 'pinned', label: 'Pinned', type: 'checkbox' },
+      { key: 'image_url', label: 'Picture (optional)', type: 'image' },
     ],
     cols: ['title', 'date', 'priority', 'pinned'],
   },
@@ -35,7 +36,7 @@ export const TYPES = {
     fields: [
       { key: 'name', label: 'Name', type: 'text', required: true },
       { key: 'position', label: 'Position', type: 'select', options: [
-        'President', 'Vice President (Technical)', 'Vice President (Administration)',
+        'President', 'Vice President (Administration)', 'Vice President (Technical)',
         'General Secretary', 'Asst. General Secretary', 'Joint Secretary',
         'Organizing Secretary', 'Treasurer',
         'Chief Executive (HR)', 'Chief Executive (Logistics)', 'Chief Executive (Development)',
@@ -73,6 +74,7 @@ export const TYPES = {
       { key: 'title', label: 'Title', type: 'text', required: true },
       { key: 'date', label: 'Date', type: 'date' },
       { key: 'description', label: 'Description', type: 'textarea' },
+      { key: 'image_url', label: 'Picture (optional)', type: 'image' },
     ],
     cols: ['title', 'date'],
   },

@@ -28,8 +28,8 @@ class AppConfig {
 /// Application posts a committee applicant can pick (mirrors the website).
 const List<String> kCommitteePosts = [
   'President',
-  'Vice President (Technical)',
   'Vice President (Administration)',
+  'Vice President (Technical)',
   'General Secretary',
   'Assistant General Secretary',
   'Joint Secretary',

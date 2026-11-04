@@ -31,8 +31,8 @@ const AWARDS = [
 // [name, position, department, batch, order]
 const COMMITTEE = [
   ['Dr. Anwar Hossain', 'President', 'ICE', null, 1],
-  ['Tanvir Ahmed', 'Vice President (Technical)', 'ICE', '8th', 2],
-  ['Nusrat Jahan', 'Vice President (Administration)', 'ICE', '8th', 3],
+  ['Nusrat Jahan', 'Vice President (Administration)', 'ICE', '8th', 2],
+  ['Tanvir Ahmed', 'Vice President (Technical)', 'ICE', '8th', 3],
   ['Rafiq Islam', 'General Secretary', 'ICE', '9th', 4],
   ['Sadia Akter', 'Asst. General Secretary', 'ICE', '9th', 5],
   ['Arif Rahman', 'Joint Secretary', 'ICE', '10th', 6],
@@ -96,7 +96,7 @@ async function loadDemo() {
     await pool.query('INSERT INTO notices (title, date, content, priority, pinned, is_demo) VALUES ($1,$2,$3,$4,$5,true)', [title, day(d), content, priority, pinned]);
   }
   for (const [title, d, description] of AWARDS) {
-    await pool.query('INSERT INTO achievements (title, date, description, is_demo) VALUES ($1,$2,$3,true)', [title, day(d), description]);
+    await pool.query('INSERT INTO achievements (title, date, description, image_url, is_demo) VALUES ($1,$2,$3,$4,true)', [title, day(d), description, scene('trophy', title, AWARDS.findIndex((x) => x[0] === title))]);
   }
   for (const [i, [name, position, department, batch, order]] of COMMITTEE.entries()) {
     await pool.query('INSERT INTO members (name, position, department, batch, committee_session, image_url, display_order, is_demo) VALUES ($1,$2,$3,$4,$5,$6,$7,true)', [name, position, department, batch, SESSION, avatar(name, i), order]);

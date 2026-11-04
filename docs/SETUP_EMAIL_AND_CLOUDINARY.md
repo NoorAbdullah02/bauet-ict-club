@@ -3,33 +3,27 @@
 Both are optional. Without them the site still works: emails are skipped and photos are saved on the server's disk.
 After editing `.env`, restart `npm run dev`. Admin → Settings → **Connections** shows whether each one is connected.
 
-## Email (Gmail, free)
+## Email (Brevo API, free)
 
-1. Use a Gmail account for the club (for example `ictclubbauet@gmail.com`) and turn on **2-step verification**.
-2. Google Account → Security → **App passwords** → create one (16 letters).
-3. In `.env`:
+The site sends mail through the **Brevo API**: no SMTP password, works from any host.
+
+1. Sign up at https://www.brevo.com (free plan: 300 mails per day).
+2. **Senders & IP > Senders**: add the club address (for example `ictclubbauet@gmail.com`) and click the verification link Brevo emails you.
+3. **SMTP & API > API keys**: create a key and copy it.
+4. Put these in `.env` and restart the server:
    ```
-   SMTP_USER=ictclubbauet@gmail.com
-   SMTP_PASS=abcdefghijklmnop        # the app password, not the normal password
+   BREVO_API_KEY=xkeysib-...
+   MAIL_FROM=ictclubbauet@gmail.com      # exactly the sender you verified
    ADMIN_NOTIFY_EMAIL=ictclubbauet@gmail.com
-   PUBLIC_URL=https://your-website-address
-   JWT_SECRET=<long random text>     # also signs the unsubscribe links, so keep it fixed
    ```
-4. Admin → Settings → Connections → type your address → **Test**.
+5. Open Admin → Settings → Connections. *Email via BREVO* turns green when the key works; use the test box to send yourself a mail.
 
-What gets sent automatically:
+Applicants get confirmation and result emails, the club gets alerts, subscribers get new event/notice/project mails and the newsletter, and the application exports can be emailed as PDF/Word attachments.
 
-| Event | Applicant / visitor | Club |
-| --- | --- | --- |
-| Application submitted | "We received your application" | "New application" alert |
-| Admin selects an applicant | "Congratulations, you are selected as … for …" | |
-| Admin rejects an applicant | polite "thank you for applying" | |
-| Contact form | "We got your message" | the message, with reply-to set to the visitor |
-| Newsletter signup | welcome mail with unsubscribe link | |
-| Admin → Newsletter | your message to every subscriber, each with its own signed unsubscribe link | |
+Mails are queued and sent one by one with one retry, so a slow provider never slows the website.
 
-Emails are queued and sent one by one with one retry, so a slow mail server never slows the website. Gmail allows about 500 mails per day, which is plenty for a club.
-To use another provider set `SMTP_HOST` and `SMTP_PORT` (465 uses SSL), or set `BREVO_API_KEY` and a `MAIL_FROM` that you verified in Brevo.
+### Using Gmail SMTP instead (optional)
+Leave `BREVO_API_KEY` empty and set `SMTP_USER` and `SMTP_PASS` (a Gmail *app password*, 2-step verification required). Brevo is used whenever its key is present.
 
 ## Cloudinary (photos)
 

@@ -8,6 +8,7 @@ import { useShallow } from 'zustand/react/shallow';
 import useStore from '../context/store';
 import { compressImage } from '../lib/compressImage';
 import { cn } from '../lib/cn';
+import ImageEditor from '../components/ImageEditor';
 
 export const inputCls = 'w-full rounded-xl border border-line bg-bg/60 px-4 py-2.5 text-sm text-fg outline-none transition placeholder:text-muted focus:border-tech focus:ring-4 focus:ring-tech/15';
 
@@ -51,6 +52,7 @@ export function Drawer({ open, title, onClose, children, footer }) {
 export function FormField({ field, value, onChange }) {
   const { uploadImage } = useStore(useShallow((s) => ({ uploadImage: s.uploadImage })));
   const [busy, setBusy] = useState(false);
+  const [editing, setEditing] = useState(null); // picture waiting in the crop / resize editor
   const label = <span className="mb-1.5 block font-mono text-[11px] uppercase tracking-[0.14em] text-fg2">{field.label}{field.required && <span className="text-accent"> *</span>}</span>;
   const set = (v) => onChange(field.key, v);
 
@@ -65,16 +67,25 @@ export function FormField({ field, value, onChange }) {
       {label}
       <div className="flex items-center gap-3">
         <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-dashed border-line px-4 py-2.5 text-sm text-fg2 transition hover:border-tech hover:text-tech">
-          {busy ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />} {busy ? 'Uploading…' : 'Upload image'}
-          <input type="file" accept="image/*" hidden onChange={async (e) => {
-            const f = e.target.files?.[0]; if (!f) return;
-            setBusy(true);
-            try { set(await uploadImage(await compressImage(f, { keepPng: field.kind === 'logo' }), field.kind || 'cover')); toast.success('Image uploaded'); } catch (err) { toast.error(err.response?.data?.error || 'Upload failed'); }
-            setBusy(false);
+          {busy ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />} {busy ? 'Uploading…' : value ? 'Change / crop image' : 'Upload image'}
+          <input type="file" accept="image/*" hidden onChange={(e) => {
+            const f = e.target.files?.[0]; e.target.value = '';
+            if (f) setEditing(f);
           }} />
         </label>
         {value && <img loading="lazy" decoding="async" src={value} alt="" className="size-12 rounded-xl border border-line object-cover" />}
+        {value && (
+          <button type="button" onClick={async () => {
+            try { const b = await (await fetch(value)).blob(); setEditing(new File([b], 'picture.jpg', { type: b.type || 'image/jpeg' })); } catch { toast.error('Could not open this picture here. Upload it again to edit.'); }
+          }} className="rounded-xl border border-line px-3 py-2.5 text-xs font-semibold text-fg2 transition hover:border-tech hover:text-tech">Crop / resize</button>
+        )}
       </div>
+      {editing && <ImageEditor file={editing} aspect={field.kind === 'avatar' ? 1 : field.aspect || null} keepPng={field.kind === 'logo'} onCancel={() => setEditing(null)}
+        onDone={async (f) => {
+          setEditing(null); setBusy(true);
+          try { set(await uploadImage(await compressImage(f, { keepPng: field.kind === 'logo' }), field.kind || 'cover')); toast.success('Image uploaded'); } catch (err) { toast.error(err.response?.data?.error || 'Upload failed'); }
+          setBusy(false);
+        }} />}
       <input className={cn(inputCls, 'mt-2')} placeholder="…or paste an image URL" value={value || ''} onChange={(e) => set(e.target.value)} />
     </div>
   );
