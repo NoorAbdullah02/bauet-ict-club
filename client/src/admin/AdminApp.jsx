@@ -12,6 +12,7 @@ import Trash from './Trash';
 import { ConfirmHost } from './ui';
 import SettingsView from './SettingsView';
 import AdminApplications from '../components/AdminApplications';
+import { FEATURES } from './config';
 import Logo from '../components/Logo';
 import { cn } from '../lib/cn';
 
@@ -21,6 +22,10 @@ const NAV = [
   ['Content', [['/admin/events', Calendar, 'Events'], ['/admin/notices', Bell, 'Notices'], ['/admin/gallery', Image, 'Gallery'], ['/admin/achievements', Trophy, 'Achievements'], ['/admin/posts', FileText, 'Posts']]],
   ['System', [['/admin/messages', MessageSquare, 'Messages', false, 'unread'], ['/admin/trash', Trash2, 'Trash', false, 'trash'], ['/admin/settings', Settings, 'Settings']]],
 ];
+FEATURES.forEach((f) => {
+  const group = NAV.find(([g]) => g === (f.nav || 'Content')) || NAV[2];
+  group[1].push([`/admin/${f.type}`, f.icon, `${f.name}s`]);
+});
 const TITLES = Object.fromEntries(NAV.flatMap(([, items]) => items.map(([to, , label]) => [to, label])));
 
 function Sidebar({ badges, onNavigate }) {
@@ -110,7 +115,7 @@ export default function AdminApp() {
           <Routes>
             <Route index element={<Dashboard />} />
             <Route path="applications" element={<AdminApplications />} />
-            {['members', 'events', 'notices', 'gallery', 'achievements', 'posts'].map((t) => <Route key={t} path={t} element={<DataView type={t} />} />)}
+            {['members', 'events', 'notices', 'gallery', 'achievements', 'posts', ...FEATURES.map((f) => f.type)].map((t) => <Route key={t} path={t} element={<DataView type={t} />} />)}
             <Route path="messages" element={<Inbox />} />
             <Route path="trash" element={<Trash />} />
             <Route path="settings" element={<SettingsView />} />

@@ -17,6 +17,7 @@ const KINDS = {
   messages: { label: 'Message', title: (r) => r.subject || r.name, sub: (r) => r.email },
   registrations: { label: 'Application', title: (r) => r.full_name, sub: (r) => r.type, image: 'photo_url' },
 };
+require('../features').forEach((f) => { KINDS[f.table] = { label: f.label, title: f.title, sub: f.sub, image: f.image }; });
 const RETENTION_DAYS = 30;
 
 const kind = (req, res) => {

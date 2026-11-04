@@ -128,8 +128,11 @@ async function initDb() {
       ALTER TABLE registrations DROP CONSTRAINT IF EXISTS registrations_type_check;
       ALTER TABLE registrations ADD CONSTRAINT registrations_type_check CHECK (type IN ('committee', 'general', 'ambassador'));
     `);
+    // drop-in features (server/features/*.js) bring their own tables
+    const features = require('../features');
+    for (const f of features) await client.query(f.sql);
     // soft-delete support: every manageable table gets a deleted_at column
-    for (const t of ['events', 'notices', 'members', 'gallery', 'achievements', 'posts', 'messages', 'registrations']) {
+    for (const t of ['events', 'notices', 'members', 'gallery', 'achievements', 'posts', 'messages', 'registrations', ...features.map((f) => f.table)]) {
       await client.query(`ALTER TABLE ${t} ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ`);
     }
     for (const t of ['events', 'notices', 'members', 'achievements', 'registrations']) {
