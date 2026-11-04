@@ -130,7 +130,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           ),
           if (state.sponsors.isNotEmpty) ...[
             const SizedBox(height: 30),
-            const Padding(padding: EdgeInsets.symmetric(horizontal: 20), child: CodeLabel('supported by')),
+            const Padding(padding: EdgeInsets.symmetric(horizontal: 20), child: CodeLabel('our collaborations')),
             const SizedBox(height: 12),
             SizedBox(
               height: 64,

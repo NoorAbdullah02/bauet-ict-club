@@ -1,18 +1,11 @@
 const pool = require('../config/db');
 
-const DEMO_TABLES = ['events', 'notices', 'members', 'achievements', 'registrations', 'gallery', 'posts', 'messages', 'projects', 'sponsors', 'subscribers'];
+const DEMO_TABLES = ['events', 'notices', 'members', 'achievements', 'registrations', 'gallery', 'posts', 'messages', 'projects', 'subscribers'];
 const SESSION = 'Winter 2026';
 
 const day = (offset) => new Date(Date.now() + offset * 864e5).toISOString().slice(0, 10);
 
-// small self-contained avatar (no external image host needed)
-function avatar(name, i) {
-  const pairs = [['#1F4FD8', '#17A2D8'], ['#0E9F6E', '#17A2D8'], ['#6C4DF6', '#1F4FD8'], ['#E4572E', '#F5A524'], ['#0A1A4A', '#1F4FD8']];
-  const [a, b] = pairs[i % pairs.length];
-  const ini = name.replace(/^(Dr|Prof)\.?\s+/i, '').split(' ').filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient></defs><rect width="400" height="400" fill="url(#g)"/><text x="200" y="222" font-family="Arial,Helvetica,sans-serif" font-size="118" font-weight="700" fill="#fff" text-anchor="middle">${ini}</text></svg>`;
-  return `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
-}
+const { avatar, scene } = require('./demoArt');
 
 const EVENTS = [
   ['Hackathon 2026: Code for Change', 30, '09:00 AM', 'BAUET Main Auditorium', 'Competition', '24-hour hackathon for teams of 3–4 solving real campus problems. Prizes for the top three teams.', true],
@@ -20,6 +13,10 @@ const EVENTS = [
   ['AI & Machine Learning Seminar', 20, '10:00 AM', 'Conference Hall', 'Seminar', 'Industry speakers on LLMs, computer vision and careers in AI.', false],
   ['Intra-University Programming Contest', 45, '02:00 PM', 'CSE Lab 1', 'Competition', 'Individual ICPC-style contest. Top performers join the regional team.', true],
 ];
+const EVENT_ART = { 'Hackathon 2026: Code for Change': 'code', 'Web Development Workshop': 'workshop', 'AI & Machine Learning Seminar': 'stage', 'Intra-University Programming Contest': 'trophy' };
+const GALLERY_ART = ['workshop', 'code', 'team', 'stage', 'trophy', 'circuit'];
+const POST_ART = ['code', 'workshop', 'stage'];
+const PROJECT_ART = ['code', 'app', 'circuit', 'app'];
 const NOTICES = [
   ['Hackathon 2026 registration is open', 0, 'Form your team and register before the end of the month.', 'urgent', true],
   ['New committee announced', -3, 'Congratulations to the Winter 2026 committee! See the Team page.', 'normal', false],
@@ -60,15 +57,6 @@ const APPLICANTS = [
   ['general', 'Tasfia Islam', 'EEE', ''], ['general', 'Shuvo Das', 'ME', ''],
 ];
 
-// wide illustration used for gallery, post and project pictures (no external image host needed)
-function scene(label, i) {
-  const pairs = [['#0A1A4A', '#1F4FD8'], ['#0E9F6E', '#17A2D8'], ['#6C4DF6', '#1F4FD8'], ['#E4572E', '#F5A524'], ['#17A2D8', '#18A957']];
-  const [a, b] = pairs[i % pairs.length];
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="520"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient></defs><rect width="800" height="520" fill="url(#g)"/><g fill="#fff" fill-opacity=".14"><circle cx="660" cy="120" r="130"/><circle cx="120" cy="440" r="170"/></g><text x="400" y="285" font-family="Arial,Helvetica,sans-serif" font-size="46" font-weight="700" fill="#fff" text-anchor="middle">${label.replace(/&/g, '&amp;')}</text></svg>`;
-  return `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
-}
-const logo = (name, i) => scene(name, i + 2);
-
 const GALLERY = [
   ['Python Workshop', 'Workshop', -12, 'Beginners writing their first programs.'], ['Hackathon Day', 'Hackathon', -40, 'Teams building through the night.'],
   ['Team Meetup', 'Team', -25, 'The committee after the planning session.'], ['Tech Talk', 'Seminar', -33, 'Guest speaker on cloud careers.'],
@@ -85,7 +73,6 @@ const PROJECTS = [
   ['Attendance Scanner', 'QR-based attendance for workshops and events.', 'Python, OpenCV', 'Completed', 'Dev team', false],
   ['Smart Notice Bot', 'Sends new university notices to students automatically.', 'Node.js, Telegram API', 'Idea', 'Open for members', false],
 ];
-const SPONSORS = [['TechBangla', 'Gold'], ['CloudNest', 'Gold'], ['DevHub BD', 'Silver'], ['CodeCraft', 'Silver'], ['Rajshahi IT Park', 'Partner']];
 const SUBSCRIBERS = ['demo.reader1@example.com', 'demo.reader2@example.com', 'demo.reader3@example.com', 'demo.reader4@example.com'];
 const MESSAGES = [
   ['Samiul Islam', 'demo.samiul@example.com', 'How can I join?', 'Hello, I am in 1st year ICE. How can I become a member and when is the next workshop?'],
@@ -103,7 +90,7 @@ async function loadDemo() {
   if (await count()) return { loaded: false, reason: 'Demo data is already loaded' };
 
   for (const [title, d, time, location, category, description, featured] of EVENTS) {
-    await pool.query('INSERT INTO events (title, date, time, location, category, description, featured, is_demo) VALUES ($1,$2,$3,$4,$5,$6,$7,true)', [title, day(d), time, location, category, description, featured]);
+    await pool.query('INSERT INTO events (title, date, time, location, category, description, featured, image_url, is_demo) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,true)', [title, day(d), time, location, category, description, featured, scene(EVENT_ART[title] || 'code', title, 0)]);
   }
   for (const [title, d, content, priority, pinned] of NOTICES) {
     await pool.query('INSERT INTO notices (title, date, content, priority, pinned, is_demo) VALUES ($1,$2,$3,$4,$5,true)', [title, day(d), content, priority, pinned]);
@@ -128,16 +115,13 @@ async function loadDemo() {
     );
   }
   for (const [i, [title, category, d, description]] of GALLERY.entries()) {
-    await pool.query('INSERT INTO gallery (title, image_url, category, date, description, is_demo) VALUES ($1,$2,$3,$4,$5,true)', [title, scene(title, i), category, day(d), description]);
+    await pool.query('INSERT INTO gallery (title, image_url, category, date, description, is_demo) VALUES ($1,$2,$3,$4,$5,true)', [title, scene(GALLERY_ART[i % GALLERY_ART.length], title, i), category, day(d), description]);
   }
   for (const [i, [title, content, author]] of POSTS.entries()) {
-    await pool.query('INSERT INTO posts (title, content, image_url, author, is_demo) VALUES ($1,$2,$3,$4,true)', [title, content, scene(title, i + 1), author]);
+    await pool.query('INSERT INTO posts (title, content, image_url, author, is_demo) VALUES ($1,$2,$3,$4,true)', [title, content, scene(POST_ART[i % POST_ART.length], title, i + 1), author]);
   }
   for (const [i, [title, summary, tech, status, team, featured]] of PROJECTS.entries()) {
-    await pool.query('INSERT INTO projects (title, summary, tech, status, team, image_url, featured, is_demo) VALUES ($1,$2,$3,$4,$5,$6,$7,true)', [title, summary, tech, status, team, scene(title, i), featured]);
-  }
-  for (const [i, [name, tier]] of SPONSORS.entries()) {
-    await pool.query('INSERT INTO sponsors (name, tier, logo_url, sort_order, is_demo) VALUES ($1,$2,$3,$4,true)', [name, tier, logo(name, i), i + 1]);
+    await pool.query('INSERT INTO projects (title, summary, tech, status, team, image_url, featured, is_demo) VALUES ($1,$2,$3,$4,$5,$6,$7,true)', [title, summary, tech, status, team, scene(PROJECT_ART[i % PROJECT_ART.length], title, i), featured]);
   }
   for (const email of SUBSCRIBERS) await pool.query('INSERT INTO subscribers (email, is_demo) VALUES ($1,true)', [email]);
   for (const [name, email, subject, message] of MESSAGES) {

@@ -8,7 +8,7 @@ export default function Sponsors() {
   return (
     <section className="section !py-14">
       <div className="container">
-        <div className="mb-8 text-center font-mono text-[11px] uppercase tracking-[0.22em] text-muted">// supported by</div>
+        <div className="mb-8 text-center font-mono text-[11px] uppercase tracking-[0.22em] text-muted">// our collaborations</div>
         <div className="flex flex-wrap items-center justify-center gap-x-12 gap-y-6">
           {sponsors.map((s) => {
             const inner = s.logo_url
