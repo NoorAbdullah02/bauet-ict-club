@@ -42,7 +42,8 @@ class NoticeItem {
         content = _s(j['content']),
         priority = _s(j['priority']).isEmpty ? 'normal' : _s(j['priority']),
         pinned = _b(j['pinned']),
-        expiry = _d(j['expiry_date']);
+        expiry = _d(j['expiry_date']),
+        imageUrl = _s(j['image_url']);
 
   final int id;
   final String title;
@@ -51,6 +52,7 @@ class NoticeItem {
   final String priority;
   final bool pinned;
   final DateTime? expiry;
+  final String imageUrl;
 
   bool get expired => expiry != null && expiry!.isBefore(DateTime.now().subtract(const Duration(days: 1)));
 }
@@ -118,13 +120,15 @@ class Achievement {
         title = _s(j['title']),
         date = _d(j['date']),
         description = _s(j['description']),
-        icon = _s(j['icon']);
+        icon = _s(j['icon']),
+        imageUrl = _s(j['image_url']);
 
   final int id;
   final String title;
   final DateTime? date;
   final String description;
   final String icon;
+  final String imageUrl;
 }
 
 class ProjectItem {

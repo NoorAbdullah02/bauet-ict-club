@@ -23,11 +23,36 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
   int? _count;
   bool _busy = false;
   String? _error;
+  Map<String, dynamic> _mail = {};
+  Map<String, dynamic> _ai = {};
+  Map<String, dynamic> _img = {};
+  bool _statusLoaded = false;
 
   @override
   void initState() {
     super.initState();
     _load();
+    _loadStatus();
+  }
+
+  /// Is email (Brevo), the AI assistant and picture storage connected? Same checks as the website's Settings page.
+  Future<void> _loadStatus() async {
+    Future<Map<String, dynamic>> safe(String path) async {
+      try {
+        return await _state.api.serviceStatus(path);
+      } on ApiException catch (_) {
+        return {};
+      }
+    }
+
+    final r = await Future.wait([safe('email/status'), safe('chat/status'), safe('upload/status')]);
+    if (!mounted) return;
+    setState(() {
+      _mail = r[0];
+      _ai = r[1];
+      _img = r[2];
+      _statusLoaded = true;
+    });
   }
 
   Future<void> _load() async {
@@ -92,9 +117,40 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                 child: GlassCard(
                   padding: const EdgeInsets.all(18),
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    const CodeLabel('connections'),
+                    const SizedBox(height: 10),
+                    if (!_statusLoaded)
+                      Text('checking...', style: monoStyle(context, color: p.tech, size: 12))
+                    else ...[
+                      _StatusRow(
+                        ok: _mail['configured'] == true && ((_mail['check'] as Map?)?['ok'] != false),
+                        title: _mail['configured'] == true ? 'Email via ${(_mail['provider'] ?? '').toString().toUpperCase()}' : 'Email not set up',
+                        detail: _mail['configured'] == true
+                            ? 'From ${_mail['from']}. Sent ${_mail['sent']}, failed ${_mail['failed']}.${(_mail['check'] as Map?)?['ok'] == false ? ' ${(_mail['check'] as Map)['error']}' : ''}'
+                            : 'Add BREVO_API_KEY and MAIL_FROM to the server .env.',
+                      ),
+                      _StatusRow(
+                        ok: _ai['configured'] == true,
+                        title: _ai['configured'] == true ? 'AI assistant on (${_ai['model']})' : 'AI assistant uses built-in answers',
+                        detail: _ai['configured'] == true ? 'Answered ${_ai['ok']}, fell back ${_ai['failed']}.' : 'Add GROQ_API_KEY to the server .env for full AI answers.',
+                      ),
+                      _StatusRow(
+                        ok: _img['provider'] == 'cloudinary' && _img['ok'] == true,
+                        title: _img['provider'] == 'cloudinary' ? 'Pictures on Cloudinary' : 'Pictures saved on the server',
+                        detail: _img['provider'] == 'cloudinary' ? 'Optimised and removed from Cloudinary when deleted for good.' : 'Add CLOUDINARY_* keys to the server .env.',
+                      ),
+                    ],
+                  ]),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(8, 12, 8, 0),
+                child: GlassCard(
+                  padding: const EdgeInsets.all(18),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     const CodeLabel('demo data'),
                     const SizedBox(height: 10),
-                    Text('Load a sample Winter 2026 committee, ambassadors, events, notices, awards and applications to preview the site.', style: bodyStyle(context, color: p.muted, size: 13.5)),
+                    Text('Fill every section (events, notices, gallery, posts, projects, committee, applications, messages) with illustrated sample content to preview the site. Demo subscribers never get email.', style: bodyStyle(context, color: p.muted, size: 13.5)),
                     const SizedBox(height: 12),
                     if (_error != null)
                       Text('error: $_error', style: monoStyle(context, color: const Color(0xFFEF4444), size: 11.5))
@@ -111,6 +167,33 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+
+class _StatusRow extends StatelessWidget {
+  const _StatusRow({required this.ok, required this.title, required this.detail});
+  final bool ok;
+  final String title;
+  final String detail;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.pal;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Icon(ok ? Icons.check_circle_rounded : Icons.warning_amber_rounded, size: 20, color: ok ? const Color(0xFF34D399) : const Color(0xFFFFC857)),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(title, style: bodyStyle(context, weight: FontWeight.w700, size: 14)),
+            const SizedBox(height: 2),
+            Text(detail, style: bodyStyle(context, color: p.muted, size: 12.5)),
+          ]),
+        ),
+      ]),
     );
   }
 }

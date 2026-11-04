@@ -153,6 +153,22 @@ async function initDb() {
     await client.query('ALTER TABLE registrations DROP CONSTRAINT IF EXISTS registrations_type_student_id_key');
     await client.query('CREATE UNIQUE INDEX IF NOT EXISTS uq_reg_type_email ON registrations (type, email) WHERE deleted_at IS NULL');
     await client.query('CREATE UNIQUE INDEX IF NOT EXISTS uq_reg_type_student ON registrations (type, student_id) WHERE deleted_at IS NULL');
+    // website visits (IP, page, device) for the admin Visitors page
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS page_views (
+        id SERIAL PRIMARY KEY,
+        ip VARCHAR(64) NOT NULL,
+        path VARCHAR(200) NOT NULL,
+        referrer VARCHAR(200),
+        user_agent VARCHAR(300),
+        device VARCHAR(20),
+        is_bot BOOLEAN DEFAULT false,
+        is_demo BOOLEAN DEFAULT false,
+        day DATE NOT NULL,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_page_views_day ON page_views (day, ip);
+    `);
     await client.query(`
       CREATE INDEX IF NOT EXISTS idx_members_session ON members (committee_session, display_order);
       CREATE INDEX IF NOT EXISTS idx_events_date ON events (date);

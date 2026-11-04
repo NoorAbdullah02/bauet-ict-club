@@ -8,6 +8,7 @@ import { ClipboardList, Users, Calendar, MessageSquare, Crown, ArrowUpRight, Clo
 import { useShallow } from 'zustand/react/shallow';
 import useStore from '../context/store';
 import { Panel, PageTitle } from './ui';
+import { Donut, VBars, tally } from './charts';
 
 const C = { a: 'var(--accent)', b: 'var(--tech)', c: '#EF6B8A', d: '#F5A524' };
 const day = (d) => new Date(d).toISOString().slice(0, 10);
@@ -117,6 +118,17 @@ export default function Dashboard() {
             <div className="pointer-events-none absolute inset-0 grid place-items-center text-center"><div><div className="font-display text-3xl text-fg">{registrations.length}</div><div className="text-[10px] uppercase tracking-widest text-muted">total</div></div></div>
           </div>
           <div className="mt-2 flex justify-center gap-4 text-xs text-fg2">{status.map((s, i) => <span key={s.name} className="flex items-center gap-1.5 capitalize"><i className="size-2 rounded-full" style={{ background: [C.d, C.b, C.c][i] }} />{s.name} · {s.value}</span>)}</div>
+        </Panel>
+      </div>
+
+      <div className="mt-6 grid gap-6 lg:grid-cols-2 [&>*]:min-w-0">
+        <Panel className="p-6">
+          <h3 className="mb-2 text-xl text-fg">Who is applying</h3>
+          <Donut data={['committee', 'ambassador', 'general'].map((t) => ({ name: t, value: registrations.filter((r) => r.type === t).length }))} />
+        </Panel>
+        <Panel className="p-6">
+          <h3 className="mb-2 text-xl text-fg">People per committee</h3>
+          <VBars data={tally(members.filter((m) => m.committee_session), (m) => m.committee_session).slice(0, 8).reverse().map((d) => ({ name: d.name.replace(/^(Summer|Winter)\s+/, (x) => x[0] + ' '), value: d.value }))} />
         </Panel>
       </div>
 

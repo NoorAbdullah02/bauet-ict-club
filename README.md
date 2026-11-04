@@ -19,12 +19,12 @@ React + Vite + Tailwind client (`client/`), Express + PostgreSQL API (`server/`)
    ```
    Open http://localhost:5173 — the admin console is at `/admin` (username `admin`).
 
-Optional services (leave blank to disable): Cloudinary (photo upload), Brevo (emails), Groq (AI chatbot).
+Optional services (leave blank to disable): Cloudinary (photo upload), Brevo API (emails), Groq (AI chatbot).
 Set `SEED_SAMPLES=true` before `db:init` if you want demo events, notices and awards.
 
 ## Flutter app
 
-See `app/README.md`.
+See `app/README.md`. Website, server and app live in this one repository and are kept in step: see [docs/PROJECT_GUIDE.md](docs/PROJECT_GUIDE.md) for the layout, the parity table and the checks to run before you push.
 
 ## Adding features
 

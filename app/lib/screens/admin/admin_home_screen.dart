@@ -7,6 +7,7 @@ import '../../core/utils.dart';
 import '../../data/api.dart';
 import '../../state/app_state.dart';
 import '../../widgets/coder.dart';
+import '../../widgets/charts.dart';
 import '../../widgets/common.dart';
 import 'admin_widgets.dart';
 
@@ -22,6 +23,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
   int _committee = 0;
   int _general = 0;
   int _messages = 0;
+  int _ambassador = 0;
   bool _loading = true;
 
   @override
@@ -41,6 +43,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
         _pending = regs.where((r) => (r['status'] ?? 'pending') == 'pending').length;
         _committee = regs.where((r) => r['type'] == 'committee').length;
         _general = regs.where((r) => r['type'] == 'general').length;
+        _ambassador = regs.where((r) => r['type'] == 'ambassador').length;
         _messages = msgs.length;
       });
     } on ApiException catch (e) {
@@ -145,6 +148,23 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                 const SizedBox(height: 26),
                 Text('MANAGE', style: monoStyle(context)),
                 const SizedBox(height: 12),
+                if (!_loading && (_committee + _general + _ambassador) > 0)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: GlassCard(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Text('WHO IS APPLYING', style: monoStyle(context, size: 10, color: p.tech)),
+                        const SizedBox(height: 10),
+                        Center(child: DonutChart(slices: [
+                          ChartSlice('Committee', _committee, kChartColors[0]),
+                          ChartSlice('Ambassador', _ambassador, kChartColors[1]),
+                          ChartSlice('General', _general, kChartColors[2]),
+                        ])),
+                      ]),
+                    ),
+                  ),
+                nav('Visitors', 'Who opened the website, by day and week, with IPs', Icons.insights_rounded, '/admin/visitors', p.tech).stagger(2),
                 nav('Applications', 'Review, approve, select for team', Icons.assignment_ind_rounded, '/admin/applications', p.third).stagger(3),
                 nav('Events', 'Create and edit events', Icons.event_rounded, '/admin/data/events').stagger(4),
                 nav('Notices', 'Post announcements', Icons.campaign_rounded, '/admin/data/notices').stagger(5),

@@ -11,7 +11,7 @@ import '../../widgets/common.dart';
 import '../../widgets/form_widgets.dart';
 import 'admin_widgets.dart';
 
-enum FieldKind { text, multiline, date, boolean, number, choice, session }
+enum FieldKind { text, multiline, date, boolean, number, choice, session, image }
 
 class FieldSpec {
   const FieldSpec(this.key, this.label, [this.kind = FieldKind.text, this.required = false, this.options = const []]);
@@ -44,7 +44,7 @@ const Map<String, TableSpec> kTables = {
       FieldSpec('time', 'Time (e.g. 10:00 AM)'),
       FieldSpec('location', 'Location'),
       FieldSpec('category', 'Category'),
-      FieldSpec('image_url', 'Image URL'),
+      FieldSpec('image_url', 'Image', FieldKind.image),
       FieldSpec('description', 'Description', FieldKind.multiline),
       FieldSpec('featured', 'Featured', FieldKind.boolean),
     ],
@@ -61,6 +61,7 @@ const Map<String, TableSpec> kTables = {
       FieldSpec('expiry_date', 'Expiry date', FieldKind.date),
       FieldSpec('content', 'Content', FieldKind.multiline),
       FieldSpec('pinned', 'Pinned', FieldKind.boolean),
+      FieldSpec('image_url', 'Picture (optional)', FieldKind.image),
     ],
   ),
   'members': TableSpec(
@@ -75,7 +76,7 @@ const Map<String, TableSpec> kTables = {
       FieldSpec('department', 'Department', FieldKind.choice, false, kMemberDepartments),
       FieldSpec('batch', 'Batch', FieldKind.choice, false, kBatchOrdinals),
       FieldSpec('display_order', 'Display order', FieldKind.number),
-      FieldSpec('image_url', 'Photo URL'),
+      FieldSpec('image_url', 'Photo', FieldKind.image),
       FieldSpec('social_fb', 'Facebook link'),
       FieldSpec('social_gh', 'GitHub link'),
       FieldSpec('social_li', 'LinkedIn link'),
@@ -88,7 +89,7 @@ const Map<String, TableSpec> kTables = {
     icon: Icons.photo_library_rounded,
     fields: [
       FieldSpec('title', 'Title'),
-      FieldSpec('image_url', 'Image URL', FieldKind.text, true),
+      FieldSpec('image_url', 'Image', FieldKind.image, true),
       FieldSpec('category', 'Category'),
       FieldSpec('date', 'Date', FieldKind.date),
       FieldSpec('description', 'Description', FieldKind.multiline),
@@ -104,6 +105,7 @@ const Map<String, TableSpec> kTables = {
       FieldSpec('date', 'Date', FieldKind.date),
       FieldSpec('icon', 'Icon (award, star, code, rocket...)'),
       FieldSpec('description', 'Description', FieldKind.multiline),
+      FieldSpec('image_url', 'Picture (optional)', FieldKind.image),
     ],
   ),
   'projects': TableSpec(
@@ -119,7 +121,7 @@ const Map<String, TableSpec> kTables = {
       FieldSpec('team', 'Team'),
       FieldSpec('live_url', 'Live URL'),
       FieldSpec('repo_url', 'Repo URL'),
-      FieldSpec('image_url', 'Image URL'),
+      FieldSpec('image_url', 'Image', FieldKind.image),
       FieldSpec('featured', 'Featured', FieldKind.boolean),
     ],
   ),
@@ -141,7 +143,7 @@ const Map<String, TableSpec> kTables = {
     fields: [
       FieldSpec('name', 'Name', FieldKind.text, true),
       FieldSpec('website', 'Website'),
-      FieldSpec('logo_url', 'Logo URL'),
+      FieldSpec('logo_url', 'Logo', FieldKind.image),
       FieldSpec('tier', 'Tier'),
       FieldSpec('sort_order', 'Sort order', FieldKind.number),
     ],
@@ -526,6 +528,13 @@ class _RowFormState extends State<_RowForm> {
                               : f.options,
                           error: _errors[f.key],
                           onChanged: (v) => setState(() => _ctrl[f.key]!.text = v),
+                        )
+                  : f.kind == FieldKind.image
+                      ? ImageUploadField(
+                          controller: _ctrl[f.key]!,
+                          label: f.label + (f.required ? ' *' : ''),
+                          error: _errors[f.key],
+                          kind: widget.table == 'members' ? 'avatar' : (f.key == 'logo_url' ? 'logo' : 'cover'),
                         )
                   : f.kind == FieldKind.date
                       ? GestureDetector(

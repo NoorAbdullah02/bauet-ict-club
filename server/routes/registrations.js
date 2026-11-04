@@ -88,7 +88,8 @@ function validate(body) {
 }
 
 function notify(reg) {
-  mail.sendMail({ to: reg.email, ...mail.templates.applicationReceived(reg) });
+  // applicants hear from us about decisions (approved, selected, rejected); the "we got it" note is off unless APPLICANT_ACK_EMAIL=true
+  if ((process.env.APPLICANT_ACK_EMAIL || '').toLowerCase() === 'true') mail.sendMail({ to: reg.email, ...mail.templates.applicationReceived(reg) });
   mail.sendMail({ to: mail.adminAddress(), ...mail.templates.adminNewApplication(reg) });
 }
 
@@ -176,6 +177,19 @@ router.post('/export/email', authMiddleware, rateLimit({ windowMs: 10 * 60 * 100
   }
 });
 
+// The admin can move a committee applicant to a different post before (or without) selecting them
+router.patch('/:id/post', authMiddleware, async (req, res) => {
+  const post = clean(req.body?.post, 100);
+  if (post.length < 2) return res.status(400).json({ error: 'Choose a post' });
+  try {
+    const { rows } = await pool.query("UPDATE registrations SET post = $1 WHERE id = $2 AND type = 'committee' AND deleted_at IS NULL RETURNING *", [post, req.params.id]);
+    if (!rows.length) return res.status(404).json({ error: 'Committee application not found' });
+    res.json(rows[0]);
+  } catch (e) {
+    fail(res, e);
+  }
+});
+
 router.get('/', authMiddleware, async (_req, res) => {
   try {
     const { rows } = await pool.query('SELECT * FROM registrations WHERE deleted_at IS NULL ORDER BY created_at DESC');
@@ -190,7 +204,9 @@ router.patch('/:id/status', authMiddleware, async (req, res) => {
   try {
     const { rows } = await pool.query('UPDATE registrations SET status = $1 WHERE id = $2 AND deleted_at IS NULL RETURNING *', [req.body.status, req.params.id]);
     if (!rows.length) return res.status(404).json({ error: 'Not found' });
+    // the applicant hears about every decision by email
     if (req.body.status === 'rejected') mail.sendMail({ to: rows[0].email, ...mail.templates.applicationRejected(rows[0]) });
+    if (req.body.status === 'approved') mail.sendMail({ to: rows[0].email, ...mail.templates.applicationApproved(rows[0]) });
     res.json(rows[0]);
   } catch (e) {
     fail(res, e);

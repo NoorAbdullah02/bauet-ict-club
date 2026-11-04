@@ -8,6 +8,7 @@ import { useShallow } from 'zustand/react/shallow';
 import useStore, { api } from '../context/store';
 import { askConfirm, toastTrashed } from '../admin/ui';
 import { cn } from '../lib/cn';
+import { Donut, HBars, VBars, tally } from '../admin/charts';
 
 export const POSTS = [
   'President', 'Vice President (Administration)', 'Vice President (Technical)', 'General Secretary', 'Assistant General Secretary',
@@ -54,11 +55,12 @@ function Tile({ icon: Icon, label, children, wide }) {
 
 /** Everything about one applicant in a pop-up, with the same actions as the card. */
 function ApplicantModal({ r, onClose, onApprove, onReject, onTrash, onPick, busy }) {
+  const [zoom, setZoom] = useState(false); // full-screen photo viewer
   useEffect(() => {
-    const k = (e) => e.key === 'Escape' && onClose();
+    const k = (e) => e.key === 'Escape' && (zoom ? setZoom(false) : onClose());
     window.addEventListener('keydown', k);
     return () => window.removeEventListener('keydown', k);
-  }, [onClose]);
+  }, [onClose, zoom]);
   const typeName = { committee: 'Committee applicant', ambassador: 'Department ambassador', general: 'General member' }[r.type] || r.type;
   return createPortal(
     <div className="fixed inset-0 z-[350] grid place-items-center p-4">
@@ -70,7 +72,7 @@ function ApplicantModal({ r, onClose, onApprove, onReject, onTrash, onPick, busy
           <div className="relative px-6 pb-6 pt-8 text-white" style={{ background: 'linear-gradient(120deg,#0A1A4A,#1F4FD8 70%,#17A2D8)' }}>
             <div className="flex flex-wrap items-center gap-5">
               <div className="size-28 shrink-0 overflow-hidden rounded-3xl bg-white/15 ring-4 ring-white/25">
-                {r.photo_url ? <img src={r.photo_url} alt={r.full_name} className="size-full object-cover" />
+                {r.photo_url ? <button type="button" onClick={() => setZoom(true)} aria-label="View full-size photo" className="group relative block size-full cursor-zoom-in"><img src={r.photo_url} alt={r.full_name} className="size-full object-cover transition duration-500 group-hover:scale-105" /><span className="absolute inset-0 grid place-items-center bg-black/35 text-white opacity-0 transition group-hover:opacity-100"><Eye size={20} /></span></button>
                   : <div className="grid size-full place-items-center font-display text-4xl">{r.full_name[0]}</div>}
               </div>
               <div className="min-w-0 flex-1">
@@ -100,7 +102,7 @@ function ApplicantModal({ r, onClose, onApprove, onReject, onTrash, onPick, busy
             {r.experience && <Tile icon={Briefcase} label="Experience">{r.experience}</Tile>}
             <Tile icon={CalendarDays} label="Applied on">{r.created_at && new Date(r.created_at).toLocaleString()}</Tile>
             {r.note && <Tile icon={Mail} label="Note from the applicant" wide><span className="whitespace-pre-line font-normal leading-6 text-fg2">{r.note}</span></Tile>}
-            {r.photo_url && <a href={r.photo_url} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-xs font-semibold text-tech sm:col-span-2"><ExternalLink size={13} /> Open full-size photo</a>}
+            {r.photo_url && <button type="button" onClick={() => setZoom(true)} className="flex items-center gap-2 text-xs font-semibold text-tech sm:col-span-2"><ExternalLink size={13} /> View full-size photo</button>}
           </div>
         </div>
         <div className="flex flex-wrap gap-2 border-t border-line bg-surface px-6 py-4">
@@ -111,13 +113,23 @@ function ApplicantModal({ r, onClose, onApprove, onReject, onTrash, onPick, busy
           <button disabled={busy} onClick={onTrash} className="ml-auto flex items-center gap-1.5 rounded-lg bg-red-500/10 px-4 py-2 text-xs font-semibold text-red-600"><Trash2 size={14} /> Trash</button>
         </div>
       </motion.div>
+      {zoom && r.photo_url && (
+        <div className="fixed inset-0 z-[380] grid place-items-center bg-black/90 p-4" onClick={() => setZoom(false)} role="dialog" aria-label={`${r.full_name} photo`}>
+          <button type="button" onClick={() => setZoom(false)} aria-label="Close photo" className="absolute right-5 top-5 grid size-11 place-items-center rounded-full bg-white/15 text-white hover:bg-white/25"><X size={20} /></button>
+          <img src={r.photo_url} alt={r.full_name} onClick={(e) => e.stopPropagation()} className="max-h-[88vh] max-w-[94vw] rounded-2xl object-contain shadow-2xl" />
+          <div className="absolute bottom-5 left-1/2 flex -translate-x-1/2 items-center gap-3 rounded-full bg-white/10 px-5 py-2 text-sm text-white backdrop-blur">
+            <span className="font-medium">{r.full_name}</span>
+            {/^(https?:)?\/|^\/uploads\//.test(r.photo_url) && <a href={r.photo_url} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="text-white/80 underline decoration-dotted underline-offset-2 hover:text-white">Open in new tab</a>}
+          </div>
+        </div>
+      )}
     </div>,
     document.body,
   );
 }
 
 function Card({ r, selected, onToggle }) {
-  const { setRegistrationStatus, deleteRegistration, selectRegistration } = useStore(useShallow((s) => ({ setRegistrationStatus: s.setRegistrationStatus, deleteRegistration: s.deleteRegistration, selectRegistration: s.selectRegistration })));
+  const { setRegistrationStatus, setRegistrationPost, deleteRegistration, selectRegistration } = useStore(useShallow((s) => ({ setRegistrationStatus: s.setRegistrationStatus, setRegistrationPost: s.setRegistrationPost, deleteRegistration: s.deleteRegistration, selectRegistration: s.selectRegistration })));
   const [picking, setPicking] = useState(false);
   const [session, setSession] = useState(defaultSession());
   const [position, setPosition] = useState(r.post || POSTS[0]);
@@ -133,11 +145,16 @@ function Card({ r, selected, onToggle }) {
 
   const confirmSelect = async () => {
     const label = r.type === 'committee' ? position : 'Department Ambassador';
-    if (!(await askConfirm({ title: `Select ${r.full_name}?`, message: `${r.full_name} will be published on the Team page as ${label} for ${session.trim()}, and gets a congratulations email.`, confirmText: 'Yes, select' }))) return;
+    if (!(await askConfirm({ title: `Select ${r.full_name}?`, message: `${r.type === 'committee' && r.post && r.post !== label ? `${r.full_name} applied for ${r.post}, and will be placed as ${label}` : `${r.full_name} will be published as ${label}`} on the Team page for ${session.trim()}, and gets a congratulations email.`, confirmText: 'Yes, select' }))) return;
     run(async () => {
       await selectRegistration(r.id, { session: session.trim(), position });
       setPicking(false); setView(false);
     }, `${r.full_name} selected as ${label}`);
+  };
+  const changePost = async (next) => {
+    if (!next || next === r.post) return;
+    if (!(await askConfirm({ title: `Change post for ${r.full_name}?`, message: `From ${r.post || 'no post'} to ${next}. You can still pick a different post when you select them.`, confirmText: 'Yes, change' }))) return;
+    run(() => setRegistrationPost(r.id, next), `Post changed to ${next}`);
   };
   const approve = async () => {
     if (!(await askConfirm({ title: `Approve ${r.full_name}?`, message: 'Their application will be marked as approved.', confirmText: 'Yes, approve' }))) return;
@@ -178,7 +195,16 @@ function Card({ r, selected, onToggle }) {
       </div>
 
       {r.type !== 'general' ? (
-        <p className="mt-3 text-sm text-fg2">Applied for <b className="text-fg">{r.post}</b></p>
+        <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-fg2">
+          {r.type === 'committee' ? (
+            <>
+              <span>Post:</span>
+              <Select value={r.post || ''} onChange={(e) => changePost(e.target.value)} className="rounded-full border border-line bg-surface px-3 py-1 text-xs font-semibold text-fg">
+                {[...new Set([r.post, ...POSTS].filter(Boolean))].map((p) => <option key={p} value={p}>{p}</option>)}
+              </Select>
+            </>
+          ) : <span>Applied for <b className="text-fg">{r.post}</b></span>}
+        </div>
       ) : (
         <div className="mt-3 flex flex-wrap gap-1.5">
           {(r.interests || []).map((i) => <span key={i} className="rounded-full bg-tech/10 px-2.5 py-1 text-[11px] text-tech">{i}</span>)}
@@ -252,6 +278,32 @@ async function emailDoc(format, filters, to) {
     const { data } = await api.post('/registrations/export/email', { format, ...filters, to: to || undefined });
     toast.success(`Sent ${data.count} application${data.count === 1 ? '' : 's'} to ${data.to}`);
   } catch (e) { toast.error(e.response?.data?.error || 'Could not send the email'); }
+}
+
+/** Charts for the applications in the current tab: who they are, from where, and how many per day. */
+function Insights({ rows }) {
+  const [open, setOpen] = useState(true);
+  const status = ['pending', 'approved', 'rejected'].map((s) => ({ name: s, value: rows.filter((r) => r.status === s).length }));
+  const dept = tally(rows, (r) => r.department).slice(0, 7);
+  const batch = tally(rows, (r) => (r.batch ? `${r.batch}th` : '')).slice(0, 7);
+  const days = Array.from({ length: 10 }, (_, i) => { const d = new Date(Date.now() - (9 - i) * 864e5); return d.toISOString().slice(0, 10); })
+    .map((d) => ({ name: d.slice(5), value: rows.filter((r) => String(r.created_at).slice(0, 10) === d).length }));
+  return (
+    <div className="mb-5 rounded-2xl border border-line bg-surface">
+      <button onClick={() => setOpen((v) => !v)} className="flex w-full items-center justify-between px-5 py-3.5 text-left">
+        <span className="font-display text-lg text-fg">Insights <span className="ml-2 font-mono text-[11px] uppercase tracking-wider text-muted">{rows.length} applicants</span></span>
+        <span className="text-xs font-semibold text-tech">{open ? 'Hide charts' : 'Show charts'}</span>
+      </button>
+      {open && rows.length > 0 && (
+        <div className="grid gap-6 border-t border-line p-5 md:grid-cols-2 xl:grid-cols-4 [&>*]:min-w-0">
+          <div><h4 className="mb-1 text-sm font-semibold text-fg2">Status</h4><Donut data={status} colors={['#F5A524', '#18A957', '#EF6B8A']} height={160} /></div>
+          <div><h4 className="mb-1 text-sm font-semibold text-fg2">By department</h4><HBars data={dept} color="#1F4FD8" /></div>
+          <div><h4 className="mb-1 text-sm font-semibold text-fg2">By batch</h4><HBars data={batch} color="#17A2D8" /></div>
+          <div><h4 className="mb-1 text-sm font-semibold text-fg2">Last 10 days</h4><VBars data={days} height={170} /></div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function AdminApplications() {
@@ -329,6 +381,8 @@ export default function AdminApplications() {
           ))}
         </div>
       </div>
+
+      <Insights rows={registrations.filter((r) => r.type === type)} />
 
       <div className="mb-5 flex flex-wrap items-center gap-3">
         {[['committee', Crown, 'Committee'], ['ambassador', Megaphone, 'Ambassador'], ['general', Users, 'General']].map(([k, Icon, label]) => (

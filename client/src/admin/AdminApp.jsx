@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Link, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutDashboard, ClipboardList, Users, Calendar, Bell, Image, Trophy, FileText, MessageSquare, Mail, Settings, Trash2, LogOut, Sun, Moon, Menu, ExternalLink, Loader2, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, Eye, ClipboardList, Users, Calendar, Bell, Image, Trophy, FileText, MessageSquare, Mail, Settings, Trash2, LogOut, Sun, Moon, Menu, ExternalLink, Loader2, ChevronRight } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import useStore from '../context/store';
 import Login from './Login';
@@ -14,11 +14,12 @@ import SettingsView from './SettingsView';
 import AdminApplications from '../components/AdminApplications';
 import { FEATURES } from './config';
 import Newsletter from './Newsletter';
+import Visitors from './Visitors';
 import Logo from '../components/Logo';
 import { cn } from '../lib/cn';
 
 const NAV = [
-  ['Overview', [['/admin', LayoutDashboard, 'Dashboard', true]]],
+  ['Overview', [['/admin', LayoutDashboard, 'Dashboard', true], ['/admin/visitors', Eye, 'Visitors']]],
   ['People', [['/admin/applications', ClipboardList, 'Applications', false, 'pending'], ['/admin/members', Users, 'Committee']]],
   ['Content', [['/admin/events', Calendar, 'Events'], ['/admin/notices', Bell, 'Notices'], ['/admin/gallery', Image, 'Gallery'], ['/admin/achievements', Trophy, 'Achievements'], ['/admin/posts', FileText, 'Posts']]],
   ['System', [['/admin/messages', MessageSquare, 'Messages', false, 'unread'], ['/admin/newsletter', Mail, 'Newsletter'], ['/admin/trash', Trash2, 'Trash', false, 'trash'], ['/admin/settings', Settings, 'Settings']]],
@@ -120,6 +121,7 @@ export default function AdminApp() {
             {['members', 'events', 'notices', 'gallery', 'achievements', 'posts', ...FEATURES.map((f) => f.type)].map((t) => <Route key={t} path={t} element={<DataView type={t} />} />)}
             <Route path="messages" element={<Inbox />} />
             <Route path="newsletter" element={<Newsletter />} />
+            <Route path="visitors" element={<Visitors />} />
             <Route path="trash" element={<Trash />} />
             <Route path="settings" element={<SettingsView />} />
             <Route path="*" element={<Navigate to="/admin" replace />} />

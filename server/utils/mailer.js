@@ -73,6 +73,7 @@ async function pump() {
 /** Queue a mail. Returns false (and does nothing) when email is not configured or the address looks wrong. */
 function sendMail(mail) {
   if (!provider() || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(mail.to || '')) return false;
+  if (/@(example\.(com|org|net)|test\.local|localhost)$/i.test(mail.to)) return false; // reserved sample addresses (demo data) are never mailed
   queue.push({ mail, tries: 0 });
   pump();
   return true;
@@ -130,8 +131,13 @@ const templates = {
   }),
   applicationSelected: (r, position, session) => ({
     subject: `Congratulations! You are selected | BAUET ICT Club`,
-    html: layout({ title: 'You are selected 🎉', body: `<p>Dear ${esc(r.full_name)},</p><p>We are happy to tell you that you have been selected as <b>${esc(position)}</b> for the <b>${esc(session)}</b> session.</p><p>Your photo and post are now published on our Team page. Welcome to the team!</p>`, button: { href: `${siteUrl()}/team`, label: 'See the team page' } }),
+    html: layout({ title: 'You are selected 🎉', body: `<p>Dear ${esc(r.full_name)},</p><p>We are happy to tell you that you have been selected as <b>${esc(position)}</b> for the <b>${esc(session)}</b> session.</p>${r.post && r.type === 'committee' && r.post !== position ? `<p>You applied for <b>${esc(r.post)}</b>; after reviewing all applications the committee has placed you as <b>${esc(position)}</b>, where we think you will do great work.</p>` : ''}<p>Your photo and post are now published on our Team page. Welcome to the team!</p>`, button: { href: `${siteUrl()}/team`, label: 'See the team page' } }),
     text: `Congratulations ${r.full_name}! You are selected as ${position} for ${session}.`,
+  }),
+  applicationApproved: (r) => ({
+    subject: 'Your application is approved | BAUET ICT Club',
+    html: layout({ title: 'Welcome to the club 🎉', body: `<p>Dear ${esc(r.full_name)},</p><p>Great news: your ${esc(typeLabel(r).toLowerCase())} has been <b>approved</b>. Welcome to the BAUET ICT Club family!</p><p>Watch our Events and Notices pages for your first workshop, and keep an eye on your inbox.</p>`, button: { href: `${siteUrl()}/events`, label: 'See upcoming events' } }),
+    text: `Dear ${r.full_name}, your application has been approved. Welcome to the BAUET ICT Club! ${siteUrl()}/events`,
   }),
   applicationRejected: (r) => ({
     subject: 'About your application | BAUET ICT Club',
