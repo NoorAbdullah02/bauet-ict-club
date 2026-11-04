@@ -69,7 +69,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                             height: 140 - i * 18.0,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              border: Border.all(color: [p.accent, p.tech, p.pink][i].withValues(alpha: 0.85), width: 2),
+                              border: Border.all(color: [p.accent, p.tech, p.third][i].withValues(alpha: 0.85), width: 2),
                             ),
                           ),
                         ),
@@ -88,7 +88,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                   .fadeIn(delay: 600.ms, duration: 600.ms),
               const SizedBox(height: 18),
               Row(mainAxisSize: MainAxisSize.min, children: [
-                Text(r'$ ', style: monoStyle(context, size: 12.5, color: p.pink)),
+                Text(r'$ ', style: monoStyle(context, size: 12.5, color: p.third)),
                 Text('init community', style: monoStyle(context, size: 12.5, color: p.fg)),
                 const SizedBox(width: 6),
                 const BlinkingCursor(height: 15),

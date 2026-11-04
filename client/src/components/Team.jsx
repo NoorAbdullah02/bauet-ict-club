@@ -143,18 +143,12 @@ function MemberCard({ member, index, compact }) {
   );
 }
 
-// "Summer 2026" > "Winter 2025" > "Session 2023-24": newest first
-function sessionRank(label) {
-  const year = Number((label.match(/(20\d{2})/) || [])[1] || 0);
-  return year * 2 + (/winter/i.test(label) ? 1 : 0);
-}
-
-const slug = (t) => t.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+import { sessionRank, slug, isAmbassador } from '../lib/sessions';
 
 function useSessions(dbMembers) {
   return useMemo(() => {
     const out = {};
-    dbMembers.filter((m) => m.committee_session && m.active !== false).forEach((m) => {
+    dbMembers.filter((m) => m.committee_session && m.active !== false && !isAmbassador(m.position)).forEach((m) => {
       const label = m.committee_session.trim();
       const key = slug(label);
       const c = (out[key] ||= { label, presidents: [], vps: [], members: [] });

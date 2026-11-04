@@ -10,6 +10,7 @@ import '../../models/models.dart';
 import '../../state/app_state.dart';
 import '../../widgets/common.dart';
 import '../../widgets/form_widgets.dart';
+import 'admin_widgets.dart';
 
 Color _statusColor(String s) {
   switch (s) {
@@ -126,6 +127,7 @@ class _AdminApplicationsScreenState extends State<AdminApplicationsScreen> {
               child: Row(children: [
                 IconButton(onPressed: () => context.canPop() ? context.pop() : context.go('/admin'), icon: const Icon(Icons.arrow_back_rounded)),
                 Expanded(child: Text('Applications', style: displayStyle(context, 24))),
+                const AdminThemeButton(),
                 IconButton(onPressed: _load, icon: const Icon(Icons.refresh_rounded)),
               ]),
             ),
@@ -134,7 +136,7 @@ class _AdminApplicationsScreenState extends State<AdminApplicationsScreen> {
               child: Row(children: [
                 Expanded(child: _TypeTab(label: 'Committee', count: _all.where((r) => r.type == 'committee').length, selected: _type == 'committee', color: p.accent, onTap: () => setState(() => _type = 'committee'))),
                 const SizedBox(width: 10),
-                Expanded(child: _TypeTab(label: 'General', count: _all.where((r) => r.type == 'general').length, selected: _type == 'general', color: p.pink, onTap: () => setState(() => _type = 'general'))),
+                Expanded(child: _TypeTab(label: 'General', count: _all.where((r) => r.type == 'general').length, selected: _type == 'general', color: p.third, onTap: () => setState(() => _type = 'general'))),
               ]),
             ),
             const SizedBox(height: 12),
@@ -253,7 +255,7 @@ class _AppCard extends StatelessWidget {
         if (!committee && r.interests.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(top: 8),
-            child: Wrap(spacing: 6, runSpacing: 6, children: [for (final i in r.interests) Tag(i, color: p.pink)]),
+            child: Wrap(spacing: 6, runSpacing: 6, children: [for (final i in r.interests) Tag(i, color: p.third)]),
           ),
         if (!committee && r.experience.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 8), child: Text('Level: ${r.experience}', style: bodyStyle(context, size: 12.5, color: p.muted))),
         if (r.note.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 8), child: Text(r.note, style: bodyStyle(context, size: 13, color: p.muted))),

@@ -7,6 +7,7 @@ import '../core/theme.dart';
 import '../data/api.dart';
 import '../models/models.dart';
 import '../state/app_state.dart';
+import '../widgets/coder.dart';
 import '../widgets/common.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -97,7 +98,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(shape: BoxShape.circle, gradient: p.brand),
-                  child: const Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 20),
+                  child: const Padding(padding: EdgeInsets.all(8), child: ChatFace(size: 24)),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -205,7 +206,7 @@ class _Bubble extends StatelessWidget {
               width: 30,
               height: 30,
               decoration: BoxDecoration(shape: BoxShape.circle, gradient: p.brand),
-              child: const Icon(Icons.auto_awesome_rounded, size: 15, color: Colors.white),
+              child: const Padding(padding: EdgeInsets.all(5), child: ChatFace(size: 20)),
             ),
             const SizedBox(width: 8),
           ],

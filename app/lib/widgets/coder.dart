@@ -2,11 +2,12 @@ import 'dart:async';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 import '../core/theme.dart';
 
-const Color _termBg = Color(0xFF080B22);
+const Color _termBg = Color(0xFF050E22);
 const Color _termGreen = Color(0xFF6EE7B7);
 const Color _termRed = Color(0xFFFF6B8A);
 
@@ -75,7 +76,7 @@ class PromptLine extends StatelessWidget {
         border: Border.all(color: p.line),
       ),
       child: Row(children: [
-        Text(r'$', style: monoStyle(context, color: p.pink, size: 13, weight: FontWeight.w700)),
+        Text(r'$', style: monoStyle(context, color: p.third, size: 13, weight: FontWeight.w700)),
         const SizedBox(width: 8),
         Expanded(child: Text(command, maxLines: 1, overflow: TextOverflow.ellipsis, style: monoStyle(context, color: p.fg, size: 12.5).copyWith(letterSpacing: 0.2))),
         const SizedBox(width: 6),
@@ -195,9 +196,9 @@ class _TerminalCardState extends State<TerminalCard> with SingleTickerProviderSt
   @override
   Widget build(BuildContext context) {
     final p = context.pal;
-    const kw = Color(0xFFFF7AE0);
-    const id = Color(0xFF3DE3FF);
-    const fn = Color(0xFF9A88FF);
+    const kw = Color(0xFF38C8F0);
+    const id = Color(0xFF2FD6B0);
+    const fn = Color(0xFF6C9BFF);
     const str = Color(0xFF6EE7B7);
     const dim = Color(0xFFB4BEFF);
     const segs = [
@@ -290,5 +291,87 @@ class LogoImage extends StatelessWidget {
       ),
       img,
     ]);
+  }
+}
+
+/// Friendly speech-bubble face (chat launcher / assistant avatar).
+class ChatFace extends StatelessWidget {
+  const ChatFace({super.key, this.size = 30, this.bubble = Colors.white, this.face});
+  final double size;
+  final Color bubble;
+  final Color? face;
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(size: Size(size, size), painter: _FacePainter(bubble, face ?? context.pal.gradient.first));
+  }
+}
+
+class _FacePainter extends CustomPainter {
+  _FacePainter(this.bubble, this.face);
+  final Color bubble;
+  final Color face;
+
+  @override
+  void paint(Canvas canvas, Size s) {
+    final w = s.width;
+    final h = s.height;
+    final body = RRect.fromRectAndRadius(Rect.fromLTRB(w * 0.06, h * 0.1, w * 0.94, h * 0.76), Radius.circular(w * 0.3));
+    final tail = Path()
+      ..moveTo(w * 0.22, h * 0.7)
+      ..lineTo(w * 0.16, h * 0.94)
+      ..lineTo(w * 0.46, h * 0.74)
+      ..close();
+    final fill = Paint()..color = bubble;
+    canvas.drawRRect(body, fill);
+    canvas.drawPath(tail, fill);
+    final ink = Paint()..color = face;
+    canvas.drawCircle(Offset(w * 0.36, h * 0.38), w * 0.06, ink);
+    canvas.drawCircle(Offset(w * 0.64, h * 0.38), w * 0.06, ink);
+    final smile = Paint()
+      ..color = face
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = w * 0.065
+      ..strokeCap = StrokeCap.round;
+    canvas.drawArc(Rect.fromCenter(center: Offset(w * 0.5, h * 0.44), width: w * 0.34, height: h * 0.24), 0.35, 2.45, false, smile);
+  }
+
+  @override
+  bool shouldRepaint(covariant _FacePainter old) => old.bubble != bubble || old.face != face;
+}
+
+/// Gradient pill "Join us" with a white arrow disc.
+class JoinPill extends StatelessWidget {
+  const JoinPill({super.key, required this.onTap, this.label = 'Join us'});
+  final VoidCallback onTap;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.pal;
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.lightImpact();
+        onTap();
+      },
+      child: Container(
+        height: 54,
+        padding: const EdgeInsets.fromLTRB(22, 6, 6, 6),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(99),
+          gradient: p.brand,
+          boxShadow: [BoxShadow(color: p.gradient.first.withValues(alpha: 0.35), blurRadius: 20, offset: const Offset(0, 8))],
+        ),
+        child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+          Text(label, style: bodyStyle(context, color: Colors.white, weight: FontWeight.w800, size: 15.5)),
+          Container(
+            width: 42,
+            height: 42,
+            decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.white),
+            child: Icon(Icons.arrow_forward_rounded, size: 21, color: p.gradient.first),
+          ),
+        ]),
+      ),
+    );
   }
 }

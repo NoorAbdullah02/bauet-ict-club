@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
-import { Crown, Users, Check, X, Trash2, Download, Loader2, UserCheck, Search } from 'lucide-react';
+import { Crown, Users, Megaphone, Check, X, Trash2, Download, Loader2, UserCheck, Search } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import useStore from '../context/store';
 import { cn } from '../lib/cn';
@@ -77,7 +77,7 @@ function Card({ r }) {
         </div>
       </div>
 
-      {r.type === 'committee' ? (
+      {r.type !== 'general' ? (
         <p className="mt-3 text-sm text-fg2">Applied for <b className="text-fg">{r.post}</b></p>
       ) : (
         <div className="mt-3 flex flex-wrap gap-1.5">
@@ -93,11 +93,11 @@ function Card({ r }) {
             <input list="session-list" className={cn(inputCls, 'mt-1')} value={session} onChange={(e) => setSession(e.target.value)} placeholder="e.g. Summer 2026" />
             <datalist id="session-list">{sessionNames.map((n) => <option key={n} value={n} />)}</datalist>
           </label>
-          <label className="text-xs text-fg2">Post (President, VP, …)
+          {r.type === 'committee' ? <label className="text-xs text-fg2">Post (President, VP, …)
             <select className={cn(inputCls, 'mt-1')} value={position} onChange={(e) => setPosition(e.target.value)}>
               {[...new Set([r.post, ...POSTS].filter(Boolean))].map((p) => <option key={p}>{p}</option>)}
             </select>
-          </label>
+          </label> : <p className="self-end text-xs text-fg2">Listed as <b className="text-fg">{r.department} Ambassador</b> on the Ambassadors page.</p>}
           <div className="flex gap-2 sm:col-span-2">
             <button disabled={busy || !session.trim()} onClick={confirmSelect}
               className="flex items-center gap-1.5 rounded-lg bg-accent px-4 py-2 text-xs font-semibold text-white disabled:opacity-50">
@@ -109,10 +109,10 @@ function Card({ r }) {
       )}
 
       <div className="mt-4 flex flex-wrap gap-2 border-t border-line pt-4">
-        {r.type === 'committee' ? (
+        {r.type !== 'general' ? (
           <button disabled={busy} onClick={() => setPicking((p) => !p)}
             className="flex items-center gap-1.5 rounded-lg bg-accent/10 px-3 py-1.5 text-xs font-semibold text-accent hover:bg-accent/20">
-            <Crown size={13} /> Select for session
+            {r.type === 'ambassador' ? <Megaphone size={13} /> : <Crown size={13} />} Select for session
           </button>
         ) : (
           <button disabled={busy || r.status === 'approved'} onClick={() => run(() => setRegistrationStatus(r.id, 'approved'), 'Approved')}
@@ -162,7 +162,7 @@ export default function AdminApplications() {
       </div>
 
       <div className="mb-5 flex flex-wrap items-center gap-3">
-        {[['committee', Crown, 'Committee'], ['general', Users, 'General']].map(([k, Icon, label]) => (
+        {[['committee', Crown, 'Committee'], ['ambassador', Megaphone, 'Ambassador'], ['general', Users, 'General']].map(([k, Icon, label]) => (
           <button key={k} onClick={() => setType(k)}
             className={cn('flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition',
               type === k ? 'border-accent bg-accent text-white' : 'border-line text-fg2 hover:border-accent')}>

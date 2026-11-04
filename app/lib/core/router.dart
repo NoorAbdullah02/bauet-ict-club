@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+
+import 'theme.dart';
 
 import '../screens/about_screen.dart';
 import '../screens/achievements_screen.dart';
@@ -42,6 +45,12 @@ CustomTransitionPage<void> _slide(GoRouterState s, Widget child) => CustomTransi
       },
     );
 
+/// Admin pages use their own theme (white by default, toggle in each header).
+Widget _admin(Widget child) => Builder(builder: (context) {
+      final dark = context.select<AppState, bool>((s) => s.adminDark);
+      return Theme(data: buildTheme(dark ? Pal.darkPal : Pal.lightPal), child: child);
+    });
+
 GoRouter buildRouter(AppState state) {
   return GoRouter(
     initialLocation: '/splash',
@@ -73,12 +82,12 @@ GoRouter buildRouter(AppState state) {
       GoRoute(path: '/join/committee', pageBuilder: (c, s) => _slide(s, const JoinCommitteeScreen())),
       GoRoute(path: '/join/general', pageBuilder: (c, s) => _slide(s, const JoinGeneralScreen())),
       GoRoute(path: '/chat', pageBuilder: (c, s) => _slide(s, const ChatScreen())),
-      GoRoute(path: '/admin/login', pageBuilder: (c, s) => _slide(s, const AdminLoginScreen())),
-      GoRoute(path: '/admin', pageBuilder: (c, s) => _slide(s, const AdminHomeScreen())),
-      GoRoute(path: '/admin/applications', pageBuilder: (c, s) => _slide(s, const AdminApplicationsScreen())),
+      GoRoute(path: '/admin/login', pageBuilder: (c, s) => _slide(s, _admin(const AdminLoginScreen()))),
+      GoRoute(path: '/admin', pageBuilder: (c, s) => _slide(s, _admin(const AdminHomeScreen()))),
+      GoRoute(path: '/admin/applications', pageBuilder: (c, s) => _slide(s, _admin(const AdminApplicationsScreen()))),
       GoRoute(
         path: '/admin/data/:table',
-        pageBuilder: (c, s) => _slide(s, AdminCrudScreen(table: s.pathParameters['table'] ?? 'events')),
+        pageBuilder: (c, s) => _slide(s, _admin(AdminCrudScreen(table: s.pathParameters['table'] ?? 'events'))),
       ),
     ],
   );

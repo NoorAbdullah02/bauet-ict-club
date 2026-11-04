@@ -15,6 +15,7 @@ function detect(buf) {
 async function saveImage(buffer) {
   const ext = detect(buffer);
   if (!ext) throw Object.assign(new Error('Only JPG or PNG images are allowed'), { status: 400 });
+  console.warn('Cloudinary is not configured — saving photo on local disk (server/uploads). Set CLOUDINARY_* in .env to store photos on Cloudinary.');
   await fs.promises.mkdir(DIR, { recursive: true });
   const name = `${crypto.randomBytes(12).toString('hex')}.${ext}`;
   await fs.promises.writeFile(path.join(DIR, name), buffer, { flag: 'wx' });

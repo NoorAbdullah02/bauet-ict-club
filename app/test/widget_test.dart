@@ -54,8 +54,8 @@ void main() {
     });
 
     test('palettes use the club colours', () {
-      expect(Pal.darkPal.bg.toARGB32(), 0xFF0E1231);
-      expect(Pal.lightPal.bg.toARGB32(), 0xFFF2F1FF);
+      expect(Pal.darkPal.bg.toARGB32(), 0xFF07122B);
+      expect(Pal.lightPal.bg.toARGB32(), 0xFFF5F8FF);
     });
   });
 }

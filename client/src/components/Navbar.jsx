@@ -13,6 +13,7 @@ export const LINKS = [
   { to: '/events', label: 'Events' },
   { to: '/notices', label: 'Notices' },
   { to: '/team', label: 'Team' },
+  { to: '/ambassadors', label: 'Ambassadors' },
   { to: '/gallery', label: 'Gallery' },
   { to: '/achievements', label: 'Awards' },
   { to: '/contact', label: 'Contact' },
@@ -48,7 +49,7 @@ export default function Navbar() {
             {LINKS.map((l) => (
               <li key={l.to}>
                 <NavLink to={l.to} end={l.to === '/'}
-                  className={({ isActive }) => cn('relative block rounded-full px-3.5 py-2 text-[13px] font-medium transition-colors', isActive ? 'text-fg' : 'text-fg2 hover:text-fg')}>
+                  className={({ isActive }) => cn('relative block rounded-full px-3 py-2 text-[13px] font-medium transition-colors', isActive ? 'text-fg' : 'text-fg2 hover:text-fg')}>
                   {({ isActive }) => (<>
                     {isActive && <motion.span layoutId="nav-pill" transition={{ type: 'spring', stiffness: 380, damping: 32 }} className="absolute inset-0 -z-10 rounded-full bg-accent/10 ring-1 ring-accent/30" />}
                     {l.label}
