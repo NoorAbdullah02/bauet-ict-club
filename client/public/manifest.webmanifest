@@ -1,0 +1,13 @@
+{
+  "name": "BAUET ICT Club",
+  "short_name": "ICT Club",
+  "description": "Where Technology Meets Innovation. BAUET, Rajshahi.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#07122B",
+  "theme_color": "#1F4FD8",
+  "icons": [
+    { "src": "/favicon.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/favicon.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" }
+  ]
+}

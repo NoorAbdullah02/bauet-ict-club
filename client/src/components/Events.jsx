@@ -1,9 +1,10 @@
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
-import { Calendar, MapPin, Clock, Share2, Facebook, MessageCircle, Link, X as XIcon } from 'lucide-react';
+import { Calendar, MapPin, Clock, Share2, CalendarPlus, Facebook, MessageCircle, Link, X as XIcon } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import useStore from '../context/store';
+import { downloadIcs, eventStart } from '../lib/ics';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 40 },
@@ -134,6 +135,12 @@ export default function Events() {
                   </span>
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center', position: 'relative' }}>
                     {ev.category && <span className="badge badge-tech">{ev.category}</span>}
+                    {eventStart(ev) && eventStart(ev) > new Date() && (
+                      <button onClick={() => downloadIcs(ev)} title="Add to calendar" aria-label="Add to calendar"
+                        style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--accent-light)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <CalendarPlus size={14} />
+                      </button>
+                    )}
                     <button onClick={() => setShareOpen(shareOpen === ev.id ? null : ev.id)}
                       style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--accent-light)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <Share2 size={14} />

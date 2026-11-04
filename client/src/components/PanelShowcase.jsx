@@ -43,18 +43,18 @@ export default function PanelShowcase({ members }) {
         <div className="grid gap-6 lg:grid-cols-12">
           {/* President spotlight */}
           {president && (
-            <motion.div {...fade(1)} className="group relative overflow-hidden rounded-[32px] border border-line bg-surface shadow-[var(--shadow-lg)] lg:col-span-5">
-              <div className="aspect-[4/4.6] w-full overflow-hidden bg-alt"><Photo m={president} textSize="text-8xl" /></div>
+            <motion.div {...fade(1)} className="group relative overflow-hidden rounded-[28px] border border-line bg-surface shadow-[var(--shadow-lg)] lg:col-span-4 lg:self-start">
+              <div className="aspect-[4/3] max-h-64 w-full overflow-hidden bg-alt sm:aspect-[4/3.2] sm:max-h-none lg:aspect-[4/3.6]"><Photo m={president} textSize="text-6xl" /></div>
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#0A1A4A]/90 via-[#0A1A4A]/20 to-transparent" />
-              <div className="absolute inset-x-0 bottom-0 p-7">
+              <div className="absolute inset-x-0 bottom-0 p-5">
                 <span className="inline-block rounded-full bg-white/15 px-3.5 py-1 font-mono text-[10px] uppercase tracking-[0.22em] text-white backdrop-blur">{president.position}</span>
-                <h3 className="mt-3 font-display text-3xl leading-tight text-white sm:text-4xl">{president.name}</h3>
+                <h3 className="mt-3 font-display text-2xl leading-tight text-white sm:text-3xl">{president.name}</h3>
               </div>
             </motion.div>
           )}
 
           {/* core team */}
-          <div className={`grid grid-cols-2 gap-4 sm:grid-cols-3 ${president ? 'lg:col-span-7' : 'lg:col-span-12 lg:grid-cols-4'}`}>
+          <div className={`grid grid-cols-2 gap-4 sm:grid-cols-3 ${president ? 'lg:col-span-8' : 'lg:col-span-12 lg:grid-cols-4'}`}>
             {team.map((m, i) => (
               <motion.article key={m.id} {...fade(i + 2)} className="group relative overflow-hidden rounded-3xl border border-line bg-surface transition duration-500 hover:-translate-y-1.5 hover:border-accent/50 hover:shadow-[var(--shadow-lg)]">
                 <div className="aspect-[4/4.4] w-full overflow-hidden bg-alt"><Photo m={m} i={i} textSize="text-4xl" /></div>
@@ -73,8 +73,8 @@ export default function PanelShowcase({ members }) {
           <div className="mt-6 flex flex-wrap justify-center gap-5 [&>*]:min-w-0">
             {vps.map((v, i) => (
               <motion.article key={v.id} {...fade(i + 1)}
-                className="group relative w-full max-w-[22rem] flex-1 basis-64 overflow-hidden rounded-3xl border border-line bg-surface transition duration-500 hover:-translate-y-1.5 hover:border-tech/50 hover:shadow-[var(--shadow-lg)]">
-                <div className="aspect-[4/3.4] w-full overflow-hidden bg-alt"><Photo m={v} i={i + 1} textSize="text-6xl" /></div>
+                className="group relative w-full max-w-[19rem] flex-1 basis-56 overflow-hidden rounded-3xl border border-line bg-surface transition duration-500 hover:-translate-y-1.5 hover:border-tech/50 hover:shadow-[var(--shadow-lg)]">
+                <div className="aspect-[4/3] w-full overflow-hidden bg-alt"><Photo m={v} i={i + 1} textSize="text-5xl" /></div>
                 <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#0A1A4A]/90 via-[#0A1A4A]/10 to-transparent" />
                 <div className="absolute inset-x-0 bottom-0 p-5">
                   <span className="inline-block rounded-full bg-gradient-to-r from-accent to-tech px-3 py-1 font-mono text-[10px] font-semibold uppercase tracking-[0.18em] text-white">{v.position}</span>

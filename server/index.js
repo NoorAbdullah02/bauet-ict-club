@@ -106,10 +106,30 @@ app.use('/api/gallery', createCrudRouter('gallery', { columns: COLS.gallery, ima
 app.use('/api/achievements', createCrudRouter('achievements', { orderBy: 'date', orderDir: 'DESC', columns: COLS.achievements, auth: authMiddleware }));
 app.use('/api/posts', createCrudRouter('posts', { columns: COLS.posts, imageCols: ['image_url'], auth: authMiddleware }));
 const features = require('./features');
+
+// newsletter signup is public (rate limited, one row per email); reading or deleting subscribers needs an admin login
+const subscribeLimiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 10, standardHeaders: true, legacyHeaders: false, message: { error: 'Too many attempts. Please try again later.' } });
+app.post('/api/subscribers', subscribeLimiter, async (req, res) => {
+  const email = String(req.body?.email || '').trim().toLowerCase();
+  if (email.length > 200 || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return res.status(400).json({ error: 'Please enter a valid email address' });
+  try {
+    const dup = await pool.query('SELECT 1 FROM subscribers WHERE email = $1 AND deleted_at IS NULL', [email]);
+    if (!dup.rows.length) await pool.query('INSERT INTO subscribers (email) VALUES ($1)', [email]);
+    res.status(201).json({ success: true }); // same answer for new and existing emails
+  } catch (e) { console.error('subscribe failed:', e.message); res.status(500).json({ error: 'Could not subscribe right now' }); }
+});
+
 features.forEach((f) => {
-  app.use(`/api/${f.table}`, createCrudRouter(f.table, { orderBy: f.orderBy, orderDir: f.orderDir, columns: f.columns, imageCols: f.imageCols, validate: f.validate, auth: authMiddleware }));
+  app.use(`/api/${f.table}`, createCrudRouter(f.table, { orderBy: f.orderBy, orderDir: f.orderDir, columns: f.columns, imageCols: f.imageCols, validate: f.validate, readAuth: f.readAuth, auth: authMiddleware }));
   if (f.public) PUBLIC_LISTS.push(`/${f.table}`);
 });
+const SITE_PATHS = ['/', '/about', '/events', '/notices', '/projects', '/team', '/ambassadors', '/gallery', '/achievements', '/faq', '/contact', '/join', '/join/committee', '/join/general', '/join/ambassador'];
+const origin = (req) => process.env.PUBLIC_URL?.replace(/\/$/, '') || `${req.protocol}://${req.get('host')}`;
+app.get('/sitemap.xml', (req, res) => {
+  const base = origin(req);
+  res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${SITE_PATHS.map((p) => `  <url><loc>${base}${p}</loc></url>`).join('\n')}\n</urlset>\n`);
+});
+app.get('/robots.txt', (req, res) => res.type('text/plain').send(`User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /api/\nSitemap: ${origin(req)}/sitemap.xml\n`));
 app.use('/api/trash', require('./routes/trash'));
 app.use('/api/committees', require('./routes/committees'));
 app.use('/api/messages', require('./routes/messages'));

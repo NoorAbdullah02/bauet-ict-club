@@ -130,7 +130,15 @@ async function initDb() {
     `);
     // drop-in features (server/features/*.js) bring their own tables
     const features = require('../features');
-    for (const f of features) await client.query(f.sql);
+    for (const f of features) {
+      await client.query(f.sql);
+      if (f.seed?.length && !(await client.query(`SELECT 1 FROM ${f.table} LIMIT 1`)).rows.length) {
+        for (const row of f.seed) {
+          const keys = Object.keys(row);
+          await client.query(`INSERT INTO ${f.table} (${keys.join(',')}) VALUES (${keys.map((_, i) => `$${i + 1}`).join(',')})`, keys.map((k) => row[k]));
+        }
+      }
+    }
     // soft-delete support: every manageable table gets a deleted_at column
     for (const t of ['events', 'notices', 'members', 'gallery', 'achievements', 'posts', 'messages', 'registrations', ...features.map((f) => f.table)]) {
       await client.query(`ALTER TABLE ${t} ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ`);
