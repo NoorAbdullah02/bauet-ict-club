@@ -24,7 +24,9 @@ import '../screens/join/join_ambassador_screen.dart';
 import '../screens/join/join_committee_screen.dart';
 import '../screens/join/join_general_screen.dart';
 import '../screens/join/join_hub_screen.dart';
+import '../screens/faq_screen.dart';
 import '../screens/notices_screen.dart';
+import '../screens/projects_screen.dart';
 import '../screens/splash_screen.dart';
 import '../screens/team_screen.dart';
 import '../state/app_state.dart';
@@ -80,6 +82,8 @@ GoRouter buildRouter(AppState state) {
           GoRoute(path: '/ambassadors', pageBuilder: (c, s) => _fade(s, const AmbassadorsScreen())),
           GoRoute(path: '/gallery', pageBuilder: (c, s) => _fade(s, const GalleryScreen())),
           GoRoute(path: '/achievements', pageBuilder: (c, s) => _fade(s, const AchievementsScreen())),
+          GoRoute(path: '/projects', pageBuilder: (c, s) => _fade(s, const ProjectsScreen())),
+          GoRoute(path: '/faq', pageBuilder: (c, s) => _fade(s, const FaqScreen())),
           GoRoute(path: '/about', pageBuilder: (c, s) => _fade(s, const AboutScreen())),
           GoRoute(path: '/contact', pageBuilder: (c, s) => _fade(s, const ContactScreen())),
           GoRoute(path: '/join', pageBuilder: (c, s) => _fade(s, const JoinHubScreen())),

@@ -102,6 +102,9 @@ class Api {
     return url;
   }
 
+  /// Newsletter signup. Throws ApiException (400 invalid email, 429 rate limited).
+  Future<void> subscribe(String email) => _send(() => _dio.post('/subscribers', data: {'email': email}));
+
   Future<void> submitRegistration(Map<String, dynamic> body) => _send(() => _dio.post('/registrations', data: body));
 
   // ---- admin ----

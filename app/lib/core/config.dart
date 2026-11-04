@@ -30,7 +30,6 @@ const List<String> kCommitteePosts = [
   'President',
   'Vice President (Technical)',
   'Vice President (Administration)',
-  'Vice President',
   'General Secretary',
   'Assistant General Secretary',
   'Joint Secretary',
@@ -54,8 +53,8 @@ const List<String> kCommitteePosts = [
 ];
 
 const List<String> kDepartments = ['ICE', 'CSE', 'EEE', 'CE', 'ME', 'Other'];
-/// Departments an ambassador can represent ('Other' is not allowed).
-const List<String> kAmbassadorDepartments = ['ICE', 'CSE', 'EEE', 'CE', 'ME'];
+/// Departments an ambassador can represent.
+const List<String> kAmbassadorDepartments = ['ICE', 'CSE', 'EEE', 'CE', 'ME', 'Other'];
 const String kAmbassadorPost = 'Department Ambassador';
 const List<String> kGenders = ['Male', 'Female', 'Other'];
 const List<String> kLevels = ['Beginner', 'Intermediate', 'Advanced'];

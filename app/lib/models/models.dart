@@ -85,7 +85,7 @@ class Member {
 
   bool get isLeader {
     final p = position.toLowerCase().trim();
-    return p == 'president' || p.startsWith('vice president');
+    return p == 'president' || p.startsWith('vice president') || p.startsWith('vp');
   }
 
   bool get isChief => position.toLowerCase().trim().startsWith('chief executive');
@@ -125,6 +125,61 @@ class Achievement {
   final DateTime? date;
   final String description;
   final String icon;
+}
+
+class ProjectItem {
+  ProjectItem.fromJson(Map<String, dynamic> j)
+      : id = _i(j['id']),
+        title = _s(j['title']),
+        summary = _s(j['summary']),
+        tech = _s(j['tech']).split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList(),
+        status = _s(j['status']).isEmpty ? 'Active' : _s(j['status']),
+        team = _s(j['team']),
+        liveUrl = _s(j['live_url']),
+        repoUrl = _s(j['repo_url']),
+        imageUrl = AppConfig.resolve(_s(j['image_url'])),
+        featured = _b(j['featured']);
+
+  final int id;
+  final String title;
+  final String summary;
+  final List<String> tech;
+  final String status;
+  final String team;
+  final String liveUrl;
+  final String repoUrl;
+  final String imageUrl;
+  final bool featured;
+}
+
+class FaqItem {
+  FaqItem.fromJson(Map<String, dynamic> j)
+      : id = _i(j['id']),
+        question = _s(j['question']),
+        answer = _s(j['answer']),
+        order = _i(j['sort_order']);
+
+  final int id;
+  final String question;
+  final String answer;
+  final int order;
+}
+
+class Sponsor {
+  Sponsor.fromJson(Map<String, dynamic> j)
+      : id = _i(j['id']),
+        name = _s(j['name']),
+        website = _s(j['website']),
+        logoUrl = AppConfig.resolve(_s(j['logo_url'])),
+        tier = _s(j['tier']),
+        order = _i(j['sort_order']);
+
+  final int id;
+  final String name;
+  final String website;
+  final String logoUrl;
+  final String tier;
+  final int order;
 }
 
 class SiteSettings {

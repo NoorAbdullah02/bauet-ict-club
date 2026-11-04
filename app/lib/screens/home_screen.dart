@@ -11,6 +11,8 @@ import '../models/models.dart';
 import '../state/app_state.dart';
 import '../widgets/coder.dart';
 import '../widgets/common.dart';
+import '../widgets/countdown.dart';
+import '../widgets/newsletter.dart';
 import 'events_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -50,6 +52,13 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         children: [
           _Hero(scroll: _scroll, orbit: _orbit, blurb: blurb),
           const Padding(padding: EdgeInsets.symmetric(horizontal: 20), child: TerminalCard()),
+          if (upcoming.isNotEmpty) ...[
+            const SizedBox(height: 18),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: CountdownCard(event: upcoming.first, onTap: () => showEventSheet(context, upcoming.first)).stagger(0),
+            ),
+          ],
           const SizedBox(height: 18),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -119,7 +128,36 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 ? const EmptyState(icon: Icons.campaign_outlined, title: 'No notices right now')
                 : Column(children: [for (var i = 0; i < notices.length; i++) _NoticeTile(notice: notices[i]).stagger(i)]),
           ),
+          if (state.sponsors.isNotEmpty) ...[
+            const SizedBox(height: 30),
+            const Padding(padding: EdgeInsets.symmetric(horizontal: 20), child: CodeLabel('supported by')),
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 64,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                itemCount: state.sponsors.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 12),
+                itemBuilder: (_, i) {
+                  final s = state.sponsors[i];
+                  return GestureDetector(
+                    onTap: s.website.isEmpty ? null : () => openUrl(context, normalizeLink(s.website)),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 18),
+                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: p.line)),
+                      child: s.logoUrl.isNotEmpty
+                          ? SizedBox(width: 90, child: NetImage(s.logoUrl, fit: BoxFit.contain, fallbackLabel: s.name))
+                          : Center(child: Text(s.name, style: bodyStyle(context, color: const Color(0xFF0A1A3F), weight: FontWeight.w700, size: 13))),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
           const SizedBox(height: 28),
+          const Padding(padding: EdgeInsets.symmetric(horizontal: 20), child: NewsletterBox()),
+          const SizedBox(height: 14),
           Padding(padding: const EdgeInsets.symmetric(horizontal: 20), child: const _JoinCta().stagger(0)),
           if (state.offline)
             Padding(

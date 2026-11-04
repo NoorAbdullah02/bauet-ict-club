@@ -23,6 +23,9 @@ class AppState extends ChangeNotifier {
   List<Member> members = [];
   List<GalleryItem> gallery = [];
   List<Achievement> achievements = [];
+  List<ProjectItem> projects = [];
+  List<FaqItem> faqs = [];
+  List<Sponsor> sponsors = [];
   SiteSettings settings = const SiteSettings();
 
   bool loading = true;
@@ -118,6 +121,9 @@ class AppState extends ChangeNotifier {
       guard(() async => members = await _fetch('members', Member.fromJson, fresh: fresh)),
       guard(() async => gallery = await _fetch('gallery', GalleryItem.fromJson, fresh: fresh)),
       guard(() async => achievements = await _fetch('achievements', Achievement.fromJson, fresh: fresh)),
+      guard(() async => projects = await _fetch('projects', ProjectItem.fromJson, fresh: fresh)),
+      guard(() async => faqs = (await _fetch('faqs', FaqItem.fromJson, fresh: fresh))..sort((a, b) => a.order.compareTo(b.order))),
+      guard(() async => sponsors = (await _fetch('sponsors', Sponsor.fromJson, fresh: fresh))..sort((a, b) => a.order.compareTo(b.order))),
       guard(() async => settings = SiteSettings.fromJson(await _fetchSettings(fresh: fresh))),
     ]);
     error = firstError;

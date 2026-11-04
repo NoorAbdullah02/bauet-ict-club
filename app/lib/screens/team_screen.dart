@@ -29,7 +29,15 @@ class _TeamScreenState extends State<TeamScreen> {
     List<Member> pick(bool Function(Member) test) =>
         state.teamMembers.where((m) => (active == null || m.session == active) && test(m)).toList()..sort((a, b) => a.order.compareTo(b.order));
 
-    final leaders = pick((m) => m.isLeader);
+    int rank(Member m) {
+      final p = m.position.toLowerCase();
+      if (p.trim() == 'president') return 0;
+      if (p.contains('technical')) return 1;
+      if (p.contains('administration')) return 2;
+      return 3;
+    }
+
+    final leaders = pick((m) => m.isLeader)..sort((a, b) => rank(a) != rank(b) ? rank(a).compareTo(rank(b)) : a.order.compareTo(b.order));
     final core = pick((m) => m.isCore);
     final chiefs = pick((m) => m.isChief);
     final execs = pick((m) => m.isExecutive);
