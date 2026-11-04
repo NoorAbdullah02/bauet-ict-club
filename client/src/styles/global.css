@@ -395,8 +395,6 @@ body.admin-mode .cursor-glow { display: none; }
 /* ==========================================================
    Polish layer
    ========================================================== */
-@keyframes orbDrift { 0%,100% { transform: translate3d(0,0,0) scale(1); } 50% { transform: translate3d(-24px,18px,0) scale(1.08); } }
-.hero-orb { animation: orbDrift 14s ease-in-out infinite; }
 
 /* faint blueprint grid fading out toward the edges of the hero */
 .hero-grid {
