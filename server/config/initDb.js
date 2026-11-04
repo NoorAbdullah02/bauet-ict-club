@@ -153,6 +153,61 @@ async function initDb() {
     await client.query('ALTER TABLE registrations DROP CONSTRAINT IF EXISTS registrations_type_student_id_key');
     await client.query('CREATE UNIQUE INDEX IF NOT EXISTS uq_reg_type_email ON registrations (type, email) WHERE deleted_at IS NULL');
     await client.query('CREATE UNIQUE INDEX IF NOT EXISTS uq_reg_type_student ON registrations (type, student_id) WHERE deleted_at IS NULL');
+    // event sign-ups: every event can have its own registration link and list
+    await client.query(`
+      ALTER TABLE events ADD COLUMN IF NOT EXISTS reg_url TEXT;
+      ALTER TABLE events ADD COLUMN IF NOT EXISTS capacity INTEGER;
+      ALTER TABLE events ADD COLUMN IF NOT EXISTS reg_open BOOLEAN DEFAULT true;
+      ALTER TABLE events ADD COLUMN IF NOT EXISTS reg_form JSONB;
+      CREATE TABLE IF NOT EXISTS event_registrations (
+        id SERIAL PRIMARY KEY,
+        event_id INTEGER NOT NULL,
+        full_name VARCHAR(100),
+        student_id VARCHAR(30),
+        email VARCHAR(100),
+        phone VARCHAR(20),
+        department VARCHAR(30),
+        batch VARCHAR(10),
+        note VARCHAR(300),
+        answers JSONB,
+        is_demo BOOLEAN DEFAULT false,
+        deleted_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+      ALTER TABLE event_registrations ADD COLUMN IF NOT EXISTS answers JSONB;
+      ALTER TABLE event_registrations ADD COLUMN IF NOT EXISTS payment JSONB;
+      ALTER TABLE event_registrations ADD COLUMN IF NOT EXISTS pay_status VARCHAR(12) DEFAULT 'none';
+      ALTER TABLE event_registrations ADD COLUMN IF NOT EXISTS admin_note VARCHAR(300);
+      CREATE INDEX IF NOT EXISTS idx_event_regs_event ON event_registrations (event_id, created_at);
+    `);
+    // stand-alone forms (surveys, feedback, recruitment...) built in Admin -> Forms, each with its own public link /f/<slug>
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS forms (
+        id SERIAL PRIMARY KEY,
+        slug VARCHAR(80) UNIQUE NOT NULL,
+        title VARCHAR(200) NOT NULL,
+        description TEXT,
+        reg_form JSONB,
+        capacity INTEGER,
+        is_open BOOLEAN DEFAULT true,
+        is_demo BOOLEAN DEFAULT false,
+        deleted_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+      CREATE TABLE IF NOT EXISTS form_responses (
+        id SERIAL PRIMARY KEY,
+        form_id INTEGER NOT NULL,
+        full_name VARCHAR(100),
+        email VARCHAR(100),
+        answers JSONB,
+        payment JSONB,
+        pay_status VARCHAR(12) DEFAULT 'none',
+        admin_note VARCHAR(300),
+        deleted_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_form_responses_form ON form_responses (form_id, created_at);
+    `);
     // website visits (IP, page, device) for the admin Visitors page
     await client.query(`
       CREATE TABLE IF NOT EXISTS page_views (

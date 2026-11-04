@@ -11,6 +11,7 @@ import { askConfirm, toastTrashed } from '../admin/ui';
 import { cn } from '../lib/cn';
 import { Donut, HBars, VBars, tally } from '../admin/charts';
 import { POSTS } from '../lib/posts';
+import { saveFile } from '../lib/download';
 
 
 const STATUS_STYLE = {
@@ -355,6 +356,7 @@ export default function AdminApplications() {
         <h2 className="font-display text-2xl font-bold">Applications</h2>
         <div className="flex flex-wrap items-center gap-2">
           <label className="mr-1 flex cursor-pointer items-center gap-2 text-xs text-fg2"><input type="checkbox" checked={allTypes} onChange={(e) => setAllTypes(e.target.checked)} className="accent-[#1F4FD8]" /> All types in PDF/Word</label>
+          <button onClick={() => saveFile('/registrations/zip', { type: allTypes ? 'all' : type, status, q }, `applications-${allTypes ? 'all' : type}.zip`)} disabled={!rows.length} title="The list as PDF, Word and CSV plus every applicant's photo in full quality" className="flex items-center gap-2 rounded-lg border border-accent bg-accent/10 px-4 py-2 text-xs font-semibold text-accent hover:bg-accent hover:text-white disabled:opacity-40"><Download size={14} /> ZIP with photos</button>
           {[['PDF', FileText, () => exportDoc('pdf', { type: allTypes ? 'all' : type, status, q })], ['Word', FileType2, () => exportDoc('docx', { type: allTypes ? 'all' : type, status, q })], ['CSV', Download, () => exportCsv(rows, type)]].map(([label, Icon, fn]) => (
             <button key={label} onClick={fn} disabled={!rows.length}
               className="flex items-center gap-2 rounded-lg border border-line px-4 py-2 text-xs font-semibold text-fg2 hover:border-tech hover:text-tech disabled:opacity-40">
@@ -407,6 +409,7 @@ export default function AdminApplications() {
               <button disabled={bulkBusy} onClick={() => bulk('reject')} className="flex items-center gap-1.5 rounded-lg bg-amber-500/10 px-3 py-1.5 text-xs font-semibold text-amber-600 disabled:opacity-40"><X size={13} /> Reject</button>
               <button disabled={bulkBusy} onClick={() => bulk('trash')} className="flex items-center gap-1.5 rounded-lg bg-red-500/10 px-3 py-1.5 text-xs font-semibold text-red-600 disabled:opacity-40"><Trash2 size={13} /> Trash</button>
               <button onClick={() => exportDoc('pdf', { type, status, q, ids: picked.map((r) => r.id) })} className="flex items-center gap-1.5 rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-fg2 hover:border-tech hover:text-tech"><FileText size={13} /> PDF</button>
+              <button onClick={() => saveFile('/registrations/zip', { type, status, q, ids: picked.map((r) => r.id).join(',') }, 'applications-selected.zip')} className="flex items-center gap-1.5 rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-fg2 hover:border-tech hover:text-tech"><Download size={13} /> ZIP + photos</button>
               <button onClick={() => exportDoc('docx', { type, status, q, ids: picked.map((r) => r.id) })} className="flex items-center gap-1.5 rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-fg2 hover:border-tech hover:text-tech"><FileType2 size={13} /> Word</button>
               <button onClick={() => emailDoc('pdf', { type, status, q, ids: picked.map((r) => r.id) }, mailTo.trim())} className="flex items-center gap-1.5 rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-fg2 hover:border-tech hover:text-tech"><Mail size={13} /> Email PDF</button>
               {bulkBusy && <Loader2 size={15} className="animate-spin text-muted" />}

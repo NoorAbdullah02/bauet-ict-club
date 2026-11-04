@@ -13,6 +13,8 @@ const AdminApp = lazy(() => import('./admin/AdminApp'));
 const named = (name) => lazy(() => import('./pages/Pages').then((m) => ({ default: m[name] })));
 const AboutPage = named('AboutPage');
 const EventsPage = named('EventsPage');
+const EventDetailPage = named('EventDetailPage');
+const FormPageRoute = named('FormPageRoute');
 const NoticesPage = named('NoticesPage');
 const TeamPage = named('TeamPage');
 const GalleryPage = named('GalleryPage');
@@ -131,6 +133,8 @@ export default function App() {
           <Route index element={<Home />} />
           <Route path="about" element={<AboutPage />} />
           <Route path="events" element={<EventsPage />} />
+          <Route path="events/:id" element={<EventDetailPage />} />
+          <Route path="f/:slug" element={<FormPageRoute />} />
           <Route path="notices" element={<NoticesPage />} />
           <Route path="team" element={<TeamPage />} />
           <Route path="gallery" element={<GalleryPage />} />

@@ -53,6 +53,8 @@ export function FormField({ field, value, onChange, upload }) {
   const { uploadImage } = useStore(useShallow((s) => ({ uploadImage: s.uploadImage })));
   const [busy, setBusy] = useState(false);
   const [editing, setEditing] = useState(null); // picture waiting in the crop / resize editor
+  const [other, setOther] = useState(false); // "Other" chosen in a select that allows typing a value
+  const custom = field.allowOther && (other || (!!value && !field.options?.includes(value)));
   const label = <span className="mb-1.5 block font-mono text-[11px] uppercase tracking-[0.14em] text-fg2">{field.label}{field.required && <span className="text-accent"> *</span>}</span>;
   const set = (v) => onChange(field.key, v);
 
@@ -95,6 +97,14 @@ export function FormField({ field, value, onChange, upload }) {
     <label className="mb-4 block">
       {label}
       {field.type === 'textarea' ? <textarea className={cn(inputCls, 'min-h-28 resize-y')} value={value || ''} required={field.required} onChange={(e) => set(e.target.value)} />
+        : field.type === 'select' && field.allowOther ? (
+          <div className="space-y-2">
+            <Select className={inputCls} value={custom ? '__other' : value || ''} onChange={(e) => { if (e.target.value === '__other') { setOther(true); set(''); } else { setOther(false); set(e.target.value); } }}>
+              <option value="">Select…</option>{field.options.map((o) => <option key={o}>{o}</option>)}<option value="__other">Other (type your own)…</option>
+            </Select>
+            {custom && <input className={inputCls} autoFocus placeholder="Type the category" value={value || ''} maxLength={50} onChange={(e) => set(e.target.value)} />}
+          </div>
+        )
         : field.type === 'select' ? (
           <Select className={inputCls} value={value || ''} onChange={(e) => set(e.target.value)}>
             <option value="">Select…</option>{field.options.map((o) => (typeof o === 'string' ? <option key={o}>{o}</option> : <option key={o.value} value={o.value}>{o.label}</option>))}

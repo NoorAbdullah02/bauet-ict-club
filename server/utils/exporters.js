@@ -57,7 +57,7 @@ async function photoOf(url) {
       if (!fs.existsSync(file)) return null;
       buf = fs.readFileSync(file);
     } else if (/^https:\/\//.test(url)) {
-      const src = /res\.cloudinary\.com\/.+\/upload\//.test(url) && !url.includes('/upload/w_') ? url.replace('/upload/', '/upload/w_240,h_240,c_fill,g_face,f_jpg,q_auto/') : url;
+      const src = /res\.cloudinary\.com\/.+\/upload\//.test(url) && !url.includes('/upload/w_') ? url.replace('/upload/', '/upload/w_700,h_700,c_fill,g_face,f_jpg,q_90/') : url;
       const ctl = new AbortController();
       const timer = setTimeout(() => ctl.abort(), 4000);
       const res = await fetch(src, { signal: ctl.signal }).finally(() => clearTimeout(timer));
@@ -236,4 +236,61 @@ async function toDocx(rows, filter) {
   }));
 }
 
-module.exports = { toPdf, toDocx, fieldsOf };
+/** A plain branded table as PDF. cols: [[heading, key | (row) => text]] */
+async function tableToPdf(title, sub, cols, rows) {
+  const doc = new PDFDocument({ size: 'A4', layout: 'landscape', margin: 36, bufferPages: true, info: { Title: title, Author: 'BAUET ICT Club' } });
+  const chunks = [];
+  doc.on('data', (c) => chunks.push(c));
+  const done = new Promise((resolve) => doc.on('end', () => resolve(Buffer.concat(chunks))));
+  doc.registerFont('bn', path.join(FONTS, 'NotoSansBengali-Regular.ttf'));
+  const face = (t, b) => (BN.test(t) ? 'bn' : (b ? 'Helvetica-Bold' : 'Helvetica'));
+  const W = doc.page.width - 72;
+  doc.rect(0, 0, doc.page.width, 74).fill('#0A1A4A');
+  doc.rect(0, 74, doc.page.width, 3).fill('#17A2D8');
+  doc.fillColor('#FFFFFF').font(face(title, true)).fontSize(17).text(title, 36, 20, { width: W, lineBreak: false, ellipsis: true });
+  doc.fillColor('#BFD3FF').font(face(sub)).fontSize(9.5).text(sub, 36, 46, { width: W, lineBreak: false, ellipsis: true });
+  const widths = cols.map((c) => (c[0] === 'Email' ? 2.2 : c[0] === 'Name' ? 1.8 : 1));
+  const total = widths.reduce((a, b) => a + b, 0);
+  const cw = widths.map((w) => (w / total) * (W - 24));
+  let y = 94;
+  const head = () => {
+    doc.rect(36, y, W, 20).fill('#EEF3FF');
+    let x = 36; doc.fillColor('#0A1A4A').font('Helvetica-Bold').fontSize(8.5);
+    doc.text('#', x + 6, y + 6, { width: 20, lineBreak: false }); x += 24;
+    cols.forEach(([h], i) => { doc.text(h.toUpperCase(), x + 4, y + 6, { width: cw[i] - 6, lineBreak: false }); x += cw[i]; });
+    y += 20;
+  };
+  head();
+  rows.forEach((r, n) => {
+    if (y + 20 > doc.page.height - 50) { doc.addPage(); y = 40; head(); }
+    if (n % 2) doc.rect(36, y, W, 20).fill('#F8FAFF');
+    let x = 36; doc.fillColor('#5B6B8C').font('Helvetica').fontSize(8.5).text(String(n + 1), x + 6, y + 6, { width: 20, lineBreak: false }); x += 24;
+    cols.forEach(([, k], i) => { const v = clean(typeof k === 'function' ? k(r) : r[k]); doc.fillColor('#111827').font(face(v)).fontSize(9).text(v, x + 4, y + 5.5, { width: cw[i] - 8, height: 12, ellipsis: true, lineBreak: false }); x += cw[i]; });
+    y += 20;
+  });
+  if (!rows.length) doc.fillColor('#5B6B8C').font('Helvetica').fontSize(11).text('Nobody has registered yet.', 36, y + 12);
+  const range = doc.bufferedPageRange();
+  for (let p = range.start; p < range.start + range.count; p += 1) {
+    doc.switchToPage(p); doc.page.margins.bottom = 0;
+    doc.fillColor('#8A97B4').font('Helvetica').fontSize(8).text(`BAUET ICT Club · page ${p - range.start + 1} of ${range.count}`, 36, doc.page.height - 28, { width: W, align: 'right', lineBreak: false });
+  }
+  doc.end();
+  return done;
+}
+
+/** A plain table as a Word document. */
+async function tableToDocx(title, sub, cols, rows) {
+  const head = new TableRow({ tableHeader: true, children: [cell('#', { w: 5, bold: true, fill: 'EEF3FF', color: '0A1A4A', size: 18 }), ...cols.map(([h]) => cell(h, { w: Math.floor(95 / cols.length), bold: true, fill: 'EEF3FF', color: '0A1A4A', size: 18 }))] });
+  const body = rows.map((r, n) => new TableRow({ cantSplit: true, children: [cell(String(n + 1), { w: 5, size: 18 }), ...cols.map(([, k]) => cell(clean(typeof k === 'function' ? k(r) : r[k]), { w: Math.floor(95 / cols.length), size: 18 }))] }));
+  return Packer.toBuffer(new Document({
+    creator: 'BAUET ICT Club', title,
+    styles: { default: { document: { run: { font: 'Calibri', size: 20 } } } },
+    sections: [{ properties: { page: { size: { orientation: 'landscape' }, margin: { top: 900, bottom: 900, left: 800, right: 800 } } }, children: [
+      new Paragraph({ children: [run(title, { size: 36, bold: true, color: '0A1A4A' })], spacing: { after: 60 } }),
+      new Paragraph({ children: [run(sub, { size: 20, color: '5B6B8C' })], spacing: { after: 220 } }),
+      new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: [head, ...body] }),
+    ] }],
+  }));
+}
+
+module.exports = { toPdf, toDocx, fieldsOf, tableToPdf, tableToDocx };

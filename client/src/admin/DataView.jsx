@@ -2,12 +2,15 @@ import { useEffect, useMemo, useState } from 'react';
 import { formalDate, formalTime } from '../lib/format';
 import { useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { Plus, Pencil, Trash2, Search, Loader2, Save, Rocket, ArrowRightLeft } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, Loader2, Save, Rocket, ArrowRightLeft, Link2, Users, ClipboardList } from 'lucide-react';
 import useStore from '../context/store';
 import { TYPES } from './config';
 import LaunchCommittee from './LaunchCommittee';
 import TransferPeople from './TransferPeople';
 import CommitteeOverview from './CommitteeOverview';
+import EventRegistrations from './EventRegistrations';
+import FormBuilder from './FormBuilder';
+import { eventLink, copyText } from '../lib/share';
 import { sessionRank } from '../lib/sessions';
 import { Panel, PageTitle, Drawer, FormField, inputCls, askConfirm, toastTrashed } from './ui';
 
@@ -28,6 +31,8 @@ export default function DataView({ type }) {
   const [launching, setLaunching] = useState(false);
   const [transferring, setTransferring] = useState(false);
   const [transferFrom, setTransferFrom] = useState('');
+  const [regEvent, setRegEvent] = useState(null);
+  const [formEvent, setFormEvent] = useState(null);
   const sessions = useStore((s) => s.sessions);
   const fields = useMemo(() => cfg.fields.map((f) => (f.dynamic === 'sessions' ? { ...f, options: sessions.map((x) => x.label).sort((a, b) => sessionRank(b) - sessionRank(a)) } : f)), [cfg, sessions]);
   const [form, setForm] = useState({});
@@ -38,7 +43,7 @@ export default function DataView({ type }) {
   const rows = useMemo(() => items.filter((i) => !q || JSON.stringify(i).toLowerCase().includes(q.toLowerCase())), [items, q]);
 
   const today = new Date().toISOString().slice(0, 10);
-  const openAdd = () => { setForm(cfg.fields.some((f) => f.key === 'date') ? { date: today } : {}); setDrawer({ mode: 'add' }); };
+  const openAdd = () => { setForm({ ...(cfg.fields.some((f) => f.key === 'date') ? { date: today } : {}), ...(type === 'events' ? { reg_open: true } : {}) }); setDrawer({ mode: 'add' }); };
 
   // dashboard shortcuts (…/notices?new=1) open the form straight away
   useEffect(() => {
@@ -97,6 +102,9 @@ export default function DataView({ type }) {
                       </td>
                     ))}
                     <td className="px-5 py-3.5"><div className="flex justify-end gap-1.5">
+                      {type === 'events' && <button onClick={async () => toast[(await copyText(eventLink(item.id))) ? 'success' : 'error']('Registration link copied')} aria-label="Copy registration link" title="Copy registration link" className="grid size-8 place-items-center rounded-lg text-fg2 hover:bg-tech/15 hover:text-tech"><Link2 size={14} /></button>}
+                      {type === 'events' && !item.reg_url && <button onClick={() => setFormEvent(item)} aria-label="Edit registration form" title="Build the registration form" className="grid size-8 place-items-center rounded-lg text-fg2 hover:bg-tech/15 hover:text-tech"><ClipboardList size={14} /></button>}
+                      {type === 'events' && <button onClick={() => setRegEvent(item)} aria-label="See registrations" title="See who registered" className="grid size-8 place-items-center rounded-lg text-fg2 hover:bg-tech/15 hover:text-tech"><Users size={14} /></button>}
                       <button onClick={() => openEdit(item)} aria-label="Edit" className="grid size-8 place-items-center rounded-lg text-fg2 hover:bg-tech/15 hover:text-tech"><Pencil size={14} /></button>
                       <button onClick={() => remove(item)} aria-label="Delete" className="grid size-8 place-items-center rounded-lg text-fg2 hover:bg-red-500/15 hover:text-red-500"><Trash2 size={14} /></button>
                     </div></td>
@@ -108,6 +116,8 @@ export default function DataView({ type }) {
         )}
       </Panel>
 
+      {type === 'events' && <EventRegistrations event={regEvent} onClose={() => setRegEvent(null)} />}
+      {type === 'events' && <FormBuilder event={formEvent} onClose={() => setFormEvent(null)} />}
       {type === 'members' && <LaunchCommittee open={launching} onClose={() => setLaunching(false)} />}
       {type === 'members' && <TransferPeople open={transferring} initialFrom={transferFrom} onClose={() => { setTransferring(false); setTransferFrom(''); }} />}
       <Drawer open={!!drawer} title={`${drawer?.mode === 'add' ? 'Add' : 'Edit'} ${cfg.name}`} onClose={() => setDrawer(null)}

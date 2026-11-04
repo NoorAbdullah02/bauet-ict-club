@@ -14,6 +14,7 @@ const KINDS = {
   gallery: { label: 'Photo', title: (r) => r.title || 'Untitled photo', image: 'image_url' },
   achievements: { label: 'Achievement', title: (r) => r.title, image: 'image_url' },
   posts: { label: 'Post', title: (r) => r.title, image: 'image_url' },
+  event_registrations: { label: 'Event sign-up', title: (r) => r.full_name, sub: (r) => `event #${r.event_id}` },
   messages: { label: 'Message', title: (r) => r.subject || r.name, sub: (r) => r.email },
   registrations: { label: 'Application', title: (r) => r.full_name, sub: (r) => r.type, image: 'photo_url' },
 };
