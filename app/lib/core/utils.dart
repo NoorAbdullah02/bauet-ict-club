@@ -49,6 +49,23 @@ void showSnack(BuildContext context, String message, {bool error = false}) {
     ));
 }
 
+/// "Moved to Trash" snackbar with an Undo action.
+void showUndoSnack(BuildContext context, String message, Future<void> Function() onUndo) {
+  final m = ScaffoldMessenger.maybeOf(context);
+  if (m == null) return;
+  m
+    ..hideCurrentSnackBar()
+    ..showSnackBar(SnackBar(
+      duration: const Duration(seconds: 6),
+      content: Row(children: [
+        const Icon(Icons.delete_outline_rounded, size: 18, color: Color(0xFFFFC857)),
+        const SizedBox(width: 10),
+        Expanded(child: Text(message)),
+      ]),
+      action: SnackBarAction(label: 'Undo', onPressed: () => onUndo()),
+    ));
+}
+
 // ---- validators (mirror server/routes/registrations.js) ----
 
 final _emailRe = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');

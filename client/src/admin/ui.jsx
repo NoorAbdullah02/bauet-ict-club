@@ -9,7 +9,7 @@ import { cn } from '../lib/cn';
 export const inputCls = 'w-full rounded-xl border border-line bg-bg/60 px-4 py-2.5 text-sm text-fg outline-none transition placeholder:text-muted focus:border-tech focus:ring-4 focus:ring-tech/15';
 
 export function Panel({ className, children }) {
-  return <div className={cn('rounded-3xl border border-line bg-surface shadow-[var(--shadow-sm)]', className)}>{children}</div>;
+  return <div className={cn('min-w-0 rounded-3xl border border-line bg-surface shadow-[var(--shadow-sm)]', className)}>{children}</div>;
 }
 
 export function PageTitle({ title, sub, children }) {

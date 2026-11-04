@@ -73,14 +73,14 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4 [&>*]:min-w-0">
         <Stat i={0} icon={ClipboardList} label="Pending applications" value={pending} hint="needs review" color="linear-gradient(135deg,#1F4FD8,#2E7BFF)" />
         <Stat i={1} icon={Users} label="Total applicants" value={registrations.length} hint="all time" color="linear-gradient(135deg,#12A8D8,#1F4FD8)" />
         <Stat i={2} icon={Calendar} label="Upcoming events" value={upcoming.length} hint="scheduled" color="linear-gradient(135deg,#0E9F6E,#12A8D8)" />
         <Stat i={3} icon={MessageSquare} label="Unread messages" value={unread} hint="inbox" color="linear-gradient(135deg,#F5A524,#EF6B8A)" />
       </div>
 
-      <div className="mt-6 grid gap-6 xl:grid-cols-[1.6fr_1fr]">
+      <div className="mt-6 grid gap-6 xl:grid-cols-[1.6fr_1fr] [&>*]:min-w-0">
         <Panel className="p-6">
           <div className="mb-4 flex items-center justify-between"><h3 className="text-xl text-fg">Applications · last 14 days</h3>
             <div className="flex gap-4 text-xs text-fg2"><span className="flex items-center gap-1.5"><i className="size-2 rounded-full" style={{ background: C.a }} />Committee</span><span className="flex items-center gap-1.5"><i className="size-2 rounded-full" style={{ background: C.b }} />General</span></div></div>
@@ -120,7 +120,7 @@ export default function Dashboard() {
         </Panel>
       </div>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+      <div className="mt-6 grid gap-6 lg:grid-cols-2 [&>*]:min-w-0">
         <Panel className="p-6">
           <div className="mb-4 flex items-center justify-between"><h3 className="text-xl text-fg">Recent applications</h3><Link to="/admin/applications" className="flex items-center gap-1 text-xs font-semibold text-accent">View all <ArrowUpRight size={13} /></Link></div>
           {recent.length === 0 ? <p className="text-sm text-muted">No applications yet.</p> : (

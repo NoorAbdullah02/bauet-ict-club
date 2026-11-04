@@ -36,7 +36,7 @@ export default function HomeSections() {
   return (
     <>
       <section className="section !pb-6">
-        <div className="container grid items-center gap-12 lg:grid-cols-[1fr_1.1fr]">
+        <div className="container grid items-center gap-12 lg:grid-cols-[1fr_1.1fr] [&>*]:min-w-0">
           <div>
             <div className="section-tag !mb-4">the club, in code</div>
             <h2 className="text-[clamp(2.2rem,5vw,3.6rem)] leading-[1.02] text-fg">Born in the terminal. <span className="bg-clip-text text-transparent grad-anim" style={{ backgroundImage: 'var(--grad-text)' }}>Built for builders.</span></h2>
@@ -65,7 +65,7 @@ export default function HomeSections() {
       <PanelShowcase members={members} />
 
       <section className="section">
-        <div className="container grid gap-12 lg:grid-cols-[1.5fr_1fr]">
+        <div className="container grid gap-12 lg:grid-cols-[1.5fr_1fr] [&>*]:min-w-0">
           <div>
             <Head tag="Don’t miss" title="Upcoming events" to="/events" cta="All events" />
             <div className="space-y-3">
