@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 import { Image, X } from 'lucide-react';
+import { useShallow } from 'zustand/react/shallow';
 import useStore from '../context/store';
 
 const fadeUp = {
@@ -10,7 +11,7 @@ const fadeUp = {
 };
 
 export default function Gallery() {
-  const { gallery } = useStore();
+  const { gallery } = useStore(useShallow((s) => ({ gallery: s.gallery })));
   const [lightbox, setLightbox] = useState(null);
   const [filter, setFilter] = useState('all');
   const [ref, inView] = useInView({ threshold: 0.05, triggerOnce: true });

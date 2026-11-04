@@ -1,0 +1,578 @@
+[
+ {
+  "session": "Summer 2026",
+  "name": "Dr. Md. Rubel Bashar",
+  "position": "President",
+  "department": "ICE",
+  "batch": null,
+  "order": 1
+ },
+ {
+  "session": "Summer 2026",
+  "name": "Mehedi Hasan Imran",
+  "position": "Vice President",
+  "department": "ICE",
+  "batch": null,
+  "order": 2
+ },
+ {
+  "session": "Summer 2026",
+  "name": "Nasirul Mumenin",
+  "position": "Vice President",
+  "department": "ICE",
+  "batch": null,
+  "order": 3
+ },
+ {
+  "session": "Summer 2026",
+  "name": "Mursheda Nusrat Della",
+  "position": "Vice President",
+  "department": "ICE",
+  "batch": null,
+  "order": 4
+ },
+ {
+  "session": "Summer 2026",
+  "name": "Naimur Islam Durjoy",
+  "position": "General Secretary",
+  "department": "ICE",
+  "batch": "8th",
+  "order": 5
+ },
+ {
+  "session": "Summer 2026",
+  "name": "Arin Jahan Akhi",
+  "position": "Asst. General Secretary",
+  "department": "ICE",
+  "batch": "9th",
+  "order": 6
+ },
+ {
+  "session": "Summer 2026",
+  "name": "Mubasshera Akter",
+  "position": "Joint Secretary",
+  "department": "ICE",
+  "batch": "8th",
+  "order": 7
+ },
+ {
+  "session": "Summer 2026",
+  "name": "Sadia Fahmida Sania",
+  "position": "Joint Secretary",
+  "department": "ICE",
+  "batch": "9th",
+  "order": 8
+ },
+ {
+  "session": "Summer 2026",
+  "name": "A. S. M. Eftekhar Ahmed Mitul",
+  "position": "Organizing Secretary",
+  "department": "ICE",
+  "batch": "8th",
+  "order": 9
+ },
+ {
+  "session": "Summer 2026",
+  "name": "Zannatul Ferdous",
+  "position": "Treasurer",
+  "department": "ICE",
+  "batch": "8th",
+  "order": 10
+ },
+ {
+  "session": "Summer 2026",
+  "name": "Tamanna Fazila Taki",
+  "position": "Chief Executive (HR)",
+  "department": "ICE",
+  "batch": "9th",
+  "order": 11
+ },
+ {
+  "session": "Summer 2026",
+  "name": "Md. Emamul Mursalin",
+  "position": "Chief Executive (Logistics)",
+  "department": "ICE",
+  "batch": "9th",
+  "order": 12
+ },
+ {
+  "session": "Summer 2026",
+  "name": "Sanzana Islam",
+  "position": "Chief Executive (Development)",
+  "department": "ICE",
+  "batch": "8th",
+  "order": 13
+ },
+ {
+  "session": "Summer 2026",
+  "name": "Gol-E-Zannat Keya",
+  "position": "Chief Executive (Event Planning)",
+  "department": "ICE",
+  "batch": "9th",
+  "order": 14
+ },
+ {
+  "session": "Summer 2026",
+  "name": "Jannatul Habiba",
+  "position": "Chief Executive (Public Relations)",
+  "department": "ICE",
+  "batch": "9th",
+  "order": 15
+ },
+ {
+  "session": "Summer 2026",
+  "name": "Nishat Aunjum Nury",
+  "position": "Chief Executive (Cultural)",
+  "department": "ICE",
+  "batch": "11th",
+  "order": 16
+ },
+ {
+  "session": "Summer 2026",
+  "name": "Noshin Anzum",
+  "position": "Chief Executive (Media)",
+  "department": "ICE",
+  "batch": "9th",
+  "order": 17
+ },
+ {
+  "session": "Summer 2026",
+  "name": "Khandakar Zarin Tasnia",
+  "position": "Executive (Logistics)",
+  "department": "ICE",
+  "batch": "8th",
+  "order": 18
+ },
+ {
+  "session": "Summer 2026",
+  "name": "Masum Billah",
+  "position": "Executive (Development)",
+  "department": "ICE",
+  "batch": "11th",
+  "order": 19
+ },
+ {
+  "session": "Summer 2026",
+  "name": "S.M Nabil",
+  "position": "Executive (HR)",
+  "department": "ICE",
+  "batch": "9th",
+  "order": 20
+ },
+ {
+  "session": "Summer 2026",
+  "name": "Saad Bin Ashad",
+  "position": "Executive (Cultural)",
+  "department": "ICE",
+  "batch": "8th",
+  "order": 21
+ },
+ {
+  "session": "Summer 2026",
+  "name": "Lubna Khanam",
+  "position": "Executive (Event Planning)",
+  "department": "ICE",
+  "batch": "9th",
+  "order": 22
+ },
+ {
+  "session": "Summer 2026",
+  "name": "Abdul Wahab Mridul",
+  "position": "Executive (Media)",
+  "department": "ICE",
+  "batch": "9th",
+  "order": 23
+ },
+ {
+  "session": "Summer 2026",
+  "name": "Shamim Ahmed",
+  "position": "Executive (Public Relations)",
+  "department": "ICE",
+  "batch": "12th",
+  "order": 24
+ },
+ {
+  "session": "Summer 2026",
+  "name": "Nafis Iqbal Kabir",
+  "position": "Executive (Photography)",
+  "department": "LLB",
+  "batch": "14th",
+  "order": 25
+ },
+ {
+  "session": "Winter 2025",
+  "name": "Dr. Md. Rubel Bashar",
+  "position": "President",
+  "department": "ICE",
+  "batch": null,
+  "order": 1
+ },
+ {
+  "session": "Winter 2025",
+  "name": "Mehedi Hasan Imran",
+  "position": "Vice President",
+  "department": "ICE",
+  "batch": null,
+  "order": 2
+ },
+ {
+  "session": "Winter 2025",
+  "name": "Nasirul Mumenin",
+  "position": "Vice President",
+  "department": "ICE",
+  "batch": null,
+  "order": 3
+ },
+ {
+  "session": "Winter 2025",
+  "name": "Mursheda Nusrat Della",
+  "position": "Vice President",
+  "department": "ICE",
+  "batch": null,
+  "order": 4
+ },
+ {
+  "session": "Winter 2025",
+  "name": "Naimur Islam Durjoy",
+  "position": "General Secretary",
+  "department": "ICE",
+  "batch": "8th",
+  "order": 5
+ },
+ {
+  "session": "Winter 2025",
+  "name": "Arin Jahan Akhi",
+  "position": "Asst. General Secretary",
+  "department": "ICE",
+  "batch": "9th",
+  "order": 6
+ },
+ {
+  "session": "Winter 2025",
+  "name": "Mubasshera Akter",
+  "position": "Joint Secretary",
+  "department": "ICE",
+  "batch": "8th",
+  "order": 7
+ },
+ {
+  "session": "Winter 2025",
+  "name": "Sadia Fahmida Sania",
+  "position": "Joint Secretary",
+  "department": "ICE",
+  "batch": "9th",
+  "order": 8
+ },
+ {
+  "session": "Winter 2025",
+  "name": "A. S. M. Eftekhar Ahmed Mitul",
+  "position": "Organizing Secretary",
+  "department": "ICE",
+  "batch": "8th",
+  "order": 9
+ },
+ {
+  "session": "Winter 2025",
+  "name": "Zannatul Ferdous",
+  "position": "Treasurer",
+  "department": "ICE",
+  "batch": "8th",
+  "order": 10
+ },
+ {
+  "session": "Winter 2025",
+  "name": "Tamanna Fazila Taki",
+  "position": "Chief Executive (HR)",
+  "department": "ICE",
+  "batch": "9th",
+  "order": 11
+ },
+ {
+  "session": "Winter 2025",
+  "name": "Md. Emamul Mursalin",
+  "position": "Chief Executive (Logistics)",
+  "department": "ICE",
+  "batch": "9th",
+  "order": 12
+ },
+ {
+  "session": "Winter 2025",
+  "name": "Sanzana Islam",
+  "position": "Chief Executive (Development)",
+  "department": "ICE",
+  "batch": "8th",
+  "order": 13
+ },
+ {
+  "session": "Winter 2025",
+  "name": "Gol-E-Zannat Keya",
+  "position": "Chief Executive (Event Planning)",
+  "department": "ICE",
+  "batch": "9th",
+  "order": 14
+ },
+ {
+  "session": "Winter 2025",
+  "name": "Jannatul Habiba",
+  "position": "Chief Executive (Public Relations)",
+  "department": "ICE",
+  "batch": "9th",
+  "order": 15
+ },
+ {
+  "session": "Winter 2025",
+  "name": "Nishat Aunjum Nury",
+  "position": "Chief Executive (Cultural)",
+  "department": "ICE",
+  "batch": "11th",
+  "order": 16
+ },
+ {
+  "session": "Winter 2025",
+  "name": "Noshin Anzum",
+  "position": "Chief Executive (Media)",
+  "department": "ICE",
+  "batch": "9th",
+  "order": 17
+ },
+ {
+  "session": "Session 2023-24",
+  "name": "Dr. Md. Rubel Bashar",
+  "position": "President",
+  "department": "ICE",
+  "batch": null,
+  "order": 1
+ },
+ {
+  "session": "Session 2023-24",
+  "name": "Mehedi Hasan Imran",
+  "position": "Vice President",
+  "department": "ICE",
+  "batch": null,
+  "order": 2
+ },
+ {
+  "session": "Session 2023-24",
+  "name": "Nasirul Mumenin",
+  "position": "Vice President",
+  "department": "ICE",
+  "batch": null,
+  "order": 3
+ },
+ {
+  "session": "Session 2023-24",
+  "name": "Afsana Akter Kaniz",
+  "position": "General Secretary",
+  "department": "ICE",
+  "batch": "6th",
+  "order": 4
+ },
+ {
+  "session": "Session 2023-24",
+  "name": "Md. Istaiq Ahmed",
+  "position": "Asst. General Secretary",
+  "department": "ICE",
+  "batch": "7th",
+  "order": 5
+ },
+ {
+  "session": "Session 2023-24",
+  "name": "Rahela Islam Auntu",
+  "position": "Joint Secretary",
+  "department": "ICE",
+  "batch": "6th",
+  "order": 6
+ },
+ {
+  "session": "Session 2023-24",
+  "name": "Sakib Haque Zisan",
+  "position": "Joint Secretary",
+  "department": "CSE",
+  "batch": "8th",
+  "order": 7
+ },
+ {
+  "session": "Session 2023-24",
+  "name": "Masuda Sabatan Bristy",
+  "position": "Organizing Secretary",
+  "department": "ICE",
+  "batch": "6th",
+  "order": 8
+ },
+ {
+  "session": "Session 2023-24",
+  "name": "Safat Rahman",
+  "position": "Treasurer",
+  "department": "EEE",
+  "batch": "6th",
+  "order": 9
+ },
+ {
+  "session": "Session 2023-24",
+  "name": "Rabeya Khatun Rikta",
+  "position": "Chief Executive (HR)",
+  "department": "ICE",
+  "batch": "7th",
+  "order": 10
+ },
+ {
+  "session": "Session 2023-24",
+  "name": "Soykot Azad Snigdho",
+  "position": "Chief Executive (Logistics)",
+  "department": "ICE",
+  "batch": "6th",
+  "order": 11
+ },
+ {
+  "session": "Session 2023-24",
+  "name": "Tamanna Rafia",
+  "position": "Chief Executive (Development)",
+  "department": "ICE",
+  "batch": "7th",
+  "order": 12
+ },
+ {
+  "session": "Session 2023-24",
+  "name": "Sanonda Sanyal",
+  "position": "Chief Executive (Event Planning)",
+  "department": "ICE",
+  "batch": "6th",
+  "order": 13
+ },
+ {
+  "session": "Session 2023-24",
+  "name": "Humaira Rashid Koli",
+  "position": "Chief Executive (Public Relations)",
+  "department": "ICE",
+  "batch": "7th",
+  "order": 14
+ },
+ {
+  "session": "Session 2023-24",
+  "name": "Md. Tahzib Uddin",
+  "position": "Chief Executive (Cultural)",
+  "department": "ICE",
+  "batch": "6th",
+  "order": 15
+ },
+ {
+  "session": "Session 2023-24",
+  "name": "Anika Tahsin",
+  "position": "Chief Executive (Media)",
+  "department": "ICE",
+  "batch": "6th",
+  "order": 16
+ },
+ {
+  "session": "Session 2022-23",
+  "name": "Dr. Md. Rubel Bashar",
+  "position": "President",
+  "department": "ICE",
+  "batch": null,
+  "order": 1
+ },
+ {
+  "session": "Session 2022-23",
+  "name": "Mehedi Hasan Imran",
+  "position": "Vice President",
+  "department": "ICE",
+  "batch": null,
+  "order": 2
+ },
+ {
+  "session": "Session 2022-23",
+  "name": "Md. Touhidul Islam",
+  "position": "General Secretary",
+  "department": "ICE",
+  "batch": "5th",
+  "order": 3
+ },
+ {
+  "session": "Session 2022-23",
+  "name": "Nusrat Jahan Nishi",
+  "position": "Asst. General Secretary",
+  "department": "ICE",
+  "batch": "6th",
+  "order": 4
+ },
+ {
+  "session": "Session 2022-23",
+  "name": "Ariful Islam",
+  "position": "Joint Secretary",
+  "department": "ICE",
+  "batch": "5th",
+  "order": 5
+ },
+ {
+  "session": "Session 2022-23",
+  "name": "Md. Rakibul Hasan",
+  "position": "Organizing Secretary",
+  "department": "ICE",
+  "batch": "5th",
+  "order": 6
+ },
+ {
+  "session": "Session 2022-23",
+  "name": "Fariha Tasnim",
+  "position": "Treasurer",
+  "department": "ICE",
+  "batch": "6th",
+  "order": 7
+ },
+ {
+  "session": "Session 2022-23",
+  "name": "Sumaiya Akter",
+  "position": "Chief Executive (HR)",
+  "department": "ICE",
+  "batch": "6th",
+  "order": 8
+ },
+ {
+  "session": "Session 2022-23",
+  "name": "Md. Hasanuzzaman",
+  "position": "Chief Executive (Logistics)",
+  "department": "ICE",
+  "batch": "5th",
+  "order": 9
+ },
+ {
+  "session": "Session 2022-23",
+  "name": "Sabrina Akter",
+  "position": "Chief Executive (Development)",
+  "department": "ICE",
+  "batch": "6th",
+  "order": 10
+ },
+ {
+  "session": "Session 2022-23",
+  "name": "Tanjina Akter",
+  "position": "Chief Executive (Event Planning)",
+  "department": "ICE",
+  "batch": "5th",
+  "order": 11
+ },
+ {
+  "session": "Session 2022-23",
+  "name": "Md. Nazmul Haque",
+  "position": "Chief Executive (Public Relations)",
+  "department": "ICE",
+  "batch": "6th",
+  "order": 12
+ },
+ {
+  "session": "Session 2022-23",
+  "name": "Farzana Yesmin",
+  "position": "Chief Executive (Cultural)",
+  "department": "ICE",
+  "batch": "5th",
+  "order": 13
+ },
+ {
+  "session": "Session 2022-23",
+  "name": "Md. Imran Hossain",
+  "position": "Chief Executive (Media)",
+  "department": "ICE",
+  "batch": "5th",
+  "order": 14
+ }
+]

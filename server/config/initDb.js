@@ -92,6 +92,27 @@ async function initDb() {
         updated_at TIMESTAMPTZ DEFAULT NOW()
       );
 
+      CREATE TABLE IF NOT EXISTS registrations (
+        id SERIAL PRIMARY KEY,
+        type VARCHAR(20) NOT NULL CHECK (type IN ('committee', 'general')),
+        full_name VARCHAR(100) NOT NULL,
+        student_id VARCHAR(30) NOT NULL,
+        batch VARCHAR(10),
+        department VARCHAR(30),
+        phone VARCHAR(20),
+        email VARCHAR(100) NOT NULL,
+        gender VARCHAR(10),
+        post VARCHAR(100),
+        interests TEXT[] DEFAULT '{}',
+        experience VARCHAR(20),
+        note TEXT,
+        photo_url TEXT,
+        status VARCHAR(20) DEFAULT 'pending',
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        UNIQUE (type, email),
+        UNIQUE (type, student_id)
+      );
+
       CREATE TABLE IF NOT EXISTS admins (
         id SERIAL PRIMARY KEY,
         username VARCHAR(100) UNIQUE NOT NULL,
@@ -99,6 +120,14 @@ async function initDb() {
         role VARCHAR(20) DEFAULT 'admin',
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_members_session ON members (committee_session, display_order);
+      CREATE INDEX IF NOT EXISTS idx_events_date ON events (date);
+      CREATE INDEX IF NOT EXISTS idx_notices_pinned ON notices (pinned DESC, created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_registrations_status ON registrations (type, status, created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_messages_read ON messages (is_read, created_at DESC);
     `);
 
     // Seed default settings
@@ -116,6 +145,22 @@ async function initDb() {
       socialLinks: { fb: 'https://www.facebook.com/bauetictclub', email: 'ictclubbauet@gmail.com', phone: '01707-533471', website: 'bauet.ac.bd' },
     })]);
 
+    // Seed committee sessions (President, VPs and executives) once
+    const seeded = await client.query('SELECT 1 FROM members WHERE committee_session IS NOT NULL LIMIT 1');
+    if (!seeded.rows.length) {
+      const rows = require('./committeeSeed.json');
+      for (const m of rows) {
+        await client.query(
+          `INSERT INTO members (name, position, department, batch, committee_session, display_order)
+           VALUES ($1,$2,$3,$4,$5,$6)`,
+          [m.name, m.position, m.department, m.batch, m.session, m.order]
+        );
+      }
+      console.log(`Seeded ${rows.length} committee members`);
+    }
+
+    // Demo content is opt-in so a real database never gets made-up events or awards
+    if (process.env.SEED_SAMPLES === 'true') {
     // Seed sample events
     await client.query(`
       INSERT INTO events (title, date, time, location, category, description, featured) VALUES
@@ -124,20 +169,6 @@ async function initDb() {
         ('AI & Machine Learning Seminar', '2026-11-25', '10:00 AM', 'Conference Hall', 'Seminar', 'Guest lecture by industry experts on the latest trends in AI and ML. Topics include Large Language Models, Computer Vision, and career opportunities.', false),
         ('Competitive Programming Contest', '2026-12-05', '02:00 PM', 'CSE Lab 1', 'Competition', 'Test your algorithmic skills in this intra-university programming contest. Top performers qualify for ICPC regional.', true),
         ('ICT Club Annual Meetup', '2026-12-20', '05:00 PM', 'University Ground', 'Social', 'End-of-year celebration with fun activities, games, food, and networking.', false)
-      ON CONFLICT DO NOTHING
-    `);
-
-    // Seed sample members
-    await client.query(`
-      INSERT INTO members (name, position, department, batch, display_order, social_fb) VALUES
-        ('Md. Rafiq Hasan', 'President', 'CSE', '2022', 1, 'https://facebook.com'),
-        ('Fatima Akter', 'Vice President', 'EEE', '2022', 2, 'https://facebook.com'),
-        ('Tanvir Ahmed', 'General Secretary', 'CSE', '2023', 3, 'https://facebook.com'),
-        ('Nusrat Jahan', 'Joint Secretary', 'CSE', '2023', 4, 'https://facebook.com'),
-        ('Arif Rahman', 'Treasurer', 'ME', '2022', 5, 'https://facebook.com'),
-        ('Sadia Islam', 'Tech Lead', 'CSE', '2023', 6, 'https://facebook.com'),
-        ('Kamal Uddin', 'Event Coordinator', 'EEE', '2023', 7, 'https://facebook.com'),
-        ('Rumi Akter', 'Media Secretary', 'CE', '2024', 8, 'https://facebook.com')
       ON CONFLICT DO NOTHING
     `);
 
@@ -160,12 +191,17 @@ async function initDb() {
       ON CONFLICT DO NOTHING
     `);
 
+    }
+
     const bcrypt = require('bcryptjs');
-    const hash = await bcrypt.hash('bauet@ict2026', 10);
-    await client.query(`
+    // Never ship a well-known password: use ADMIN_PASSWORD, or generate one and print it once.
+    const adminPassword = process.env.ADMIN_PASSWORD || require('crypto').randomBytes(9).toString('base64url');
+    const hash = await bcrypt.hash(adminPassword, 10);
+    const created = await client.query(`
       INSERT INTO admins (username, password_hash, role) VALUES ('admin', $1, 'superadmin')
-      ON CONFLICT (username) DO NOTHING
+      ON CONFLICT (username) DO NOTHING RETURNING id
     `, [hash]);
+    if (created.rows.length && !process.env.ADMIN_PASSWORD) console.log(`\nAdmin account created. Username: admin  Password: ${adminPassword}\n(Save it now — it is not shown again. Set ADMIN_PASSWORD in .env to choose your own.)`);
 
     console.log('Database initialized successfully!');
   } catch (e) {

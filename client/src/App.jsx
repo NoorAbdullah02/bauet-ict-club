@@ -1,59 +1,125 @@
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, lazy, Suspense } from 'react';
+import { Routes, Route, useLocation } from 'react-router-dom';
+import Lenis from 'lenis';
 import { Toaster } from 'react-hot-toast';
+import { useShallow } from 'zustand/react/shallow';
 import useStore from './context/store';
-import Navbar from './components/Navbar';
-import Hero from './components/Hero';
-import About from './components/About';
-import Events from './components/Events';
-import Notices from './components/Notices';
-import Team from './components/Team';
-import Gallery from './components/Gallery';
-import Achievements from './components/Achievements';
-import Contact from './components/Contact';
-import Footer from './components/Footer';
-import ChatBot from './components/ChatBot';
-import AdminPanel from './components/AdminPanel';
+import Preloader from './components/Preloader';
+import SiteLayout from './layouts/SiteLayout';
+import Home from './pages/Home';
+import NotFound from './pages/NotFound';
+
+const AdminApp = lazy(() => import('./admin/AdminApp'));
+const named = (name) => lazy(() => import('./pages/Pages').then((m) => ({ default: m[name] })));
+const AboutPage = named('AboutPage');
+const EventsPage = named('EventsPage');
+const NoticesPage = named('NoticesPage');
+const TeamPage = named('TeamPage');
+const GalleryPage = named('GalleryPage');
+const AchievementsPage = named('AchievementsPage');
+const ContactPage = named('ContactPage');
+const JoinHubPage = named('JoinHubPage');
+const JoinCommitteePage = named('JoinCommitteePage');
+const JoinGeneralPage = named('JoinGeneralPage');
+
+const Fallback = () => <div className="grid min-h-[60vh] place-items-center"><span className="size-8 animate-spin rounded-full border-2 border-line border-t-accent" /></div>;
 
 export default function App() {
-  const [adminOpen, setAdminOpen] = useState(false);
-  const { fetchAll, checkAuth, theme } = useStore();
+  const { fetchAll, theme } = useStore(useShallow((s) => ({ fetchAll: s.fetchAll, theme: s.theme })));
+  const { pathname } = useLocation();
+  const isAdmin = pathname.startsWith('/admin');
 
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
     fetchAll();
-    checkAuth();
+    // warm the page chunk while the browser is idle so route changes feel instant
+    const warm = () => import('./pages/Pages');
+    const id = 'requestIdleCallback' in window ? requestIdleCallback(warm, { timeout: 2500 }) : setTimeout(warm, 1500);
+    return () => ('cancelIdleCallback' in window ? cancelIdleCallback(id) : clearTimeout(id));
+  }, []);
+  useEffect(() => { document.documentElement.setAttribute('data-theme', theme); }, [theme]);
+
+  // smooth inertial scrolling (site only — the admin console keeps native scrolling)
+  useEffect(() => {
+    if (isAdmin || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const lenis = new Lenis({ lerp: 0.16, wheelMultiplier: 1, smoothWheel: true });
+    let raf;
+    const loop = (t) => { lenis.raf(t); raf = requestAnimationFrame(loop); };
+    raf = requestAnimationFrame(loop);
+    return () => { cancelAnimationFrame(raf); lenis.destroy(); };
+  }, [isAdmin]);
+
+  // scroll-reveal for headers and cards, including ones rendered after data loads
+  useEffect(() => {
+    const SEL = '.section-header, .spot, .team-card, .marquee';
+    const io = new IntersectionObserver((entries) => entries.forEach((e) => {
+      if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+    }), { rootMargin: '0px 0px -8% 0px', threshold: 0.08 });
+    const seen = new WeakSet();
+    const tag = (el) => {
+      if (seen.has(el) || el.classList.contains('in')) return;
+      seen.add(el);
+      const i = [...(el.parentElement?.children || [])].indexOf(el);
+      el.style.setProperty('--d', `${Math.min(i, 6) * 45}ms`);
+      el.classList.add('reveal');
+      io.observe(el);
+    };
+    const scan = (root) => {
+      if (root.matches?.(SEL)) tag(root);
+      root.querySelectorAll?.(SEL).forEach(tag);
+    };
+    scan(document.getElementById('root'));
+    // only inspect nodes that were actually added (ignores text/typing churn)
+    const mo = new MutationObserver((records) => records.forEach((r) => r.addedNodes.forEach((n) => n.nodeType === 1 && scan(n))));
+    mo.observe(document.getElementById('root'), { childList: true, subtree: true });
+    return () => { io.disconnect(); mo.disconnect(); };
+  }, []);
+
+  // cursor-following aurora + spotlight cards (one rAF-throttled listener)
+  useEffect(() => {
+    const glow = document.querySelector('.cursor-glow');
+    let raf = 0, last = null;
+    const frame = () => {
+      raf = 0;
+      if (!last) return;
+      glow?.style.setProperty('--px', `${last.clientX}px`);
+      glow?.style.setProperty('--py', `${last.clientY}px`);
+      const el = last.target.closest?.('.spot');
+      if (el) {
+        const r = el.getBoundingClientRect();
+        el.style.setProperty('--mx', `${last.clientX - r.left}px`);
+        el.style.setProperty('--my', `${last.clientY - r.top}px`);
+      }
+    };
+    const move = (e) => { last = e; if (!raf) raf = requestAnimationFrame(frame); };
+    window.addEventListener('pointermove', move, { passive: true });
+    return () => { window.removeEventListener('pointermove', move); cancelAnimationFrame(raf); };
   }, []);
 
   return (
     <>
-      <Toaster
-        position="top-right"
-        toastOptions={{
-          duration: 3000,
-          style: {
-            background: 'var(--bg-surface)',
-            color: 'var(--fg)',
-            border: '1px solid var(--border)',
-            borderRadius: 'var(--radius-sm)',
-            fontSize: 14,
-            boxShadow: 'var(--shadow-lg)',
-          },
-        }}
-      />
-      <Navbar onAdminOpen={() => setAdminOpen(true)} />
-      <main>
-        <Hero />
-        <About />
-        <Events />
-        <Notices />
-        <Team />
-        <Gallery />
-        <Achievements />
-        <Contact />
-      </main>
-      <Footer />
-      <ChatBot />
-      <AdminPanel open={adminOpen} onClose={() => setAdminOpen(false)} />
+      <Preloader />
+      <div className="cursor-glow" />
+      <Toaster position="top-right" toastOptions={{
+        duration: 3000,
+        style: { background: 'var(--bg-surface)', color: 'var(--fg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', fontSize: 14, boxShadow: 'var(--shadow-lg)' },
+      }} />
+      <Routes>
+        <Route element={<SiteLayout />}>
+          <Route index element={<Home />} />
+          <Route path="about" element={<AboutPage />} />
+          <Route path="events" element={<EventsPage />} />
+          <Route path="notices" element={<NoticesPage />} />
+          <Route path="team" element={<TeamPage />} />
+          <Route path="gallery" element={<GalleryPage />} />
+          <Route path="achievements" element={<AchievementsPage />} />
+          <Route path="contact" element={<ContactPage />} />
+          <Route path="join" element={<JoinHubPage />} />
+          <Route path="join/committee" element={<JoinCommitteePage />} />
+          <Route path="join/general" element={<JoinGeneralPage />} />
+          <Route path="*" element={<NotFound />} />
+        </Route>
+        <Route path="/admin/*" element={<Suspense fallback={<Fallback />}><AdminApp /></Suspense>} />
+        </Routes>
     </>
   );
 }

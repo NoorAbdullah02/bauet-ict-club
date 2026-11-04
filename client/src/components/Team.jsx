@@ -4,100 +4,6 @@ import { Users, Facebook, Github, Linkedin, Shield, Star, Crown, Award, Sparkles
 import { useInView } from 'react-intersection-observer';
 import useStore from '../context/store';
 
-const COMMITTEES = {
-  'summer-26': {
-    label: 'Summer 2026',
-    tag: 'Current',
-    president: 'Dr. Md. Rubel Bashar',
-    vicePresidents: ['Mehedi Hasan Imran', 'Nasirul Mumenin', 'Mursheda Nusrat Della'],
-    members: [
-      { name: 'Naimur Islam Durjoy', position: 'General Secretary', dept: 'ICE', batch: '8th' },
-      { name: 'Arin Jahan Akhi', position: 'Asst. General Secretary', dept: 'ICE', batch: '9th' },
-      { name: 'Mubasshera Akter', position: 'Joint Secretary', dept: 'ICE', batch: '8th' },
-      { name: 'Sadia Fahmida Sania', position: 'Joint Secretary', dept: 'ICE', batch: '9th' },
-      { name: 'A. S. M. Eftekhar Ahmed Mitul', position: 'Organizing Secretary', dept: 'ICE', batch: '8th' },
-      { name: 'Zannatul Ferdous', position: 'Treasurer', dept: 'ICE', batch: '8th' },
-      { name: 'Tamanna Fazila Taki', position: 'Chief Executive (HR)', dept: 'ICE', batch: '9th' },
-      { name: 'Md. Emamul Mursalin', position: 'Chief Executive (Logistics)', dept: 'ICE', batch: '9th' },
-      { name: 'Sanzana Islam', position: 'Chief Executive (Development)', dept: 'ICE', batch: '8th' },
-      { name: 'Gol-E-Zannat Keya', position: 'Chief Executive (Event Planning)', dept: 'ICE', batch: '9th' },
-      { name: 'Jannatul Habiba', position: 'Chief Executive (Public Relations)', dept: 'ICE', batch: '9th' },
-      { name: 'Nishat Aunjum Nury', position: 'Chief Executive (Cultural)', dept: 'ICE', batch: '11th' },
-      { name: 'Noshin Anzum', position: 'Chief Executive (Media)', dept: 'ICE', batch: '9th' },
-      { name: 'Khandakar Zarin Tasnia', position: 'Executive (Logistics)', dept: 'ICE', batch: '8th' },
-      { name: 'Masum Billah', position: 'Executive (Development)', dept: 'ICE', batch: '11th' },
-      { name: 'S.M Nabil', position: 'Executive (HR)', dept: 'ICE', batch: '9th' },
-      { name: 'Saad Bin Ashad', position: 'Executive (Cultural)', dept: 'ICE', batch: '8th' },
-      { name: 'Lubna Khanam', position: 'Executive (Event Planning)', dept: 'ICE', batch: '9th' },
-      { name: 'Abdul Wahab Mridul', position: 'Executive (Media)', dept: 'ICE', batch: '9th' },
-      { name: 'Shamim Ahmed', position: 'Executive (Public Relations)', dept: 'ICE', batch: '12th' },
-      { name: 'Nafis Iqbal Kabir', position: 'Executive (Photography)', dept: 'LLB', batch: '14th' },
-    ],
-  },
-  'winter-25': {
-    label: 'Winter 2025',
-    tag: 'Previous',
-    president: 'Dr. Md. Rubel Bashar',
-    vicePresidents: ['Mehedi Hasan Imran', 'Nasirul Mumenin', 'Mursheda Nusrat Della'],
-    members: [
-      { name: 'Naimur Islam Durjoy', position: 'General Secretary', dept: 'ICE', batch: '8th' },
-      { name: 'Arin Jahan Akhi', position: 'Asst. General Secretary', dept: 'ICE', batch: '9th' },
-      { name: 'Mubasshera Akter', position: 'Joint Secretary', dept: 'ICE', batch: '8th' },
-      { name: 'Sadia Fahmida Sania', position: 'Joint Secretary', dept: 'ICE', batch: '9th' },
-      { name: 'A. S. M. Eftekhar Ahmed Mitul', position: 'Organizing Secretary', dept: 'ICE', batch: '8th' },
-      { name: 'Zannatul Ferdous', position: 'Treasurer', dept: 'ICE', batch: '8th' },
-      { name: 'Tamanna Fazila Taki', position: 'Chief Executive (HR)', dept: 'ICE', batch: '9th' },
-      { name: 'Md. Emamul Mursalin', position: 'Chief Executive (Logistics)', dept: 'ICE', batch: '9th' },
-      { name: 'Sanzana Islam', position: 'Chief Executive (Development)', dept: 'ICE', batch: '8th' },
-      { name: 'Gol-E-Zannat Keya', position: 'Chief Executive (Event Planning)', dept: 'ICE', batch: '9th' },
-      { name: 'Jannatul Habiba', position: 'Chief Executive (Public Relations)', dept: 'ICE', batch: '9th' },
-      { name: 'Nishat Aunjum Nury', position: 'Chief Executive (Cultural)', dept: 'ICE', batch: '11th' },
-      { name: 'Noshin Anzum', position: 'Chief Executive (Media)', dept: 'ICE', batch: '9th' },
-    ],
-  },
-  '2023-2024': {
-    label: 'Session 2023-24',
-    tag: 'Archive',
-    president: 'Dr. Md. Rubel Bashar',
-    vicePresidents: ['Mehedi Hasan Imran', 'Nasirul Mumenin'],
-    members: [
-      { name: 'Afsana Akter Kaniz', position: 'General Secretary', dept: 'ICE', batch: '6th' },
-      { name: 'Md. Istaiq Ahmed', position: 'Asst. General Secretary', dept: 'ICE', batch: '7th' },
-      { name: 'Rahela Islam Auntu', position: 'Joint Secretary', dept: 'ICE', batch: '6th' },
-      { name: 'Sakib Haque Zisan', position: 'Joint Secretary', dept: 'CSE', batch: '8th' },
-      { name: 'Masuda Sabatan Bristy', position: 'Organizing Secretary', dept: 'ICE', batch: '6th' },
-      { name: 'Safat Rahman', position: 'Treasurer', dept: 'EEE', batch: '6th' },
-      { name: 'Rabeya Khatun Rikta', position: 'Chief Executive (HR)', dept: 'ICE', batch: '7th' },
-      { name: 'Soykot Azad Snigdho', position: 'Chief Executive (Logistics)', dept: 'ICE', batch: '6th' },
-      { name: 'Tamanna Rafia', position: 'Chief Executive (Development)', dept: 'ICE', batch: '7th' },
-      { name: 'Sanonda Sanyal', position: 'Chief Executive (Event Planning)', dept: 'ICE', batch: '6th' },
-      { name: 'Humaira Rashid Koli', position: 'Chief Executive (Public Relations)', dept: 'ICE', batch: '7th' },
-      { name: 'Md. Tahzib Uddin', position: 'Chief Executive (Cultural)', dept: 'ICE', batch: '6th' },
-      { name: 'Anika Tahsin', position: 'Chief Executive (Media)', dept: 'ICE', batch: '6th' },
-    ],
-  },
-  '2022-2023': {
-    label: 'Session 2022-23',
-    tag: 'Archive',
-    president: 'Dr. Md. Rubel Bashar',
-    vicePresidents: ['Mehedi Hasan Imran'],
-    members: [
-      { name: 'Md. Touhidul Islam', position: 'General Secretary', dept: 'ICE', batch: '5th' },
-      { name: 'Nusrat Jahan Nishi', position: 'Asst. General Secretary', dept: 'ICE', batch: '6th' },
-      { name: 'Ariful Islam', position: 'Joint Secretary', dept: 'ICE', batch: '5th' },
-      { name: 'Md. Rakibul Hasan', position: 'Organizing Secretary', dept: 'ICE', batch: '5th' },
-      { name: 'Fariha Tasnim', position: 'Treasurer', dept: 'ICE', batch: '6th' },
-      { name: 'Sumaiya Akter', position: 'Chief Executive (HR)', dept: 'ICE', batch: '6th' },
-      { name: 'Md. Hasanuzzaman', position: 'Chief Executive (Logistics)', dept: 'ICE', batch: '5th' },
-      { name: 'Sabrina Akter', position: 'Chief Executive (Development)', dept: 'ICE', batch: '6th' },
-      { name: 'Tanjina Akter', position: 'Chief Executive (Event Planning)', dept: 'ICE', batch: '5th' },
-      { name: 'Md. Nazmul Haque', position: 'Chief Executive (Public Relations)', dept: 'ICE', batch: '6th' },
-      { name: 'Farzana Yesmin', position: 'Chief Executive (Cultural)', dept: 'ICE', batch: '5th' },
-      { name: 'Md. Imran Hossain', position: 'Chief Executive (Media)', dept: 'ICE', batch: '5th' },
-    ],
-  },
-};
-
 const DEPT_FULL = {
   ICE: 'Information & Communication Engineering',
   CSE: 'Computer Science & Engineering',
@@ -116,23 +22,38 @@ const DEPT_COLORS = {
 
 const CORE_POSITIONS = ['General Secretary', 'Asst. General Secretary', 'Joint Secretary', 'Organizing Secretary', 'Treasurer'];
 
+const isLeader = (p) => /^(Vice )?President/i.test(p);
+const isCore = (p) => CORE_POSITIONS.includes(p) || (/Secretary|Treasurer/.test(p) && !/^Executive/.test(p));
+
 function getInitials(name) {
   return name.split(' ').filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase();
 }
 
 function getIcon(pos) {
   if (pos === 'General Secretary') return Crown;
-  if (CORE_POSITIONS.includes(pos)) return Shield;
+  if (isCore(pos)) return Shield;
   if (pos.startsWith('Chief Executive')) return Star;
   return Award;
+}
+
+function Avatar({ person, size = 48, ring }) {
+  return (
+    <div style={{
+      width: size, height: size, borderRadius: '50%', margin: ring ? '0 auto' : 0, flexShrink: 0,
+      background: person.image_url ? `url(${person.image_url}) center/cover no-repeat` : 'linear-gradient(135deg, var(--accent), var(--tech))',
+      display: 'grid', placeItems: 'center', color: '#fff', fontWeight: 700, fontSize: size * 0.36,
+      fontFamily: 'var(--font-display)',
+      boxShadow: ring ? '0 0 0 3px rgba(255,255,255,0.15), 0 0 40px rgba(var(--accent-rgb),0.5)' : 'none',
+    }}>
+      {!person.image_url && getInitials(person.name)}
+    </div>
+  );
 }
 
 function MemberCard({ member, index, compact }) {
   const deptColor = DEPT_COLORS[member.dept] || '#94A3B8';
   const Icon = getIcon(member.position);
-  const isCore = CORE_POSITIONS.includes(member.position);
-  const dbMembers = useStore(s => s.members);
-  const dbMatch = dbMembers.find(m => m.name?.toLowerCase() === member.name.toLowerCase());
+  const isCoreMember = isCore(member.position);
 
   return (
     <motion.div
@@ -157,24 +78,24 @@ function MemberCard({ member, index, compact }) {
         <div style={{
           width: compact ? 64 : 76, height: compact ? 64 : 76, borderRadius: '50%',
           margin: '0 auto 14px',
-          background: dbMatch?.image_url
-            ? `url(${dbMatch.image_url}) center/cover no-repeat`
+          background: (member.image_url)
+            ? `url(${member.image_url}) center/cover no-repeat`
             : `linear-gradient(135deg, ${deptColor}18, ${deptColor}35)`,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           border: `2.5px solid ${deptColor}30`,
           position: 'relative',
         }}>
-          {!dbMatch?.image_url && (
+          {!member.image_url && (
             <span style={{ fontSize: compact ? 18 : 22, fontWeight: 700, color: deptColor, fontFamily: 'var(--font-display)' }}>
               {getInitials(member.name)}
             </span>
           )}
-          {isCore && (
+          {isCoreMember && (
             <div style={{
               position: 'absolute', bottom: -3, right: -3,
               width: 24, height: 24, borderRadius: '50%',
               background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              border: '2.5px solid var(--bg-surface)', boxShadow: '0 2px 6px rgba(201,168,76,0.3)',
+              border: '2.5px solid var(--bg-surface)', boxShadow: '0 2px 6px rgba(var(--accent-rgb),0.3)',
             }}>
               <Icon size={11} color="#fff" />
             </div>
@@ -200,16 +121,15 @@ function MemberCard({ member, index, compact }) {
         <div style={{ fontSize: 11, color: 'var(--fg-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
           <span style={{ width: 6, height: 6, borderRadius: '50%', background: deptColor, flexShrink: 0 }} />
           <span title={DEPT_FULL[member.dept]}>{member.dept}</span>
-          <span style={{ opacity: 0.3 }}>·</span>
-          <span>{member.batch} Batch</span>
+          {member.batch && <><span style={{ opacity: 0.3 }}>·</span><span>{member.batch} Batch</span></>}
         </div>
 
-        {dbMatch && (dbMatch.social_fb || dbMatch.social_gh || dbMatch.social_li) && (
+        {member && (member.social_fb || member.social_gh || member.social_li) && (
           <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginTop: 12 }}>
             {[
-              [dbMatch.social_fb, Facebook],
-              [dbMatch.social_li, Linkedin],
-              [dbMatch.social_gh, Github],
+              [member.social_fb, Facebook],
+              [member.social_li, Linkedin],
+              [member.social_gh, Github],
             ].filter(([url]) => url).map(([url, SIcon], j) => (
               <a key={j} href={url} target="_blank" rel="noopener noreferrer"
                 style={{ width: 28, height: 28, borderRadius: 6, background: 'var(--bg-alt)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--fg-muted)', transition: 'color 0.2s' }}>
@@ -223,28 +143,72 @@ function MemberCard({ member, index, compact }) {
   );
 }
 
+// "Summer 2026" > "Winter 2025" > "Session 2023-24": newest first
+function sessionRank(label) {
+  const year = Number((label.match(/(20\d{2})/) || [])[1] || 0);
+  return year * 2 + (/winter/i.test(label) ? 1 : 0);
+}
+
+const slug = (t) => t.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+function useSessions(dbMembers) {
+  return useMemo(() => {
+    const out = {};
+    dbMembers.filter((m) => m.committee_session && m.active !== false).forEach((m) => {
+      const label = m.committee_session.trim();
+      const key = slug(label);
+      const c = (out[key] ||= { label, presidents: [], vps: [], members: [] });
+      const person = { name: m.name, image_url: m.image_url, title: m.position };
+      if (/^President/i.test(m.position)) c.presidents.push({ ...person, title: 'President' });
+      else if (/^Vice President/i.test(m.position)) c.vps.push(person);
+      else c.members.push({
+        name: m.name, position: m.position, dept: m.department || 'ICE',
+        batch: m.batch || '', image_url: m.image_url, _order: m.display_order,
+        social_fb: m.social_fb, social_gh: m.social_gh, social_li: m.social_li,
+      });
+    });
+    const keys = Object.keys(out).sort((a, b) => sessionRank(out[b].label) - sessionRank(out[a].label));
+    return Object.fromEntries(keys.map((k, i) => [k, { ...out[k], tag: i === 0 ? 'Current' : 'Previous' }]));
+  }, [dbMembers]);
+}
+
 export default function Team() {
-  const [activeSession, setActiveSession] = useState('summer-26');
+  const dbMembersAll = useStore((s) => s.members);
+  const sessions = useSessions(dbMembersAll);
+  const [activeSession, setActiveSession] = useState(null);
+  const sessionKey = activeSession && sessions[activeSession] ? activeSession : Object.keys(sessions)[0];
   const [filterDept, setFilterDept] = useState('all');
   const [ref, inView] = useInView({ threshold: 0.05, triggerOnce: true });
 
-  const committee = COMMITTEES[activeSession];
-
+  const committee = sessions[sessionKey];
   const allDepts = useMemo(() => {
     const s = new Set();
-    committee.members.forEach(m => s.add(m.dept));
+    (committee?.members || []).forEach(m => s.add(m.dept));
     return Array.from(s);
-  }, [activeSession]);
+  }, [sessionKey, committee]);
 
   const filtered = useMemo(() => {
-    let list = committee.members;
+    let list = committee?.members || [];
     if (filterDept !== 'all') list = list.filter(m => m.dept === filterDept);
     return list;
-  }, [activeSession, filterDept]);
+  }, [sessionKey, filterDept, committee]);
 
-  const core = filtered.filter(m => CORE_POSITIONS.includes(m.position));
+  const byOrder = (a, b) => (a._order ?? 99) - (b._order ?? 99);
+  const core = filtered.filter(m => isCore(m.position)).sort(byOrder);
   const chiefs = filtered.filter(m => m.position.startsWith('Chief Executive'));
-  const execs = filtered.filter(m => !CORE_POSITIONS.includes(m.position) && !m.position.startsWith('Chief Executive'));
+  const execs = filtered.filter(m => !isCore(m.position) && !m.position.startsWith('Chief Executive')).sort(byOrder);
+
+  if (!committee) {
+    return (
+      <section id="team" className="section">
+        <div className="container" style={{ textAlign: 'center' }}>
+          <div className="section-tag">Our People</div>
+          <h2 className="section-title">Executive Committee</h2>
+          <p className="section-desc">Committee members will appear here once they are added from the admin panel.</p>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section id="team" className="section" ref={ref} style={{ background: 'var(--bg)' }}>
@@ -253,7 +217,7 @@ export default function Team() {
         .session-btn { position: relative; padding: 10px 20px; border-radius: 50px; font-size: 13px; font-weight: 600;
           border: 1px solid var(--border); background: var(--bg-surface); color: var(--fg-secondary); cursor: pointer;
           transition: all 0.3s ease; white-space: nowrap; }
-        .session-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); box-shadow: 0 4px 16px rgba(201,168,76,0.25); }
+        .session-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); box-shadow: 0 4px 16px rgba(var(--accent-rgb),0.25); }
         .session-btn:not(.active):hover { border-color: var(--accent); color: var(--accent); }
         .dept-chip { padding: 5px 14px; border-radius: 20px; font-size: 11px; font-weight: 600; cursor: pointer;
           transition: all 0.25s ease; border: 1px solid var(--border); background: transparent; color: var(--fg-muted); }
@@ -281,8 +245,8 @@ export default function Team() {
         {/* Session Selector */}
         <motion.div initial={{ opacity: 0, y: 16 }} animate={inView ? { opacity: 1, y: 0 } : {}} transition={{ delay: 0.15, duration: 0.5 }}
           style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
-          {Object.entries(COMMITTEES).map(([key, val]) => (
-            <button key={key} className={`session-btn${activeSession === key ? ' active' : ''}`}
+          {Object.entries(sessions).map(([key, val]) => (
+            <button key={key} className={`session-btn${sessionKey === key ? ' active' : ''}`}
               onClick={() => { setActiveSession(key); setFilterDept('all'); }}>
               {val.label}
               {val.tag === 'Current' && (
@@ -307,45 +271,50 @@ export default function Team() {
         </motion.div>
 
         <AnimatePresence mode="wait">
-          <motion.div key={activeSession + filterDept}
+          <motion.div key={sessionKey + filterDept}
             initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.25 }}>
 
             {/* President & VPs Banner */}
-            <div style={{
-              background: 'linear-gradient(135deg, var(--navy) 0%, #162544 50%, var(--navy) 100%)',
-              borderRadius: 20, padding: '32px 24px 28px', marginBottom: 36,
-              textAlign: 'center', border: '1px solid rgba(201,168,76,0.12)',
-              position: 'relative', overflow: 'hidden',
-            }}>
+            {(committee.presidents.length > 0 || committee.vps.length > 0) && (
               <div style={{
-                position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: 0.04,
-                backgroundImage: 'radial-gradient(circle at 20% 30%, var(--accent) 1px, transparent 1px), radial-gradient(circle at 80% 70%, var(--tech) 1px, transparent 1px)',
-                backgroundSize: '60px 60px',
-              }} />
-              <div style={{ position: 'relative' }}>
-                <div style={{ fontSize: 10, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: 3, fontWeight: 700, marginBottom: 10 }}>
-                  Advisor & Patron
-                </div>
-                <div style={{ fontSize: 22, fontWeight: 800, color: '#fff', fontFamily: 'var(--font-display)', marginBottom: 4 }}>
-                  {committee.president}
-                </div>
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 2, marginBottom: 22, fontWeight: 600 }}>
-                  President & Head of Dept. of ICE
-                </div>
-                <div className="vp-row" style={{ display: 'flex', justifyContent: 'center', gap: 12, flexWrap: 'wrap' }}>
-                  {committee.vicePresidents.map((vp, i) => (
-                    <div key={i} style={{
-                      padding: '10px 22px', background: 'rgba(255,255,255,0.05)', borderRadius: 12,
-                      border: '1px solid rgba(255,255,255,0.07)', backdropFilter: 'blur(4px)',
-                    }}>
-                      <div style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>{vp}</div>
-                      <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', marginTop: 2, textTransform: 'uppercase', letterSpacing: 1 }}>Vice President</div>
-                    </div>
-                  ))}
+                background: 'linear-gradient(135deg, var(--navy) 0%, var(--navy-light) 50%, var(--navy) 100%)',
+                borderRadius: 24, padding: '36px 24px 32px', marginBottom: 36,
+                textAlign: 'center', border: '1px solid rgba(var(--accent-rgb),0.25)',
+                position: 'relative', overflow: 'hidden',
+              }}>
+                <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 60% 80% at 50% 0%, rgba(var(--accent-rgb),0.28), transparent 70%)', pointerEvents: 'none' }} />
+                <div style={{ position: 'relative' }}>
+                  <div style={{ fontSize: 10, color: 'var(--tech)', textTransform: 'uppercase', letterSpacing: 3, fontWeight: 700, marginBottom: 18 }}>
+                    Leadership
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'center', gap: 28, flexWrap: 'wrap', marginBottom: committee.vps.length ? 26 : 0 }}>
+                    {committee.presidents.map((p) => (
+                      <div key={p.name}>
+                        <Avatar person={p} size={92} ring />
+                        <div style={{ fontSize: 22, fontWeight: 700, color: '#fff', fontFamily: 'var(--font-display)', marginTop: 12, marginBottom: 4 }}>{p.name}</div>
+                        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: 2, fontWeight: 600 }}>{p.title}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="vp-row" style={{ display: 'flex', justifyContent: 'center', gap: 12, flexWrap: 'wrap' }}>
+                    {committee.vps.map((vp) => (
+                      <div key={vp.name} style={{
+                        padding: '10px 22px 10px 12px', background: 'rgba(255,255,255,0.06)', borderRadius: 999,
+                        border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(6px)',
+                        display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left',
+                      }}>
+                        <Avatar person={vp} size={40} />
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>{vp.name}</div>
+                          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', marginTop: 1, textTransform: 'uppercase', letterSpacing: 1 }}>{vp.title || 'Vice President'}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
             {/* Core Executives */}
             {core.length > 0 && (

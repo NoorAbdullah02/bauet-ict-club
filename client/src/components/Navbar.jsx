@@ -1,155 +1,94 @@
 import { useState, useEffect } from 'react';
+import { NavLink, Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, Sun, Moon, Shield } from 'lucide-react';
+import { Menu, X, Sun, Moon, Shield, Sparkles } from 'lucide-react';
+import { useShallow } from 'zustand/react/shallow';
+import Logo from './Logo';
 import useStore from '../context/store';
+import { cn } from '../lib/cn';
 
-const links = [
-  { id: 'home', label: 'Home' },
-  { id: 'about', label: 'About' },
-  { id: 'events', label: 'Events' },
-  { id: 'notices', label: 'Notices' },
-  { id: 'team', label: 'Team' },
-  { id: 'gallery', label: 'Gallery' },
-  { id: 'achievements', label: 'Achievements' },
-  { id: 'contact', label: 'Contact' },
+export const LINKS = [
+  { to: '/', label: 'Home' },
+  { to: '/about', label: 'About' },
+  { to: '/events', label: 'Events' },
+  { to: '/notices', label: 'Notices' },
+  { to: '/team', label: 'Team' },
+  { to: '/gallery', label: 'Gallery' },
+  { to: '/achievements', label: 'Awards' },
+  { to: '/contact', label: 'Contact' },
 ];
 
-export default function Navbar({ onAdminOpen }) {
+export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { theme, setTheme } = useStore();
+  const { theme, setTheme } = useStore(useShallow((s) => ({ theme: s.theme, setTheme: s.setTheme })));
+  const { pathname } = useLocation();
+  const isDark = theme === 'dark';
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 50);
+    const onScroll = () => setScrolled(window.scrollY > 40);
+    onScroll();
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
+  useEffect(() => setMobileOpen(false), [pathname]);
 
-  const scrollTo = (id) => {
-    setMobileOpen(false);
-    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  const isDark = theme === 'dark';
+  const iconBtn = 'grid size-10 place-items-center rounded-full border border-line bg-surface/60 text-fg2 backdrop-blur transition hover:border-tech hover:text-tech';
 
   return (
     <>
-      <motion.nav
-        initial={{ y: -80 }} animate={{ y: 0 }}
-        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-        style={{
-          position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
-          height: 'var(--nav-height)',
-          background: scrolled
-            ? isDark ? 'rgba(8,13,26,0.92)' : 'rgba(255,255,255,0.88)'
-            : 'transparent',
-          backdropFilter: scrolled ? 'blur(20px) saturate(180%)' : 'none',
-          borderBottom: scrolled ? '1px solid var(--border)' : '1px solid transparent',
-          transition: 'background 0.35s, border 0.35s, backdrop-filter 0.35s',
-        }}>
-        <div className="container" style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }} onClick={() => scrollTo('home')}>
-            <div style={{
-              width: 36, height: 36, borderRadius: 9,
-              background: 'linear-gradient(135deg, var(--accent), #B89530)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: '#fff', fontSize: 11, fontWeight: 800, fontFamily: 'var(--font-mono)',
-              letterSpacing: 0.5,
-            }}>ICT</div>
-            <span style={{
-              fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16,
-              color: scrolled ? 'var(--fg)' : '#fff',
-              transition: 'color 0.3s',
-            }}>BAUET ICT Club</span>
-          </div>
+      <div className="scroll-progress" />
+      <motion.header initial={{ y: -90 }} animate={{ y: 0 }} transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+        className="fixed inset-x-0 top-0 z-[100] flex justify-center px-3 pt-3">
+        <nav className={cn('flex w-full max-w-6xl items-center justify-between rounded-full border px-3 py-2 pl-4 transition-all duration-500',
+          scrolled ? 'border-line bg-[var(--glass)] shadow-[var(--shadow-lg)] backdrop-blur-xl backdrop-saturate-150' : 'border-transparent bg-transparent')}>
+          <Link to="/" className="flex items-center gap-3" aria-label="BAUET ICT Club home">
+            <Logo kind="crest" height={38} priority className="max-sm:hidden" />
+            <span className="h-7 w-px bg-line max-sm:hidden" />
+            <Logo kind="club" height={40} priority />
+          </Link>
 
-          <div style={{ display: 'flex', gap: 2, alignItems: 'center' }} className="nav-links-desktop">
-            {links.map(link => (
-              <button key={link.id} onClick={() => scrollTo(link.id)}
-                style={{
-                  padding: '7px 14px', borderRadius: 8, fontSize: 13, fontWeight: 500,
-                  color: scrolled ? 'var(--fg-secondary)' : 'rgba(255,255,255,0.75)',
-                  transition: 'all 0.2s', background: 'transparent',
-                }}
-                onMouseEnter={e => { e.target.style.color = 'var(--accent)'; e.target.style.background = 'var(--accent-light)'; }}
-                onMouseLeave={e => { e.target.style.color = scrolled ? 'var(--fg-secondary)' : 'rgba(255,255,255,0.75)'; e.target.style.background = 'transparent'; }}>
-                {link.label}
-              </button>
+          <ul className="hidden items-center gap-0.5 lg:flex">
+            {LINKS.map((l) => (
+              <li key={l.to}>
+                <NavLink to={l.to} end={l.to === '/'}
+                  className={({ isActive }) => cn('relative block rounded-full px-3.5 py-2 text-[13px] font-medium transition-colors', isActive ? 'text-fg' : 'text-fg2 hover:text-fg')}>
+                  {({ isActive }) => (<>
+                    {isActive && <motion.span layoutId="nav-pill" transition={{ type: 'spring', stiffness: 380, damping: 32 }} className="absolute inset-0 -z-10 rounded-full bg-accent/10 ring-1 ring-accent/30" />}
+                    {l.label}
+                  </>)}
+                </NavLink>
+              </li>
             ))}
-          </div>
+          </ul>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <button onClick={() => setTheme(isDark ? 'light' : 'dark')}
-              style={{
-                width: 36, height: 36, borderRadius: 9,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                background: scrolled ? 'var(--bg-alt)' : 'rgba(255,255,255,0.08)',
-                color: scrolled ? 'var(--fg-secondary)' : 'rgba(255,255,255,0.75)',
-                transition: 'all 0.2s',
-              }}>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setTheme(isDark ? 'light' : 'dark')} className={iconBtn} aria-label="Toggle theme">
               {isDark ? <Sun size={16} /> : <Moon size={16} />}
             </button>
-            <button onClick={onAdminOpen}
-              style={{
-                padding: '7px 18px', borderRadius: 50, fontSize: 12, fontWeight: 600,
-                background: 'linear-gradient(135deg, var(--accent), var(--accent-hover))',
-                color: '#fff', display: 'flex', alignItems: 'center', gap: 5,
-                boxShadow: '0 2px 10px rgba(201,168,76,0.2)',
-              }}>
-              <Shield size={13} />
-              <span className="admin-text">Admin</span>
-            </button>
-            <button className="hamburger-btn"
-              onClick={() => setMobileOpen(!mobileOpen)}
-              style={{
-                width: 36, height: 36, borderRadius: 9,
-                display: 'none', alignItems: 'center', justifyContent: 'center',
-                background: scrolled ? 'var(--bg-alt)' : 'rgba(255,255,255,0.08)',
-                color: scrolled ? 'var(--fg)' : '#fff',
-              }}>
+            <Link to="/admin" className={cn(iconBtn, 'max-sm:hidden')} aria-label="Admin"><Shield size={16} /></Link>
+            <Link to="/join" className="btn-primary !px-5 !py-2.5 text-xs"><Sparkles size={14} /> Join</Link>
+            <button onClick={() => setMobileOpen((o) => !o)} className={cn(iconBtn, 'lg:hidden')} aria-label="Menu">
               {mobileOpen ? <X size={18} /> : <Menu size={18} />}
             </button>
           </div>
-        </div>
-      </motion.nav>
+        </nav>
+      </motion.header>
 
       <AnimatePresence>
         {mobileOpen && (
-          <motion.div
-            initial={{ opacity: 0, x: '100%' }} animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: '100%' }}
-            transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-            style={{
-              position: 'fixed', inset: 0, zIndex: 99,
-              background: 'var(--bg)', padding: '96px 20px 36px',
-              display: 'flex', flexDirection: 'column', gap: 4,
-            }}>
-            {links.map((link, i) => (
-              <motion.button key={link.id}
-                initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.04 }}
-                onClick={() => scrollTo(link.id)}
-                style={{
-                  padding: '14px 20px', borderRadius: 10, fontSize: 18, fontWeight: 600,
-                  fontFamily: 'var(--font-display)', color: 'var(--fg)', textAlign: 'left',
-                  transition: 'background 0.2s',
-                }}
-                onMouseEnter={e => e.target.style.background = 'var(--bg-alt)'}
-                onMouseLeave={e => e.target.style.background = 'transparent'}>
-                {link.label}
-              </motion.button>
+          <motion.div initial={{ opacity: 0, clipPath: 'circle(0% at 90% 5%)' }} animate={{ opacity: 1, clipPath: 'circle(150% at 90% 5%)' }} exit={{ opacity: 0, clipPath: 'circle(0% at 90% 5%)' }}
+            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }} className="fixed inset-0 z-[99] flex flex-col justify-center gap-1 overflow-y-auto bg-bg px-8 py-24">
+            {[...LINKS, { to: '/join', label: 'Join the Club' }, { to: '/admin', label: 'Admin' }].map((l, i) => (
+              <motion.div key={l.to} initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 + i * 0.045 }}>
+                <Link to={l.to} className="flex items-baseline gap-4 border-b border-line py-3 font-display text-3xl font-semibold text-fg">
+                  <span className="font-mono text-xs text-tech">{String(i + 1).padStart(2, '0')}</span>{l.label}
+                </Link>
+              </motion.div>
             ))}
           </motion.div>
         )}
       </AnimatePresence>
-
-      <style>{`
-        @media (max-width: 900px) {
-          .nav-links-desktop { display: none !important; }
-          .hamburger-btn { display: flex !important; }
-          .admin-text { display: none; }
-        }
-      `}</style>
     </>
   );
 }

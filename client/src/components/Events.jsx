@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 import { Calendar, MapPin, Clock, Share2, Facebook, MessageCircle, Link, X as XIcon } from 'lucide-react';
+import { useShallow } from 'zustand/react/shallow';
 import useStore from '../context/store';
 
 const fadeUp = {
@@ -41,7 +42,7 @@ function ShareMenu({ title, text, onClose }) {
 }
 
 export default function Events() {
-  const { events } = useStore();
+  const { events } = useStore(useShallow((s) => ({ events: s.events })));
   const [filter, setFilter] = useState('all');
   const [shareOpen, setShareOpen] = useState(null);
   const [ref, inView] = useInView({ threshold: 0.05, triggerOnce: true });

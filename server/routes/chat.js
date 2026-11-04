@@ -15,6 +15,7 @@ About the club:
 - Activities: Workshops, Hackathons, Tech Talks, Competitive Programming, Projects
 - Contact: ictclubbauet@gmail.com, Phone: 01707-533471
 - Facebook: facebook.com/bauetictclub
+- Membership: visitors can apply from the "Join Our Club" section of the website, either as a Committee Member (choose a post, photo required) or a General Member (pick interests). Applications are reviewed by the team.
 - Location: BAUET, Qadirabad Cantonment, Natore, Rajshahi
 
 Be friendly, helpful, and concise. Answer in English or Bengali/Bangla based on the user's language.
@@ -33,8 +34,10 @@ router.post('/', async (req, res) => {
   try {
     const messages = [
       { role: 'system', content: SYSTEM_PROMPT },
-      ...history.slice(-8).map((m) => ({ role: m.role, content: m.content })),
-      { role: 'user', content: message },
+      ...history.slice(-8)
+        .filter((m) => ['user', 'assistant'].includes(m?.role) && typeof m.content === 'string')
+        .map((m) => ({ role: m.role, content: m.content.slice(0, 1500) })),
+      { role: 'user', content: String(message).slice(0, 1500) },
     ];
 
     const completion = await groq.chat.completions.create({

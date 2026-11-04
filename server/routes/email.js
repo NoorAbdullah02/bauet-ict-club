@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 
+const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
 let brevoClient = null;
 
 function getBrevoClient() {
@@ -17,7 +19,10 @@ function getBrevoClient() {
   }
 }
 
-router.post('/contact', async (req, res) => {
+const rateLimit = require('express-rate-limit');
+const limiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 10, message: { error: 'Too many messages. Please try again later.' } });
+
+router.post('/contact', limiter, async (req, res) => {
   const { name, email, subject, message } = req.body;
   if (!name || !email || !message) {
     return res.status(400).json({ error: 'Name, email, and message are required' });
@@ -36,11 +41,11 @@ router.post('/contact', async (req, res) => {
       subject: subject || `Contact Form: ${name}`,
       htmlContent: `
         <h2>New Contact Form Submission</h2>
-        <p><strong>Name:</strong> ${name}</p>
-        <p><strong>Email:</strong> ${email}</p>
-        <p><strong>Subject:</strong> ${subject || 'N/A'}</p>
+        <p><strong>Name:</strong> ${esc(name)}</p>
+        <p><strong>Email:</strong> ${esc(email)}</p>
+        <p><strong>Subject:</strong> ${esc(subject) || 'N/A'}</p>
         <p><strong>Message:</strong></p>
-        <p>${message}</p>
+        <p>${esc(message)}</p>
       `,
     };
 
