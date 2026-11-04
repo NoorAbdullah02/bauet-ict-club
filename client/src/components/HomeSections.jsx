@@ -26,7 +26,7 @@ function Head({ tag, title, to, cta }) {
         <div className="section-tag !mb-3">{tag}</div>
         <h2 className="text-[clamp(2rem,4vw,3rem)] text-fg">{title}</h2>
       </div>
-      {to && <Link to={to} className="group flex items-center gap-1.5 text-sm font-semibold text-accent">{cta} <ArrowUpRight size={16} className="transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5" /></Link>}
+      {to && <Link to={to} className="group flex items-center gap-1.5 py-2 text-sm font-semibold text-accent">{cta} <ArrowUpRight size={16} className="transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5" /></Link>}
     </div>
   );
 }

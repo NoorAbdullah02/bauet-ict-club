@@ -5,6 +5,7 @@ import { X, Upload, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useShallow } from 'zustand/react/shallow';
 import useStore from '../context/store';
+import { compressImage } from '../lib/compressImage';
 import { cn } from '../lib/cn';
 
 export const inputCls = 'w-full rounded-xl border border-line bg-bg/60 px-4 py-2.5 text-sm text-fg outline-none transition placeholder:text-muted focus:border-tech focus:ring-4 focus:ring-tech/15';
@@ -67,7 +68,7 @@ export function FormField({ field, value, onChange }) {
           <input type="file" accept="image/*" hidden onChange={async (e) => {
             const f = e.target.files?.[0]; if (!f) return;
             setBusy(true);
-            try { set(await uploadImage(f)); toast.success('Image uploaded'); } catch { toast.error('Upload failed'); }
+            try { set(await uploadImage(await compressImage(f, { keepPng: field.kind === 'logo' }), field.kind || 'cover')); toast.success('Image uploaded'); } catch (err) { toast.error(err.response?.data?.error || 'Upload failed'); }
             setBusy(false);
           }} />
         </label>

@@ -4,6 +4,7 @@ import { Save, Loader2, FlaskConical, Trash2 } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import useStore from '../context/store';
 import { Panel, PageTitle, inputCls, askConfirm } from './ui';
+import ServiceStatus from './ServiceStatus';
 
 const FIELDS = [['heroTitle', 'Hero title', 'text'], ['heroSub', 'Hero subtitle', 'text'], ['aboutText', 'About text', 'textarea'], ['mission', 'Mission', 'textarea'], ['vision', 'Vision', 'textarea'], ['goal', 'Goal', 'textarea']];
 
@@ -54,6 +55,7 @@ export default function SettingsView() {
               <input className={inputCls} value={f.socialLinks?.[k] || ''} onChange={(e) => setF({ ...f, socialLinks: { ...f.socialLinks, [k]: e.target.value } })} /></label>
           ))}
         </Panel>
+        <ServiceStatus />
         <Panel className="self-start p-6 xl:col-start-2">
           <div className="flex items-start gap-4">
             <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-tech/12 text-tech"><FlaskConical size={22} /></span>

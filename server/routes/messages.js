@@ -1,5 +1,6 @@
 const express = require('express');
 const { fail } = require('../utils/http');
+const mail = require('../utils/mailer');
 const rateLimit = require('express-rate-limit');
 const pool = require('../config/db');
 const { authMiddleware } = require('../middleware/auth');
@@ -27,6 +28,9 @@ router.post('/', contactLimiter, async (req, res) => {
       'INSERT INTO messages (name, email, subject, message) VALUES ($1,$2,$3,$4) RETURNING id',
       [name, email, subject, message]
     );
+    const m = { name, email, subject, message };
+    mail.sendMail({ to: mail.adminAddress(), ...mail.templates.adminNewMessage(m) });
+    mail.sendMail({ to: email, ...mail.templates.contactAck(m) });
     res.status(201).json({ success: true, id: rows[0].id });
   } catch (e) {
     console.error('Message save failed:', e.message);

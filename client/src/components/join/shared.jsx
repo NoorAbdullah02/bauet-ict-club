@@ -4,6 +4,7 @@ import { ImagePlus, Loader2 } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import useStore from '../../context/store';
 import { cn } from '../../lib/cn';
+import { compressImage } from '../../lib/compressImage';
 
 export { POSTS } from '../AdminApplications';
 export const DEPARTMENTS = ['ICE', 'CSE', 'EEE', 'CE', 'ME', 'Other'];
@@ -53,7 +54,7 @@ export function PhotoDrop({ value, onFile, uploading, error, optional }) {
           <span className="block text-sm font-semibold text-fg">{value ? 'Change photo' : 'Drop your photo or click to browse'}</span>
           <span className="mt-0.5 block text-xs text-muted">JPG or PNG · max 3MB · a clear face photo works best</span>
         </span>
-        <input ref={ref} type="file" accept="image/jpeg,image/png" hidden onChange={(e) => pick(e.target.files?.[0])} />
+        <input ref={ref} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={(e) => pick(e.target.files?.[0])} />
       </button>
       {error && <span className="mt-1.5 block text-xs text-red-500">{error}</span>}
     </div>
@@ -76,10 +77,14 @@ export function useApplication(type, extra, extraRules) {
   const set = (k) => (e) => patch(k, e.target.value);
 
   const onPhoto = async (file) => {
-    if (!['image/jpeg', 'image/png'].includes(file.type)) return toast.error('Please choose a JPG or PNG image');
-    if (file.size > 3 * 1024 * 1024) return toast.error('Image must be under 3MB');
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) return toast.error('Please choose a JPG or PNG image');
+    if (file.size > 15 * 1024 * 1024) return toast.error('Image must be under 15MB');
     setUploading(true);
-    try { patch('photo_url', await uploadApplicantPhoto(file)); }
+    try {
+      const small = await compressImage(file, { max: 1200 }); // phone photos shrink to a few hundred KB
+      if (small.size > 3 * 1024 * 1024) { setUploading(false); return toast.error('Image is still too large, please pick another photo'); }
+      patch('photo_url', await uploadApplicantPhoto(small));
+    }
     catch (e) { toast.error(e.response?.data?.error || 'Photo upload failed'); }
     setUploading(false);
   };

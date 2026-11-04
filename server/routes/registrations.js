@@ -1,11 +1,13 @@
 const express = require('express');
 const { fail } = require('../utils/http');
+const mail = require('../utils/mailer');
+const { storeImage } = require('../utils/images');
 const multer = require('multer');
 const rateLimit = require('express-rate-limit');
 const pool = require('../config/db');
 const cloudinary = require('../config/cloudinary');
 const { authMiddleware } = require('../middleware/auth');
-const { saveImage, cloudinaryReady } = require('../utils/saveImage');
+
 const { positionRank, leadershipConflict } = require('../utils/positions');
 
 const router = express.Router();
@@ -84,37 +86,15 @@ function validate(body) {
   return { data, errors };
 }
 
-async function notify(reg) {
-  if (!process.env.BREVO_API_KEY) return;
-  try {
-    const brevo = require('@getbrevo/brevo');
-    const api = new brevo.TransactionalEmailsApi();
-    api.setApiKey(brevo.TransactionalEmailsApiApiKeys.apiKey, process.env.BREVO_API_KEY);
-    const label = reg.type === 'committee' ? `Committee application (${esc(reg.post)})` : reg.type === 'ambassador' ? 'Department Ambassador application' : 'General membership';
-    await api.sendTransacEmail({
-      to: [{ email: reg.email, name: reg.full_name }],
-      sender: { email: 'noreply@bauetictclub.com', name: 'BAUET ICT Club' },
-      subject: 'We received your application — BAUET ICT Club',
-      htmlContent: `<div style="font-family:system-ui,sans-serif;max-width:520px;margin:auto">
-        <h2>Welcome, ${esc(reg.full_name)} 👋</h2>
-        <p>We have received your <b>${label}</b> request. Our team will review it and get back to you soon.</p>
-        <p style="color:#666;font-size:13px">BAUET ICT Club · ictclubbauet@gmail.com</p></div>`,
-    });
-  } catch (e) {
-    console.warn('Registration email failed (non-critical):', e.message);
-  }
+function notify(reg) {
+  mail.sendMail({ to: reg.email, ...mail.templates.applicationReceived(reg) });
+  mail.sendMail({ to: mail.adminAddress(), ...mail.templates.adminNewApplication(reg) });
 }
 
 router.post('/photo', submitLimiter, upload.single('photo'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'Upload a JPG or PNG up to 3MB' });
   try {
-    if (!cloudinaryReady()) return res.json({ url: await saveImage(req.file.buffer) });
-    const dataUri = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
-    const result = await cloudinary.uploader.upload(dataUri, {
-      folder: 'bauet-ict-club/applicants',
-      transformation: [{ width: 700, height: 700, crop: 'fill', gravity: 'face' }, { quality: 'auto', fetch_format: 'auto' }],
-    });
-    res.json({ url: result.secure_url });
+    res.json({ url: (await storeImage(req.file.buffer, 'applicant')).url });
   } catch (e) {
     console.error('Applicant photo upload failed:', e.message);
     res.status(e.status || 500).json({ error: e.status ? e.message : 'Photo upload failed. Please try again.' });
@@ -159,6 +139,7 @@ router.patch('/:id/status', authMiddleware, async (req, res) => {
   try {
     const { rows } = await pool.query('UPDATE registrations SET status = $1 WHERE id = $2 AND deleted_at IS NULL RETURNING *', [req.body.status, req.params.id]);
     if (!rows.length) return res.status(404).json({ error: 'Not found' });
+    if (req.body.status === 'rejected') mail.sendMail({ to: rows[0].email, ...mail.templates.applicationRejected(rows[0]) });
     res.json(rows[0]);
   } catch (e) {
     fail(res, e);
@@ -190,6 +171,7 @@ router.post('/:id/select', authMiddleware, async (req, res) => {
     );
     const updated = await client.query("UPDATE registrations SET status = 'approved' WHERE id = $1 RETURNING *", [r.id]);
     await client.query('COMMIT');
+    mail.sendMail({ to: r.email, ...mail.templates.applicationSelected(r, position, session) });
     res.json({ registration: updated.rows[0], member: member.rows[0] });
   } catch (e) {
     await client.query('ROLLBACK').catch(() => {});

@@ -6,7 +6,7 @@ import Logo from './Logo';
 const EXPLORE = [['About', '/about'], ['Events', '/events'], ['Notices', '/notices'], ['Projects', '/projects'], ['Team', '/team'], ['Ambassadors', '/ambassadors'], ['FAQ', '/faq']];
 const INVOLVED = [['Join the club', '/join'], ['Committee', '/join/committee'], ['General member', '/join/general'], ['Ambassador', '/join/ambassador']];
 
-const link = 'text-[13px] text-white/70 transition-colors hover:text-white';
+const link = 'inline-block py-1.5 text-[13px] text-white/70 transition-colors hover:text-white';
 const social = 'grid size-9 place-items-center rounded-full border border-white/20 bg-white/10 text-white transition hover:-translate-y-0.5 hover:bg-white hover:text-[#0A1A4A]';
 const prefetchAdmin = () => import('../admin/AdminApp');
 
@@ -40,12 +40,12 @@ export default function Footer() {
 
           <nav aria-label="Explore">
             <h4 className="mb-3 font-mono text-[10px] uppercase tracking-[0.22em] text-white/45">Explore</h4>
-            <ul className="space-y-2">{EXPLORE.map(([l, to]) => <li key={to}><Link to={to} className={link}>{l}</Link></li>)}</ul>
+            <ul className="space-y-0.5">{EXPLORE.map(([l, to]) => <li key={to}><Link to={to} className={link}>{l}</Link></li>)}</ul>
           </nav>
 
           <nav aria-label="Get involved">
             <h4 className="mb-3 font-mono text-[10px] uppercase tracking-[0.22em] text-white/45">Get involved</h4>
-            <ul className="space-y-2">{INVOLVED.map(([l, to]) => <li key={to}><Link to={to} className={link}>{l}</Link></li>)}</ul>
+            <ul className="space-y-0.5">{INVOLVED.map(([l, to]) => <li key={to}><Link to={to} className={link}>{l}</Link></li>)}</ul>
           </nav>
 
           <div>
@@ -60,8 +60,8 @@ export default function Footer() {
 
         <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/12 px-6 py-3.5 text-[12px] text-white/60 sm:px-10">
           <span>© {new Date().getFullYear()} BAUET ICT Club</span>
-          <span><Link to="/admin" onMouseEnter={prefetchAdmin} onFocus={prefetchAdmin} className="text-white/75 hover:text-white">Admin</Link></span>
-          <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} aria-label="Back to top" className="flex items-center gap-1.5 text-white/80 transition hover:text-white">Top <ArrowUp size={13} /></button>
+          <span><Link to="/admin" onMouseEnter={prefetchAdmin} onFocus={prefetchAdmin} className="inline-block py-2 text-white/75 hover:text-white">Admin</Link></span>
+          <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} aria-label="Back to top" className="flex items-center gap-1.5 py-2 text-white/80 transition hover:text-white">Top <ArrowUp size={13} /></button>
         </div>
       </div>
     </footer>
