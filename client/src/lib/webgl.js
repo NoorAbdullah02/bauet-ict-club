@@ -12,5 +12,5 @@ export function hasWebGL() {
 }
 
 export const palette = (dark) => dark
-  ? { a: '#9A88FF', b: '#3DE3FF', c: '#FF7AE0' }
-  : { a: '#2B3DFF', b: '#0B7A75', c: '#E0338F' };
+  ? { a: '#6C9BFF', b: '#38C8F0', c: '#35D989' }
+  : { a: '#1F4FD8', b: '#17A2D8', c: '#18A957' };

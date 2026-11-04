@@ -1,13 +1,14 @@
 import { useState, useRef, useEffect, Fragment } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ArrowUp, Sparkles, RotateCcw, Crown, Users, CalendarDays, Mail } from 'lucide-react';
+import ChatMark from './ChatMark';
+import { X, ArrowUp, RotateCcw, Crown, Users, CalendarDays, Mail } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useShallow } from 'zustand/react/shallow';
 import useStore from '../context/store';
 import { cn } from '../lib/cn';
 
 const STORE_KEY = 'bauet-chat';
-const GREETING = { role: 'assistant', content: 'Hi! I’m **ICT Club AI** ✨\nAsk me about events, joining the club, the committee — in English or বাংলা.' };
+const GREETING = { role: 'assistant', content: 'Hi! I’m the **ICT Club assistant**.\nAsk me about events, joining the club, the committee — in English or বাংলা.' };
 
 const SUGGESTIONS = [
   { icon: Crown, label: 'Join the committee', text: 'How can I apply for the committee?' },
@@ -39,7 +40,7 @@ function Orb({ size = 40, pulse }) {
   return (
     <span className="relative grid shrink-0 place-items-center rounded-full text-white" style={{ width: size, height: size, background: 'var(--grad-btn)' }}>
       {pulse && <span className="absolute inset-0 animate-ping rounded-full bg-accent/40" />}
-      <Sparkles size={size * 0.46} className="relative" />
+      <ChatMark size={size * 0.6} className="relative" />
     </span>
   );
 }
@@ -95,7 +96,7 @@ export default function ChatBot() {
             <motion.button initial={{ opacity: 0, y: 10, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }}
               onClick={() => { setOpen(true); setTeaser(false); }}
               className="rounded-2xl rounded-br-sm border border-line bg-surface px-4 py-2.5 text-left text-xs text-fg shadow-[var(--shadow-lg)]">
-              <span className="font-semibold">Need help?</span> <span className="text-fg2">Ask about joining ✨</span>
+              <span className="font-semibold">Need help?</span> <span className="text-fg2">Ask about joining</span>
             </motion.button>
           )}
         </AnimatePresence>
@@ -104,7 +105,7 @@ export default function ChatBot() {
           {!open && <span className="absolute inset-0 animate-ping rounded-full bg-accent/30" style={{ animationDuration: '2.8s' }} />}
           <AnimatePresence mode="wait" initial={false}>
             <motion.span key={open ? 'x' : 's'} initial={{ rotate: -80, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 80, opacity: 0 }} transition={{ duration: 0.2 }} className="relative">
-              {open ? <X size={22} /> : <Sparkles size={22} />}
+              {open ? <X size={22} /> : <ChatMark size={28} />}
             </motion.span>
           </AnimatePresence>
         </motion.button>
@@ -112,7 +113,7 @@ export default function ChatBot() {
 
       <AnimatePresence>
         {open && (
-          <motion.section role="dialog" aria-label="ICT Club AI assistant"
+          <motion.section role="dialog" aria-label="ICT Club assistant"
             initial={{ opacity: 0, y: 28, scale: 0.92 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ type: 'spring', stiffness: 260, damping: 26 }} style={{ transformOrigin: 'bottom right' }}
             className="fixed bottom-24 right-6 z-[90] flex h-[34rem] max-h-[calc(100vh-8rem)] w-[24rem] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-[28px] border border-line bg-[var(--glass)] shadow-[var(--shadow-xl)] backdrop-blur-2xl max-sm:bottom-20 max-sm:right-4">
@@ -121,7 +122,7 @@ export default function ChatBot() {
             <header className="relative flex items-center gap-3 border-b border-line px-5 py-4">
               <Orb pulse />
               <div className="min-w-0 flex-1">
-                <div className="font-display text-base font-semibold leading-tight text-fg">ICT Club AI</div>
+                <div className="font-display text-base font-semibold leading-tight text-fg">ICT Club Assistant</div>
                 <div className="flex items-center gap-1.5 text-[11px] text-fg2"><span className="size-1.5 rounded-full bg-emerald-400" /> Online · replies in English & বাংলা</div>
               </div>
               <button onClick={() => setMessages([GREETING])} title="New chat" aria-label="New chat"
@@ -179,7 +180,7 @@ export default function ChatBot() {
 
             <form onSubmit={(e) => { e.preventDefault(); send(); }} className="relative border-t border-line p-3">
               <div className="flex items-end gap-2 rounded-3xl border border-line bg-bg/60 p-1.5 pl-4 transition focus-within:border-tech focus-within:ring-4 focus-within:ring-tech/15">
-                <textarea ref={inputRef} rows={1} value={input} onChange={grow} onKeyDown={onKey} maxLength={500} placeholder="Message ICT Club AI…"
+                <textarea ref={inputRef} rows={1} value={input} onChange={grow} onKeyDown={onKey} maxLength={500} placeholder="Ask the ICT Club…"
                   className="max-h-28 min-h-9 flex-1 resize-none bg-transparent py-2 text-sm text-fg outline-none placeholder:text-muted" />
                 <button type="submit" disabled={loading || !input.trim()} aria-label="Send"
                   className="grid size-9 shrink-0 place-items-center rounded-full text-white transition disabled:opacity-40" style={{ background: 'var(--grad-btn)' }}>

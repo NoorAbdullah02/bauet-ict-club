@@ -1,5 +1,6 @@
 import { useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import { Plus, Megaphone } from 'lucide-react';
 import { motion } from 'framer-motion';
 import CountUp from 'react-countup';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, CartesianGrid } from 'recharts';
@@ -8,7 +9,7 @@ import { useShallow } from 'zustand/react/shallow';
 import useStore from '../context/store';
 import { Panel, PageTitle } from './ui';
 
-const C = { a: 'var(--accent)', b: 'var(--tech)', c: '#FF7AE0', d: '#FFC24B' };
+const C = { a: 'var(--accent)', b: 'var(--tech)', c: '#EF6B8A', d: '#F5A524' };
 const day = (d) => new Date(d).toISOString().slice(0, 10);
 
 function Stat({ icon: Icon, label, value, hint, color, i }) {
@@ -30,8 +31,7 @@ function Stat({ icon: Icon, label, value, hint, color, i }) {
 const tip = { contentStyle: { background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 14, fontSize: 12, color: 'var(--fg)' }, cursor: { stroke: 'var(--border)' } };
 
 export default function Dashboard() {
-  const { registrations, events, members, messages, fetchRegistrations, fetchMessages } = useStore(useShallow((s) => ({ registrations: s.registrations, events: s.events, members: s.members, messages: s.messages, fetchRegistrations: s.fetchRegistrations, fetchMessages: s.fetchMessages })));
-  useEffect(() => { fetchRegistrations().catch(() => {}); fetchMessages().catch(() => {}); }, []);
+  const { registrations, events, members, messages, user } = useStore(useShallow((s) => ({ registrations: s.registrations, events: s.events, members: s.members, messages: s.messages, user: s.user })));
 
   const pending = registrations.filter((r) => r.status === 'pending').length;
   const unread = messages.filter((m) => !m.is_read).length;
@@ -57,13 +57,27 @@ export default function Dashboard() {
 
   return (
     <div>
-      <PageTitle title="Overview" sub="A live snapshot of applications, events and messages." />
+      <div className="relative mb-6 overflow-hidden rounded-3xl p-7 text-white sm:p-9" style={{ background: 'linear-gradient(120deg, #0A1A4A 0%, #1F4FD8 60%, #17A2D8 120%)' }}>
+        <div className="pointer-events-none absolute -right-10 -top-16 size-64 rounded-full bg-[#35D989]/30 blur-[70px]" />
+        <div className="relative flex flex-wrap items-center justify-between gap-6">
+          <div>
+            <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-white/70">{new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}</div>
+            <h1 className="mt-2 text-3xl text-white sm:text-4xl">Welcome back, {user?.username || 'admin'} 👋</h1>
+            <p className="mt-2 max-w-md text-sm text-white/75">{pending > 0 ? `${pending} application${pending > 1 ? 's are' : ' is'} waiting for your review.` : 'You’re all caught up — no applications waiting.'}</p>
+          </div>
+          <div className="flex flex-wrap gap-2.5">
+            <Link to="/admin/applications" className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-[#0A1A4A] shadow-lg transition hover:-translate-y-0.5"><ClipboardList size={15} /> Review applications</Link>
+            <Link to="/admin/events" className="inline-flex items-center gap-2 rounded-full border border-white/40 bg-white/10 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-white/20"><Plus size={15} /> Add event</Link>
+            <Link to="/admin/notices" className="inline-flex items-center gap-2 rounded-full border border-white/40 bg-white/10 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-white/20"><Megaphone size={15} /> Post notice</Link>
+          </div>
+        </div>
+      </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Stat i={0} icon={ClipboardList} label="Pending applications" value={pending} hint="needs review" color="linear-gradient(135deg,#8B6CFF,#FF7AE0)" />
-        <Stat i={1} icon={Users} label="Total applicants" value={registrations.length} hint="all time" color="linear-gradient(135deg,#17B7FF,#8B6CFF)" />
-        <Stat i={2} icon={Calendar} label="Upcoming events" value={upcoming.length} hint="scheduled" color="linear-gradient(135deg,#0B7A75,#17B7FF)" />
-        <Stat i={3} icon={MessageSquare} label="Unread messages" value={unread} hint="inbox" color="linear-gradient(135deg,#FF7AE0,#FFC24B)" />
+        <Stat i={0} icon={ClipboardList} label="Pending applications" value={pending} hint="needs review" color="linear-gradient(135deg,#1F4FD8,#2E7BFF)" />
+        <Stat i={1} icon={Users} label="Total applicants" value={registrations.length} hint="all time" color="linear-gradient(135deg,#12A8D8,#1F4FD8)" />
+        <Stat i={2} icon={Calendar} label="Upcoming events" value={upcoming.length} hint="scheduled" color="linear-gradient(135deg,#0E9F6E,#12A8D8)" />
+        <Stat i={3} icon={MessageSquare} label="Unread messages" value={unread} hint="inbox" color="linear-gradient(135deg,#F5A524,#EF6B8A)" />
       </div>
 
       <div className="mt-6 grid gap-6 xl:grid-cols-[1.6fr_1fr]">
