@@ -52,8 +52,19 @@ export default function JoinCommittee() {
             Apply for a post on the executive committee. Selected members are published on our Team page with their photo and role for the session.
           </p>
 
-          <div className="relative my-10 h-72 overflow-hidden rounded-[28px] border border-line bg-surface/30 backdrop-blur-sm">
-            <Backdrop3D variant="committee" className="absolute inset-0" />
+          {/* roles card: always readable; the 3D scene is only an optional backdrop behind it */}
+          <div className="relative my-10 overflow-hidden rounded-[28px] border border-line bg-surface/40 backdrop-blur-sm">
+            <Backdrop3D variant="committee" className="absolute inset-0 opacity-60" />
+            <div className="relative p-6 font-mono text-[12.5px] leading-7 sm:p-7">
+              <div className="mb-3 text-muted">{'// open posts this session'}</div>
+              {[['President', '1 seat'], ['Vice President', 'Technical · Administration'], ['General Secretary', 'open'], ['Joint / Organizing Secretary', 'open'], ['Treasurer', 'open'], ['Executive Member', 'open']].map(([role, seats]) => (
+                <div key={role} className="flex items-baseline justify-between gap-4 border-b border-dashed border-line/70 py-1.5 last:border-0">
+                  <span className="text-fg">{role}</span>
+                  <span className="text-right text-tech">{seats}</span>
+                </div>
+              ))}
+              <div className="mt-4 text-muted"><b className="font-medium text-tech">$</b> apply --role=committee</div>
+            </div>
           </div>
 
           <ol className="relative mt-10 space-y-6 border-l border-line pl-8">
