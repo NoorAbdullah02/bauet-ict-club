@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { thumb } from '../lib/img';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Megaphone, ArrowUpRight } from 'lucide-react';
@@ -51,7 +52,7 @@ export default function Ambassadors() {
                 <motion.div key={m.id} initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: Math.min(i, 8) * 0.05 }}
                   className="spot overflow-hidden rounded-3xl border border-line bg-surface text-center transition hover:-translate-y-1.5 hover:shadow-[var(--shadow-lg)]">
                   <div className="aspect-[4/4.2] w-full bg-alt">
-                    {m.image_url ? <img src={m.image_url} alt={m.name} loading="lazy" decoding="async" className="size-full object-cover" />
+                    {m.image_url ? <img src={thumb(m.image_url, 480)} alt={m.name} loading="lazy" decoding="async" className="size-full object-cover" />
                       : <div className="grid size-full place-items-center font-display text-5xl text-accent" style={{ background: 'var(--accent-light)' }}>{initials(m.name)}</div>}
                   </div>
                   <div className="p-4">

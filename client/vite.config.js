@@ -13,6 +13,7 @@ export default defineConfig({
         manualChunks(id) {
           if (!id.includes('node_modules')) return;
           if (/[\\/]framer-motion|motion-dom|motion-utils/.test(id)) return 'motion';
+          if (/[\\/](recharts|d3-[a-z-]+|victory-vendor|recharts-scale|decimal\.js-light|internmap)[\\/]/.test(id)) return 'charts'; // admin only
           if (/[\\/](react|react-dom|scheduler|react-router|react-router-dom)[\\/]/.test(id)) return 'react';
         },
       },

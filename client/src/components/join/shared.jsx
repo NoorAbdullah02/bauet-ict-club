@@ -6,7 +6,7 @@ import useStore from '../../context/store';
 import { cn } from '../../lib/cn';
 import { compressImage } from '../../lib/compressImage';
 
-export { POSTS } from '../AdminApplications';
+export { POSTS } from '../../lib/posts';
 export const DEPARTMENTS = ['ICE', 'CSE', 'EEE', 'CE', 'ME', 'Other'];
 export const BATCHES = Array.from({ length: 19 }, (_, i) => String(12 + i));
 

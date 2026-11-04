@@ -1,0 +1,41 @@
+# Render blueprint: one web service. The server serves the built website, so the frontend runs inside the backend.
+# Create it with: Render dashboard -> New -> Blueprint -> pick this repository. Then fill the secrets marked "sync: false".
+services:
+  - type: web
+    name: bauet-ict-club
+    runtime: node
+    plan: free
+    branch: main
+    buildCommand: npm run build:render
+    startCommand: npm start
+    healthCheckPath: /robots.txt
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: NODE_ENV
+        value: production
+      - key: TRUST_PROXY        # real visitor IPs for rate limits and the Visitors page
+        value: "1"
+      - key: JWT_SECRET         # long random value, generated for you
+        generateValue: true
+      - key: DATABASE_URL       # your Neon connection string (ends with ?sslmode=require)
+        sync: false
+      - key: ADMIN_PASSWORD     # the admin login password, 12+ characters
+        sync: false
+      - key: PUBLIC_URL         # e.g. https://bauet-ict-club.onrender.com
+        sync: false
+      - key: BREVO_API_KEY
+        sync: false
+      - key: MAIL_FROM          # sender you verified in Brevo
+        sync: false
+      - key: ADMIN_NOTIFY_EMAIL
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false

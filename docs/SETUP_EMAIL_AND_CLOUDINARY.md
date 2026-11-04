@@ -59,3 +59,11 @@ Run `npm run dev` on your PC. It prints a *Network* address such as `http://192.
 2. Restart the server. Admin → Settings → Connections shows *AI assistant on*.
 3. The assistant reads your live **events, notices, committee, projects, collaborations and FAQ** every minute, so keep those up to date and it stays correct. It never sees applicant data, and it says it is not sure instead of guessing.
 4. Without a key (or if Groq is down) visitors still get an answer from the FAQ, events and committee, so the chat never shows an error.
+
+
+## How pictures are handled with Cloudinary
+
+- **On upload:** the admin picture editor crops, zooms, rotates and resizes first (Small 640, Medium 1000 or Large 1600 px). The server checks the file type from the bytes, then Cloudinary stores a face-aware square for people and a width-limited image for covers, with automatic quality and format (WebP/AVIF where the browser supports it).
+- **On the website:** every picture is requested at the size it is shown (for example 420 px for team cards) with `f_auto,q_auto`, so pages stay light. Full-size views use the stored picture.
+- **On delete:** moving to Trash keeps the picture; *Delete for good* removes it from Cloudinary, unless another item still uses the same picture.
+- **Status:** Admin → Settings → Connections shows whether the Cloudinary keys work.

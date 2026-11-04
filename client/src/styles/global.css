@@ -464,3 +464,12 @@ body.admin-mode .cursor-glow { display: none; }
 .lite .grad-anim { animation: none; }
 .lite .spot::after, .lite .spot::before { display: none; }
 .lite .marquee-track { animation-duration: 60s; }
+
+/* ---- comfortable thumb targets on phones and touch screens ---- */
+@media (pointer: coarse), (max-width: 767px) {
+  footer a { display: inline-flex; align-items: center; min-height: 40px; padding-inline: 2px; }
+  a[href^='mailto:'], a[href^='tel:'] { display: inline-block; padding-block: 10px; }
+  input[type='checkbox'], input[type='radio'] { width: 20px; height: 20px; }
+  .admin-root button, .admin-root select, .admin-root summary { min-height: 38px; }
+  .admin-root a[href^='mailto:'], .admin-root a[href^='tel:'] { padding-block: 8px; }
+}

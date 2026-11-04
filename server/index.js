@@ -33,7 +33,7 @@ app.use(helmet({
       'style-src': ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
       'font-src': ["'self'", 'https://fonts.gstatic.com', 'data:'],
       'img-src': ["'self'", 'data:', 'blob:', 'https:'],
-      'connect-src': ["'self'"],
+      'connect-src': ["'self'", 'https://res.cloudinary.com'], // the picture editor re-opens Cloudinary pictures to crop them
       'worker-src': ["'self'", 'blob:'],
       'object-src': ["'none'"],
       'frame-ancestors': ["'none'"],
@@ -140,6 +140,22 @@ features.forEach((f) => {
   app.use(`/api/${f.table}`, createCrudRouter(f.table, { orderBy: f.orderBy, orderDir: f.orderDir, columns: f.columns, imageCols: f.imageCols, validate: f.validate, readAuth: f.readAuth, auth: authMiddleware, onCreate: f.notify ? (r) => notifySubscribers(f.notify.kind, f.notify.item(r)) : undefined }));
   if (f.public) PUBLIC_LISTS.push(`/${f.table}`);
 });
+// One round trip for the whole public site (the website used to make nine separate requests on every first visit).
+PUBLIC_LISTS.push('/bootstrap');
+app.get('/api/bootstrap', async (_req, res) => {
+  const list = async (sql) => { try { return (await pool.query(sql)).rows; } catch { return []; } };
+  const [events, notices, members, gallery, achievements] = await Promise.all([
+    list('SELECT * FROM events WHERE deleted_at IS NULL ORDER BY date DESC'),
+    list('SELECT * FROM notices WHERE deleted_at IS NULL ORDER BY pinned DESC, created_at DESC'),
+    list('SELECT * FROM members WHERE deleted_at IS NULL ORDER BY display_order ASC'),
+    list('SELECT * FROM gallery WHERE deleted_at IS NULL ORDER BY created_at DESC'),
+    list('SELECT * FROM achievements WHERE deleted_at IS NULL ORDER BY date DESC'),
+  ]);
+  const out = { events, notices, members, gallery, achievements, settings: (await list("SELECT value FROM settings WHERE key = 'site'"))[0]?.value || null };
+  await Promise.all(features.filter((f) => f.public).map(async (f) => { out[f.table] = await list(`SELECT * FROM ${f.table} WHERE deleted_at IS NULL ORDER BY ${f.orderBy || 'created_at'} ${f.orderDir === 'ASC' ? 'ASC' : 'DESC'}`); }));
+  res.json(out);
+});
+
 const SITE_PATHS = ['/', '/about', '/events', '/notices', '/projects', '/team', '/ambassadors', '/gallery', '/achievements', '/faq', '/contact', '/join', '/join/committee', '/join/general', '/join/ambassador'];
 const origin = (req) => process.env.PUBLIC_URL?.replace(/\/$/, '') || `${req.protocol}://${req.get('host')}`;
 app.get('/sitemap.xml', (req, res) => {
@@ -153,7 +169,8 @@ app.use('/api/messages', require('./routes/messages'));
 
 if (process.env.NODE_ENV === 'production') {
   app.use('/assets', express.static(path.join(__dirname, '..', 'client', 'dist', 'assets'), { maxAge: '1y', immutable: true }));
-  app.use(express.static(path.join(__dirname, '..', 'client', 'dist'), { maxAge: '5m' }));
+  // the page itself is never cached for long (it names the hashed files); the hashed files above are cached for a year
+  app.use(express.static(path.join(__dirname, '..', 'client', 'dist'), { maxAge: '1h', setHeaders: (res, file) => { if (file.endsWith('.html')) res.set('Cache-Control', 'no-cache'); } }));
   app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'client', 'dist', 'index.html'));
   });

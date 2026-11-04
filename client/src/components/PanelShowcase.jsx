@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { thumb } from '../lib/img';
 import { motion } from 'framer-motion';
 import { ArrowUpRight, Users } from 'lucide-react';
 import { latestPanel } from '../lib/panel';
@@ -8,7 +9,7 @@ const GRADS = ['linear-gradient(135deg,#1F4FD8,#17A2D8)', 'linear-gradient(135de
 
 function Photo({ m, i = 0, className = '', textSize = 'text-5xl' }) {
   return m.image_url
-    ? <img src={m.image_url} alt={m.name} loading="lazy" decoding="async" className={`size-full object-cover transition duration-700 group-hover:scale-[1.06] ${className}`} />
+    ? <img src={thumb(m.image_url, 800)} alt={m.name} loading="lazy" decoding="async" className={`size-full object-cover transition duration-700 group-hover:scale-[1.06] ${className}`} />
     : <div className={`grid size-full place-items-center font-display text-white ${textSize}`} style={{ background: GRADS[i % GRADS.length] }}>{initials(m.name)}</div>;
 }
 

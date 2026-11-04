@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { thumb } from '../lib/img';
 import { motion } from 'framer-motion';
 import { ExternalLink, Github, Rocket, Users } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
@@ -43,7 +44,7 @@ export default function Projects() {
                 className="spot group flex flex-col overflow-hidden rounded-[var(--radius)] border border-line bg-surface">
                 <div className="relative aspect-[16/9] overflow-hidden bg-alt">
                   {p.image_url
-                    ? <img loading="lazy" decoding="async" src={p.image_url} alt={p.title} className="size-full object-cover transition duration-700 group-hover:scale-105" />
+                    ? <img loading="lazy" decoding="async" src={thumb(p.image_url, 800)} alt={p.title} className="size-full object-cover transition duration-700 group-hover:scale-105" />
                     : <div className="grid size-full place-items-center" style={{ background: 'var(--grad-btn)' }}><Rocket size={34} color="#fff" /></div>}
                   {p.status && <span className={cn('absolute left-3 top-3 rounded-full px-3 py-1 font-mono text-[10px] font-semibold uppercase tracking-wider backdrop-blur', STATUS_STYLE[p.status] || 'bg-surface text-fg2')}>{p.status}</span>}
                 </div>

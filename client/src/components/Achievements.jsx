@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { thumb } from '../lib/img';
 import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 import { Trophy, Award } from 'lucide-react';
@@ -68,7 +69,7 @@ export default function Achievements() {
                   transition: 'all 0.3s',
                 }}
               >
-                {a.image_url && <img src={a.image_url} alt={a.title} loading="lazy" decoding="async" style={{ width: '100%', maxHeight: 260, objectFit: 'cover', borderRadius: 12, marginBottom: 14 }} />}
+                {a.image_url && <img src={thumb(a.image_url, 900)} alt={a.title} loading="lazy" decoding="async" style={{ width: '100%', maxHeight: 260, objectFit: 'cover', borderRadius: 12, marginBottom: 14 }} />}
                 <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--accent)', fontWeight: 600, marginBottom: 8 }}>
                   {a.date}
                 </div>
