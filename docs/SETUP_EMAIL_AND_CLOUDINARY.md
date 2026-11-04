@@ -47,3 +47,13 @@ How images are handled:
 - The browser shrinks big phone photos before upload (faster, less storage).
 - The server checks the real file type (JPG, PNG, WebP only), then Cloudinary stores it in `bauet-ict-club/<people|applicants|covers|logos>`: faces are auto-cropped square for people, other images are limited to 1600px, everything is delivered as the best format and quality (`f_auto,q_auto`).
 - Replacing a photo or deleting it from the Trash removes the old file from Cloudinary, unless another record still uses it.
+
+
+## Automatic emails and exports
+
+- **New event / notice / project:** every newsletter subscriber gets an email (with an unsubscribe link) the moment you add one in the admin panel. Set `NOTIFY_SUBSCRIBERS=false` in `.env` to switch this off. Expired notices are not mailed.
+- **Applications export:** Admin → Applications → *Export PDF* / *Export Word* downloads the current filter (tick *All types* for every applicant). *Email PDF* / *Email Word* sends the same file as an attachment to the address you type, or to `ADMIN_NOTIFY_EMAIL` when left blank. *View all details* on a card shows every field.
+
+## Using the admin from another device
+
+Run `npm run dev` on your PC. It prints a *Network* address such as `http://192.168.0.12:5173`; open it on your phone or another laptop on the same Wi-Fi and log in with the same admin username and password. To reach it from anywhere, deploy the site and use the deployed address.

@@ -20,6 +20,7 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    host: true, // also reachable from your phone / another laptop on the same Wi-Fi: http://<this PC's IP>:5173
     proxy: {
       '/api': { target: `http://localhost:${process.env.API_PORT || 5000}`, changeOrigin: true },
       '/uploads': { target: `http://localhost:${process.env.API_PORT || 5000}`, changeOrigin: true },

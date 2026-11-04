@@ -1,6 +1,7 @@
 const express = require('express');
 const { fail } = require('../utils/http');
 const mail = require('../utils/mailer');
+const exporters = require('../utils/exporters');
 const { storeImage } = require('../utils/images');
 const multer = require('multer');
 const rateLimit = require('express-rate-limit');
@@ -122,6 +123,54 @@ router.post('/', submitLimiter, async (req, res) => {
     }
     console.error('Registration failed:', e.message);
     res.status(500).json({ error: 'Could not save your application. Please try again.' });
+  }
+});
+
+// Build the PDF/Word file for the applications that match ?format=pdf|docx&type=committee|general|ambassador|all&status=all|pending|approved|rejected&q=
+async function buildExport(src) {
+  const format = src.format === 'docx' ? 'docx' : 'pdf';
+  const type = TYPES.includes(src.type) ? src.type : 'all';
+  const status = STATUSES.includes(src.status) ? src.status : 'all';
+  const q = String(src.q || '').trim().toLowerCase();
+  let { rows } = await pool.query('SELECT * FROM registrations WHERE deleted_at IS NULL ORDER BY created_at DESC');
+  rows = rows.filter((r) => (type === 'all' || r.type === type) && (status === 'all' || r.status === status)
+    && (!q || `${r.full_name} ${r.email} ${r.student_id}`.toLowerCase().includes(q)));
+  const buffer = await (format === 'docx' ? exporters.toDocx : exporters.toPdf)(rows, { type, status });
+  return {
+    buffer, count: rows.length, format,
+    filename: `applications-${type}-${new Date().toISOString().slice(0, 10)}.${format}`,
+    mime: format === 'docx' ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' : 'application/pdf',
+  };
+}
+
+router.get('/export', authMiddleware, async (req, res) => {
+  try {
+    const f = await buildExport(req.query);
+    res.set({ 'Content-Type': f.mime, 'Content-Disposition': `attachment; filename="${f.filename}"`, 'Cache-Control': 'no-store' });
+    res.send(f.buffer);
+  } catch (e) {
+    fail(res, e);
+  }
+});
+
+// Email the same file to the admin (or to `to`). Body: { format, type, status, q, to? }
+router.post('/export/email', authMiddleware, rateLimit({ windowMs: 10 * 60 * 1000, max: 10 }), async (req, res) => {
+  const to = String(req.body?.to || '').trim() || mail.adminAddress();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(to)) return res.status(400).json({ error: 'Enter a valid email address' });
+  if (!mail.provider()) return res.status(400).json({ error: 'Email is not configured. Set SMTP_USER and SMTP_PASS in .env.' });
+  try {
+    const f = await buildExport(req.body || {});
+    const label = `${f.count} application${f.count === 1 ? '' : 's'}`;
+    await mail.sendNow({
+      to, subject: `Applications export (${label})`,
+      html: mail.layout({ title: 'Applications export', body: `<p>Your export of <b>${label}</b> is attached as ${f.format.toUpperCase()}.</p>` }),
+      text: `Your export of ${label} is attached.`,
+      attachments: [{ filename: f.filename, content: f.buffer, contentType: f.mime }],
+    });
+    res.json({ success: true, to, count: f.count });
+  } catch (e) {
+    console.warn('Export email failed:', e.message);
+    res.status(502).json({ error: `Could not send: ${e.message}` });
   }
 });
 

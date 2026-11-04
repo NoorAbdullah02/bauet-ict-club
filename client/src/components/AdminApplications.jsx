@@ -1,9 +1,9 @@
 import Select from './Select';
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
-import { Crown, Users, Megaphone, Check, X, Trash2, Download, Loader2, UserCheck, Search } from 'lucide-react';
+import { Crown, Users, Megaphone, Check, X, Trash2, Download, Loader2, UserCheck, Search, FileText, FileType2, Mail, ChevronDown } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
-import useStore from '../context/store';
+import useStore, { api } from '../context/store';
 import { askConfirm, toastTrashed } from '../admin/ui';
 import { cn } from '../lib/cn';
 
@@ -47,6 +47,7 @@ function Card({ r }) {
   const [session, setSession] = useState(defaultSession());
   const [position, setPosition] = useState(r.post || POSTS[0]);
   const [busy, setBusy] = useState(false);
+  const [open, setOpen] = useState(false);
   const sessionNames = useStore((st) => st.sessions).map((x) => x.label);
 
   const run = async (fn, ok) => {
@@ -88,6 +89,20 @@ function Card({ r }) {
         </div>
       )}
       {r.note && <p className="mt-3 rounded-lg bg-alt p-3 text-xs leading-6 text-fg2">{r.note}</p>}
+
+      <button onClick={() => setOpen((v) => !v)} className="mt-3 flex items-center gap-1.5 text-xs font-semibold text-tech">
+        <ChevronDown size={14} className={cn('transition', open && 'rotate-180')} /> {open ? 'Hide' : 'View all'} details
+      </button>
+      {open && (
+        <dl className="mt-3 grid gap-x-4 gap-y-2 rounded-xl border border-line bg-alt/50 p-4 text-xs sm:grid-cols-2">
+          {[['Type', r.type], ['Post applied', r.post], ['Student ID', r.student_id], ['Batch', r.batch], ['Department', r.department], ['Gender', r.gender], ['Phone', r.phone], ['Email', r.email],
+            ['Interests', (r.interests || []).join(', ')], ['Experience', r.experience], ['Status', r.status], ['Applied on', r.created_at && new Date(r.created_at).toLocaleString()]]
+            .filter(([, v]) => v).map(([k, v]) => (
+              <div key={k} className="min-w-0"><dt className="font-mono text-[10px] uppercase tracking-wider text-muted">{k}</dt><dd className="break-words text-fg">{v}</dd></div>
+            ))}
+          {r.photo_url && <div className="sm:col-span-2"><dt className="font-mono text-[10px] uppercase tracking-wider text-muted">Photo</dt><dd><a href={r.photo_url} target="_blank" rel="noreferrer" className="text-tech underline">Open full photo</a></dd></div>}
+        </dl>
+      )}
 
       {picking && (
         <div className="mt-4 grid gap-3 rounded-xl border border-accent/30 bg-accent/5 p-4 sm:grid-cols-2">
@@ -135,11 +150,31 @@ function Card({ r }) {
   );
 }
 
+/** Download the applications that match the current filters as a PDF or Word file. */
+async function exportDoc(format, { type, status, q }) {
+  try {
+    const { data } = await api.get('/registrations/export', { params: { format, type, status, q }, responseType: 'blob' });
+    const url = URL.createObjectURL(data);
+    const a = Object.assign(document.createElement('a'), { href: url, download: `applications-${type}-${new Date().toISOString().slice(0, 10)}.${format}` });
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  } catch { toast.error('Could not export. Please try again.'); }
+}
+
+async function emailDoc(format, filters, to) {
+  try {
+    const { data } = await api.post('/registrations/export/email', { format, ...filters, to: to || undefined });
+    toast.success(`Sent ${data.count} application${data.count === 1 ? '' : 's'} to ${data.to}`);
+  } catch (e) { toast.error(e.response?.data?.error || 'Could not send the email'); }
+}
+
 export default function AdminApplications() {
   const { registrations, fetchRegistrations } = useStore(useShallow((s) => ({ registrations: s.registrations, fetchRegistrations: s.fetchRegistrations })));
   const [type, setType] = useState('committee');
   const [status, setStatus] = useState('all');
   const [q, setQ] = useState('');
+  const [allTypes, setAllTypes] = useState(false);
+  const [mailTo, setMailTo] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -157,10 +192,25 @@ export default function AdminApplications() {
     <div>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h2 className="font-display text-2xl font-bold">Applications</h2>
-        <button onClick={() => exportCsv(rows, type)} disabled={!rows.length}
-          className="flex items-center gap-2 rounded-lg border border-line px-4 py-2 text-xs font-semibold text-fg2 hover:border-tech hover:text-tech disabled:opacity-40">
-          <Download size={14} /> Export CSV
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="mr-1 flex cursor-pointer items-center gap-2 text-xs text-fg2"><input type="checkbox" checked={allTypes} onChange={(e) => setAllTypes(e.target.checked)} className="accent-[#1F4FD8]" /> All types in PDF/Word</label>
+          {[['PDF', FileText, () => exportDoc('pdf', { type: allTypes ? 'all' : type, status, q })], ['Word', FileType2, () => exportDoc('docx', { type: allTypes ? 'all' : type, status, q })], ['CSV', Download, () => exportCsv(rows, type)]].map(([label, Icon, fn]) => (
+            <button key={label} onClick={fn} disabled={!rows.length}
+              className="flex items-center gap-2 rounded-lg border border-line px-4 py-2 text-xs font-semibold text-fg2 hover:border-tech hover:text-tech disabled:opacity-40">
+              <Icon size={14} /> Export {label}
+            </button>
+          ))}
+        </div>
+        <div className="flex w-full flex-wrap items-center justify-end gap-2">
+          <input type="email" value={mailTo} onChange={(e) => setMailTo(e.target.value)} placeholder="Email to (blank = admin email)" autoComplete="email"
+            className="w-56 rounded-lg border border-line bg-surface px-3 py-2 text-xs text-fg outline-none focus:border-tech" />
+          {[['pdf', 'PDF'], ['docx', 'Word']].map(([f, label]) => (
+            <button key={f} onClick={() => emailDoc(f, { type: allTypes ? 'all' : type, status, q }, mailTo.trim())} disabled={!rows.length}
+              className="flex items-center gap-2 rounded-lg border border-line px-4 py-2 text-xs font-semibold text-fg2 hover:border-tech hover:text-tech disabled:opacity-40">
+              <Mail size={14} /> Email {label}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="mb-5 flex flex-wrap items-center gap-3">

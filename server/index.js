@@ -12,6 +12,7 @@ const initDb = require('./config/initDb');
 const { positionRank, leadershipConflict } = require('./utils/positions');
 const mail = require('./utils/mailer');
 const createCrudRouter = require('./routes/crud');
+const { notifySubscribers } = require('./utils/notify');
 const { authMiddleware } = require('./middleware/auth');
 
 const app = express();
@@ -90,8 +91,10 @@ const COLS = {
   achievements: ['title', 'date', 'description', 'icon'],
   posts: ['title', 'content', 'image_url', 'author'],
 };
-app.use('/api/events', createCrudRouter('events', { orderBy: 'date', orderDir: 'DESC', columns: COLS.events, imageCols: ['image_url'], auth: authMiddleware }));
-app.use('/api/notices', createCrudRouter('notices', { orderBy: 'pinned DESC, created_at', orderDir: 'DESC', columns: COLS.notices, auth: authMiddleware }));
+app.use('/api/events', createCrudRouter('events', { orderBy: 'date', orderDir: 'DESC', columns: COLS.events, imageCols: ['image_url'], auth: authMiddleware,
+  onCreate: (r) => notifySubscribers('event', { title: r.title, when: [String(r.date || '').slice(0, 10), r.time, r.location].filter(Boolean).join(' · '), summary: r.description, path: '/events' }) }));
+app.use('/api/notices', createCrudRouter('notices', { orderBy: 'pinned DESC, created_at', orderDir: 'DESC', columns: COLS.notices, auth: authMiddleware,
+  onCreate: (r) => { if (!r.expiry_date || String(r.expiry_date).slice(0, 10) >= new Date().toISOString().slice(0, 10)) notifySubscribers('notice', { title: r.title, summary: r.content, path: '/notices' }); } }));
 app.use('/api/members', createCrudRouter('members', {
   orderBy: 'display_order', orderDir: 'ASC', columns: COLS.members, imageCols: ['image_url'], auth: authMiddleware,
   // one President and two Vice Presidents per session; everything else can have several people
@@ -133,7 +136,7 @@ app.get('/api/subscribers/unsubscribe', async (req, res) => {
 });
 
 features.forEach((f) => {
-  app.use(`/api/${f.table}`, createCrudRouter(f.table, { orderBy: f.orderBy, orderDir: f.orderDir, columns: f.columns, imageCols: f.imageCols, validate: f.validate, readAuth: f.readAuth, auth: authMiddleware }));
+  app.use(`/api/${f.table}`, createCrudRouter(f.table, { orderBy: f.orderBy, orderDir: f.orderDir, columns: f.columns, imageCols: f.imageCols, validate: f.validate, readAuth: f.readAuth, auth: authMiddleware, onCreate: f.notify ? (r) => notifySubscribers(f.notify.kind, f.notify.item(r)) : undefined }));
   if (f.public) PUBLIC_LISTS.push(`/${f.table}`);
 });
 const SITE_PATHS = ['/', '/about', '/events', '/notices', '/projects', '/team', '/ambassadors', '/gallery', '/achievements', '/faq', '/contact', '/join', '/join/committee', '/join/general', '/join/ambassador'];
