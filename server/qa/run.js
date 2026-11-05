@@ -43,6 +43,15 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
     const csvRaw = await fetch(`${B}/api/forms/${f.id}/export`, { headers: { authorization: `Bearer ${T}` } }); const bytes = new Uint8Array(await csvRaw.arrayBuffer()); ok(csvRaw.status === 200 && bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF, 'CSV export starts with BOM');
     ok((await call('GET', `/api/forms/${f.id}/export`)).s === 401, 'export needs login');
 
+    // editing answers like a spreadsheet cell
+    const resp = (await call('GET', `/api/forms/${f.id}/responses`, undefined, T)).j; const emailId = fields.find((x) => x.type === 'email').id; const nameId0 = fields.find((x) => x.type === 'short').id;
+    const ed = await call('PATCH', `/api/forms/responses/${resp[0].id}/answers`, { answers: { [nameId0]: 'Corrected Name' } }, T);
+    ok(ed.s === 200 && ed.j.answers[nameId0] === 'Corrected Name' && ed.j.full_name === 'Corrected Name', 'response cell edit saved');
+    ok((await call('PATCH', `/api/forms/responses/${resp[0].id}/answers`, { answers: { [emailId]: 'not-an-email' } }, T)).s === 400, 'bad edit refused');
+    ok((await call('PATCH', `/api/forms/responses/${resp[0].id}/answers`, { answers: { [emailId]: resp[1].answers[emailId] } }, T)).s === 409, 'edit cannot copy another persons unique value');
+    ok((await call('PATCH', `/api/forms/responses/${resp[0].id}/answers`, { answers: { [nameId0]: 'x' } })).s === 401, 'edit needs login');
+    ok((await call('PATCH', '/api/forms/responses/999999/answers', { answers: { a: 1 } }, T)).s === 404, 'edit of missing response is 404');
+
     // spreadsheet formula injection
     const f2 = (await call('POST', '/api/forms', { title: 'QA inject' }, T)).j; const p2 = (await call('GET', `/api/forms/public/${f2.slug}`)).j;
     const a = fill(p2.reg_form.fields, 1); const nameId = p2.reg_form.fields.find((x) => x.type === 'short').id; a[nameId] = '=HYPERLINK("http://evil")';
@@ -54,6 +63,8 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
     const r2 = await Promise.all(Array.from({ length: 10 }, (_, i) => call('POST', `/api/event-registrations/${ev.id}`, { answers: { name: `Person ${i}`, student_id: `S${i}`, email: `e${i}@example.com` } })));
     const okRegs = r2.filter((r) => r.s === 201);
     ok(okRegs.length === 3 && r2.every((r) => r.s < 500), '10 simultaneous event sign-ups for 3 seats give exactly 3', r2.map((r) => r.s + (r.j?.error ? ':' + r.j.error : '')));
+    const evList = (await call('GET', `/api/event-registrations/by-event/${ev.id}`, undefined, T)).j;
+    ok((await call('PATCH', `/api/event-registrations/${evList[0].id}/answers`, { answers: { name: 'Edited Person' } }, T)).j?.full_name === 'Edited Person', 'event sign-up edit saved');
     const code = okRegs[0]?.j?.ticket;
     ok(!!code && (await call('GET', `/api/event-registrations/ticket/${code}`)).s === 200, 'ticket page data');
     ok((await call('GET', '/api/event-registrations/verify/ZZZZZZZZ')).j?.valid === false, 'unknown certificate is not valid');

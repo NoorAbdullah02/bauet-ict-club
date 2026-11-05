@@ -10,7 +10,8 @@ import { fieldsOf, show, isOther } from '../lib/forms';
 import { cn } from '../lib/cn';
 import Select from '../components/Select';
 import { saveFile, IMAGE_FORMATS } from '../lib/download';
-import { Archive } from 'lucide-react';
+import { Archive, Table2 } from 'lucide-react';
+import ResponsesTable from './ResponsesTable';
 
 const ans = (r) => r.answers || { name: r.full_name, student_id: r.student_id, email: r.email, phone: r.phone, department: r.department, batch: r.batch };
 const PAY = { pending: ['Waiting for check', 'bg-amber-500/15 text-amber-600'], verified: ['Payment verified', 'bg-emerald-500/15 text-emerald-600'], rejected: ['Payment rejected', 'bg-red-500/15 text-red-500'] };
@@ -29,10 +30,10 @@ function tallyChoices(f, rows) {
 export function ResponsesPanel({ event, kind = 'event' }) {
   const isForm = kind === 'form';
   const P = isForm ? {
-    list: (id) => `/forms/${id}/responses`, file: (id) => `/forms/${id}/export`, zip: (id) => `/forms/${id}/zip`, pay: (rid) => `/forms/responses/${rid}/payment`, del: (rid) => `/forms/responses/${rid}`,
+    list: (id) => `/forms/${id}/responses`, file: (id) => `/forms/${id}/export`, zip: (id) => `/forms/${id}/zip`, edit: (rid) => `/forms/responses/${rid}/answers`, pay: (rid) => `/forms/responses/${rid}/payment`, del: (rid) => `/forms/responses/${rid}`,
     link: (e) => `${window.location.origin}/f/${e.slug}`,
   } : {
-    list: (id) => `/event-registrations/by-event/${id}`, file: () => '/event-registrations/export', zip: () => '/event-registrations/zip', pay: (rid) => `/event-registrations/${rid}/payment`, del: (rid) => `/event-registrations/${rid}`,
+    list: (id) => `/event-registrations/by-event/${id}`, file: () => '/event-registrations/export', zip: () => '/event-registrations/zip', edit: (rid) => `/event-registrations/${rid}/answers`, pay: (rid) => `/event-registrations/${rid}/payment`, del: (rid) => `/event-registrations/${rid}`,
     link: (e) => eventLink(e.id),
   };
   const idParam = isForm ? {} : { event: event?.id };
@@ -129,12 +130,17 @@ export function ResponsesPanel({ event, kind = 'event' }) {
           </div>
 
           <div className="mt-4 flex gap-1 rounded-xl bg-alt p-1">
-            {[['list', List, 'Responses'], ['summary', BarChart3, 'Summary']].map(([k, I, l]) => (
+            {[['list', List, 'Responses'], ['table', Table2, 'Table'], ['summary', BarChart3, 'Summary']].map(([k, I, l]) => (
               <button key={k} onClick={() => setTab(k)} className={cn('flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold transition', tab === k ? 'bg-surface text-fg shadow-sm' : 'text-fg2')}><I size={14} /> {l}</button>
             ))}
           </div>
 
-          {tab === 'summary' ? (
+          {tab === 'table' ? (
+            <div className="mt-3">
+              <div className="relative mb-3"><Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search answers" className={`${inputCls} !pl-9 !py-2 text-xs`} /></div>
+              {rows === null ? <Loader2 className="animate-spin text-muted" /> : <ResponsesTable fields={fields} rows={shown} q={q} editUrl={P.edit} onChange={(row) => setRows((p) => p.map((x) => (x.id === row.id ? { ...x, ...row } : x)))} />}
+            </div>
+          ) : tab === 'summary' ? (
             <div className="mt-4 space-y-4">
               {!rows?.length ? <p className="py-6 text-center text-sm text-muted">The summary appears after the first registration.</p> : (
                 <>
