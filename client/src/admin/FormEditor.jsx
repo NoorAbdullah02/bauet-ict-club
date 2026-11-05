@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 import { motion } from 'framer-motion';
 import {
   ArrowDown, ArrowLeft, ArrowUp, Check, CircleAlert, Copy, ExternalLink, Eye, GripVertical, Heading, Loader2, Plus, PlusCircle,
-  Settings2, Trash2, Users, X, Wallet, ListChecks, Pencil, Link2, QrCode, Award,
+  Settings2, Trash2, Users, X, Wallet, FileText, Palette, Shuffle, SlidersHorizontal, ListChecks, Pencil, Link2, QrCode, Award,
 } from 'lucide-react';
 import useStore, { api } from '../context/store';
 import Select from '../components/Select';
@@ -87,6 +87,7 @@ function QuestionCard({ q, i, total, fields, active, onActivate, patch, remove, 
 
       {!active ? (
         <div>
+          {isSection && q.page && <div className="mb-1 inline-flex items-center gap-1 rounded-full bg-accent/12 px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-wider text-accent"><FileText size={11} /> New page</div>}
           <div className={cn('text-[15px]', isSection ? 'font-display text-lg text-fg' : 'font-medium text-fg')}>{q.label || <span className="text-muted">Untitled question</span>}{q.required && <span className="ml-1 text-red-500">*</span>}</div>
           {q.help && <div className="mt-0.5 text-xs text-muted">{q.help}</div>}
           {!isSection && <div className="pointer-events-none mt-3 opacity-70"><DynamicForm fields={[{ ...q, label: '', help: '', showIf: undefined, required: false }]} values={{}} onChange={() => {}} disabled hideLabels /></div>}
@@ -111,6 +112,41 @@ function QuestionCard({ q, i, total, fields, active, onActivate, patch, remove, 
             </div>
           )}
           {!hasOptions(q.type) && q.type !== 'scale' && !isSection && <div className="pointer-events-none mt-3 opacity-60"><DynamicForm fields={[{ ...q, label: '', help: '', showIf: undefined, required: false }]} values={{}} onChange={() => {}} disabled hideLabels /></div>}
+
+          {(['short', 'long', 'number', 'checkbox'].includes(q.type) || hasOptions(q.type) || isSection) && (
+            <div className="mt-4 space-y-3 rounded-xl bg-alt/60 px-3 py-3 text-xs text-fg2">
+              <div className="flex items-center gap-2 font-semibold text-fg"><SlidersHorizontal size={14} className="text-accent" /> {isSection ? 'Page' : 'Rules'}</div>
+              {isSection && <Switch checked={!!q.page} onChange={(v) => patch({ page: v })} label="Start a new page here (people get Next and Back buttons)" />}
+              {['short', 'long'].includes(q.type) && (
+                <div className="grid grid-cols-2 gap-2">
+                  <label>Fewest characters<input type="number" min="0" className={cn(inputCls, 'mt-1 !py-1.5')} value={q.minLen ?? ''} onChange={(e) => patch({ minLen: e.target.value === '' ? undefined : Number(e.target.value) })} /></label>
+                  <label>Most characters<input type="number" min="0" className={cn(inputCls, 'mt-1 !py-1.5')} value={q.maxLen ?? ''} onChange={(e) => patch({ maxLen: e.target.value === '' ? undefined : Number(e.target.value) })} /></label>
+                </div>
+              )}
+              {q.type === 'short' && (
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <label>Must match pattern (optional)<input className={cn(inputCls, 'mt-1 !py-1.5 font-mono')} placeholder="^[0-9]{9}$" maxLength={80} value={q.pattern || ''} onChange={(e) => patch({ pattern: e.target.value || undefined })} /></label>
+                  <label>Message if it does not match<input className={cn(inputCls, 'mt-1 !py-1.5')} placeholder="Enter your 9 digit ID" maxLength={100} value={q.patternMsg || ''} onChange={(e) => patch({ patternMsg: e.target.value })} /></label>
+                </div>
+              )}
+              {q.type === 'number' && (
+                <div className="space-y-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <label>Smallest<input type="number" className={cn(inputCls, 'mt-1 !py-1.5')} value={q.min ?? ''} onChange={(e) => patch({ min: e.target.value === '' ? undefined : Number(e.target.value) })} /></label>
+                    <label>Biggest<input type="number" className={cn(inputCls, 'mt-1 !py-1.5')} value={q.max ?? ''} onChange={(e) => patch({ max: e.target.value === '' ? undefined : Number(e.target.value) })} /></label>
+                  </div>
+                  <Switch checked={!!q.whole} onChange={(v) => patch({ whole: v })} label="Whole numbers only" />
+                </div>
+              )}
+              {q.type === 'checkbox' && (
+                <div className="grid grid-cols-2 gap-2">
+                  <label>Choose at least<input type="number" min="1" className={cn(inputCls, 'mt-1 !py-1.5')} value={q.minSel ?? ''} onChange={(e) => patch({ minSel: e.target.value === '' ? undefined : Number(e.target.value) })} /></label>
+                  <label>Choose at most<input type="number" min="1" className={cn(inputCls, 'mt-1 !py-1.5')} value={q.maxSel ?? ''} onChange={(e) => patch({ maxSel: e.target.value === '' ? undefined : Number(e.target.value) })} /></label>
+                </div>
+              )}
+              {hasOptions(q.type) && <Switch checked={!!q.shuffle} onChange={(v) => patch({ shuffle: v })} label="Shuffle the order of choices for each person" />}
+            </div>
+          )}
 
           {earlier.length > 0 && (
             <div className="mt-4 flex flex-wrap items-center gap-2 rounded-xl bg-alt/60 px-3 py-2 text-xs text-fg2">
@@ -168,7 +204,7 @@ export default function FormEditor({ kind = 'form', eventId }) {
       const f = row.reg_form?.fields?.length ? clone(row.reg_form) : { title: '', intro: '', confirmation: '', unique: kind === 'form' ? '' : 'email', fields: clone(kind === 'form' ? [{ id: 'name', key: 'name', type: 'short', label: 'Your name', required: true }] : DEFAULT_FIELDS) };
       setDoc({
         title: kind === 'form' ? row.title : row.title, heading: f.title || '', intro: f.intro || row.description || '', confirmation: f.confirmation || '', email_note: f.email_note || '', unique: f.unique || '',
-        notify_admin: !!f.notify_admin, closes_at: f.closes_at || '', payment: f.payment || null, cert: f.cert || null, fields: f.fields,
+        notify_admin: !!f.notify_admin, theme: f.theme || '', closes_at: f.closes_at || '', payment: f.payment || null, cert: f.cert || null, fields: f.fields,
         capacity: Number(row.capacity) || 0, open: kind === 'form' ? row.is_open !== false : row.reg_open !== false, slug: row.slug || '',
       });
       setActiveId(null);
@@ -184,7 +220,7 @@ export default function FormEditor({ kind = 'form', eventId }) {
 
   // ---- autosave ----
   const body = useCallback((d) => ({
-    title: d.heading.trim(), intro: d.intro, confirmation: d.confirmation, email_note: d.email_note, unique: d.unique, notify_admin: d.notify_admin, closes_at: d.closes_at || undefined,
+    title: d.heading.trim(), intro: d.intro, confirmation: d.confirmation, email_note: d.email_note, unique: d.unique, notify_admin: d.notify_admin, theme: d.theme || undefined, closes_at: d.closes_at || undefined,
     payment: d.payment?.enabled ? { ...d.payment, amount: Number(d.payment.amount) } : undefined,
     cert: d.cert?.enabled ? d.cert : undefined,
     fields: d.fields.map((q) => ({ ...q, options: hasOptions(q.type) ? q.options.map((o) => o.trim()).filter(Boolean) : undefined })),
@@ -308,6 +344,7 @@ export default function FormEditor({ kind = 'form', eventId }) {
             <div className="flex flex-wrap items-center justify-center gap-2 pb-6 lg:hidden" onClick={(e) => e.stopPropagation()}>
               <button onClick={() => addQ(newField('short'))} className="btn-primary !px-4 !py-2.5 text-xs"><Plus size={14} /> Add question</button>
               <button onClick={() => addQ(newField('section'))} className="btn-outline !px-4 !py-2.5 text-xs"><Heading size={14} /> Add heading</button>
+              <button onClick={() => addQ(newField('section', { page: true, label: `Page ${doc.fields.filter((q) => q.page).length + 2}` }))} className="btn-outline !px-4 !py-2.5 text-xs"><FileText size={14} /> Add page</button>
             </div>
           </div>
 
@@ -315,6 +352,7 @@ export default function FormEditor({ kind = 'form', eventId }) {
           <div className="sticky top-52 hidden shrink-0 flex-col gap-1 rounded-2xl border border-line bg-surface p-1.5 shadow-md lg:flex" onClick={(e) => e.stopPropagation()}>
             <button onClick={() => addQ(newField('short'))} title="Add question" aria-label="Add question" className="grid size-11 place-items-center rounded-xl text-fg2 hover:bg-tech/10 hover:text-tech"><PlusCircle size={22} /></button>
             <button onClick={() => addQ(newField('section'))} title="Add heading" aria-label="Add heading" className="grid size-11 place-items-center rounded-xl text-fg2 hover:bg-tech/10 hover:text-tech"><Heading size={20} /></button>
+            <button onClick={() => addQ(newField('section', { page: true, label: `Page ${doc.fields.filter((q) => q.page).length + 2}` }))} title="Add a new page" aria-label="Add a new page" className="grid size-11 place-items-center rounded-xl text-fg2 hover:bg-tech/10 hover:text-tech"><FileText size={20} /></button>
             <div className="my-1 h-px bg-line" />
             {PRESETS.filter((p) => !doc.fields.some((q) => q.key === p.key)).map((p) => (
               <button key={p.key} onClick={() => addQ({ ...clone(p), id: p.key })} title={`Add: ${p.label}`} aria-label={`Add ${p.label}`} className="grid size-11 place-items-center rounded-xl text-[10px] font-bold uppercase text-fg2 hover:bg-accent/10 hover:text-accent">{p.key === 'student_id' ? 'ID' : p.key.slice(0, 3)}</button>
@@ -332,6 +370,16 @@ export default function FormEditor({ kind = 'form', eventId }) {
               <p className="mt-2 text-xs text-muted">If you change the link name, the old link stops working.</p>
             </section>
           )}
+                    <section className="rounded-2xl border border-line bg-surface p-6">
+            <h3 className="mb-3 flex items-center gap-2 text-lg text-fg"><Palette size={18} /> Colour</h3>
+            <div className="flex flex-wrap items-center gap-2.5">
+              {[['', 'Club colours'], ['#1f4fd8', 'Blue'], ['#0b7f58', 'Green'], ['#7c3aed', 'Purple'], ['#c2410c', 'Orange'], ['#be123c', 'Rose'], ['#0e7490', 'Teal']].map(([c, l]) => (
+                <button key={l} type="button" onClick={() => patchDoc({ theme: c })} title={l} aria-label={l} aria-pressed={doc.theme === c}
+                  className={cn('grid size-10 place-items-center rounded-full border-2 transition', doc.theme === c ? 'border-fg' : 'border-transparent hover:border-line')} style={{ background: c || 'linear-gradient(135deg,#1F4FD8,#0B7F58)' }}>{doc.theme === c && <Check size={16} className="text-white" />}</button>
+              ))}
+            </div>
+            <p className="mt-2 text-xs text-muted">Buttons and highlights on the public form use this colour.</p>
+          </section>
           <section className="rounded-2xl border border-line bg-surface p-6">
             <h3 className="mb-4 text-lg text-fg">Limits</h3>
             <div className="grid gap-4 sm:grid-cols-2">

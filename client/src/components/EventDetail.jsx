@@ -8,7 +8,7 @@ import useStore, { api } from '../context/store';
 import DynamicForm from './DynamicForm';
 import PaymentBox from './PaymentBox';
 import { qrDataUrl, prettyCode } from '../lib/qr';
-import { fieldsOf, isVisible, isEmpty } from '../lib/forms';
+import { fieldsOf, isVisible, isEmpty, themeStyle } from '../lib/forms';
 import { formalDate, formalTime } from '../lib/format';
 import { thumb } from '../lib/img';
 import { downloadIcs, eventStart } from '../lib/ics';
@@ -148,13 +148,14 @@ export default function EventDetail() {
                   <a href={ev.reg_url} target="_blank" rel="noopener noreferrer" className="btn-primary mt-4 w-full justify-center">Register now <ExternalLink size={15} /></a>
                 </div>
               ) : (
-                <form onSubmit={submit} noValidate className="space-y-5">
+                <form onSubmit={submit} noValidate className="space-y-5" style={themeStyle(ev.reg_form?.theme)}>
                   {ev.reg_form?.title && <h3 className="text-lg text-fg">{ev.reg_form.title}</h3>}
                   {ev.reg_form?.intro && <p className="whitespace-pre-line text-sm text-fg2">{ev.reg_form.intro}</p>}
                   {closesAt && <p className="rounded-xl bg-alt px-3.5 py-2 text-xs text-fg2">Registration closes {formalDate(closesAt)}{closesAt.length > 10 ? `, ${formalTime(closesAt.slice(11))}` : ''}</p>}
-                  <DynamicForm fields={fields} values={form} errors={errors} onChange={(id, v) => { setForm((f) => ({ ...f, [id]: v })); setErrors((x) => ({ ...x, [id]: undefined })); }} />
-                  {payCfg && <PaymentBox setting={payCfg} value={payment} errors={payErrors} onChange={(p) => { setPayment(p); setPayErrors({}); }} />}
-                  <button disabled={busy} className="btn-primary mt-1 w-full justify-center disabled:opacity-60">{busy ? <Loader2 size={16} className="animate-spin" /> : <Ticket size={16} />} {busy ? 'Submitting…' : 'Submit registration'}</button>
+                  <DynamicForm fields={fields} values={form} errors={errors} onPageError={setErrors} onChange={(id, v) => { setForm((f) => ({ ...f, [id]: v })); setErrors((x) => ({ ...x, [id]: undefined })); }}>
+                    {payCfg && <PaymentBox setting={payCfg} value={payment} errors={payErrors} onChange={(p) => { setPayment(p); setPayErrors({}); }} />}
+                    <button disabled={busy} className="btn-primary mt-1 w-full justify-center disabled:opacity-60">{busy ? <Loader2 size={16} className="animate-spin" /> : <Ticket size={16} />} {busy ? 'Submitting…' : 'Submit registration'}</button>
+                  </DynamicForm>
                 </form>
               )}
             </div>

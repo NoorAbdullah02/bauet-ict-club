@@ -6,7 +6,7 @@ import { CheckCircle2, Loader2, Send, Share2, Facebook, MessageCircle, Link2, Us
 import { api } from '../context/store';
 import DynamicForm from './DynamicForm';
 import PaymentBox from './PaymentBox';
-import { isVisible, isEmpty } from '../lib/forms';
+import { isVisible, isEmpty, themeStyle } from '../lib/forms';
 import { formalDate, formalTime } from '../lib/format';
 import { shareLinks, copyText, nativeShare } from '../lib/share';
 
@@ -100,10 +100,11 @@ export default function FormPage() {
               ) : closed ? (
                 <p className="rounded-2xl bg-alt p-5 text-center text-sm text-fg2">{full ? 'This form has reached its limit.' : timeUp ? 'This form has closed.' : 'This form is not accepting responses right now.'}</p>
               ) : (
-                <form onSubmit={submit} noValidate className="space-y-5">
-                  <DynamicForm fields={fields} values={values} errors={errors} onChange={(id, v) => { setValues((s) => ({ ...s, [id]: v })); setErrors((x) => ({ ...x, [id]: undefined })); }} />
-                  {payCfg && <PaymentBox setting={payCfg} value={payment} errors={payErrors} onChange={(p) => { setPayment(p); setPayErrors({}); }} />}
-                  <button disabled={busy} className="btn-primary w-full justify-center disabled:opacity-60">{busy ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />} {busy ? 'Submitting…' : 'Submit'}</button>
+                <form onSubmit={submit} noValidate className="space-y-5" style={themeStyle(rf.theme)}>
+                  <DynamicForm fields={fields} values={values} errors={errors} onPageError={setErrors} onChange={(id, v) => { setValues((s) => ({ ...s, [id]: v })); setErrors((x) => ({ ...x, [id]: undefined })); }}>
+                    {payCfg && <PaymentBox setting={payCfg} value={payment} errors={payErrors} onChange={(p) => { setPayment(p); setPayErrors({}); }} />}
+                    <button disabled={busy} className="btn-primary w-full justify-center disabled:opacity-60">{busy ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />} {busy ? 'Submitting…' : 'Submit'}</button>
+                  </DynamicForm>
                 </form>
               )}
             </div>
