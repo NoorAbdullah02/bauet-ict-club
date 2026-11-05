@@ -211,7 +211,7 @@ app.use('/api/messages', require('./routes/messages'));
 if (process.env.NODE_ENV === 'production') {
   app.use('/assets', express.static(path.join(__dirname, '..', 'client', 'dist', 'assets'), { maxAge: '1y', immutable: true }));
   // the page itself is never cached for long (it names the hashed files); the hashed files above are cached for a year
-  app.use(express.static(path.join(__dirname, '..', 'client', 'dist'), { maxAge: '1h', setHeaders: (res, file) => { if (file.endsWith('.html')) res.set('Cache-Control', 'no-cache'); } }));
+  app.use(express.static(path.join(__dirname, '..', 'client', 'dist'), { maxAge: '1h', setHeaders: (res, file) => { if (file.endsWith('.html') || file.endsWith('sw.js')) res.set('Cache-Control', 'no-cache'); } }));
   // The page head is filled in by the server for shared links, because Facebook and WhatsApp do not run JavaScript.
   const INDEX = path.join(__dirname, '..', 'client', 'dist', 'index.html');
   const escAttr = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
