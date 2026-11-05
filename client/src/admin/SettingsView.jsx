@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
-import { Save, Loader2, FlaskConical, Trash2, KeyRound } from 'lucide-react';
+import { Save, Loader2, FlaskConical, Trash2, KeyRound, ShieldCheck, LogOut } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import useStore from '../context/store';
 import { Panel, PageTitle, inputCls, askConfirm } from './ui';
@@ -15,7 +15,7 @@ function PasswordPanel() {
     e.preventDefault();
     if (v.next !== v.again) return toast.error('The two new passwords do not match');
     setBusy(true);
-    try { await api.post('/auth/change-password', { current: v.current, next: v.next }); toast.success('Password changed'); setV({ current: '', next: '', again: '' }); }
+    try { const r = await api.post('/auth/change-password', { current: v.current, next: v.next }); if (r.data?.token) localStorage.setItem('bauet-token', r.data.token); toast.success('Password changed. Other devices were signed out.'); setV({ current: '', next: '', again: '' }); }
     catch (err) { toast.error(err.response?.data?.error || 'Could not change password'); }
     setBusy(false);
   };
@@ -28,10 +28,88 @@ function PasswordPanel() {
       <form onSubmit={submit} className="space-y-4">
         <h3 className="flex items-center gap-2 text-xl text-fg"><KeyRound size={18} /> Change password</h3>
         {field('current', 'Current password', 'current-password')}
-        {field('next', 'New password (min 10 characters)', 'new-password')}
+        {field('next', 'New password (min 12 characters)', 'new-password')}
         {field('again', 'Repeat new password', 'new-password')}
         <button disabled={busy} className="btn-primary !px-5 !py-2.5 text-xs disabled:opacity-60">{busy ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} Change password</button>
       </form>
+    </Panel>
+  );
+}
+
+
+/** Two-step sign-in with an authenticator app + "sign out everywhere". */
+function TwoFactorPanel() {
+  const [st, setSt] = useState(null);
+  const [step, setStep] = useState('idle'); // idle | password | scan | codes | off
+  const [pw, setPw] = useState('');
+  const [code, setCode] = useState('');
+  const [setup, setSetup] = useState(null);
+  const [codes, setCodes] = useState([]);
+  const [busy, setBusy] = useState(false);
+  const load = () => api.get('/auth/2fa/status').then((r) => setSt(r.data)).catch(() => setSt({ enabled: false }));
+  useEffect(() => { load(); }, []);
+  const run = async (fn, okMsg) => {
+    setBusy(true);
+    try { await fn(); if (okMsg) toast.success(okMsg); } catch (e) { toast.error(e.response?.data?.error || 'Something went wrong'); }
+    setBusy(false);
+  };
+  const start = (e) => { e.preventDefault(); run(async () => { const r = await api.post('/auth/2fa/setup', { password: pw }); setSetup(r.data); setStep('scan'); setPw(''); }); };
+  const enable = (e) => { e.preventDefault(); run(async () => { const r = await api.post('/auth/2fa/enable', { code }); setCodes(r.data.backupCodes); setStep('codes'); setCode(''); load(); }, 'Two-step sign-in is on'); };
+  const disable = (e) => { e.preventDefault(); run(async () => { await api.post('/auth/2fa/disable', { password: pw, code }); setStep('idle'); setPw(''); setCode(''); load(); }, 'Two-step sign-in is off'); };
+  const everywhere = async () => {
+    if (!(await askConfirm({ title: 'Sign out everywhere?', message: 'Every other phone and computer signed in to this account will be signed out. You stay signed in here.', confirmText: 'Sign out others' }))) return;
+    run(async () => { const r = await api.post('/auth/logout-all'); if (r.data?.token) localStorage.setItem('bauet-token', r.data.token); }, 'Other devices signed out');
+  };
+  const input = (v, set, ph, type = 'text', extra = {}) => <input type={type} value={v} onChange={(e) => set(e.target.value)} placeholder={ph} required className={inputCls} {...extra} />;
+  return (
+    <Panel className="self-start space-y-4 p-6 xl:col-start-2">
+      <h3 className="flex items-center gap-2 text-xl text-fg"><ShieldCheck size={18} /> Two-step sign-in</h3>
+      {!st ? <Loader2 className="animate-spin" size={16} /> : step === 'idle' && (
+        <>
+          <p className="text-sm text-fg2">{st.enabled ? `On. Signing in needs a 6-digit code from your authenticator app. ${st.backupCodesLeft} backup code${st.backupCodesLeft === 1 ? '' : 's'} left.` : 'Off. Turn it on so a stolen password alone can never open the admin console.'}</p>
+          <div className="flex flex-wrap gap-2">
+            {st.enabled
+              ? <button onClick={() => setStep('off')} className="btn-outline !px-5 !py-2.5 text-xs">Turn off</button>
+              : <button onClick={() => setStep('password')} className="btn-primary !px-5 !py-2.5 text-xs"><ShieldCheck size={14} /> Turn on</button>}
+            <button onClick={everywhere} disabled={busy} className="btn-outline !px-5 !py-2.5 text-xs"><LogOut size={14} /> Sign out other devices</button>
+          </div>
+        </>
+      )}
+      {step === 'password' && (
+        <form onSubmit={start} className="space-y-3">
+          <p className="text-sm text-fg2">Confirm your password to begin.</p>
+          {input(pw, setPw, 'Your password', 'password', { autoComplete: 'current-password' })}
+          <div className="flex gap-2"><button disabled={busy} className="btn-primary !px-5 !py-2.5 text-xs">Continue</button><button type="button" onClick={() => setStep('idle')} className="btn-outline !px-5 !py-2.5 text-xs">Cancel</button></div>
+        </form>
+      )}
+      {step === 'scan' && setup && (
+        <form onSubmit={enable} className="space-y-3">
+          <p className="text-sm text-fg2">1. Open Google Authenticator, Microsoft Authenticator or Authy and scan this picture.</p>
+          <img src={setup.qr} alt="QR code for your authenticator app" width={200} height={200} className="rounded-xl border border-line bg-white p-2" />
+          <p className="break-all font-mono text-[11px] text-muted">Cannot scan? Type this key: {setup.secret}</p>
+          <p className="text-sm text-fg2">2. Type the 6-digit code it shows.</p>
+          {input(code, setCode, '123456', 'text', { inputMode: 'numeric', autoComplete: 'one-time-code', maxLength: 6 })}
+          <div className="flex gap-2"><button disabled={busy} className="btn-primary !px-5 !py-2.5 text-xs">Turn on</button><button type="button" onClick={() => setStep('idle')} className="btn-outline !px-5 !py-2.5 text-xs">Cancel</button></div>
+        </form>
+      )}
+      {step === 'codes' && (
+        <div className="space-y-3">
+          <p className="text-sm text-fg2">Save these 8 backup codes somewhere safe (a password manager or paper). Each works once if you lose your phone. They are shown only now.</p>
+          <div className="grid grid-cols-2 gap-2 rounded-xl border border-line bg-bg p-3 font-mono text-sm text-fg">{codes.map((c) => <span key={c}>{c}</span>)}</div>
+          <div className="flex gap-2">
+            <button onClick={() => navigator.clipboard?.writeText(codes.join('\n')).then(() => toast.success('Copied'))} className="btn-outline !px-5 !py-2.5 text-xs">Copy</button>
+            <button onClick={() => { setCodes([]); setStep('idle'); }} className="btn-primary !px-5 !py-2.5 text-xs">I saved them</button>
+          </div>
+        </div>
+      )}
+      {step === 'off' && (
+        <form onSubmit={disable} className="space-y-3">
+          <p className="text-sm text-fg2">Enter your password and a current code (or a backup code).</p>
+          {input(pw, setPw, 'Your password', 'password', { autoComplete: 'current-password' })}
+          {input(code, setCode, '6-digit or backup code', 'text', { autoComplete: 'one-time-code' })}
+          <div className="flex gap-2"><button disabled={busy} className="btn-primary !px-5 !py-2.5 text-xs">Turn off</button><button type="button" onClick={() => setStep('idle')} className="btn-outline !px-5 !py-2.5 text-xs">Cancel</button></div>
+        </form>
+      )}
     </Panel>
   );
 }
@@ -88,6 +166,7 @@ export default function SettingsView() {
         </Panel>
         <ServiceStatus />
         <PasswordPanel />
+        <TwoFactorPanel />
         {user?.role === 'superadmin' && <Security />}
         <Panel className="self-start p-6 xl:col-start-2">
           <div className="flex items-start gap-4">

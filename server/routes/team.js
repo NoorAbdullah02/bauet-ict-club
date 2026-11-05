@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const pool = require('../config/db');
 const { authMiddleware, requireSuper } = require('../middleware/auth');
 const { fail } = require('../utils/http');
+const { passwordProblem } = require('../utils/passwordPolicy');
 
 const router = express.Router();
 router.use(authMiddleware, requireSuper);
@@ -16,7 +17,8 @@ router.post('/', async (req, res) => {
   const username = String(req.body?.username || '').trim().toLowerCase();
   const password = String(req.body?.password || '');
   if (!/^[a-z0-9_.-]{3,30}$/.test(username)) return res.status(400).json({ error: 'Username: 3 to 30 letters, numbers, dots or dashes' });
-  if (password.length < 10 || password.length > 200) return res.status(400).json({ error: 'Password must be at least 10 characters' });
+  const weak = passwordProblem(password, username);
+  if (weak) return res.status(400).json({ error: weak });
   try {
     if ((await pool.query('SELECT 1 FROM admins WHERE username = $1', [username])).rows.length) return res.status(409).json({ error: 'This username is taken' });
     const { rows } = await pool.query("INSERT INTO admins (username, password_hash, role) VALUES ($1,$2,'editor') RETURNING id, username, role, created_at", [username, await bcrypt.hash(password, 12)]);

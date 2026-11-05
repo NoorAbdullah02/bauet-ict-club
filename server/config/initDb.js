@@ -123,6 +123,16 @@ async function initDb() {
       );
     `);
 
+    // sign-in security: session version (changing the password or "sign out everywhere" ends old sessions), two-step sign-in, account lock
+    await client.query(`
+      ALTER TABLE admins ADD COLUMN IF NOT EXISTS token_version INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE admins ADD COLUMN IF NOT EXISTS totp_secret TEXT;
+      ALTER TABLE admins ADD COLUMN IF NOT EXISTS totp_enabled BOOLEAN NOT NULL DEFAULT FALSE;
+      ALTER TABLE admins ADD COLUMN IF NOT EXISTS backup_codes TEXT;
+      ALTER TABLE admins ADD COLUMN IF NOT EXISTS failed_logins INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE admins ADD COLUMN IF NOT EXISTS locked_until TIMESTAMPTZ;
+    `);
+
     // older databases only allowed committee/general — widen the check for ambassadors
     await client.query(`
       ALTER TABLE registrations DROP CONSTRAINT IF EXISTS registrations_type_check;
