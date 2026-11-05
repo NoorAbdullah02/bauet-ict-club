@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { NavLink, Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, Sun, Moon, Shield, ArrowRight } from 'lucide-react';
+import { Menu, X, Sun, Moon, Shield, ArrowRight, Download } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import Logo from './Logo';
 import useStore from '../context/store';
@@ -64,6 +64,7 @@ export default function Navbar() {
             <button onClick={() => setTheme(isDark ? 'light' : 'dark')} className={iconBtn} aria-label="Toggle theme">
               {isDark ? <Sun size={16} /> : <Moon size={16} />}
             </button>
+            <Link to="/app" className={cn(iconBtn, 'max-sm:hidden')} aria-label="Download the app" title="Download the app"><Download size={16} /></Link>
             <Link to="/admin" onMouseEnter={() => import("../admin/AdminApp")} className={cn(iconBtn, 'max-sm:hidden')} aria-label="Admin"><Shield size={16} /></Link>
             <Link to="/join" className="btn-join"><span>Join us</span><i><ArrowRight size={14} /></i></Link>
             <button onClick={() => setMobileOpen((o) => !o)} className={cn(iconBtn, 'lg:hidden')} aria-label="Menu">
@@ -77,7 +78,7 @@ export default function Navbar() {
         {mobileOpen && (
           <motion.div initial={{ opacity: 0, clipPath: 'circle(0% at 90% 5%)' }} animate={{ opacity: 1, clipPath: 'circle(150% at 90% 5%)' }} exit={{ opacity: 0, clipPath: 'circle(0% at 90% 5%)' }}
             transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }} className="fixed inset-0 z-[99] flex flex-col justify-center gap-1 overflow-y-auto bg-bg px-8 py-24">
-            {[...LINKS, { to: '/join', label: 'Join the Club' }, { to: '/admin', label: 'Admin' }].map((l, i) => (
+            {[...LINKS, { to: '/join', label: 'Join the Club' }, { to: '/app', label: 'Download the App' }, { to: '/admin', label: 'Admin' }].map((l, i) => (
               <motion.div key={l.to} initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 + i * 0.045 }}>
                 <Link to={l.to} className="flex items-baseline gap-4 border-b border-line py-3 font-display text-3xl font-semibold text-fg">
                   <span className="font-mono text-xs text-tech">{String(i + 1).padStart(2, '0')}</span>{l.label}

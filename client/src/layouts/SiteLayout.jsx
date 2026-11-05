@@ -9,11 +9,11 @@ import ChatBot from '../components/ChatBot';
 const TITLES = {
   '/': 'BAUET ICT Club | Where Technology Meets Innovation', '/about': 'About', '/events': 'Events', '/notices': 'Notices', '/projects': 'Projects',
   '/team': 'Executive Committee', '/ambassadors': 'Department Ambassadors', '/gallery': 'Gallery', '/achievements': 'Awards & Achievements', '/faq': 'FAQ',
-  '/contact': 'Contact', '/join': 'Join the Club', '/join/committee': 'Apply for the Committee', '/join/general': 'Become a General Member', '/join/ambassador': 'Become a Department Ambassador',
+  '/contact': 'Contact', '/join': 'Join the Club', '/join/committee': 'Apply for the Committee', '/join/general': 'Become a General Member', '/join/ambassador': 'Become a Department Ambassador', '/app': 'Get the App',
 };
 
 // pages whose own hero already renders an h1
-const OWN_H1 = new Set(['/', '/ambassadors', '/join', '/join/ambassador']);
+const OWN_H1 = new Set(['/', '/ambassadors', '/join', '/join/ambassador', '/app']);
 
 export default function SiteLayout() {
   const { pathname } = useLocation();

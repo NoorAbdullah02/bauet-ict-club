@@ -30,6 +30,7 @@ const JoinCommitteePage = named('JoinCommitteePage');
 const JoinGeneralPage = named('JoinGeneralPage');
 const JoinAmbassadorPage = named('JoinAmbassadorPage');
 const AmbassadorsPage = named('AmbassadorsPage');
+const GetAppPage = named('GetAppPage');
 
 const Fallback = () => <div className="grid min-h-[60vh] place-items-center"><span className="size-8 animate-spin rounded-full border-2 border-line border-t-accent" /></div>;
 
@@ -135,6 +136,7 @@ export default function App() {
         <Route element={<SiteLayout />}>
           <Route index element={<Home />} />
           <Route path="about" element={<AboutPage />} />
+          <Route path="app" element={<GetAppPage />} />
           <Route path="events" element={<EventsPage />} />
           <Route path="events/:id" element={<EventDetailPage />} />
           <Route path="f/:slug" element={<FormPageRoute />} />

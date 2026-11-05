@@ -197,7 +197,7 @@ app.get('/sitemap-events.xml', async (req, res) => {
     res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${rows.map((r) => `  <url><loc>${origin(req)}/events/${r.id}</loc></url>`).join('\n')}\n</urlset>\n`);
   } catch { res.status(500).end(); }
 });
-const SITE_PATHS = ['/', '/about', '/events', '/notices', '/projects', '/team', '/ambassadors', '/gallery', '/achievements', '/faq', '/contact', '/join', '/join/committee', '/join/general', '/join/ambassador'];
+const SITE_PATHS = ['/', '/about', '/events', '/notices', '/projects', '/team', '/ambassadors', '/gallery', '/achievements', '/faq', '/contact', '/join', '/join/committee', '/join/general', '/join/ambassador', '/app'];
 const origin = (req) => (process.env.PUBLIC_URL || process.env.RENDER_EXTERNAL_URL || '').replace(/\/$/, '') || `${req.protocol}://${req.get('host')}`;
 app.get('/sitemap.xml', (req, res) => {
   const base = origin(req);
