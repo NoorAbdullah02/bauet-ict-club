@@ -9,7 +9,7 @@ const Scene3D = lazy(() => import('../scenes/Scene3D'));
 /** Smaller screens, data-saver and low-core devices get a lighter scene. */
 function useLite() {
   return typeof window !== 'undefined' && (
-    window.innerWidth < 768 || navigator.connection?.saveData || (navigator.hardwareConcurrency || 8) <= 4
+    window.innerWidth < 768 || navigator.connection?.saveData || (navigator.hardwareConcurrency || 8) <= 6 || (navigator.deviceMemory || 8) <= 4
   );
 }
 
@@ -30,7 +30,7 @@ export default function Backdrop3D({ variant = 'orbs', className }) {
     if (weakDevice()) return undefined;
     // start only after the page has loaded and the browser is idle, so the first paint and scroll never compete with three.js parsing
     let id;
-    const go = () => { id = 'requestIdleCallback' in window ? requestIdleCallback(() => setReady(true), { timeout: 3000 }) : setTimeout(() => setReady(true), 1500); };
+    const go = () => { id = 'requestIdleCallback' in window ? requestIdleCallback(() => setReady(true), { timeout: 4500 }) : setTimeout(() => setReady(true), 2500); };
     if (document.readyState === 'complete') go(); else window.addEventListener('load', go, { once: true });
     return () => { window.removeEventListener('load', go); if (id) ('cancelIdleCallback' in window ? cancelIdleCallback(id) : clearTimeout(id)); };
   }, []);

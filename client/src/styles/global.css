@@ -136,15 +136,15 @@ body {
    Only transforms are animated, so it stays on the GPU and costs almost nothing. */
 body::before {
   content: '';
-  position: fixed; inset: -25%; z-index: 0; pointer-events: none;
-  will-change: transform;
+  position: fixed; inset: -12%; z-index: 0; pointer-events: none;
+  will-change: transform; contain: strict; backface-visibility: hidden;
   background-image:
     radial-gradient(ellipse 38% 34% at 18% 18%, rgba(70,120,255,0.34), transparent 70%),
     radial-gradient(ellipse 34% 30% at 82% 14%, rgba(70,200,255,0.30), transparent 70%),
     radial-gradient(ellipse 36% 32% at 78% 82%, rgba(90,215,150,0.24), transparent 70%),
     radial-gradient(ellipse 32% 30% at 14% 80%, rgba(150,120,255,0.24), transparent 70%),
     radial-gradient(ellipse 28% 26% at 50% 50%, rgba(120,170,255,0.16), transparent 70%);
-  animation: auroraDrift 38s ease-in-out infinite alternate;
+  animation: auroraDrift 46s ease-in-out infinite alternate;
 }
 [data-theme="dark"] body::before {
   background-image:
@@ -155,7 +155,7 @@ body::before {
     radial-gradient(ellipse 26% 24% at 52% 48%, rgba(80,130,255,0.14), transparent 70%);
 }
 body::after {
-  content: '';
+  content: ''; contain: strict;
   position: fixed; inset: 0; z-index: 0; pointer-events: none;
   background-image:
     linear-gradient(rgba(var(--accent-rgb),0.07) 1px, transparent 1px),
@@ -172,9 +172,8 @@ body::after {
     radial-gradient(ellipse 120% 90% at 50% 40%, transparent 50%, rgba(2,6,22,0.55) 100%);
 }
 @keyframes auroraDrift {
-  0%   { transform: translate3d(0, 0, 0) rotate(0deg) scale(1); }
-  50%  { transform: translate3d(3%, -2%, 0) rotate(6deg) scale(1.06); }
-  100% { transform: translate3d(-3%, 3%, 0) rotate(-5deg) scale(1.03); }
+  0%   { transform: translate3d(0, 0, 0); }
+  100% { transform: translate3d(-2.5%, 2.5%, 0); }
 }
 @media (prefers-reduced-motion: reduce) { body::before { animation: none; } }
 #root, main, footer { position: relative; z-index: 1; }
