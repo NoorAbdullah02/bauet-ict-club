@@ -34,3 +34,5 @@ New managed lists (sponsors, projects, FAQs...) need two small files and no wiri
 
 - [Email and Cloudinary setup](docs/SETUP_EMAIL_AND_CLOUDINARY.md)
 - [Roadmap](docs/ROADMAP.md)
+- [Status and to-do (what exists, what is missing, what to improve)](docs/STATUS_AND_TODO.md)
+- [Sign-in security](docs/SIGN_IN_SECURITY.md)
