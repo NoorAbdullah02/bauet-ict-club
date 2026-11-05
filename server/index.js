@@ -62,6 +62,22 @@ app.use(cors({
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: false, limit: '100kb' }));
 
+// uptime check for Render / UptimeRobot; also tells whether the database answers
+app.get('/api/health', async (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  try { await pool.query('SELECT 1'); res.json({ ok: true, db: true, uptime: Math.round(process.uptime()) }); }
+  catch { res.status(503).json({ ok: false, db: false }); }
+});
+// wakes a sleeping free-plan server and runs the scheduled jobs (reminders, digest, purge). Needs CRON_SECRET; call it every 10-15 min from cron-job.org
+app.all('/api/jobs/run', async (req, res) => {
+  const secret = process.env.CRON_SECRET;
+  const given = String(req.get('x-cron-secret') || req.query.key || '');
+  if (!secret || secret.length < 16 || given.length !== secret.length || !require('crypto').timingSafeEqual(Buffer.from(given), Buffer.from(secret))) return res.status(404).json({ error: 'Not found' });
+  const jobs = require('./utils/analyticsJobs');
+  await Promise.allSettled([jobs.purge(), jobs.weeklyDigest(), jobs.reminders()]);
+  res.set('Cache-Control', 'no-store').json({ ok: true });
+});
+
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 200,
