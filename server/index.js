@@ -98,6 +98,9 @@ app.use('/uploads', express.static(UPLOAD_DIR, { maxAge: '30d', immutable: true,
 const short = require('./routes/short');
 app.use('/s', short.redirect); // short links: /s/ab3x9k
 app.use('/api/short', short.api);
+app.use('/api/team', require('./routes/team'));
+app.use('/api/audit', require('./routes/audit'));
+app.use('/api/backup', require('./routes/backup'));
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/upload', authMiddleware, require('./routes/upload'));
 app.use('/api/chat', require('./routes/chat'));
@@ -226,7 +229,7 @@ if (process.env.NODE_ENV === 'production') {
   };
   app.get('/f/:slug', async (req, res, next) => {
     try {
-      const f = (await pool.query('SELECT title, description FROM forms WHERE slug = $1 AND deleted_at IS NULL', [req.params.slug])).rows[0];
+      const f = (await pool.query('SELECT title, description FROM forms WHERE deleted_at IS NULL AND (slug = $1 OR id IN (SELECT form_id FROM form_slug_history WHERE slug = $1)) LIMIT 1', [req.params.slug])).rows[0];
       if (!f) return next();
       res.set('Cache-Control', 'no-cache').type('html').send(page(req, { title: `${f.title} | BAUET ICT Club`, description: f.description || 'Fill in this form' }));
     } catch { next(); }

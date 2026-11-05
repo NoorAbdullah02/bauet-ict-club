@@ -75,6 +75,9 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
     ok(cp.s === 201 && cp.j.title === 'Copy of From template' && cp.j.slug !== tpl.j.slug && cp.j.reg_form.fields.length === 2, 'form copied');
     ok((await call('DELETE', `/api/forms/${cp.j.id}`, undefined, T)).s === 200 && (await call('GET', `/api/forms/public/${cp.j.slug}`)).s === 404, 'deleted form link stops working');
 
+    // ZIP download (list + pictures) is a real zip file
+    const zr = await fetch(`${B}/api/forms/${f.id}/zip`, { headers: { authorization: `Bearer ${T}` } }); const zb = new Uint8Array(await zr.arrayBuffer());
+    ok(zr.status === 200 && zb[0] === 0x50 && zb[1] === 0x4B && zb.length > 100, 'ZIP download works', zr.status);
     // spreadsheet formula injection
     const f2 = (await call('POST', '/api/forms', { title: 'QA inject' }, T)).j; const p2 = (await call('GET', `/api/forms/public/${f2.slug}`)).j;
     const a = fill(p2.reg_form.fields, 1); const nameId = p2.reg_form.fields.find((x) => x.type === 'short').id; a[nameId] = '=HYPERLINK("http://evil")';
@@ -109,6 +112,28 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
     ok((await call('POST', '/api/short', { path: 'https://evil.example' }, T)).s === 400, 'short link only for our own pages');
     ok((await call('POST', '/api/short', { path: `/f/${f.slug}` })).s === 401, 'short link needs login');
     ok((await call('POST', '/api/short', { path: `/f/${f.slug}`, alias: 'qa-survey' }, T)).j.code === 'qa-survey' && (await call('POST', '/api/short', { path: '/events/1', alias: 'qa-survey' }, T)).s === 409, 'custom name works and cannot be stolen');
+
+    // renaming a form's link name: the old link, the short link and the new link all keep working
+    const rn = (await call('POST', '/api/forms', { title: 'Rename me' }, T)).j;
+    const rnShort = (await call('POST', '/api/short', { path: `/f/${rn.slug}` }, T)).j.code;
+    ok((await call('PUT', `/api/forms/${rn.id}`, { slug: 'renamed-form' }, T)).j?.slug === 'renamed-form', 'link name changed');
+    ok((await call('GET', '/api/forms/public/renamed-form')).s === 200 && (await call('GET', `/api/forms/public/${rn.slug}`)).s === 200, 'new and old link names both open the form');
+    ok((await fetch(`${B}/s/${rnShort}`, { redirect: 'manual' })).headers.get('location') === '/f/renamed-form', 'short link follows the rename');
+
+    // activity log, editor login, backup
+    const mk = await call('POST', '/api/team', { username: 'editor1', password: 'Editor-Pass-123' }, T);
+    ok(mk.s === 201 && mk.j.role === 'editor', 'editor login created');
+    const et = (await call('POST', '/api/auth/login', { username: 'editor1', password: 'Editor-Pass-123' })).j?.token;
+    ok(!!et && (await call('GET', '/api/events')).s === 200, 'editor can sign in');
+    ok((await call('POST', '/api/forms', { title: 'Editor made this' }, et)).s === 201, 'editor can create forms');
+    ok((await call('DELETE', `/api/forms/${rn.id}`, undefined, et)).s === 403, 'editor cannot delete');
+    ok((await call('GET', '/api/backup', undefined, et)).s === 403 && (await call('GET', '/api/team', undefined, et)).s === 403 && (await call('GET', '/api/audit', undefined, et)).s === 403, 'editor cannot reach backup, team or activity');
+    const bk = await fetch(`${B}/api/backup`, { headers: { authorization: `Bearer ${T}` } }); const bb = new Uint8Array(await bk.arrayBuffer());
+    ok(bk.status === 200 && bb[0] === 0x50 && bb[1] === 0x4B, 'main admin can download a backup');
+    await new Promise((r) => setTimeout(r, 300));
+    const log = (await call('GET', '/api/audit', undefined, T)).j || [];
+    ok(log.some((x) => x.username === 'editor1' && x.method === 'POST' && x.path === '/api/forms'), 'activity log shows who created a form', log.slice(0, 3));
+    ok((await call('DELETE', `/api/team/${mk.j.id}`, undefined, T)).s === 200, 'editor login removed');
 
     // password change
     ok((await call('POST', '/api/auth/change-password', { current: 'wrong-pass', next: 'Another-Pass-99' }, T)).s === 401, 'change password needs current one');

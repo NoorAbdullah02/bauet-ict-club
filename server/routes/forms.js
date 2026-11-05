@@ -17,13 +17,19 @@ const clean = (v, n) => String(v ?? '').trim().slice(0, n);
 const slugify = (s) => String(s || '').toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
 const answersOf = (r) => r.answers || {};
 const limiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 40, standardHeaders: true, legacyHeaders: false, message: { error: 'Too many submissions from this network. Please try again later.' } });
+/** A form by its link name. An old link name (before it was renamed) still finds the form. */
+async function findForm(slug) {
+  const f = (await pool.query('SELECT * FROM forms WHERE slug = $1 AND deleted_at IS NULL', [slug])).rows[0];
+  if (f) return f;
+  return (await pool.query('SELECT f.* FROM form_slug_history h JOIN forms f ON f.id = h.form_id WHERE h.slug = $1 AND f.deleted_at IS NULL', [slug])).rows[0];
+}
 const STARTER = { title: '', intro: '', confirmation: '', unique: '', fields: [{ id: 'name', key: 'name', type: 'short', label: 'Your name', required: true }, { id: 'email', key: 'email', type: 'email', label: 'Email', required: true }] };
 const meta = (f) => ({ id: f.id, title: f.title, path: `/f/${f.slug}`, adminPath: '/admin/forms', date: null, email_note: f.reg_form?.email_note });
 
 /* ---------- public: the form people fill in ---------- */
 router.get('/public/:slug', async (req, res) => {
   try {
-    const f = (await pool.query('SELECT * FROM forms WHERE slug = $1 AND deleted_at IS NULL', [req.params.slug])).rows[0];
+    const f = await findForm(req.params.slug);
     if (!f) return res.status(404).json({ error: 'This form does not exist.' });
     const n = Number((await pool.query("SELECT COUNT(*) AS n FROM form_responses WHERE form_id = $1 AND deleted_at IS NULL AND COALESCE(pay_status, 'none') <> 'rejected'", [f.id])).rows[0].n);
     res.set('Cache-Control', 'no-store');
@@ -35,7 +41,7 @@ router.post('/public/:slug', limiter, (req, res) => serial(`form:${req.params.sl
 async function respond(req, res) {
   if (req.body?._hp) return res.status(201).json({ success: true }); // a bot filled the hidden trap field: pretend it worked, save nothing
   try {
-    const f = (await pool.query('SELECT * FROM forms WHERE slug = $1 AND deleted_at IS NULL', [req.params.slug])).rows[0];
+    const f = await findForm(req.params.slug);
     if (!f) return res.status(404).json({ error: 'This form does not exist.' });
     if (f.is_open === false) return res.status(409).json({ error: 'This form is not accepting responses.' });
     if (forms.closedByTime(f.reg_form)) return res.status(409).json({ error: 'This form has closed.' });
@@ -121,12 +127,17 @@ router.put('/:id', async (req, res) => {
     if (b.slug !== undefined) {
       slug = slugify(b.slug);
       if (slug.length < 2) return res.status(400).json({ error: 'The link name needs at least 2 letters or numbers' });
+      if ((await pool.query('SELECT 1 FROM form_slug_history WHERE slug = $1 AND form_id <> $2', [slug, old.id])).rows.length) return res.status(409).json({ error: 'That link name was used before. Choose another.' });
       if ((await pool.query('SELECT 1 FROM forms WHERE slug = $1 AND id <> $2', [slug, old.id])).rows.length) return res.status(409).json({ error: 'That link name is already used' });
     }
     const { rows } = await pool.query('UPDATE forms SET title = $1, description = $2, reg_form = $3, capacity = $4, is_open = $5, slug = $6 WHERE id = $7 RETURNING *', [
       b.title !== undefined ? clean(b.title, 200) || old.title : old.title, b.description !== undefined ? clean(b.description, 1000) || null : old.description, regForm,
       b.capacity !== undefined ? (Number(b.capacity) > 0 ? Math.floor(Number(b.capacity)) : null) : old.capacity, b.is_open !== undefined ? !!b.is_open : old.is_open, slug, old.id]);
-    if (slug !== old.slug) await pool.query('UPDATE short_links SET target = $1 WHERE target = $2', [`/f/${slug}`, `/f/${old.slug}`]); // short links keep working when the link name changes
+    if (slug !== old.slug) { // short links and the old link name keep working after a rename
+      await pool.query('UPDATE short_links SET target = $1 WHERE target = $2', [`/f/${slug}`, `/f/${old.slug}`]);
+      await pool.query('INSERT INTO form_slug_history (slug, form_id) VALUES ($1, $2) ON CONFLICT (slug) DO UPDATE SET form_id = EXCLUDED.form_id', [old.slug, old.id]);
+      await pool.query('DELETE FROM form_slug_history WHERE slug = $1', [slug]);
+    }
     res.json(rows[0]);
   } catch (e) { fail(res, e); }
 });

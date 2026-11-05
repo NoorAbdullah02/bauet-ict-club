@@ -50,3 +50,13 @@ export const show = (v) => (Array.isArray(v) ? v.join(', ') : v ?? '');
 
 /** Inline style that recolours buttons and highlights of one public form (the admin picks the colour). */
 export const themeStyle = (c) => (/^#[0-9a-f]{6}$/i.test(c || '') ? { '--accent': c, '--tech': c, '--grad-btn': `linear-gradient(135deg, ${c}, ${c})`, '--btn-shadow': `0 10px 28px ${c}55`, '--btn-fg': '#fff' } : undefined);
+
+/** The answer rules of one question checked on the person's screen (the server checks again). Returns a message or ''. */
+export function ruleProblem(f, v) {
+  if (isEmpty(v)) return '';
+  if (f.type === 'short' && f.pattern) { try { if (!new RegExp(f.pattern).test(String(v))) return f.patternMsg || 'This does not look right'; } catch { /* bad pattern: the server decides */ } }
+  if (f.type === 'short' || f.type === 'long') { const n = String(v).length; if (f.minLen && n < f.minLen) return `Write at least ${f.minLen} characters`; if (f.maxLen && n > f.maxLen) return `Write at most ${f.maxLen} characters`; }
+  if (f.type === 'number') { const n = Number(v); if (!Number.isFinite(n)) return 'Enter a number'; if (f.whole && !Number.isInteger(n)) return 'Enter a whole number'; if (f.min !== undefined && n < f.min) return `Must be at least ${f.min}`; if (f.max !== undefined && n > f.max) return `Must be at most ${f.max}`; }
+  if (f.type === 'checkbox' && Array.isArray(v)) { if (f.minSel && v.length < f.minSel) return `Choose at least ${f.minSel}`; if (f.maxSel && v.length > f.maxSel) return `Choose at most ${f.maxSel}`; }
+  return '';
+}

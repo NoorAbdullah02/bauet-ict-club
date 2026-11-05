@@ -10,7 +10,7 @@
     "qa": "node qa/run.js"
   },
   "dependencies": {
-    "archiver": "^7.0.1",
+    "archiver": "^8.0.0",
     "bcryptjs": "^2.4.3",
     "cloudinary": "^2.5.1",
     "compression": "^1.8.2",
@@ -23,12 +23,15 @@
     "helmet": "^8.0.0",
     "jsonwebtoken": "^9.0.2",
     "multer": "^1.4.5-lts.1",
-    "nodemailer": "^6.10.1",
+    "nodemailer": "^10.3.1",
     "pdfkit": "^0.20.2",
     "pg": "^8.13.1",
     "qrcode": "^1.5.4"
   },
   "devDependencies": {
     "pg-mem": "^3.0.14"
+  },
+  "overrides": {
+    "minimatch": "^11.0.4"
   }
 }

@@ -6,6 +6,7 @@ const iso = (d) => d.toISOString().slice(0, 10);
 /** Old visits are deleted after ANALYTICS_RETENTION_DAYS (default 180) so IP addresses are not kept forever. */
 async function purge() {
   const days = Math.max(7, Number(process.env.ANALYTICS_RETENTION_DAYS) || 180);
+  try { await pool.query("DELETE FROM audit_log WHERE created_at < NOW() - INTERVAL '180 days'"); } catch { /* table may not exist yet */ }
   try { await pool.query('DELETE FROM page_views WHERE day < $1', [iso(new Date(Date.now() - days * 864e5))]); } catch (e) { console.warn('Visit cleanup failed:', e.message); }
 }
 
