@@ -22,3 +22,12 @@ export async function nativeShare({ title, text, url }) {
   if (!navigator.share) return false;
   try { await navigator.share({ title, text, url }); return true; } catch (e) { return e?.name === 'AbortError'; }
 }
+
+/** The short link of a page ("/f/slug" or "/events/5"), made on first use: https://your-site/s/ab3x9k. Falls back to the long link. */
+export async function shortLink(path, alias) {
+  try {
+    const { api } = await import('../context/store');
+    const { data } = await api.post('/short', { path, ...(alias ? { alias } : {}) });
+    return `${window.location.origin}/s/${data.code}`;
+  } catch { return `${window.location.origin}${path}`; }
+}

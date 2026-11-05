@@ -95,6 +95,9 @@ app.use('/api', (req, res, next) => {
 
 app.use('/uploads', express.static(UPLOAD_DIR, { maxAge: '30d', immutable: true, index: false }));
 
+const short = require('./routes/short');
+app.use('/s', short.redirect); // short links: /s/ab3x9k
+app.use('/api/short', short.api);
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/upload', authMiddleware, require('./routes/upload'));
 app.use('/api/chat', require('./routes/chat'));
@@ -197,7 +200,7 @@ app.get('/sitemap.xml', (req, res) => {
   const base = origin(req);
   res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${SITE_PATHS.map((p) => `  <url><loc>${base}${p}</loc></url>`).join('\n')}\n</urlset>\n`);
 });
-app.get('/robots.txt', (req, res) => res.type('text/plain').send(`User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /f/\nDisallow: /ticket/\nDisallow: /api/\nSitemap: ${origin(req)}/sitemap.xml\n`));
+app.get('/robots.txt', (req, res) => res.type('text/plain').send(`User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /f/\nDisallow: /s/\nDisallow: /ticket/\nDisallow: /api/\nSitemap: ${origin(req)}/sitemap.xml\n`));
 app.use('/api/trash', require('./routes/trash'));
 app.use('/api/committees', require('./routes/committees'));
 app.use('/api/messages', require('./routes/messages'));

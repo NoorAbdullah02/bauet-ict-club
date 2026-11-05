@@ -12,6 +12,7 @@ import Select from '../components/Select';
 import { saveFile, IMAGE_FORMATS } from '../lib/download';
 import { Archive, Table2 } from 'lucide-react';
 import ResponsesTable from './ResponsesTable';
+import ResponsesSummary from './ResponsesSummary';
 
 const ans = (r) => r.answers || { name: r.full_name, student_id: r.student_id, email: r.email, phone: r.phone, department: r.department, batch: r.batch };
 const PAY = { pending: ['Waiting for check', 'bg-amber-500/15 text-amber-600'], verified: ['Payment verified', 'bg-emerald-500/15 text-emerald-600'], rejected: ['Payment rejected', 'bg-red-500/15 text-red-500'] };
@@ -141,31 +142,7 @@ export function ResponsesPanel({ event, kind = 'event' }) {
               {rows === null ? <Loader2 className="animate-spin text-muted" /> : <ResponsesTable fields={fields} rows={shown} q={q} editUrl={P.edit} onChange={(row) => setRows((p) => p.map((x) => (x.id === row.id ? { ...x, ...row } : x)))} />}
             </div>
           ) : tab === 'summary' ? (
-            <div className="mt-4 space-y-4">
-              {!rows?.length ? <p className="py-6 text-center text-sm text-muted">The summary appears after the first registration.</p> : (
-                <>
-                  {paid && (
-                    <div className="rounded-2xl border border-line p-4">
-                      <h4 className="mb-2 text-sm font-semibold text-fg">Payments</h4>
-                      <Donut height={150} data={['pending', 'verified', 'rejected'].map((s) => ({ name: s, value: rows.filter((r) => r.pay_status === s).length }))} colors={['#F5A524', '#18A957', '#EF6B8A']} />
-                    </div>
-                  )}
-                  {fields.filter((f) => ['dropdown', 'radio', 'checkbox', 'yesno'].includes(f.type)).map((f) => (
-                    <div key={f.id} className="rounded-2xl border border-line p-4"><h4 className="mb-2 text-sm font-semibold text-fg">{f.label}</h4>
-                      {f.type === 'checkbox' || tallyChoices(f, rows).length > 4 ? <HBars data={tallyChoices(f, rows)} /> : <Donut height={150} data={tallyChoices(f, rows)} />}</div>
-                  ))}
-                  {fields.filter((f) => f.type === 'scale').map((f) => {
-                    const vals = rows.map((r) => Number(ans(r)[f.id])).filter(Number.isFinite);
-                    const avg = vals.length ? (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1) : '–';
-                    return <div key={f.id} className="rounded-2xl border border-line p-4"><h4 className="text-sm font-semibold text-fg">{f.label}</h4><p className="mb-2 text-xs text-muted">Average {avg} of {f.scale?.max || 5} · {vals.length} answers</p><HBars data={Array.from({ length: f.scale?.max || 5 }, (_, i) => ({ name: String(i + 1), value: vals.filter((v) => v === i + 1).length }))} /></div>;
-                  })}
-                  {fields.filter((f) => ['short', 'long', 'number', 'email', 'phone', 'date', 'time'].includes(f.type)).map((f) => {
-                    const list = rows.map((r) => show(ans(r)[f.id])).filter(Boolean);
-                    return <div key={f.id} className="rounded-2xl border border-line p-4"><h4 className="text-sm font-semibold text-fg">{f.label}</h4><p className="mb-2 text-xs text-muted">{list.length} answers</p><ul className="max-h-40 space-y-1 overflow-y-auto text-xs text-fg2">{list.slice(0, 40).map((x, i) => <li key={i} className="rounded-lg bg-alt px-2.5 py-1.5">{x}</li>)}</ul></div>;
-                  })}
-                </>
-              )}
-            </div>
+            <ResponsesSummary fields={fields} rows={rows || []} paid={paid} />
           ) : (
             <>
               <div className="mt-3 flex flex-wrap items-center gap-2">

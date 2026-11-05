@@ -9,7 +9,7 @@ import LaunchCommittee from './LaunchCommittee';
 import TransferPeople from './TransferPeople';
 import CommitteeOverview from './CommitteeOverview';
 import EventRegistrations from './EventRegistrations';
-import { eventLink, copyText } from '../lib/share';
+import { copyText, shortLink } from '../lib/share';
 import { sessionRank } from '../lib/sessions';
 import { Panel, PageTitle, Drawer, FormField, inputCls, askConfirm, toastTrashed } from './ui';
 
@@ -113,7 +113,7 @@ export default function DataView({ type }) {
                       </td>
                     ))}
                     <td className="px-5 py-3.5"><div className="flex justify-end gap-1.5">
-                      {type === 'events' && <button onClick={async () => toast[(await copyText(eventLink(item.id))) ? 'success' : 'error']('Registration link copied')} aria-label="Copy registration link" title="Copy registration link" className="grid size-8 place-items-center rounded-lg text-fg2 hover:bg-tech/15 hover:text-tech"><Link2 size={14} /></button>}
+                      {type === 'events' && <button onClick={async () => toast[(await copyText(await shortLink(`/events/${item.id}`))) ? 'success' : 'error']('Short registration link copied')} aria-label="Copy registration link" title="Copy registration link" className="grid size-8 place-items-center rounded-lg text-fg2 hover:bg-tech/15 hover:text-tech"><Link2 size={14} /></button>}
                       {type === 'events' && <button onClick={() => navigate(`/admin/events/${item.id}/checkin`)} aria-label="Check-in desk" title="Check-in desk: scan tickets, certificates" className="grid size-8 place-items-center rounded-lg text-fg2 hover:bg-tech/15 hover:text-tech"><ScanLine size={14} /></button>}
                       {type === 'events' && !item.reg_url && <button onClick={() => navigate(`/admin/events/${item.id}/form`)} aria-label="Edit registration form" title="Build the registration form" className="grid size-8 place-items-center rounded-lg text-fg2 hover:bg-tech/15 hover:text-tech"><ClipboardList size={14} /></button>}
                       {type === 'events' && <button onClick={() => setRegEvent(item)} aria-label="See registrations" title="See who registered" className="grid size-8 place-items-center rounded-lg text-fg2 hover:bg-tech/15 hover:text-tech"><Users size={14} /></button>}
