@@ -16,7 +16,7 @@ import { eventLink, shareLinks, copyText, nativeShare } from '../lib/share';
 /** One event with its own address (/events/12): details, share buttons and the registration form. */
 export default function EventDetail() {
   const { id } = useParams();
-  const { events, loading } = useStore(useShallow((s) => ({ events: s.events, loading: s.loading })));
+  const { events } = useStore(useShallow((s) => ({ events: s.events })));
   const [fetched, setFetched] = useState(null);
   const [count, setCount] = useState(null);
   const [form, setForm] = useState({});
@@ -57,7 +57,6 @@ export default function EventDetail() {
   const url = eventLink(ev.id);
   const text = `${ev.title}: ${formalDate(ev.date, { weekday: true })}${ev.time ? `, ${formalTime(ev.time)}` : ''}${ev.location ? `, ${ev.location}` : ''}`;
   const links = shareLinks(url, text);
-  const set = (k, v) => { setForm((f) => ({ ...f, [k]: v })); setErrors((e) => ({ ...e, [k]: undefined })); };
 
   const share = async () => { if (!(await nativeShare({ title: ev.title, text, url }))) setMenu((m) => !m); };
   const copy = async () => { const ok = await copyText(url); toast[ok ? 'success' : 'error'](ok ? 'Link copied' : 'Could not copy the link'); setMenu(false); };

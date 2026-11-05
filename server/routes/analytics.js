@@ -3,6 +3,7 @@ const rateLimit = require('express-rate-limit');
 const pool = require('../config/db');
 const { authMiddleware } = require('../middleware/auth');
 const { fail } = require('../utils/http');
+const { toCsv } = require('../utils/csv');
 
 const router = express.Router();
 
@@ -108,9 +109,8 @@ router.get('/export.csv', async (req, res) => {
   try {
     const days = Math.min(365, Math.max(1, Number(req.query.days) || 30));
     const { rows } = await pool.query(`SELECT created_at, ip, path, device, referrer FROM page_views WHERE ${REAL} AND day >= $1 ORDER BY created_at DESC LIMIT 50000`, [daysAgo(days - 1)]);
-    const cell = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
     res.set({ 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': `attachment; filename="visitors-${iso(new Date())}.csv"`, 'Cache-Control': 'no-store' });
-    res.send(['time,ip,page,device,referrer', ...rows.map((r) => [new Date(r.created_at).toISOString(), r.ip, r.path, r.device, r.referrer].map(cell).join(','))].join('\n'));
+    res.send(toCsv(['time', 'ip', 'page', 'device', 'referrer'], rows.map((r) => [new Date(r.created_at).toISOString(), r.ip, r.path, r.device, r.referrer])));
   } catch (e) { fail(res, e); }
 });
 

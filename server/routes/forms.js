@@ -6,9 +6,11 @@ const { authMiddleware } = require('../middleware/auth');
 const { fail } = require('../utils/http');
 const mail = require('../utils/mailer');
 const forms = require('../utils/forms');
+const { serial } = require('../utils/serial');
 const { formalDate } = require('../utils/format');
 const { tableToPdf, tableToDocx } = require('../utils/exporters');
 const { sendZip, safe } = require('../utils/zipper');
+const { toCsv } = require('../utils/csv');
 
 const router = express.Router();
 const clean = (v, n) => String(v ?? '').trim().slice(0, n);
@@ -29,7 +31,8 @@ router.get('/public/:slug', async (req, res) => {
   } catch (e) { res.status(500).json({ error: 'Could not load the form' }); }
 });
 
-router.post('/public/:slug', limiter, async (req, res) => {
+router.post('/public/:slug', limiter, (req, res) => serial(`form:${req.params.slug}`, () => respond(req, res)));
+async function respond(req, res) {
   try {
     const f = (await pool.query('SELECT * FROM forms WHERE slug = $1 AND deleted_at IS NULL', [req.params.slug])).rows[0];
     if (!f) return res.status(404).json({ error: 'This form does not exist.' });
@@ -60,7 +63,7 @@ router.post('/public/:slug', limiter, async (req, res) => {
     console.error('Form response failed:', e.message);
     res.status(500).json({ error: 'Could not save your response. Please try again.' });
   }
-});
+}
 
 /* ---------- admin ---------- */
 router.use(authMiddleware);
@@ -150,8 +153,7 @@ async function table(id) {
     ...(withPay ? [['Paid with', (r) => r.payment?.method || ''], ['Paid from', (r) => r.payment?.sender || ''], ['Transaction ID', (r) => r.payment?.trx_id || ''], ['Amount (BDT)', (r) => r.payment?.amount || ''], ['Payment status', (r) => r.pay_status || '']] : []),
     ['Submitted', (r) => formalDate(r.created_at)],
   ];
-  const cell = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
-  const csv = `﻿${[cols.map((c) => c[0]).join(','), ...rows.map((r) => cols.map(([, k]) => cell(k(r))).join(','))].join('\n')}`;
+  const csv = toCsv(cols.map((c) => c[0]), rows.map((r) => cols.map(([, k]) => k(r))));
   return { f, rows, fields, cols, csv, title: `${f.title}: responses`, sub: `${rows.length} ${rows.length === 1 ? 'response' : 'responses'} · exported ${formalDate(new Date())}` };
 }
 

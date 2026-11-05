@@ -7,13 +7,14 @@ const mail = require('../utils/mailer');
 const { formalDate, formalTime } = require('../utils/format');
 const { tableToPdf, tableToDocx } = require('../utils/exporters');
 const forms = require('../utils/forms');
+const { serial } = require('../utils/serial');
 const { sendZip, safe } = require('../utils/zipper');
+const { toCsv } = require('../utils/csv');
 // sign-ups saved before forms existed only have the standard columns
 const answersOf = (r) => r.answers || { name: r.full_name, student_id: r.student_id, email: r.email, phone: r.phone, department: r.department, batch: r.batch };
 
 const router = express.Router();
 const clean = (v, n) => String(v ?? '').trim().slice(0, n);
-const DEPARTMENTS = ['ICE', 'CSE', 'EEE', 'CE', 'ME', 'BBA', 'LLB', 'ELL', 'Other'];
 const todayStr = () => new Date().toISOString().slice(0, 10);
 const day = (d) => (d instanceof Date ? d.toISOString() : String(d || '')).slice(0, 10);
 
@@ -29,7 +30,8 @@ router.get('/counts', async (_req, res) => {
 });
 
 /** Public: sign up for one event. Body: { answers: { fieldId: value } } following the event's form (or the default form). */
-router.post('/:eventId', limiter, async (req, res) => {
+router.post('/:eventId', limiter, (req, res) => serial(`event:${req.params.eventId}`, () => register(req, res)));
+async function register(req, res) {
   try {
     const ev = (await pool.query('SELECT * FROM events WHERE id = $1 AND deleted_at IS NULL', [req.params.eventId])).rows[0];
     if (!ev) return res.status(404).json({ error: 'Event not found' });
@@ -81,7 +83,7 @@ router.post('/:eventId', limiter, async (req, res) => {
     console.error('Event registration failed:', e.message);
     res.status(500).json({ error: 'Could not save your registration. Please try again.' });
   }
-});
+}
 
 router.use(authMiddleware);
 
@@ -112,8 +114,7 @@ router.get('/export', async (req, res) => {
     const name = `event-${ev.id}-registrations-${todayStr()}.${format}`;
     let buf; let mime;
     if (format === 'csv') {
-      const cell = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
-      buf = Buffer.from(`﻿${[cols.map((c) => c[0]).join(','), ...rows.map((r) => cols.map(([, k]) => cell(typeof k === 'function' ? k(r) : r[k])).join(','))].join('\n')}`);
+      buf = Buffer.from(toCsv(cols.map((c) => c[0]), rows.map((r) => cols.map(([, k]) => (typeof k === 'function' ? k(r) : r[k])))));
       mime = 'text/csv; charset=utf-8';
     } else if (format === 'pdf') { buf = await tableToPdf(title, sub, cols, rows); mime = 'application/pdf'; }
     else { buf = await tableToDocx(title, sub, cols, rows); mime = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'; }
@@ -137,8 +138,7 @@ router.get('/zip', async (req, res) => {
     ];
     const title = `${ev.title}: registrations`;
     const sub = `${rows.length} ${rows.length === 1 ? 'person' : 'people'} · ${formalDate(ev.date)}${ev.time ? ` · ${formalTime(ev.time)}` : ''}${ev.location ? ` · ${ev.location}` : ''}`;
-    const cell = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
-    const csv = `\uFEFF${[cols.map((c) => c[0]).join(','), ...rows.map((r) => cols.map(([, k]) => cell(typeof k === 'function' ? k(r) : r[k])).join(','))].join('\n')}`;
+    const csv = toCsv(cols.map((c) => c[0]), rows.map((r) => cols.map(([, k]) => (typeof k === 'function' ? k(r) : r[k]))));
     const entries = [
       { name: 'registrations.csv', data: csv },
       { name: 'registrations.pdf', data: await tableToPdf(title, sub, cols, rows) },

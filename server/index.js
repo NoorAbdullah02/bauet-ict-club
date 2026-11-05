@@ -221,6 +221,9 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 app.use((err, req, res, _next) => {
+  // a broken or oversized request is the sender's mistake (400 / 413), not a server failure
+  const status = Number(err.status || err.statusCode);
+  if (status >= 400 && status < 500) return res.status(status).json({ error: status === 413 ? 'That request is too large.' : 'The request could not be read.' });
   console.error('Server error:', err.stack);
   res.status(500).json({ error: 'Internal server error' });
 });

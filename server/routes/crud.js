@@ -1,6 +1,7 @@
 const express = require('express');
 const pool = require('../config/db');
 const { destroyImage } = require('../utils/cloud');
+const { isBadInput } = require('../utils/http');
 
 const IDENT = /^[a-z_][a-z0-9_]*$/;
 
@@ -48,6 +49,7 @@ function createCrudRouter(table, opts = {}) {
       if (!rows.length) return res.status(404).json({ error: 'Not found' });
       res.json(rows[0]);
     } catch (e) {
+      if (isBadInput(e)) return res.status(404).json({ error: 'Not found' });
       res.status(500).json({ error: 'Could not load item' });
     }
   });
@@ -103,6 +105,7 @@ function createCrudRouter(table, opts = {}) {
       if (!rowCount) return res.status(404).json({ error: 'Not found' });
       res.json({ success: true, trashed: true });
     } catch (e) {
+      if (isBadInput(e)) return res.status(404).json({ error: 'Not found' });
       res.status(500).json({ error: 'Could not delete' });
     }
   });

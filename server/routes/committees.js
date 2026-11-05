@@ -5,6 +5,7 @@ const { loadDemo, removeDemo, demoCount } = require('../utils/demo');
 const { leadershipConflict } = require('../utils/positions');
 const { cloneImage } = require('../utils/images');
 const { sendZip, safe } = require('../utils/zipper');
+const { toCsv } = require('../utils/csv');
 const { destroyImage } = require('../utils/cloud');
 
 /**
@@ -143,9 +144,8 @@ router.get('/:session/zip', authMiddleware, async (req, res) => {
     const session = clean(decodeURIComponent(req.params.session), 50);
     const { rows } = await pool.query('SELECT * FROM members WHERE committee_session = $1 AND deleted_at IS NULL ORDER BY display_order', [session]);
     if (!rows.length) return res.status(404).json({ error: 'No people in this committee' });
-    const cell = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
     const cols = ['name', 'position', 'department', 'batch', 'committee_session', 'social_fb', 'social_gh', 'social_li'];
-    const csv = `\uFEFF${[cols.join(','), ...rows.map((r) => cols.map((c) => cell(r[c])).join(','))].join('\n')}`;
+    const csv = toCsv(cols, rows.map((r) => cols.map((c) => r[c])));
     const entries = [{ name: 'committee.csv', data: csv }, ...rows.filter((r) => r.image_url && !r.image_url.startsWith('data:')).map((r, i) => ({ name: `photos/${String(i + 1).padStart(2, '0')}-${safe(r.position)}-${safe(r.name, `person-${r.id}`)}`, image: r.image_url }))];
     await sendZip(res, `committee-${safe(session)}`, entries, { format: req.query.format });
   } catch (e) { console.error('Committee zip failed:', e.message); if (!res.headersSent) res.status(500).json({ error: 'Could not build the download' }); else res.end(); }

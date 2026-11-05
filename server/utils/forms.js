@@ -104,7 +104,7 @@ function validateAnswers(fields, answers) {
       case 'yesno': v = /^(yes|true|1)$/i.test(String(v)) ? 'Yes' : 'No'; break;
       case 'time': v = clip(v, 5); if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(v)) errors[f.id] = 'Choose a time'; break;
       case 'scale': { const n = Number(v); if (!Number.isInteger(n) || n < 1 || n > (f.scale?.max || 5)) errors[f.id] = 'Choose a number'; else v = n; break; }
-      case 'photo': v = clip(v, 300); if (!/^(https:\/\/|\/uploads\/)/.test(v)) errors[f.id] = 'Upload the picture again'; break;
+      case 'photo': v = clip(v, 300); if (!/^(https:\/\/res\.cloudinary\.com\/|\/uploads\/[a-f0-9]{24}\.(jpg|png|webp)$)/.test(v)) errors[f.id] = 'Upload the picture again'; break;
       case 'section': continue;
       default: v = clip(v, 200);
     }
