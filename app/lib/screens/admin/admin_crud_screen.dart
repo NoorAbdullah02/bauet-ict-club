@@ -502,7 +502,6 @@ class _RowFormState extends State<_RowForm> {
 
   @override
   Widget build(BuildContext context) {
-    final p = context.pal;
     return Padding(
       padding: EdgeInsets.fromLTRB(22, 0, 22, MediaQuery.of(context).viewInsets.bottom + 24),
       child: SingleChildScrollView(
