@@ -82,20 +82,50 @@ export function ResponsesPanel({ event, kind = 'event' }) {
             {event.reg_url && <p className="mt-2 text-xs text-muted">This event sends people to your own form, so sign-ups from the website form are not collected here.</p>}
           </div>
 
-          <div className="mt-5 flex flex-wrap items-center justify-between gap-2">
-            <span className="flex items-center gap-2 text-sm font-semibold text-fg"><Users size={16} className="text-accent" /> {rows ? rows.length : '…'} registered{event.capacity ? ` of ${event.capacity}` : ''}{paid && rows ? ` · ${verifiedSum} BDT verified` : ''}</span>
-            <div className="flex gap-1.5">
-              {[['csv', Download, 'CSV'], ['pdf', FileText, 'PDF'], ['docx', FileType2, 'Word']].map(([f, I, l]) => (
-                <button key={f} disabled={!rows?.length} onClick={() => download(f)} className="flex items-center gap-1.5 rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-fg2 transition hover:border-tech hover:text-tech disabled:opacity-40"><I size={13} /> {l}</button>
+          <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <div className="rounded-2xl border border-line bg-surface p-4">
+              <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.16em] text-muted"><Users size={13} className="text-accent" /> Registered</div>
+              <div className="mt-1.5 font-display text-3xl leading-none text-fg">{rows ? rows.length : '…'}{event.capacity ? <span className="text-base text-muted"> / {event.capacity}</span> : null}</div>
+              {event.capacity ? (
+                <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-alt" role="progressbar" aria-valuemin={0} aria-valuemax={event.capacity} aria-valuenow={rows?.length || 0}>
+                  <div className="h-full rounded-full bg-gradient-to-r from-tech to-accent transition-all duration-700" style={{ width: `${Math.min(100, ((rows?.length || 0) / event.capacity) * 100)}%` }} />
+                </div>
+              ) : <div className="mt-3 text-[11px] text-muted">No seat limit</div>}
+            </div>
+            {paid && (
+              <div className="rounded-2xl border border-line bg-surface p-4">
+                <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.16em] text-muted"><BadgeCheck size={13} className="text-emerald-500" /> Verified</div>
+                <div className="mt-1.5 font-display text-3xl leading-none text-fg">{verifiedSum}<span className="text-base text-muted"> BDT</span></div>
+                <div className="mt-3 text-[11px] text-muted">{(rows || []).filter((r) => r.pay_status === 'pending').length} waiting for check</div>
+              </div>
+            )}
+          </div>
+
+          <div className="mt-5">
+            <div className="mb-2 font-mono text-[10px] uppercase tracking-[0.16em] text-muted">Download the list</div>
+            <div className="grid grid-cols-3 gap-2.5">
+              {[['csv', Download, 'CSV', 'Excel / Sheets', 'text-emerald-500 bg-emerald-500/12'], ['pdf', FileText, 'PDF', 'Print ready', 'text-red-500 bg-red-500/12'], ['docx', FileType2, 'Word', 'Editable', 'text-tech bg-tech/12']].map(([f, I, l, sub, tone]) => (
+                <button key={f} disabled={!rows?.length} onClick={() => download(f)} className="group flex flex-col items-center gap-1.5 rounded-2xl border border-line bg-surface px-3 py-4 text-center transition hover:-translate-y-0.5 hover:border-tech hover:shadow-lg disabled:pointer-events-none disabled:opacity-40">
+                  <span className={`grid size-10 place-items-center rounded-xl transition group-hover:scale-110 ${tone}`}><I size={18} /></span>
+                  <span className="text-sm font-semibold text-fg">{l}</span>
+                  <span className="text-[11px] text-muted">{sub}</span>
+                </button>
               ))}
             </div>
           </div>
 
-          <div className="mt-3 flex flex-wrap items-center gap-2 rounded-2xl border border-line p-3">
-            <Archive size={16} className="shrink-0 text-accent" />
-            <div className="min-w-0 flex-1 text-xs text-fg2"><b className="text-fg">Everything in one download</b><br />List (CSV, PDF, Word), the event picture and every uploaded picture in full quality.</div>
-            <Select className={`${inputCls} !w-auto !py-1.5 text-xs`} value={imgFormat} onChange={(e) => setImgFormat(e.target.value)} aria-label="Picture format">{IMAGE_FORMATS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</Select>
-            <button onClick={() => saveFile(P.zip(event.id), { ...idParam, format: imgFormat }, `${isForm ? 'form' : 'event'}-${event.id}.zip`)} className="btn-primary !px-4 !py-2 text-xs"><Download size={14} /> Download ZIP</button>
+          <div className="mt-4 overflow-hidden rounded-2xl border border-tech/30 bg-gradient-to-br from-tech/10 via-surface to-accent/10 p-4">
+            <div className="flex items-start gap-3">
+              <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-tech to-accent text-white shadow-lg"><Archive size={20} /></span>
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-semibold text-fg">Everything in one download</div>
+                <p className="mt-0.5 text-xs leading-5 text-fg2">The list (CSV, PDF, Word), the event picture and every uploaded picture in full quality, as one ZIP file.</p>
+              </div>
+            </div>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <Select className={`${inputCls} !w-auto min-w-0 flex-1 !py-2 text-xs`} value={imgFormat} onChange={(e) => setImgFormat(e.target.value)} aria-label="Picture format">{IMAGE_FORMATS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</Select>
+              <button onClick={() => saveFile(P.zip(event.id), { ...idParam, format: imgFormat }, `${isForm ? 'form' : 'event'}-${event.id}.zip`)} className="btn-primary !px-5 !py-2.5 text-xs"><Download size={14} /> Download ZIP</button>
+            </div>
           </div>
 
           <div className="mt-4 flex gap-1 rounded-xl bg-alt p-1">
