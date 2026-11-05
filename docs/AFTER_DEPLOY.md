@@ -37,3 +37,10 @@ For testing on a phone without building a release: `flutter run --dart-define-fr
 - **One backend** serves the website and the app, so there is nothing to keep in sync.
 - The free Render plan sleeps after 15 minutes without visitors; the first request afterwards is slow (the app shows its loading state).
 - Pictures need Cloudinary: Render's free disk is erased on every deploy.
+
+## The Android app download
+- People get the app at `https://<your-address>/app` (also the "Download the app" button in the top bar and the footer).
+- The files live in `client/public/downloads/` (`bauet-ict-club.apk` for almost every phone, `bauet-ict-club-old-phone.apk` for old 32-bit phones).
+- To release a new version: wait for the green **Checks** run on GitHub (Actions), download its artifact `bauet-ict-club-phone-apk`, copy the two files into `client/public/downloads/` under the names above, commit and push. Render redeploys by itself.
+- The app finds the server through `app/env.production.json` (`API_URL`). Change it only if the server address changes.
+- Updating the app on a phone: install the new file over the old one. If Android refuses, uninstall the old app first (each build is signed with a fresh debug key; a permanent signing key is a later improvement).
