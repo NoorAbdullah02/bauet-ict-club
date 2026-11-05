@@ -1,7 +1,7 @@
 import Select from '../Select';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Crown, ArrowRight, ArrowLeft, ArrowUpRight, Loader2, BadgeCheck, ScrollText, MessagesSquare, Star, RotateCcw } from 'lucide-react';
+import { Crown, ArrowRight, ArrowLeft, ArrowUpRight, Loader2, BadgeCheck, ScrollText, MessagesSquare, Star, RotateCcw, Award, ClipboardList, CalendarCheck, Wallet, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Backdrop3D from '../Backdrop3D';
 import { Field, PhotoDrop, inputCls, useApplication, POSTS, DEPARTMENTS, BATCHES } from './shared';
@@ -13,6 +13,17 @@ const STEPS = [
   { icon: Star, t: 'Selection', d: 'Admin picks the team for the session' },
   { icon: BadgeCheck, t: 'You’re featured', d: 'Your photo & post go live on Team page' },
 ];
+
+const ROLES = [
+  { icon: Crown, role: 'President', seats: '1 seat', tint: 'from-amber-400/25 to-orange-400/10 text-amber-500' },
+  { icon: Award, role: 'Vice President', seats: 'Administration · Technical', tint: 'from-sky-400/25 to-blue-400/10 text-sky-500' },
+  { icon: ClipboardList, role: 'General Secretary', seats: 'open', tint: 'from-emerald-400/25 to-teal-400/10 text-emerald-500' },
+  { icon: CalendarCheck, role: 'Joint / Organizing Secretary', seats: 'open', tint: 'from-violet-400/25 to-fuchsia-400/10 text-violet-500' },
+  { icon: Wallet, role: 'Treasurer', seats: 'open', tint: 'from-rose-400/25 to-pink-400/10 text-rose-500' },
+  { icon: Users, role: 'Executive Member', seats: 'open', tint: 'from-cyan-400/25 to-indigo-400/10 text-cyan-500' },
+];
+const FACTS = [[String(ROLES.length), 'posts'], ['2', 'quick steps'], ['1', 'interview']];
+const isWide = () => typeof window !== 'undefined' && !!window.matchMedia?.('(min-width: 1024px)').matches;
 
 const rules = (f) => {
   const e = {};
@@ -39,9 +50,10 @@ export default function JoinCommittee() {
         style={{ backgroundImage: 'linear-gradient(var(--fg) 1px, transparent 1px), linear-gradient(90deg, var(--fg) 1px, transparent 1px)', backgroundSize: '56px 56px' }} />
 
       <div className="container relative grid items-start gap-14 lg:grid-cols-[0.9fr_1.1fr]">
-        <div className="lg:sticky lg:top-28">
+        <div className="relative lg:sticky lg:top-28">
           <Link to="/join" className="mb-6 inline-flex items-center gap-1.5 text-xs text-fg2 hover:text-accent"><ArrowLeft size={13} /> All ways to join</Link>
           <br />
+          {isWide() && <Backdrop3D variant="committee" className="pointer-events-none absolute -right-6 top-0 hidden h-72 w-72 opacity-80 lg:block" />}
           <span className="inline-flex items-center gap-2 rounded-full border border-line bg-surface/50 px-4 py-1.5 font-mono text-[11px] uppercase tracking-[0.2em] text-tech backdrop-blur">
             <Crown size={13} /> Committee applications
           </span>
@@ -53,19 +65,29 @@ export default function JoinCommittee() {
             Apply for a post on the executive committee. Selected members are published on our Team page with their photo and role for the session.
           </p>
 
-          {/* roles card: always readable; the 3D scene is only an optional backdrop behind it */}
-          <div className="relative my-10 overflow-hidden rounded-[28px] border border-line bg-surface/40 backdrop-blur-sm">
-            <Backdrop3D variant="committee" className="absolute inset-0 opacity-60" />
-            <div className="relative p-6 font-mono text-[12.5px] leading-7 sm:p-7">
-              <div className="mb-3 text-muted">{'// open posts this session'}</div>
-              {[['President', '1 seat'], ['Vice President', 'Administration · Technical'], ['General Secretary', 'open'], ['Joint / Organizing Secretary', 'open'], ['Treasurer', 'open'], ['Executive Member', 'open']].map(([role, seats]) => (
-                <div key={role} className="flex items-baseline justify-between gap-4 border-b border-dashed border-line/70 py-1.5 last:border-0">
-                  <span className="text-fg">{role}</span>
-                  <span className="text-right text-tech">{seats}</span>
-                </div>
-              ))}
-              <div className="mt-4 text-muted"><b className="font-medium text-tech">$</b> apply --role=committee</div>
-            </div>
+          {/* quick facts */}
+          <div className="mt-8 grid max-w-md grid-cols-3 gap-2.5">
+            {FACTS.map(([n, l]) => (
+              <div key={l} className="rounded-2xl border border-line bg-surface/60 px-3 py-3 text-center backdrop-blur">
+                <div className="bg-clip-text text-3xl font-bold text-transparent" style={{ backgroundImage: 'var(--grad-text)' }}>{n}</div>
+                <div className="mt-0.5 font-mono text-[10px] uppercase tracking-[0.14em] text-muted">{l}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* open posts: one card per role, always readable (the 3D art lives beside the heading on wide screens only) */}
+          <div className="mb-2 mt-10 flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.2em] text-muted"><span className="h-px w-5 bg-tech/70" /> Open posts this session</div>
+          <div className="grid gap-2.5 sm:grid-cols-2">
+            {ROLES.map((r, i) => (
+              <motion.div key={r.role} initial={{ opacity: 0, y: 14 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.05 }}
+                className="group relative flex items-center gap-3 overflow-hidden rounded-2xl border border-line bg-surface/70 p-3.5 backdrop-blur transition duration-300 hover:-translate-y-0.5 hover:border-tech/60 hover:shadow-[var(--shadow-md)]">
+                <span className={cn('grid size-11 shrink-0 place-items-center rounded-xl bg-gradient-to-br', r.tint)}><r.icon size={20} /></span>
+                <span className="min-w-0">
+                  <span className="block truncate text-[14px] font-semibold leading-tight text-fg">{r.role}</span>
+                  <span className="mt-0.5 block truncate font-mono text-[11px] text-tech">{r.seats}</span>
+                </span>
+              </motion.div>
+            ))}
           </div>
 
           <ol className="relative mt-10 space-y-6 border-l border-line pl-8">
