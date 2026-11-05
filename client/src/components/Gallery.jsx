@@ -43,7 +43,7 @@ export default function Gallery() {
                   padding: '10px 24px', borderRadius: 'var(--radius-sm)', fontSize: 13, fontWeight: 600,
                   background: filter === cat ? 'var(--accent)' : 'var(--bg-surface)',
                   border: `1px solid ${filter === cat ? 'var(--accent)' : 'var(--border)'}`,
-                  color: filter === cat ? '#fff' : 'var(--fg-secondary)', transition: 'all 0.2s',
+                  color: filter === cat ? 'var(--on-accent)' : 'var(--fg-secondary)', transition: 'all 0.2s',
                 }}>
                 {cat === 'all' ? 'All' : cat}
               </button>

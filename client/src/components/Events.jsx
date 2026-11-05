@@ -85,7 +85,7 @@ export default function Events() {
           <div role="tablist" aria-label="Which events" style={{ display: 'inline-flex', padding: 4, borderRadius: 999, background: 'var(--bg-alt)', border: '1px solid var(--border)' }}>
             {[['upcoming', `Upcoming (${upcomingN})`], ['past', `Past events (${pastN})`], ['all', 'All']].map(([k, l]) => (
               <button key={k} role="tab" aria-selected={when === k} onClick={() => { setWhen(k); setPicked(true); setSem('all'); }}
-                style={{ padding: '9px 20px', borderRadius: 999, fontSize: 13, fontWeight: 600, background: when === k ? 'var(--accent)' : 'transparent', color: when === k ? '#fff' : 'var(--fg-secondary)', transition: 'all .2s' }}>{l}</button>
+                style={{ padding: '9px 20px', borderRadius: 999, fontSize: 13, fontWeight: 600, background: when === k ? 'var(--accent)' : 'transparent', color: when === k ? 'var(--on-accent)' : 'var(--fg-secondary)', transition: 'all .2s' }}>{l}</button>
             ))}
           </div>
           <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search events" aria-label="Search events"
@@ -108,7 +108,7 @@ export default function Events() {
                 fontSize: 13, fontWeight: 600,
                 background: filter === cat ? 'var(--accent)' : 'var(--bg-surface)',
                 border: `1px solid ${filter === cat ? 'var(--accent)' : 'var(--border)'}`,
-                color: filter === cat ? '#fff' : 'var(--fg-secondary)',
+                color: filter === cat ? 'var(--on-accent)' : 'var(--fg-secondary)',
                 transition: 'all 0.2s',
               }}>
               {cat === 'all' ? 'All Events' : cat}
