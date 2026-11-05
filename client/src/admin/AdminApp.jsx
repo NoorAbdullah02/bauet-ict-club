@@ -16,6 +16,7 @@ import { FEATURES } from './config';
 import Newsletter from './Newsletter';
 import Visitors from './Visitors';
 import FormsAdmin from './FormsAdmin';
+import FormEditor from './FormEditor';
 import Logo from '../components/Logo';
 import { cn } from '../lib/cn';
 
@@ -124,6 +125,8 @@ export default function AdminApp() {
             <Route path="newsletter" element={<Newsletter />} />
             <Route path="visitors" element={<Visitors />} />
             <Route path="forms" element={<FormsAdmin />} />
+            <Route path="forms/:id" element={<FormEditor kind="form" />} />
+            <Route path="events/:id/form" element={<FormEditor kind="event" />} />
             <Route path="trash" element={<Trash />} />
             <Route path="settings" element={<SettingsView />} />
             <Route path="*" element={<Navigate to="/admin" replace />} />
