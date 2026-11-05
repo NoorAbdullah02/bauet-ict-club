@@ -58,10 +58,12 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
   Future<void> _load() async {
     try {
       final c = await _state.api.demoCount();
-      if (mounted) setState(() {
-        _count = c;
-        _error = null;
-      });
+      if (mounted) {
+        setState(() {
+          _count = c;
+          _error = null;
+        });
+      }
     } on ApiException catch (e) {
       await _state.handleAuthError(e);
       if (mounted) setState(() => _error = e.message);
