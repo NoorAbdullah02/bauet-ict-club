@@ -115,6 +115,22 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
     ok(prom.s === 200 && prom.j.waitlisted === false, 'admin can give a waiting person a seat by hand', prom);
     ok((await call('PATCH', `/api/event-registrations/${waiting[1].id}/promote`, {}, T)).s === 404, 'promote only works for people waiting');
 
+    // people cancel their own sign-up: the seat goes to the next in line
+    const cur = (await call('GET', `/api/event-registrations/by-event/${ev.id}`, undefined, T)).j;
+    const mines = cur.filter((x) => !x.waitlisted && !x.checked_in_at);
+    const mineC = mines[0];
+    const waitC = cur.filter((x) => x.waitlisted).sort((a, b) => a.id - b.id)[0];
+    ok((await call('GET', `/api/event-registrations/ticket/${mineC.ticket}`)).j?.can_cancel === true, 'ticket says it can be cancelled');
+    ok((await call('POST', `/api/event-registrations/ticket/${code}/cancel`)).s === 409, 'a checked-in person cannot cancel');
+    ok((await call('POST', '/api/event-registrations/ticket/ZZZZZZZZZZ/cancel')).s === 404, 'unknown ticket cannot cancel');
+    ok((await call('POST', `/api/event-registrations/ticket/${mineC.ticket}/cancel`)).s === 200, 'person cancels their own sign-up');
+    await new Promise((r) => setTimeout(r, 400));
+    ok((await call('GET', `/api/event-registrations/ticket/${mineC.ticket}`)).s === 404, 'cancelled ticket stops working');
+    // the hand-given seat made the event 4 of 3, so one more cancel is needed before a seat is really free
+    ok((await call('POST', `/api/event-registrations/ticket/${mines[1].ticket}/cancel`)).s === 200, 'a second person cancels');
+    await new Promise((r) => setTimeout(r, 400));
+    ok((await call('GET', `/api/event-registrations/ticket/${waitC.ticket}`)).j?.status === 'confirmed', 'the next person in line got the seat');
+
     // events that send people to another form (Google Forms ...)
     ok((await call('POST', '/api/events', { title: 'Bad link', date: '2099-01-01', reg_url: 'javascript:alert(1)' }, T)).s === 409, 'javascript: link refused');
     const ext = await call('POST', '/api/events', { title: 'Google form event', date: '2099-02-01', reg_url: ' https://forms.gle/abc123 ' }, T);

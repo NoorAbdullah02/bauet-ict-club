@@ -39,6 +39,8 @@ async function byCode(raw) {
   const r = (await pool.query('SELECT r.*, e.title AS ev_title, e.date AS ev_date, e.time AS ev_time, e.location AS ev_location, e.reg_form AS ev_form FROM event_registrations r JOIN events e ON e.id = r.event_id WHERE r.ticket = $1 AND r.deleted_at IS NULL', [code])).rows[0];
   return r || null;
 }
+// people may cancel their own free sign-up until they are checked in or the event day has passed (paid ones go through the organisers)
+const canCancel = (r) => !r.checked_in_at && !r.payment && statusOf(r) !== 'cancelled' && !(r.ev_date && day(r.ev_date) < todayStr());
 const certOn = (r) => !!r.ev_form?.cert?.enabled && !!r.checked_in_at && statusOf(r) !== 'cancelled';
 const site = (req) => (process.env.PUBLIC_URL || process.env.RENDER_EXTERNAL_URL || `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');
 
@@ -49,7 +51,21 @@ router.get('/ticket/:code', async (req, res) => {
     if (!r) return res.status(404).json({ error: 'This ticket was not found.' });
     res.set('Cache-Control', 'no-store');
     res.json({ code: r.ticket, name: r.full_name || forms.show(answersOf(r)[forms.fieldsOf({ reg_form: r.ev_form })[0]?.id]) || 'Guest', status: statusOf(r), checked_in: !!r.checked_in_at,
-      event: { id: r.event_id, title: r.ev_title, date: r.ev_date, time: r.ev_time, location: r.ev_location }, certificate: certOn(r) });
+      event: { id: r.event_id, title: r.ev_title, date: r.ev_date, time: r.ev_time, location: r.ev_location }, certificate: certOn(r), can_cancel: canCancel(r) });
+  } catch (e) { fail(res, e); }
+});
+
+/** Public: cancel your own sign-up with your ticket code. The seat goes to the next person on the waiting list. */
+router.post('/ticket/:code/cancel', limiter, async (req, res) => {
+  try {
+    const r = await byCode(req.params.code);
+    if (!r) return res.status(404).json({ error: 'This ticket was not found.' });
+    if (r.checked_in_at) return res.status(409).json({ error: 'You are already checked in, so this cannot be cancelled.' });
+    if (r.payment) return res.status(409).json({ error: 'This sign-up has a payment. Please contact the organisers to cancel it.' });
+    if (!canCancel(r)) return res.status(409).json({ error: 'This sign-up can no longer be cancelled.' });
+    await pool.query('UPDATE event_registrations SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL', [r.id]);
+    res.json({ success: true });
+    promoteWaiting(r.event_id).catch((e) => console.error('promote failed:', e.message));
   } catch (e) { fail(res, e); }
 });
 
