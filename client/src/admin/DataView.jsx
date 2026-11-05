@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { formalDate, formalTime } from '../lib/format';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { Plus, Pencil, Trash2, Search, Loader2, Save, Rocket, ArrowRightLeft, Link2, Users, ClipboardList } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, Loader2, Save, Rocket, ArrowRightLeft, Link2, Users, ClipboardList, ScanLine } from 'lucide-react';
 import useStore from '../context/store';
 import { TYPES } from './config';
 import LaunchCommittee from './LaunchCommittee';
@@ -102,6 +102,7 @@ export default function DataView({ type }) {
                     ))}
                     <td className="px-5 py-3.5"><div className="flex justify-end gap-1.5">
                       {type === 'events' && <button onClick={async () => toast[(await copyText(eventLink(item.id))) ? 'success' : 'error']('Registration link copied')} aria-label="Copy registration link" title="Copy registration link" className="grid size-8 place-items-center rounded-lg text-fg2 hover:bg-tech/15 hover:text-tech"><Link2 size={14} /></button>}
+                      {type === 'events' && <button onClick={() => navigate(`/admin/events/${item.id}/checkin`)} aria-label="Check-in desk" title="Check-in desk: scan tickets, certificates" className="grid size-8 place-items-center rounded-lg text-fg2 hover:bg-tech/15 hover:text-tech"><ScanLine size={14} /></button>}
                       {type === 'events' && !item.reg_url && <button onClick={() => navigate(`/admin/events/${item.id}/form`)} aria-label="Edit registration form" title="Build the registration form" className="grid size-8 place-items-center rounded-lg text-fg2 hover:bg-tech/15 hover:text-tech"><ClipboardList size={14} /></button>}
                       {type === 'events' && <button onClick={() => setRegEvent(item)} aria-label="See registrations" title="See who registered" className="grid size-8 place-items-center rounded-lg text-fg2 hover:bg-tech/15 hover:text-tech"><Users size={14} /></button>}
                       <button onClick={() => openEdit(item)} aria-label="Edit" className="grid size-8 place-items-center rounded-lg text-fg2 hover:bg-tech/15 hover:text-tech"><Pencil size={14} /></button>

@@ -19,7 +19,7 @@ export default function SiteLayout() {
   const { pathname } = useLocation();
   useEffect(() => { window.scrollTo({ top: 0, left: 0, behavior: 'instant' }); trackPage(pathname); }, [pathname]);
   useEffect(() => {
-    if (/^\/(events\/\d+|f\/[^/]+)/.test(pathname)) return; // event and form pages set their own title
+    if (/^\/(events\/\d+|f\/[^/]+|ticket\/|verify\/|certificate\/)/.test(pathname)) return; // event and form pages set their own title
     const t = TITLES[pathname.replace(/\/$/, '') || '/'];
     document.title = !t ? 'Page not found | BAUET ICT Club' : pathname === '/' ? t : `${t} | BAUET ICT Club`;
   }, [pathname]);

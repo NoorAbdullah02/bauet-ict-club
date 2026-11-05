@@ -138,7 +138,7 @@ const templates = {
   // sent the moment someone registers for ONE event: it names that event, its time and place, and carries the organiser's own note
   eventRegistered: (r, ev, fDate, fTime) => ({
     subject: `You are registered: ${ev.title}`,
-    html: layout({ title: 'You are registered', body: `<p>Hi ${esc(r.full_name)},</p><p>You are registered for <b>${esc(ev.title)}</b>.</p><p>${esc(fDate(ev.date))}${ev.time ? ` · ${esc(fTime(ev.time))}` : ''}${ev.location ? `<br>${esc(ev.location)}` : ''}</p>${ev.reg_form?.email_note ? `<p style="white-space:pre-line">${esc(ev.reg_form.email_note)}</p>` : '<p>Please bring your student ID. See you there!</p>'}`, button: { href: `${siteUrl()}/events/${ev.id}`, label: 'Event details' } }),
+    html: layout({ title: 'You are registered', body: `<p>Hi ${esc(r.full_name)},</p><p>You are registered for <b>${esc(ev.title)}</b>.</p><p>${esc(fDate(ev.date))}${ev.time ? ` · ${esc(fTime(ev.time))}` : ''}${ev.location ? `<br>${esc(ev.location)}` : ''}</p>${ev.reg_form?.email_note ? `<p style="white-space:pre-line">${esc(ev.reg_form.email_note)}</p>` : '<p>Please bring your student ID. See you there!</p>'}${ev.ticket ? `<p>Your ticket code: <b style="letter-spacing:2px">${esc(ev.ticket.slice(0, 5))}-${esc(ev.ticket.slice(5))}</b><br>Show the QR code on your ticket at the entrance.</p>` : ''}`, button: { href: ev.ticket ? `${siteUrl()}/ticket/${ev.ticket}` : `${siteUrl()}/events/${ev.id}`, label: ev.ticket ? 'Open my ticket' : 'Event details' } }),
     text: `Hi ${r.full_name}, you are registered for ${ev.title} on ${fDate(ev.date)}${ev.time ? ` at ${fTime(ev.time)}` : ''}.${ev.reg_form?.email_note ? `\n${ev.reg_form.email_note}` : ''}\n${siteUrl()}/events/${ev.id}`,
   }),
   // paid events: sent at once, the place is confirmed when the admin verifies the payment
@@ -147,9 +147,19 @@ const templates = {
     html: layout({ title: 'Registration received', body: `<p>Hi ${esc(r.full_name || 'there')},</p><p>We received your registration for <b>${esc(ev.title)}</b>${ev.date ? ` (${esc(fDate(ev.date))}${ev.time ? ` · ${esc(fTime(ev.time))}` : ''})` : ''}.</p><p>Your payment of <b>${esc(pay.amount)} BDT</b> by ${esc(pay.method)} (transaction ID <b>${esc(pay.trx_id)}</b>) is being checked. We will email you again as soon as your place is confirmed.</p>`, button: { href: `${siteUrl()}${ev.path || `/events/${ev.id}`}`, label: 'Details' } }),
     text: `We received your registration for ${ev.title}. Your payment (${pay.method}, ${pay.trx_id}) is being checked; we will email you when it is confirmed.`,
   }),
+  certificateReady: (r, ev, code) => ({
+    subject: `Your certificate: ${ev.title}`,
+    html: layout({ title: 'Your certificate is ready', body: `<p>Hi ${esc(r.full_name || 'there')},</p><p>Thank you for joining <b>${esc(ev.title)}</b>. Your certificate is ready to download.</p>`, button: { href: `${siteUrl()}/certificate/${code}`, label: 'Download certificate' } }),
+    text: `Your certificate for ${ev.title}: ${siteUrl()}/certificate/${code}`,
+  }),
+  eventReminder: (r, ev, fDate, fTime) => ({
+    subject: `Tomorrow: ${ev.title}`,
+    html: layout({ title: 'See you tomorrow', body: `<p>Hi ${esc(r.full_name || 'there')},</p><p><b>${esc(ev.title)}</b> is tomorrow.</p><p>${esc(fDate(ev.date))}${ev.time ? ` · ${esc(fTime(ev.time))}` : ''}${ev.location ? `<br>${esc(ev.location)}` : ''}</p><p>Please bring your ticket (the QR code) and your student ID.</p>`, button: { href: `${siteUrl()}/ticket/${r.ticket}`, label: 'Open my ticket' } }),
+    text: `Reminder: ${ev.title} is tomorrow. Your ticket: ${siteUrl()}/ticket/${r.ticket}`,
+  }),
   paymentVerified: (r, ev, fDate) => ({
     subject: `Payment received: ${ev.title}`,
-    html: layout({ title: 'Payment confirmed', body: `<p>Hi ${esc(r.full_name || 'there')},</p><p>We received your payment for <b>${esc(ev.title)}</b>${ev.date ? ` (${esc(fDate(ev.date))})` : ''}. Your place is confirmed.</p>${ev.email_note ? `<p style="white-space:pre-line">${esc(ev.email_note)}</p>` : ''}`, button: { href: `${siteUrl()}${ev.path || `/events/${ev.id}`}`, label: 'Details' } }),
+    html: layout({ title: 'Payment confirmed', body: `<p>Hi ${esc(r.full_name || 'there')},</p><p>We received your payment for <b>${esc(ev.title)}</b>${ev.date ? ` (${esc(fDate(ev.date))})` : ''}. Your place is confirmed.</p>${ev.email_note ? `<p style="white-space:pre-line">${esc(ev.email_note)}</p>` : ''}${ev.ticket ? `<p>Your ticket code: <b style="letter-spacing:2px">${esc(ev.ticket.slice(0, 5))}-${esc(ev.ticket.slice(5))}</b></p>` : ''}`, button: { href: ev.ticket ? `${siteUrl()}/ticket/${ev.ticket}` : `${siteUrl()}${ev.path || `/events/${ev.id}`}`, label: ev.ticket ? 'Open my ticket' : 'Details' } }),
     text: `Your payment for ${ev.title} is confirmed. ${siteUrl()}${ev.path || `/events/${ev.id}`}`,
   }),
   paymentRejected: (r, ev, note) => ({

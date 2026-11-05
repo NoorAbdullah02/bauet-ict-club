@@ -50,6 +50,8 @@ function sanitizeForm(raw) {
   }
   if (!fields.length) return { form: null };
   const form = { title: clip(f.title, 120), intro: clip(f.intro, 1000), confirmation: clip(f.confirmation, 500), email_note: clip(f.email_note, 600), unique: seen.has(f.unique) ? f.unique : '', notify_admin: !!f.notify_admin, fields };
+  // certificate for people who were checked in
+  if (f.cert?.enabled) form.cert = { enabled: true, title: clip(f.cert.title, 60) || 'Certificate of Participation', signer: clip(f.cert.signer, 60), signer_title: clip(f.cert.signer_title, 80), note: clip(f.cert.note, 160) };
   // registration deadline: "YYYY-MM-DDTHH:mm" (Bangladesh time is entered by the admin; compared as a plain timestamp)
   if (f.closes_at) { if (!/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2})?$/.test(String(f.closes_at))) return { error: 'The closing date is not valid' }; form.closes_at = String(f.closes_at).slice(0, 16); }
   // manual mobile-banking payment: people send money, then give the transaction ID; the admin verifies it

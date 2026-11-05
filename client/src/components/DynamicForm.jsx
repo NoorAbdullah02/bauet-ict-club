@@ -45,6 +45,8 @@ export default function DynamicForm({ fields, values, errors = {}, onChange, dis
   const AUTO = { name: 'name', email: 'email', phone: 'tel' };
   return (
     <div className="space-y-5">
+      {/* trap for spam bots: invisible to people, bots fill it and are ignored */}
+      <input type="text" name="contact_me_by_fax_only" tabIndex={-1} autoComplete="off" aria-hidden="true" data-hp="1" style={{ position: 'absolute', left: '-9999px', width: 1, height: 1, opacity: 0 }} />
       {fields.filter((f) => isVisible(f, values)).map((f) => {
         const v = values[f.id];
         const err = errors[f.id];

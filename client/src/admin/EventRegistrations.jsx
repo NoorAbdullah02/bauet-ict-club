@@ -147,7 +147,7 @@ export function ResponsesPanel({ event, kind = 'event' }) {
                             <div key={f.id} className="flex gap-2 text-xs"><dt className="w-28 shrink-0 truncate text-muted">{f.label}</dt><dd className="min-w-0 break-words text-fg2">{f.type === 'email' ? <a href={`mailto:${show(ans(r)[f.id])}`} className="text-tech">{show(ans(r)[f.id])}</a> : f.type === 'photo' ? <a href={show(ans(r)[f.id])} target="_blank" rel="noreferrer" className="text-tech underline">Open picture</a> : show(ans(r)[f.id])}</dd></div>
                           ))}
                         </dl>
-                        <div className="mt-1 font-mono text-[10px] uppercase tracking-wider text-muted">{formalDate(r.created_at)}</div>
+                        <div className="mt-1 flex flex-wrap items-center gap-x-3 font-mono text-[10px] uppercase tracking-wider text-muted"><span>{formalDate(r.created_at)}</span>{r.ticket && <span>ticket {r.ticket}</span>}{r.checked_in_at && <span className="text-emerald-600">checked in</span>}</div>
                       </div>
                       <button onClick={() => remove(r)} aria-label="Remove this sign-up" className="grid size-8 place-items-center rounded-lg text-fg2 transition hover:bg-red-500/10 hover:text-red-500"><Trash2 size={14} /></button>
                     </div>

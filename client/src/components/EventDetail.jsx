@@ -7,6 +7,7 @@ import { useShallow } from 'zustand/react/shallow';
 import useStore, { api } from '../context/store';
 import DynamicForm from './DynamicForm';
 import PaymentBox from './PaymentBox';
+import { qrDataUrl, prettyCode } from '../lib/qr';
 import { fieldsOf, isVisible, isEmpty } from '../lib/forms';
 import { formalDate, formalTime } from '../lib/format';
 import { thumb } from '../lib/img';
@@ -27,6 +28,8 @@ export default function EventDetail() {
   const [payment, setPayment] = useState({});
   const [payErrors, setPayErrors] = useState({});
   const [pendingPay, setPendingPay] = useState(false);
+  const [ticket, setTicket] = useState('');
+  const [ticketQr, setTicketQr] = useState('');
   const [menu, setMenu] = useState(false);
 
   const ev = useMemo(() => events.find((e) => String(e.id) === String(id)) || fetched, [events, fetched, id]);
@@ -35,6 +38,7 @@ export default function EventDetail() {
     if (!events.find((e) => String(e.id) === String(id))) api.get(`/events/${id}`).then((r) => setFetched(r.data)).catch(() => setFetched(false));
   }, [id, events]);
   useEffect(() => { api.get('/event-registrations/counts').then((r) => setCount(r.data[id] || 0)).catch(() => {}); }, [id, done]);
+  useEffect(() => { if (ticket) qrDataUrl(ticket, 300).then(setTicketQr).catch(() => {}); }, [ticket]);
   useEffect(() => { if (ev?.title) document.title = `${ev.title} | BAUET ICT Club`; }, [ev?.title]);
 
   if (!ev) {
@@ -75,7 +79,7 @@ export default function EventDetail() {
     setErrors(err); setPayErrors(pe);
     if (Object.keys(err).length || Object.keys(pe).length) { toast.error('Please check the highlighted questions'); return; }
     setBusy(true);
-    try { const r = await api.post(`/event-registrations/${ev.id}`, { answers: Object.fromEntries(fields.filter((f) => isVisible(f, form)).map((f) => [f.id, form[f.id]]).filter(([, v]) => !isEmpty(v))), ...(payCfg ? { payment: { method: payCfg.methods[0], ...payment } } : {}) }); setThanks(r.data.message || ''); setPendingPay(!!r.data.pending_payment); setDone(true); }
+    try { const r = await api.post(`/event-registrations/${ev.id}`, { _hp: document.querySelector('input[data-hp]')?.value || '', answers: Object.fromEntries(fields.filter((f) => isVisible(f, form)).map((f) => [f.id, form[f.id]]).filter(([, v]) => !isEmpty(v))), ...(payCfg ? { payment: { method: payCfg.methods[0], ...payment } } : {}) }); setThanks(r.data.message || ''); setPendingPay(!!r.data.pending_payment); setTicket(r.data.ticket || ''); setDone(true); }
     catch (ex) { const d = ex.response?.data; if (d?.fields) setErrors(d.fields); if (d?.payment) setPayErrors(d.payment); toast.error(d?.error || 'Could not register. Please try again.'); }
     setBusy(false);
   };
@@ -123,6 +127,14 @@ export default function EventDetail() {
                   <CheckCircle2 size={44} className="mx-auto text-emerald-500" />
                   <h3 className="mt-3 text-xl text-fg">{pendingPay ? 'Registration received' : 'You are registered!'}</h3>
                   <p className="mt-1 whitespace-pre-line text-sm text-fg2">{thanks || (pendingPay ? `We got your payment details for ${ev.title}. Your place is confirmed as soon as we verify the transaction. You will get an email.` : `We saved your place for ${ev.title}. If you gave an email address, a confirmation is on its way.`)}</p>
+                  {ticket && (
+                    <div className="mt-5 rounded-2xl border border-line bg-alt/50 p-4">
+                      <div className="mx-auto grid size-36 place-items-center rounded-xl bg-white p-1.5">{ticketQr ? <img src={ticketQr} alt="Your ticket QR code" className="size-full" /> : <Loader2 className="animate-spin text-muted" />}</div>
+                      <div className="mt-2 font-mono text-sm tracking-[0.25em] text-fg">{prettyCode(ticket)}</div>
+                      <a href={`/ticket/${ticket}`} className="mt-2 inline-block text-xs font-semibold text-tech underline">Open my ticket</a>
+                      <p className="mt-1 text-xs text-muted">Show this QR code at the entrance. We also emailed it to you.</p>
+                    </div>
+                  )}
                   <div className="mt-5 flex flex-wrap justify-center gap-2">
                     {start && <button onClick={() => downloadIcs(ev)} className="btn-outline !px-4 !py-2 text-xs"><CalendarPlus size={14} /> Add to calendar</button>}
                     <button onClick={share} className="btn-outline !px-4 !py-2 text-xs"><Share2 size={14} /> Invite friends</button>

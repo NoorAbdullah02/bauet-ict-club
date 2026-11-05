@@ -57,7 +57,7 @@ export default function FormPage() {
     setBusy(true);
     try {
       const answers = Object.fromEntries(fields.filter((f) => isVisible(f, values)).map((f) => [f.id, values[f.id]]).filter(([, v]) => !isEmpty(v)));
-      const r = await api.post(`/forms/public/${slug}`, { answers, ...(payCfg ? { payment: { method: payCfg.methods[0], ...payment } } : {}) });
+      const r = await api.post(`/forms/public/${slug}`, { _hp: document.querySelector('input[data-hp]')?.value || '', answers, ...(payCfg ? { payment: { method: payCfg.methods[0], ...payment } } : {}) });
       setDone({ message: r.data.message, pending: r.data.pending_payment });
     } catch (ex) { const d = ex.response?.data; if (d?.fields) setErrors(d.fields); if (d?.payment) setPayErrors(d.payment); toast.error(d?.error || 'Could not submit. Please try again.'); }
     setBusy(false);

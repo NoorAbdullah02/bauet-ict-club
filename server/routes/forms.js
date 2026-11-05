@@ -33,6 +33,7 @@ router.get('/public/:slug', async (req, res) => {
 
 router.post('/public/:slug', limiter, (req, res) => serial(`form:${req.params.slug}`, () => respond(req, res)));
 async function respond(req, res) {
+  if (req.body?._hp) return res.status(201).json({ success: true }); // a bot filled the hidden trap field: pretend it worked, save nothing
   try {
     const f = (await pool.query('SELECT * FROM forms WHERE slug = $1 AND deleted_at IS NULL', [req.params.slug])).rows[0];
     if (!f) return res.status(404).json({ error: 'This form does not exist.' });
