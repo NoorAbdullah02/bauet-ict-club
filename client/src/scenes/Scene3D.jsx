@@ -45,20 +45,31 @@ function Orbiters({ count = 8, radius = 3, size = 0.12, color, geometry = 'spher
 }
 
 function HeroScene3D({ p, dark, lite }) {
+  // calm, see-through centrepiece: a glowing wire globe around a soft core, so the headline stays easy to read
   return (
     <Rig>
-      <Float speed={1.6} rotationIntensity={0.4} floatIntensity={0.8}>
-        <mesh scale={1.35}>
-          <sphereGeometry args={[1.5, lite ? 48 : 128, lite ? 48 : 128]} />
-          <MeshDistortMaterial color={p.a} emissive={p.a} emissiveIntensity={dark ? 0.35 : 0.12} roughness={0.15} metalness={0.7} distort={0.42} speed={1.8} />
+      <Float speed={1.2} rotationIntensity={0.25} floatIntensity={0.5}>
+        <Spin speed={[0.04, 0.09, 0.02]}>
+          <mesh scale={1.55}>
+            <icosahedronGeometry args={[1.7, lite ? 1 : 2]} />
+            <meshBasicMaterial color={p.b} wireframe transparent opacity={dark ? 0.24 : 0.22} />
+          </mesh>
+          <mesh scale={1.1}>
+            <icosahedronGeometry args={[1.7, 1]} />
+            <meshBasicMaterial color={p.a} wireframe transparent opacity={dark ? 0.14 : 0.12} />
+          </mesh>
+        </Spin>
+        <mesh scale={1.3}>
+          <sphereGeometry args={[1.5, lite ? 32 : 64, lite ? 32 : 64]} />
+          <MeshDistortMaterial color={p.a} emissive={p.a} emissiveIntensity={dark ? 0.5 : 0.2} roughness={0.25} metalness={0.5} distort={0.3} speed={1.2} transparent opacity={dark ? 0.22 : 0.16} />
         </mesh>
       </Float>
-      <Spin speed={[0.12, 0.2, 0.05]}><mesh rotation={[1.2, 0, 0]}><torusGeometry args={[3.1, 0.014, 16, 220]} /><meshBasicMaterial color={p.b} /></mesh></Spin>
-      <Spin speed={[-0.1, 0.16, 0.08]}><mesh rotation={[0.4, 0.8, 0]}><torusGeometry args={[3.7, 0.01, 16, 220]} /><meshBasicMaterial color={p.c} transparent opacity={0.8} /></mesh></Spin>
-      <Orbiters count={10} radius={3.1} color={p.b} />
-      <Orbiters count={6} radius={3.7} color={p.c} size={0.09} speed={-0.2} />
-      <Sparkles count={lite ? 35 : 90} scale={[10, 6, 6]} size={dark ? 3 : 2.4} speed={0.4} color={p.b} />
-      {dark && <Stars radius={40} depth={40} count={lite ? 500 : 1400} factor={3} fade speed={1} />}
+      <Spin speed={[0.1, 0.18, 0.04]}><mesh rotation={[1.2, 0, 0]}><torusGeometry args={[3.4, 0.012, 16, 240]} /><meshBasicMaterial color={p.b} transparent opacity={0.75} /></mesh></Spin>
+      <Spin speed={[-0.08, 0.14, 0.06]}><mesh rotation={[0.4, 0.8, 0]}><torusGeometry args={[4.1, 0.008, 16, 240]} /><meshBasicMaterial color={p.c} transparent opacity={0.55} /></mesh></Spin>
+      <Orbiters count={6} radius={3.4} color={p.b} size={0.07} />
+      <Orbiters count={4} radius={4.1} color={p.c} size={0.06} speed={-0.18} />
+      <Sparkles count={lite ? 40 : 110} scale={[12, 7, 7]} size={dark ? 2.6 : 2.2} speed={0.3} color={p.b} />
+      {dark && <Stars radius={40} depth={40} count={lite ? 500 : 1400} factor={3} fade speed={0.6} />}
     </Rig>
   );
 }
