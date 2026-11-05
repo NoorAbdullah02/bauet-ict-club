@@ -16,6 +16,11 @@ window.addEventListener('vite:preloadError', (e) => {
 });
 window.addEventListener('load', () => { try { sessionStorage.removeItem('chunk-reload'); } catch { /* ignore */ } });
 
+// works offline-friendly and loads faster on repeat visits (production only; the admin area is never cached)
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
+  window.addEventListener('load', () => { navigator.serviceWorker.register('/sw.js').catch(() => {}); });
+}
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <AppBoundary>
