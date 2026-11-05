@@ -114,7 +114,13 @@ const COLS = {
   posts: ['title', 'content', 'image_url', 'author'],
 };
 app.use('/api/events', createCrudRouter('events', { orderBy: 'date', orderDir: 'DESC', columns: COLS.events, imageCols: ['image_url'], auth: authMiddleware,
-  validate: async (d) => { if (d.reg_form === undefined) return null; const r = sanitizeForm(d.reg_form); if (r.error) return r.error; d.reg_form = r.form ? JSON.stringify(r.form) : null; return null; },
+  validate: async (d) => {
+    if (typeof d.reg_url === 'string') { // a link to another form (Google Forms ...): only real web links, never javascript: or similar
+      const u = d.reg_url.trim();
+      if (u) { try { const x = new URL(u); if (!['http:', 'https:'].includes(x.protocol) || u.length > 500) return 'Enter a full web link starting with https://'; } catch { return 'Enter a full web link starting with https://'; } }
+      d.reg_url = u || null;
+    }
+    if (d.reg_form === undefined) return null; const r = sanitizeForm(d.reg_form); if (r.error) return r.error; d.reg_form = r.form ? JSON.stringify(r.form) : null; return null; },
   onCreate: (r) => notifySubscribers('event', { title: r.title, when: [formalDate(r.date), formalTime(r.time), r.location].filter(Boolean).join(' · '), summary: r.description, path: '/events' }) }));
 app.use('/api/notices', createCrudRouter('notices', { orderBy: 'pinned DESC, created_at', orderDir: 'DESC', columns: COLS.notices, imageCols: ['image_url'], auth: authMiddleware,
   onCreate: (r) => { if (!r.expiry_date || String(r.expiry_date).slice(0, 10) >= new Date().toISOString().slice(0, 10)) notifySubscribers('notice', { title: r.title, summary: r.content, path: '/notices' }); } }));

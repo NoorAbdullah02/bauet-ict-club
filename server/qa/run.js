@@ -86,6 +86,11 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
     ok((await call('POST', '/api/event-registrations/checkin', { code }, T)).s === 200, 'check-in');
     ok((await call('POST', '/api/event-registrations/checkin', { code }, T)).j?.already === true || (await call('POST', '/api/event-registrations/checkin', { code }, T)).s === 409, 'second check-in is reported');
 
+    // events that send people to another form (Google Forms ...)
+    ok((await call('POST', '/api/events', { title: 'Bad link', date: '2099-01-01', reg_url: 'javascript:alert(1)' }, T)).s === 409, 'javascript: link refused');
+    const ext = await call('POST', '/api/events', { title: 'Google form event', date: '2099-02-01', reg_url: ' https://forms.gle/abc123 ' }, T);
+    ok(ext.s === 201 && ext.j.reg_url === 'https://forms.gle/abc123', 'web link accepted and trimmed', ext.j);
+
     // password change
     ok((await call('POST', '/api/auth/change-password', { current: 'wrong-pass', next: 'Another-Pass-99' }, T)).s === 401, 'change password needs current one');
     ok((await call('POST', '/api/auth/change-password', { current: 'Qa-Pass-12345', next: 'short' }, T)).s === 400, 'short new password refused');

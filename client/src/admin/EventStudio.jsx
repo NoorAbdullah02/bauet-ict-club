@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { ArrowLeft, Check, CalendarDays, ClipboardList, Loader2, Sparkles, MapPin, Clock, Users } from 'lucide-react';
+import { ArrowLeft, Check, CalendarDays, ClipboardList, Loader2, Sparkles, MapPin, Clock, Users, Link2 } from 'lucide-react';
 import useStore from '../context/store';
 import { TYPES } from './config';
 import { FormField } from './ui';
@@ -40,15 +40,20 @@ export default function EventStudio() {
   const eventId = params.get('id');
   const [form, setForm] = useState({ date: today(), reg_open: true, featured: false, capacity: '' });
   const [saving, setSaving] = useState(false);
+  const [mode, setMode] = useState('club'); // 'club' = the form built here, 'link' = Google Form or any other web link
   const set = (k, v) => setForm((p) => ({ ...p, [k]: v }));
   const upload = { area: 'events', scope: String(form.date || today()).slice(0, 4) };
 
   const create = async (withForm) => {
     if (!String(form.title || '').trim()) return toast.error('Give the event a title');
     if (!form.date) return toast.error('Choose the date');
+    if (mode === 'link') {
+      try { if (!['http:', 'https:'].includes(new URL(String(form.reg_url || '').trim()).protocol)) throw new Error(); } catch { return toast.error('Paste the full form link, starting with https://'); }
+    }
     setSaving(true);
     try {
       const body = Object.fromEntries(TYPES.events.fields.map((f) => [f.key, form[f.key] ?? (f.type === 'checkbox' ? false : '')]));
+      if (mode === 'club') body.reg_url = ''; else body.capacity = 0;
       const made = await addItem('events', body);
       if (withForm) { toast.success('Event created: now build its registration form'); setParams({ id: String(made.id) }, { replace: true }); window.scrollTo({ top: 0 }); }
       else { toast.success('Event created'); navigate('/admin/events'); }
@@ -69,7 +74,7 @@ export default function EventStudio() {
     );
   }
 
-  const own = !!String(form.reg_url || '').trim();
+  const own = mode === 'link';
   return (
     <div>
       <Steps step={1} />
@@ -95,12 +100,26 @@ export default function EventStudio() {
             </div>
           </section>
           <section className="rounded-3xl border border-line bg-surface p-5 sm:p-6">
-            <h2 className="mb-4 flex items-center gap-2 text-lg text-fg"><Users size={18} className="text-tech" /> Registration</h2>
-            <div className="space-y-4">
+            <h2 className="mb-4 flex items-center gap-2 text-lg text-fg"><Users size={18} className="text-tech" /> How do people register?</h2>
+            <div role="radiogroup" aria-label="Registration method" className="grid gap-3 sm:grid-cols-2">
+              {[['club', ClipboardList, 'Club form', 'Build the form here. Seat limit, deadline, bKash payment, ticket with QR code, check-in and certificate all work.'],
+                ['link', Link2, 'Google Form or other link', 'People click "Register now" and go straight to your own form. Responses stay in that tool.']].map(([k, I, t, d]) => (
+                <button key={k} type="button" role="radio" aria-checked={mode === k} onClick={() => setMode(k)}
+                  className={cn('flex gap-3 rounded-2xl border-2 p-4 text-left transition', mode === k ? 'border-tech bg-tech/8' : 'border-line hover:border-tech/50')}>
+                  <span className={cn('grid size-10 shrink-0 place-items-center rounded-xl', mode === k ? 'bg-tech text-white' : 'bg-alt text-fg2')}><I size={18} /></span>
+                  <span className="min-w-0"><span className="flex items-center gap-2 text-sm font-semibold text-fg">{t}{mode === k && <Check size={14} className="text-tech" />}</span><span className="mt-1 block text-xs leading-5 text-fg2">{d}</span></span>
+                </button>
+              ))}
+            </div>
+            <div className="mt-4 space-y-4">
               <FormField field={FIELDS.reg_open} value={form.reg_open} onChange={set} upload={upload} />
-              <FormField field={FIELDS.capacity} value={form.capacity} onChange={set} upload={upload} />
-              <FormField field={FIELDS.reg_url} value={form.reg_url} onChange={set} upload={upload} />
-              <p className="text-xs leading-5 text-muted">Leave the last box empty to use the club's own form (questions, seat limit, deadline, bKash payment, tickets with QR code). Fill it only if you want to send people to a Google Form instead.</p>
+              {mode === 'club'
+                ? <FormField field={FIELDS.capacity} value={form.capacity} onChange={set} upload={upload} />
+                : (
+                  <label className="block"><span className="mb-1.5 block font-mono text-[11px] uppercase tracking-[0.14em] text-fg2">Form link *</span>
+                    <input type="url" inputMode="url" placeholder="https://forms.gle/..." value={form.reg_url || ''} onChange={(e) => set('reg_url', e.target.value)} className="w-full rounded-xl border border-line bg-surface px-4 py-3 text-sm text-fg outline-none focus:border-tech" />
+                    <span className="mt-1.5 block text-xs text-muted">Paste the share link of your Google Form (or Microsoft Forms, Typeform ...). It opens in a new tab.</span></label>
+                )}
             </div>
           </section>
         </div>
