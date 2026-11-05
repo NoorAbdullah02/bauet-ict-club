@@ -47,3 +47,6 @@ export const isOther = (x) => typeof x === 'string' && x.startsWith(OTHER);
 /** An answer that counts as "nothing entered" (including an "Other:" with no text). */
 export const isEmpty = (v) => v === undefined || v === null || v === '' || v === OTHER || (Array.isArray(v) && (!v.length || v.every((x) => x === OTHER)));
 export const show = (v) => (Array.isArray(v) ? v.join(', ') : v ?? '');
+
+/** Inline style that recolours buttons and highlights of one public form (the admin picks the colour). */
+export const themeStyle = (c) => (/^#[0-9a-f]{6}$/i.test(c || '') ? { '--accent': c, '--tech': c, '--grad-btn': `linear-gradient(135deg, ${c}, ${c})`, '--btn-shadow': `0 10px 28px ${c}55`, '--btn-fg': '#fff' } : undefined);

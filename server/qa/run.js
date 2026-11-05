@@ -52,6 +52,21 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
     ok((await call('PATCH', `/api/forms/responses/${resp[0].id}/answers`, { answers: { [nameId0]: 'x' } })).s === 401, 'edit needs login');
     ok((await call('PATCH', '/api/forms/responses/999999/answers', { answers: { a: 1 } }, T)).s === 404, 'edit of missing response is 404');
 
+    // answer rules, pages, theme
+    const f3 = (await call('POST', '/api/forms', { title: 'QA rules' }, T)).j;
+    const rules = { title: 'Rules', fields: [
+      { id: 'sid', type: 'short', label: 'ID', required: true, pattern: '^[0-9]{6}$', patternMsg: 'Six digits', minLen: 2 },
+      { id: 'age', type: 'number', label: 'Age', min: 10, max: 30, whole: true },
+      { id: 'pg', type: 'section', label: 'Page two', page: true },
+      { id: 'pick', type: 'checkbox', label: 'Pick two', options: ['a', 'b', 'c'], minSel: 2, maxSel: 2, shuffle: true },
+    ], theme: '#7C3AED' };
+    const put = await call('PUT', `/api/forms/${f3.id}`, { reg_form: rules }, T);
+    ok(put.s === 200 && put.j.reg_form.theme === '#7c3aed' && put.j.reg_form.fields[2].page === true, 'rules, page and colour are saved');
+    ok((await call('PUT', `/api/forms/${f3.id}`, { reg_form: { fields: [{ id: 'x', type: 'short', label: 'x', pattern: '([' }] } }, T)).s === 400, 'broken pattern refused');
+    const bad = await call('POST', `/api/forms/public/${f3.slug}`, { answers: { sid: '12', age: 5.5, pick: ['a'] } });
+    ok(bad.s === 400 && bad.j.fields.sid === 'Six digits' && /whole/.test(bad.j.fields.age) && /at least 2/.test(bad.j.fields.pick), 'answer rules are enforced', bad.j);
+    ok((await call('POST', `/api/forms/public/${f3.slug}`, { answers: { sid: '123456', age: 20, pick: ['a', 'c'] } })).s === 201, 'valid answers accepted');
+
     // spreadsheet formula injection
     const f2 = (await call('POST', '/api/forms', { title: 'QA inject' }, T)).j; const p2 = (await call('GET', `/api/forms/public/${f2.slug}`)).j;
     const a = fill(p2.reg_form.fields, 1); const nameId = p2.reg_form.fields.find((x) => x.type === 'short').id; a[nameId] = '=HYPERLINK("http://evil")';

@@ -1,10 +1,10 @@
 import Select from './Select';
 import { inputCls } from './join/shared';
 import { cn } from '../lib/cn';
-import { useState } from 'react';
-import { Loader2, ImagePlus } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { Loader2, ImagePlus, ArrowLeft, ArrowRight } from 'lucide-react';
 import { api } from '../context/store';
-import { isVisible, isOther, OTHER } from '../lib/forms';
+import { isVisible, isOther, OTHER, isEmpty } from '../lib/forms';
 import { compressImage } from '../lib/compressImage';
 
 const label = (f) => (
@@ -41,10 +41,47 @@ function PhotoAnswer({ value, onChange, disabled, error }) {
 }
 
 /** Draws a form from its question list. values = { fieldId: answer }, errors = { fieldId: message } */
-export default function DynamicForm({ fields, values, errors = {}, onChange, disabled, hideLabels }) {
+const shuffled = (list, seed) => { // same order for the same person on every re-draw
+  const a = [...list]; let h = 0; for (const c of seed) h = (h * 31 + c.charCodeAt(0)) | 0;
+  for (let i = a.length - 1; i > 0; i--) { h = (h * 1103515245 + 12345) | 0; const j = Math.abs(h) % (i + 1); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+};
+
+/** Splits the questions into pages at every heading marked "starts a new page". */
+function pagesOf(fields) {
+  const pages = [[]];
+  fields.forEach((f, i) => { if (f.type === 'section' && f.page && i > 0 && pages[pages.length - 1].length) pages.push([]); pages[pages.length - 1].push(f); });
+  return pages;
+}
+
+export default function DynamicForm({ fields: all, values, errors = {}, onChange, disabled, hideLabels, children, onPageError }) {
   const AUTO = { name: 'name', email: 'email', phone: 'tel' };
+  const seed = useMemo(() => Math.random().toString(36).slice(2), []);
+  const pages = useMemo(() => pagesOf(all), [all]);
+  const [page, setPage] = useState(0);
+  const last = Math.min(page, pages.length - 1) === pages.length - 1;
+  const here = pages[Math.min(page, pages.length - 1)] || [];
+  // a server error on an earlier page: take the person back to it
+  useEffect(() => {
+    const bad = pages.findIndex((pg) => pg.some((f) => errors[f.id]));
+    if (bad >= 0 && bad !== page) setPage(bad);
+  }, [errors]); // eslint-disable-line react-hooks/exhaustive-deps
+  const next = () => {
+    const err = {};
+    here.forEach((f) => { if (f.type !== 'section' && isVisible(f, values) && f.required && isEmpty(values[f.id])) err[f.id] = 'This question is required'; });
+    if (Object.keys(err).length) { onPageError?.(err); return; }
+    setPage((p) => p + 1); window.scrollTo?.({ top: 0, behavior: 'smooth' });
+  };
+  const fields = here;
+  const opts = (f) => (f.shuffle ? shuffled(f.options || [], seed + f.id) : f.options || []);
   return (
     <div className="space-y-5">
+      {pages.length > 1 && (
+        <div aria-label={`Page ${page + 1} of ${pages.length}`}>
+          <div className="mb-1.5 flex justify-between font-mono text-[10px] uppercase tracking-[0.16em] text-muted"><span>Page {Math.min(page, pages.length - 1) + 1} of {pages.length}</span></div>
+          <div className="h-1.5 overflow-hidden rounded-full bg-alt"><div className="h-full rounded-full bg-accent transition-all duration-500" style={{ width: `${((Math.min(page, pages.length - 1) + 1) / pages.length) * 100}%` }} /></div>
+        </div>
+      )}
       {/* trap for spam bots: invisible to people, bots fill it and are ignored */}
       <input type="text" name="contact_me_by_fax_only" tabIndex={-1} autoComplete="off" aria-hidden="true" data-hp="1" style={{ position: 'absolute', left: '-9999px', width: 1, height: 1, opacity: 0 }} />
       {fields.filter((f) => isVisible(f, values)).map((f) => {
@@ -57,12 +94,12 @@ export default function DynamicForm({ fields, values, errors = {}, onChange, dis
           case 'dropdown': control = (
             <div className="space-y-2">
               <Select className={inputCls(err)} value={isOther(v) ? '__other' : v || ''} onChange={(e) => set(e.target.value === '__other' ? OTHER : e.target.value)} disabled={disabled}>
-                <option value="">Choose</option>{(f.options || []).map((o) => <option key={o} value={o}>{o}</option>)}{f.allowOther && <option value="__other">Other…</option>}
+                <option value="">Choose</option>{opts(f).map((o) => <option key={o} value={o}>{o}</option>)}{f.allowOther && <option value="__other">Other…</option>}
               </Select>
               {isOther(v) && <input className={inputCls(err)} placeholder="Type your answer" value={v.slice(OTHER.length)} onChange={(e) => set(OTHER + e.target.value)} disabled={disabled} />}
             </div>); break;
           case 'radio': case 'yesno': control = (
-            <div className="space-y-2">{[...(f.type === 'yesno' ? ['Yes', 'No'] : f.options || [])].map((o) => (
+            <div className="space-y-2">{[...(f.type === 'yesno' ? ['Yes', 'No'] : opts(f))].map((o) => (
               <label key={o} className={cn('flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-2.5 text-sm transition', v === o ? 'border-accent bg-accent/8 text-fg' : 'border-line text-fg2 hover:border-muted')}>
                 <input type="radio" name={f.id} checked={v === o} onChange={() => set(o)} disabled={disabled} className="size-4 accent-[#1F4FD8]" />{o}
               </label>))}
@@ -74,7 +111,7 @@ export default function DynamicForm({ fields, values, errors = {}, onChange, dis
                 </div>)}
             </div>); break;
           case 'checkbox': control = (
-            <div className="space-y-2">{(f.options || []).map((o) => {
+            <div className="space-y-2">{opts(f).map((o) => {
               const list = Array.isArray(v) ? v : [];
               const on = list.includes(o);
               return (
@@ -117,6 +154,14 @@ export default function DynamicForm({ fields, values, errors = {}, onChange, dis
           </div>
         );
       })}
+      {pages.length > 1 && !last && (
+        <div className="flex justify-between gap-3">
+          <button type="button" onClick={() => setPage((p) => Math.max(0, p - 1))} disabled={page === 0} className="btn-outline !px-5 !py-2.5 text-sm disabled:opacity-30"><ArrowLeft size={15} /> Back</button>
+          <button type="button" onClick={next} className="btn-primary !px-6 !py-2.5 text-sm">Next <ArrowRight size={15} /></button>
+        </div>
+      )}
+      {last && pages.length > 1 && page > 0 && <button type="button" onClick={() => setPage((p) => p - 1)} className="inline-flex items-center gap-1.5 text-sm font-semibold text-tech"><ArrowLeft size={15} /> Back</button>}
+      {last && children}
     </div>
   );
 }
