@@ -141,6 +141,17 @@ const templates = {
     html: layout({ title: 'You are registered', body: `<p>Hi ${esc(r.full_name)},</p><p>You are registered for <b>${esc(ev.title)}</b>.</p><p>${esc(fDate(ev.date))}${ev.time ? ` · ${esc(fTime(ev.time))}` : ''}${ev.location ? `<br>${esc(ev.location)}` : ''}</p>${ev.reg_form?.email_note ? `<p style="white-space:pre-line">${esc(ev.reg_form.email_note)}</p>` : '<p>Please bring your student ID. See you there!</p>'}${ev.ticket ? `<p>Your ticket code: <b style="letter-spacing:2px">${esc(ev.ticket.slice(0, 5))}-${esc(ev.ticket.slice(5))}</b><br>Show the QR code on your ticket at the entrance.</p>` : ''}`, button: { href: ev.ticket ? `${siteUrl()}/ticket/${ev.ticket}` : `${siteUrl()}/events/${ev.id}`, label: ev.ticket ? 'Open my ticket' : 'Event details' } }),
     text: `Hi ${r.full_name}, you are registered for ${ev.title} on ${fDate(ev.date)}${ev.time ? ` at ${fTime(ev.time)}` : ''}.${ev.reg_form?.email_note ? `\n${ev.reg_form.email_note}` : ''}\n${siteUrl()}/events/${ev.id}`,
   }),
+  // the event is full: they are in line, and get a seat automatically if someone drops out
+  waitlistJoined: (r, ev, position) => ({
+    subject: `You are on the waiting list: ${ev.title}`,
+    html: layout({ title: 'You are on the waiting list', body: `<p>Hi ${esc(r.full_name || 'there')},</p><p><b>${esc(ev.title)}</b> is full right now, so we put you on the waiting list${position ? ` (number ${position})` : ''}.</p><p>If a seat opens up, you get it automatically and we email you at once. You do not need to do anything.</p>`, button: { href: `${siteUrl()}/events/${ev.id}`, label: 'Event details' } }),
+    text: `Hi ${r.full_name || 'there'}, ${ev.title} is full, so you are on the waiting list${position ? ` (number ${position})` : ''}. If a seat opens up we will email you.`,
+  }),
+  waitlistPromoted: (r, ev, fDate, fTime) => ({
+    subject: `Good news, you have a seat: ${ev.title}`,
+    html: layout({ title: 'You have a seat!', body: `<p>Hi ${esc(r.full_name || 'there')},</p><p>A seat opened up and you are now <b>registered</b> for <b>${esc(ev.title)}</b>.</p><p>${esc(fDate(ev.date))}${ev.time ? ` · ${esc(fTime(ev.time))}` : ''}${ev.location ? `<br>${esc(ev.location)}` : ''}</p>${r.ticket ? `<p>Your ticket code: <b style="letter-spacing:2px">${esc(r.ticket.slice(0, 5))}-${esc(r.ticket.slice(5))}</b><br>Show the QR code on your ticket at the entrance.</p>` : ''}`, button: { href: r.ticket ? `${siteUrl()}/ticket/${r.ticket}` : `${siteUrl()}/events/${ev.id}`, label: r.ticket ? 'Open my ticket' : 'Event details' } }),
+    text: `Hi ${r.full_name || 'there'}, a seat opened up: you are now registered for ${ev.title} on ${fDate(ev.date)}. ${r.ticket ? `${siteUrl()}/ticket/${r.ticket}` : ''}`,
+  }),
   // paid events: sent at once, the place is confirmed when the admin verifies the payment
   registrationPending: (r, ev, pay, fDate, fTime) => ({
     subject: `We received your registration: ${ev.title}`,

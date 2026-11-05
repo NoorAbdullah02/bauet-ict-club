@@ -24,7 +24,7 @@ const limiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 30, standardHeaders: 
 /** Public: how many people signed up for each event (numbers only), so the pages can show "12 / 40 joined". */
 router.get('/counts', async (_req, res) => {
   try {
-    const { rows } = await pool.query("SELECT event_id, COUNT(*) AS n FROM event_registrations WHERE deleted_at IS NULL AND COALESCE(pay_status, 'none') <> 'rejected' GROUP BY event_id");
+    const { rows } = await pool.query("SELECT event_id, COUNT(*) AS n FROM event_registrations WHERE deleted_at IS NULL AND COALESCE(pay_status, 'none') <> 'rejected' AND NOT COALESCE(waitlisted, FALSE) GROUP BY event_id");
     res.set('Cache-Control', 'public, max-age=15');
     res.json(Object.fromEntries(rows.map((r) => [r.event_id, Number(r.n)])));
   } catch (e) { res.status(500).json({ error: 'Could not load counts' }); }
@@ -32,7 +32,7 @@ router.get('/counts', async (_req, res) => {
 
 
 /* ---------- tickets, check-in and certificates ---------- */
-const statusOf = (r) => (r.pay_status === 'rejected' ? 'cancelled' : r.pay_status === 'pending' ? 'pending' : 'confirmed');
+const statusOf = (r) => (r.pay_status === 'rejected' ? 'cancelled' : r.waitlisted ? 'waitlist' : r.pay_status === 'pending' ? 'pending' : 'confirmed');
 async function byCode(raw) {
   const code = tickets.normalize(raw);
   if (code.length < 8) return null;
@@ -81,6 +81,7 @@ router.post('/checkin', authMiddleware, async (req, res) => {
     if (!r) return res.status(404).json({ error: 'No ticket with this code.' });
     const person = { id: r.id, name: r.full_name || 'Guest', event_id: r.event_id, event: r.ev_title, status: statusOf(r) };
     if (req.body?.event && String(req.body.event) !== String(r.event_id)) return res.status(409).json({ error: `This ticket is for another event: ${r.ev_title}.`, person });
+    if (person.status === 'waitlist') return res.status(409).json({ error: 'This person is still on the waiting list, not confirmed.', person });
     if (person.status === 'cancelled') return res.status(409).json({ error: 'This registration was cancelled (payment rejected).', person });
     if (r.checked_in_at) return res.json({ already: true, at: r.checked_in_at, person });
     if (person.status === 'pending' && !req.body?.force) return res.status(409).json({ error: 'The payment is not verified yet.', needs_confirm: true, person });
@@ -108,8 +109,12 @@ async function register(req, res) {
     const allErrors = { ...errors, ...(pay?.errors ? { payment: pay.errors } : {}) };
     if (Object.keys(allErrors).length) return res.status(400).json({ error: 'Please check the highlighted questions', fields: errors, payment: pay?.errors || null });
 
-    const existing = (await pool.query("SELECT answers, email, student_id, payment, pay_status FROM event_registrations WHERE event_id = $1 AND deleted_at IS NULL AND COALESCE(pay_status, 'none') <> 'rejected'", [ev.id])).rows;
-    if (ev.capacity && existing.length >= ev.capacity) return res.status(409).json({ error: 'Sorry, this event is full.' });
+    const existing = (await pool.query("SELECT answers, email, student_id, payment, pay_status, waitlisted FROM event_registrations WHERE event_id = $1 AND deleted_at IS NULL AND COALESCE(pay_status, 'none') <> 'rejected'", [ev.id])).rows;
+    // full: a free event puts people in line (they get a seat automatically when someone drops out); a paid event just says it is full
+    const full = !!ev.capacity && existing.filter((r) => !r.waitlisted).length >= ev.capacity;
+    if (full && ev.reg_form?.payment?.enabled) return res.status(409).json({ error: 'Sorry, this event is full.' });
+    const waitlisted = full;
+    const position = waitlisted ? existing.filter((r) => r.waitlisted).length + 1 : 0;
     const u = forms.uniqueId(ev);
     if (u && clean[u] !== undefined) {
       const mine = forms.show(clean[u]).toLowerCase();
@@ -124,13 +129,15 @@ async function register(req, res) {
     const col = forms.columnsFrom(fields, clean);
     const ticket = tickets.newCode();
     const { rows } = await pool.query(
-      'INSERT INTO event_registrations (event_id, full_name, student_id, email, phone, department, batch, answers, payment, pay_status, ticket) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id',
-      [ev.id, col.full_name, col.student_id, col.email, col.phone, col.department, col.batch, JSON.stringify(clean), pay?.payment ? JSON.stringify(pay.payment) : null, pay?.payment ? 'pending' : 'none', ticket]
+      'INSERT INTO event_registrations (event_id, full_name, student_id, email, phone, department, batch, answers, payment, pay_status, ticket, waitlisted) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING id',
+      [ev.id, col.full_name, col.student_id, col.email, col.phone, col.department, col.batch, JSON.stringify(clean), pay?.payment ? JSON.stringify(pay.payment) : null, pay?.payment ? 'pending' : 'none', ticket, waitlisted]
     );
-    res.status(201).json({ success: true, id: rows[0].id, ticket, pending_payment: !!pay?.payment, message: ev.reg_form?.confirmation || '' });
+    res.status(201).json({ success: true, id: rows[0].id, ticket, waitlisted, position, pending_payment: !!pay?.payment, message: ev.reg_form?.confirmation || '' });
     // a short confirmation to the person (switch off with EVENT_CONFIRM_EMAIL=false); needs an email question in the form
     const to = col.email || forms.show(clean[(fields.find((f) => f.type === 'email') || {}).id]);
-    if (to && !pay?.payment && (process.env.EVENT_CONFIRM_EMAIL || '').toLowerCase() !== 'false') {
+    if (to && waitlisted && (process.env.EVENT_CONFIRM_EMAIL || '').toLowerCase() !== 'false') {
+      mail.sendMail({ to, ...mail.templates.waitlistJoined({ full_name: col.full_name }, ev, position) });
+    } else if (to && !pay?.payment && (process.env.EVENT_CONFIRM_EMAIL || '').toLowerCase() !== 'false') {
       mail.sendMail({ to, ...mail.templates.eventRegistered({ full_name: col.full_name || 'there' }, { ...ev, ticket }, formalDate, formalTime) });
     }
     // with a payment: tell them at once that it is being checked; the place is confirmed when the admin verifies it (PATCH /:id/payment)
@@ -139,7 +146,7 @@ async function register(req, res) {
     }
     if (ev.reg_form?.notify_admin) {
       const who = col.full_name || to || 'Someone';
-      mail.sendMail({ to: mail.adminAddress(), ...mail.templates.adminNewSignup(ev, `${who} registered${pay?.payment ? ` and paid ${pay.payment.amount} BDT by ${pay.payment.method} (TrxID ${pay.payment.trx_id})` : ''}.`) });
+      mail.sendMail({ to: mail.adminAddress(), ...mail.templates.adminNewSignup(ev, `${who} registered${waitlisted ? ' and joined the waiting list' : ''}${pay?.payment ? ` and paid ${pay.payment.amount} BDT by ${pay.payment.method} (TrxID ${pay.payment.trx_id})` : ''}.`) });
     }
   } catch (e) {
     console.error('Event registration failed:', e.message);
@@ -169,6 +176,7 @@ router.get('/export', async (req, res) => {
     const cols = [
       ...forms.fieldsOf(ev).filter((f) => f.type !== 'section').map((f) => [f.label, (r) => forms.show(answersOf(r)[f.id])]),
       ...(withPay ? [['Paid with', (r) => r.payment?.method || ''], ['Paid from', (r) => r.payment?.sender || ''], ['Transaction ID', (r) => r.payment?.trx_id || ''], ['Amount (BDT)', (r) => r.payment?.amount || ''], ['Payment status', (r) => r.pay_status || '']] : []),
+      ...(rows.some((r) => r.waitlisted) ? [['Seat', (r) => (r.waitlisted ? 'Waiting list' : 'Confirmed')]] : []),
       ['Signed up', (r) => formalDate(r.created_at)],
     ];
     const title = `${ev.title}: registrations`;
@@ -196,6 +204,7 @@ router.get('/zip', async (req, res) => {
     const cols = [
       ...fields.map((f) => [f.label, (r) => forms.show(answersOf(r)[f.id])]),
       ...(withPay ? [['Paid with', (r) => r.payment?.method || ''], ['Paid from', (r) => r.payment?.sender || ''], ['Transaction ID', (r) => r.payment?.trx_id || ''], ['Amount (BDT)', (r) => r.payment?.amount || ''], ['Payment status', (r) => r.pay_status || '']] : []),
+      ...(rows.some((r) => r.waitlisted) ? [['Seat', (r) => (r.waitlisted ? 'Waiting list' : 'Confirmed')]] : []),
       ['Signed up', (r) => formalDate(r.created_at)],
     ];
     const title = `${ev.title}: registrations`;
@@ -248,10 +257,38 @@ router.patch('/:id/payment', async (req, res) => {
     if (!rows.length) return res.status(404).json({ error: 'No payment to verify on this sign-up' });
     res.json(rows[0]);
     const r = rows[0];
+    if (status === 'rejected') promoteWaiting(r.event_id).catch(() => {});
     const ev = (await pool.query('SELECT * FROM events WHERE id = $1', [r.event_id])).rows[0];
     if (ev && r.email && status !== 'pending') {
       mail.sendMail({ to: r.email, ...(status === 'verified' ? mail.templates.paymentVerified(r, { ...ev, email_note: ev.reg_form?.email_note, ticket: r.ticket }, formalDate) : mail.templates.paymentRejected(r, ev, r.admin_note)) });
     }
+  } catch (e) { fail(res, e); }
+});
+
+/** Gives free seats to the people waiting, oldest first, and emails them. Returns how many got a seat. */
+async function promoteWaiting(eventId) {
+  return serial(`event:${eventId}`, async () => {
+    const ev = (await pool.query('SELECT * FROM events WHERE id = $1 AND deleted_at IS NULL', [eventId])).rows[0];
+    if (!ev) return 0;
+    const seated = Number((await pool.query("SELECT COUNT(*) AS n FROM event_registrations WHERE event_id = $1 AND deleted_at IS NULL AND COALESCE(pay_status, 'none') <> 'rejected' AND NOT COALESCE(waitlisted, FALSE)", [eventId])).rows[0].n);
+    const free = ev.capacity ? ev.capacity - seated : 1000;
+    if (free <= 0) return 0;
+    const next = (await pool.query("SELECT id FROM event_registrations WHERE event_id = $1 AND deleted_at IS NULL AND waitlisted = TRUE AND COALESCE(pay_status, 'none') <> 'rejected' ORDER BY created_at ASC, id ASC LIMIT $2", [eventId, free])).rows;
+    const rows = [];
+    for (const n of next) rows.push(...(await pool.query('UPDATE event_registrations SET waitlisted = FALSE WHERE id = $1 RETURNING *', [n.id])).rows);
+    for (const r of rows) if (r.email) mail.sendMail({ to: r.email, ...mail.templates.waitlistPromoted(r, ev, formalDate, formalTime) });
+    return rows.length;
+  });
+}
+
+/** Admin: give one waiting person a seat now (even if the event is over capacity). */
+router.patch('/:id/promote', async (req, res) => {
+  try {
+    const { rows } = await pool.query('UPDATE event_registrations SET waitlisted = FALSE WHERE id = $1 AND deleted_at IS NULL AND waitlisted = TRUE RETURNING *', [req.params.id]);
+    if (!rows.length) return res.status(404).json({ error: 'This person is not on the waiting list.' });
+    const ev = (await pool.query('SELECT * FROM events WHERE id = $1', [rows[0].event_id])).rows[0];
+    if (ev && rows[0].email) mail.sendMail({ to: rows[0].email, ...mail.templates.waitlistPromoted(rows[0], ev, formalDate, formalTime) });
+    res.json(rows[0]);
   } catch (e) { fail(res, e); }
 });
 
@@ -290,6 +327,8 @@ router.delete('/:id', async (req, res) => {
     const r = await pool.query('UPDATE event_registrations SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL', [req.params.id]);
     if (!r.rowCount) return res.status(404).json({ error: 'Not found' });
     res.json({ success: true, trashed: true });
+    const gone = (await pool.query('SELECT event_id FROM event_registrations WHERE id = $1', [req.params.id])).rows[0];
+    if (gone) promoteWaiting(gone.event_id).catch((e) => console.error('promote failed:', e.message));
   } catch (e) { fail(res, e); }
 });
 

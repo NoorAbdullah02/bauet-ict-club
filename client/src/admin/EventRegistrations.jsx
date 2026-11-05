@@ -60,9 +60,12 @@ export function ResponsesPanel({ event, kind = 'event' }) {
       document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000);
     } catch { toast.error('Could not download the list'); }
   };
+  const promote = async (r) => {
+    try { await api.patch(`/event-registrations/${r.id}/promote`); toast.success('Seat given. The person gets an email.'); load(); } catch (ex) { toast.error(ex.response?.data?.error || 'Could not give a seat'); }
+  };
   const remove = async (r) => {
     if (!(await askConfirm({ title: `Remove this sign-up?`, message: 'It goes to the Trash and the person can register again.', confirmText: 'Remove', danger: true }))) return;
-    try { await api.delete(P.del(r.id)); setRows((p) => p.filter((x) => x.id !== r.id)); toast.success('Removed'); } catch { toast.error('Could not remove'); }
+    try { await api.delete(P.del(r.id)); setRows((p) => p.filter((x) => x.id !== r.id)); toast.success('Removed'); if (!isForm) setTimeout(load, 700); } catch { toast.error('Could not remove'); }
   };
   const setPay = async (r, status) => {
     const word = status === 'verified' ? 'Verify' : 'Reject';
@@ -87,9 +90,9 @@ export function ResponsesPanel({ event, kind = 'event' }) {
           <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
             <div className="rounded-2xl border border-line bg-surface p-4">
               <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.16em] text-muted"><Users size={13} className="text-accent" /> Registered</div>
-              <div className="mt-1.5 font-display text-3xl leading-none text-fg">{rows ? rows.length : '…'}{event.capacity ? <span className="text-base text-muted"> / {event.capacity}</span> : null}</div>
+              <div className="mt-1.5 font-display text-3xl leading-none text-fg">{rows ? rows.filter((x) => !x.waitlisted).length : '…'}{event.capacity ? <span className="text-base text-muted"> / {event.capacity}</span> : null}</div>
               {event.capacity ? (
-                <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-alt" role="progressbar" aria-valuemin={0} aria-valuemax={event.capacity} aria-valuenow={rows?.length || 0}>
+                <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-alt" role="progressbar" aria-valuemin={0} aria-valuemax={event.capacity} aria-valuenow={rows?.filter((x) => !x.waitlisted).length || 0}>
                   <div className="h-full rounded-full bg-gradient-to-r from-tech to-accent transition-all duration-700" style={{ width: `${Math.min(100, ((rows?.length || 0) / event.capacity) * 100)}%` }} />
                 </div>
               ) : <div className="mt-3 text-[11px] text-muted">No seat limit</div>}
@@ -160,8 +163,9 @@ export function ResponsesPanel({ event, kind = 'event' }) {
                             <div key={f.id} className="flex gap-2 text-xs"><dt className="w-28 shrink-0 truncate text-muted">{f.label}</dt><dd className="min-w-0 break-words text-fg2">{f.type === 'email' ? <a href={`mailto:${show(ans(r)[f.id])}`} className="text-tech">{show(ans(r)[f.id])}</a> : f.type === 'photo' ? <a href={show(ans(r)[f.id])} target="_blank" rel="noreferrer" className="text-tech underline">Open picture</a> : show(ans(r)[f.id])}</dd></div>
                           ))}
                         </dl>
-                        <div className="mt-1 flex flex-wrap items-center gap-x-3 font-mono text-[10px] uppercase tracking-wider text-muted"><span>{formalDate(r.created_at)}</span>{r.ticket && <span>ticket {r.ticket}</span>}{r.checked_in_at && <span className="text-emerald-600">checked in</span>}</div>
+                        <div className="mt-1 flex flex-wrap items-center gap-x-3 font-mono text-[10px] uppercase tracking-wider text-muted"><span>{formalDate(r.created_at)}</span>{r.ticket && <span>ticket {r.ticket}</span>}{r.checked_in_at && <span className="text-emerald-600">checked in</span>}{r.waitlisted && <span className="rounded-full bg-sky-500/15 px-2 py-0.5 font-semibold text-sky-600">waiting list</span>}</div>
                       </div>
+                      {r.waitlisted && <button onClick={() => promote(r)} className="rounded-lg bg-sky-500/10 px-2.5 py-1.5 text-xs font-semibold text-sky-600 transition hover:bg-sky-500/20">Give a seat</button>}
                       <button onClick={() => remove(r)} aria-label="Remove this sign-up" className="grid size-8 place-items-center rounded-lg text-fg2 transition hover:bg-red-500/10 hover:text-red-500"><Trash2 size={14} /></button>
                     </div>
                     {r.payment && (

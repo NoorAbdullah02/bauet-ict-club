@@ -87,8 +87,10 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
     // event registration: capacity, ticket, check-in
     const ev = (await call('POST', '/api/events', { title: 'QA event', date: '2099-01-01', time: '10:00', location: 'Hall', description: 'd', capacity: 3, reg_open: true }, T)).j; ok(ev?.id, 'event create');
     const r2 = await Promise.all(Array.from({ length: 10 }, (_, i) => call('POST', `/api/event-registrations/${ev.id}`, { answers: { name: `Person ${i}`, student_id: `S${i}`, email: `e${i}@example.com` } })));
-    const okRegs = r2.filter((r) => r.s === 201);
-    ok(okRegs.length === 3 && r2.every((r) => r.s < 500), '10 simultaneous event sign-ups for 3 seats give exactly 3', r2.map((r) => r.s + (r.j?.error ? ':' + r.j.error : '')));
+    const okRegs = r2.filter((r) => r.s === 201 && !r.j.waitlisted);
+    ok(okRegs.length === 3 && r2.every((r) => r.s === 201), '10 simultaneous event sign-ups for 3 seats give exactly 3 seats, the rest wait in line', r2.map((r) => r.s + (r.j?.error ? ':' + r.j.error : '')));
+    ok(r2.filter((r) => r.j.waitlisted).length === 7, 'the other 7 are on the waiting list');
+    ok((await call('GET', '/api/event-registrations/counts')).j[ev.id] === 3, 'public count shows only confirmed seats');
     const evList = (await call('GET', `/api/event-registrations/by-event/${ev.id}`, undefined, T)).j;
     ok((await call('PATCH', `/api/event-registrations/${evList[0].id}/answers`, { answers: { name: 'Edited Person' } }, T)).j?.full_name === 'Edited Person', 'event sign-up edit saved');
     const code = okRegs[0]?.j?.ticket;
@@ -96,6 +98,22 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
     ok((await call('GET', '/api/event-registrations/verify/ZZZZZZZZ')).j?.valid === false, 'unknown certificate is not valid');
     ok((await call('POST', '/api/event-registrations/checkin', { code }, T)).s === 200, 'check-in');
     ok((await call('POST', '/api/event-registrations/checkin', { code }, T)).j?.already === true || (await call('POST', '/api/event-registrations/checkin', { code }, T)).s === 409, 'second check-in is reported');
+
+    // waiting list: a seat freed up gives the place to the oldest person waiting
+    const all = (await call('GET', `/api/event-registrations/by-event/${ev.id}`, undefined, T)).j;
+    const waiting = all.filter((x) => x.waitlisted).sort((a, b) => a.id - b.id);
+    const wcode = waiting[0]?.ticket;
+    ok(waiting.length === 7 && (await call('POST', '/api/event-registrations/checkin', { code: wcode }, T)).s === 409, 'a waiting person cannot be checked in');
+    ok((await call('GET', `/api/event-registrations/ticket/${wcode}`)).j?.status === 'waitlist', 'ticket says waiting list');
+    const gone = all.find((x) => !x.waitlisted);
+    ok((await call('DELETE', `/api/event-registrations/${gone.id}`, undefined, T)).s === 200, 'a confirmed person removed');
+    await new Promise((r) => setTimeout(r, 400));
+    const after = (await call('GET', `/api/event-registrations/by-event/${ev.id}`, undefined, T)).j;
+    ok(after.filter((x) => !x.waitlisted).length === 3 && after.filter((x) => x.waitlisted).length === 6, 'one waiting person got the free seat');
+    ok(!after.find((x) => x.id === waiting[0].id).waitlisted, 'the person who waited longest got it first');
+    const prom = await call('PATCH', `/api/event-registrations/${waiting[1].id}/promote`, {}, T);
+    ok(prom.s === 200 && prom.j.waitlisted === false, 'admin can give a waiting person a seat by hand', prom);
+    ok((await call('PATCH', `/api/event-registrations/${waiting[1].id}/promote`, {}, T)).s === 404, 'promote only works for people waiting');
 
     // events that send people to another form (Google Forms ...)
     ok((await call('POST', '/api/events', { title: 'Bad link', date: '2099-01-01', reg_url: 'javascript:alert(1)' }, T)).s === 409, 'javascript: link refused');

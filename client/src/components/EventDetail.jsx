@@ -25,6 +25,7 @@ export default function EventDetail() {
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
   const [thanks, setThanks] = useState('');
+  const [waiting, setWaiting] = useState(0); // place in the waiting list (0 = a normal seat)
   const [payment, setPayment] = useState({});
   const [payErrors, setPayErrors] = useState({});
   const [pendingPay, setPendingPay] = useState(false);
@@ -56,8 +57,9 @@ export default function EventDetail() {
   const form0 = ev.reg_form || {};
   const closesAt = form0.closes_at ? (form0.closes_at.length === 10 ? `${form0.closes_at}T23:59` : form0.closes_at) : '';
   const timeUp = !!closesAt && closesAt < new Date(Date.now() + 6 * 3600e3).toISOString().slice(0, 16); // Bangladesh time
-  const closed = ev.reg_open === false || past || full || timeUp;
   const payCfg = form0.payment?.enabled ? form0.payment : null;
+  const waitOpen = full && !payCfg; // a free event that is full lets people join a waiting list
+  const closed = ev.reg_open === false || past || (full && !waitOpen) || timeUp;
   const url = eventLink(ev.id);
   const text = `${ev.title}: ${formalDate(ev.date, { weekday: true })}${ev.time ? `, ${formalTime(ev.time)}` : ''}${ev.location ? `, ${ev.location}` : ''}`;
   const links = shareLinks(url, text);
@@ -79,7 +81,7 @@ export default function EventDetail() {
     setErrors(err); setPayErrors(pe);
     if (Object.keys(err).length || Object.keys(pe).length) { toast.error('Please check the highlighted questions'); return; }
     setBusy(true);
-    try { const r = await api.post(`/event-registrations/${ev.id}`, { _hp: document.querySelector('input[data-hp]')?.value || '', answers: Object.fromEntries(fields.filter((f) => isVisible(f, form)).map((f) => [f.id, form[f.id]]).filter(([, v]) => !isEmpty(v))), ...(payCfg ? { payment: { method: payCfg.methods[0], ...payment } } : {}) }); setThanks(r.data.message || ''); setPendingPay(!!r.data.pending_payment); setTicket(r.data.ticket || ''); setDone(true); }
+    try { const r = await api.post(`/event-registrations/${ev.id}`, { _hp: document.querySelector('input[data-hp]')?.value || '', answers: Object.fromEntries(fields.filter((f) => isVisible(f, form)).map((f) => [f.id, form[f.id]]).filter(([, v]) => !isEmpty(v))), ...(payCfg ? { payment: { method: payCfg.methods[0], ...payment } } : {}) }); setThanks(r.data.message || ''); setPendingPay(!!r.data.pending_payment); setTicket(r.data.ticket || ''); setWaiting(r.data.waitlisted ? r.data.position || 1 : 0); setDone(true); }
     catch (ex) { const d = ex.response?.data; if (d?.fields) setErrors(d.fields); if (d?.payment) setPayErrors(d.payment); toast.error(d?.error || 'Could not register. Please try again.'); }
     setBusy(false);
   };
@@ -125,14 +127,14 @@ export default function EventDetail() {
               {done ? (
                 <div className="py-4 text-center">
                   <CheckCircle2 size={44} className="mx-auto text-emerald-500" />
-                  <h3 className="mt-3 text-xl text-fg">{pendingPay ? 'Registration received' : 'You are registered!'}</h3>
-                  <p className="mt-1 whitespace-pre-line text-sm text-fg2">{thanks || (pendingPay ? `We got your payment details for ${ev.title}. Your place is confirmed as soon as we verify the transaction. You will get an email.` : `We saved your place for ${ev.title}. If you gave an email address, a confirmation is on its way.`)}</p>
+                  <h3 className="mt-3 text-xl text-fg">{waiting ? 'You are on the waiting list' : pendingPay ? 'Registration received' : 'You are registered!'}</h3>
+                  <p className="mt-1 whitespace-pre-line text-sm text-fg2">{waiting ? `${ev.title} is full right now, so you are number ${waiting} in line. If a seat opens up you get it automatically and we email you.` : thanks || (pendingPay ? `We got your payment details for ${ev.title}. Your place is confirmed as soon as we verify the transaction. You will get an email.` : `We saved your place for ${ev.title}. If you gave an email address, a confirmation is on its way.`)}</p>
                   {ticket && (
                     <div className="mt-5 rounded-2xl border border-line bg-alt/50 p-4">
                       <div className="mx-auto grid size-36 place-items-center rounded-xl bg-white p-1.5">{ticketQr ? <img src={ticketQr} alt="Your ticket QR code" className="size-full" /> : <Loader2 className="animate-spin text-muted" />}</div>
                       <div className="mt-2 font-mono text-sm tracking-[0.25em] text-fg">{prettyCode(ticket)}</div>
                       <a href={`/ticket/${ticket}`} className="mt-2 inline-block text-xs font-semibold text-tech underline">Open my ticket</a>
-                      <p className="mt-1 text-xs text-muted">Show this QR code at the entrance. We also emailed it to you.</p>
+                      <p className="mt-1 text-xs text-muted">{waiting ? 'This ticket works only after you get a seat. Keep it.' : 'Show this QR code at the entrance. We also emailed it to you.'}</p>
                     </div>
                   )}
                   <div className="mt-5 flex flex-wrap justify-center gap-2">
@@ -150,11 +152,12 @@ export default function EventDetail() {
               ) : (
                 <form onSubmit={submit} noValidate className="space-y-5" style={themeStyle(ev.reg_form?.theme)}>
                   {ev.reg_form?.title && <h3 className="text-lg text-fg">{ev.reg_form.title}</h3>}
+                  {waitOpen && <p className="rounded-xl bg-sky-500/10 px-3.5 py-2.5 text-sm text-sky-700">All seats are taken. Join the waiting list: if someone drops out you get their seat automatically and we email you.</p>}
                   {ev.reg_form?.intro && <p className="whitespace-pre-line text-sm text-fg2">{ev.reg_form.intro}</p>}
                   {closesAt && <p className="rounded-xl bg-alt px-3.5 py-2 text-xs text-fg2">Registration closes {formalDate(closesAt)}{closesAt.length > 10 ? `, ${formalTime(closesAt.slice(11))}` : ''}</p>}
                   <DynamicForm fields={fields} values={form} errors={errors} onPageError={setErrors} onChange={(id, v) => { setForm((f) => ({ ...f, [id]: v })); setErrors((x) => ({ ...x, [id]: undefined })); }}>
                     {payCfg && <PaymentBox setting={payCfg} value={payment} errors={payErrors} onChange={(p) => { setPayment(p); setPayErrors({}); }} />}
-                    <button disabled={busy} className="btn-primary mt-1 w-full justify-center disabled:opacity-60">{busy ? <Loader2 size={16} className="animate-spin" /> : <Ticket size={16} />} {busy ? 'Submitting…' : 'Submit registration'}</button>
+                    <button disabled={busy} className="btn-primary mt-1 w-full justify-center disabled:opacity-60">{busy ? <Loader2 size={16} className="animate-spin" /> : <Ticket size={16} />} {busy ? 'Submitting…' : waitOpen ? 'Join the waiting list' : 'Submit registration'}</button>
                   </DynamicForm>
                 </form>
               )}
