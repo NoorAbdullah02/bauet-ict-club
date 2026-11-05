@@ -10,7 +10,8 @@ const field = 'peer w-full rounded-2xl border border-line bg-bg/70 py-3.5 pl-12 
 
 export default function Login() {
   const login = useStore((s) => s.login);
-  const [f, setF] = useState({ username: '', password: '' });
+  const [f, setF] = useState({ username: '', password: '', code: '' });
+  const [needCode, setNeedCode] = useState(false);
   const [show, setShow] = useState(false);
   const [caps, setCaps] = useState(false);
   const [err, setErr] = useState('');
@@ -19,8 +20,10 @@ export default function Login() {
   const submit = async (e) => {
     e.preventDefault();
     setErr(''); setBusy(true);
-    try { await login(f.username.trim(), f.password); } catch (ex) {
-      setErr(ex?.response?.status === 429 ? 'Too many attempts. Please wait a few minutes and try again.' : 'Invalid username or password');
+    try { await login(f.username.trim(), f.password, needCode ? f.code.trim() : undefined); } catch (ex) {
+      const d = ex?.response?.data;
+      if (d?.twoFactor) { setNeedCode(true); setErr(needCode ? 'That code is not right. Try the newest code, or a backup code.' : ''); }
+      else setErr(ex?.response?.status === 429 ? 'Too many attempts. Please wait a few minutes and try again.' : 'Invalid username or password');
     }
     setBusy(false);
   };
@@ -64,6 +67,16 @@ export default function Login() {
               </button>
             </span>
           </label>
+          {needCode && (
+            <label className="mb-2 mt-4 block">
+              <span className="mb-1.5 block font-mono text-[11px] uppercase tracking-[0.14em] text-fg2">6-digit code (or a backup code)</span>
+              <span className="relative block">
+                <input className={`${field} tracking-[0.3em]`} value={f.code} onChange={(e) => setF({ ...f, code: e.target.value })} placeholder="123456" autoFocus required inputMode="numeric" autoComplete="one-time-code" maxLength={11} spellCheck={false} />
+                <ShieldCheck size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted transition peer-focus:text-tech" />
+              </span>
+              <span className="mt-1 block text-xs text-muted">Open your authenticator app and type the code for BAUET ICT Club.</span>
+            </label>
+          )}
           {caps && <p className="mt-1 flex items-center gap-1.5 text-xs text-amber-600"><AlertCircle size={13} /> Caps Lock is on</p>}
 
           {err && (
@@ -72,7 +85,7 @@ export default function Login() {
             </motion.p>
           )}
 
-          <button disabled={busy || !f.username || !f.password} className="btn-primary group mt-6 w-full !py-3.5 disabled:opacity-60">
+          <button disabled={busy || !f.username || !f.password || (needCode && !f.code)} className="btn-primary group mt-6 w-full !py-3.5 disabled:opacity-60">
             {busy ? <Loader2 size={17} className="animate-spin" /> : <Lock size={15} />} {busy ? 'Signing in…' : 'Sign in'}
             {!busy && <ArrowRight size={16} className="transition group-hover:translate-x-1" />}
           </button>

@@ -3,10 +3,10 @@ const { spawn } = require('child_process');
 const path = require('path');
 const PORT = process.env.QA_PORT || '5099';
 const B = `http://127.0.0.1:${PORT}`;
-let pass = 0, failed = 0;
+let pass = 0, failed = 0, XFF = ''; // XFF: pretend to be another visitor so the 8-wrong-attempts-per-IP guard does not block later checks
 const ok = (c, name, extra) => { if (c) pass++; else { failed++; console.log(`  FAIL  ${name}`, extra === undefined ? '' : JSON.stringify(extra)); } };
 const call = async (method, url, body, token, raw) => {
-  const r = await fetch(B + url, { method, headers: { ...(body !== undefined ? { 'content-type': 'application/json' } : {}), ...(token ? { authorization: `Bearer ${token}` } : {}) }, body: raw ?? (body !== undefined ? JSON.stringify(body) : undefined) });
+  const r = await fetch(B + url, { method, headers: { ...(XFF ? { 'x-forwarded-for': XFF } : {}), ...(body !== undefined ? { 'content-type': 'application/json' } : {}), ...(token ? { authorization: `Bearer ${token}` } : {}) }, body: raw ?? (body !== undefined ? JSON.stringify(body) : undefined) });
   const text = await r.text(); let json = null; try { json = JSON.parse(text); } catch { /* not json */ }
   return { s: r.status, j: json, t: text };
 };
@@ -25,7 +25,34 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
     ok((await call('POST', '/api/auth/login', { username: 'admin', password: 'nope' })).s === 401, 'wrong password rejected');
     ok((await call('POST', '/api/auth/login', undefined, undefined, '{bad json')).s === 400, 'broken JSON gives 400');
     const login = await call('POST', '/api/auth/login', { username: 'admin', password: 'Qa-Pass-12345' });
-    const T = login.j?.token; ok(!!T, 'login');
+    let T = login.j?.token; ok(!!T, 'login');
+    // ---- sign-in security: sessions, two-step sign-in, lockout ----
+    {
+      XFF = '10.7.7.7'; const crypto = require('crypto'); const totp = require('../utils/totp');
+      const me = await call('GET', '/api/auth/me', undefined, T); ok(me.s === 200 && me.j.twoFactor === false, 'me works with a live session');
+      ok((await call('POST', '/api/auth/change-password', { current: 'Qa-Pass-12345', next: 'short' }, T)).s === 400, 'weak new password refused');
+      // two-step: setup needs the password, enable needs a real code
+      ok((await call('POST', '/api/auth/2fa/setup', { password: 'wrong' }, T)).s === 401, '2FA setup needs the password');
+      const su = await call('POST', '/api/auth/2fa/setup', { password: 'Qa-Pass-12345' }, T); ok(su.s === 200 && su.j.secret && su.j.qr?.startsWith('data:image'), '2FA setup gives secret and QR');
+      ok((await call('POST', '/api/auth/2fa/enable', { code: '000000' }, T)).s === 401, '2FA enable refuses a wrong code');
+      const en = await call('POST', '/api/auth/2fa/enable', { code: totp.hotp(su.j.secret, Math.floor(Date.now() / 30000)) }, T);
+      ok(en.s === 200 && en.j.backupCodes?.length === 8, '2FA enable with a right code gives 8 backup codes', en.j);
+      const need = await call('POST', '/api/auth/login', { username: 'admin', password: 'Qa-Pass-12345' }); ok(need.s === 401 && need.j.twoFactor === true && !need.j.token, 'login now asks for the code');
+      ok((await call('POST', '/api/auth/login', { username: 'admin', password: 'Qa-Pass-12345', code: '123456' })).s === 401, 'a wrong code is refused');
+      const withCode = await call('POST', '/api/auth/login', { username: 'admin', password: 'Qa-Pass-12345', code: totp.hotp(su.j.secret, Math.floor(Date.now() / 30000)) }); ok(withCode.s === 200 && withCode.j.token, 'login works with the right code');
+      const bk = en.j.backupCodes[0];
+      const useBk = await call('POST', '/api/auth/login', { username: 'admin', password: 'Qa-Pass-12345', code: bk }); ok(useBk.s === 200, 'a backup code logs in once');
+      ok((await call('POST', '/api/auth/login', { username: 'admin', password: 'Qa-Pass-12345', code: bk })).s === 401, 'the same backup code cannot be used twice');
+      // sign out everywhere ends older sessions
+      const T2 = withCode.j.token;
+      const lo = await call('POST', '/api/auth/logout-all', {}, T2); ok(lo.s === 200 && lo.j.token, 'sign out everywhere');
+      ok((await call('GET', '/api/auth/me', undefined, T2)).s === 401, 'old session is dead after sign out everywhere');
+      ok((await call('GET', '/api/auth/me', undefined, lo.j.token)).s === 200, 'the fresh token works');
+      // turn 2FA back off so the rest of this run can sign in with a password alone
+      const off = await call('POST', '/api/auth/2fa/disable', { password: 'Qa-Pass-12345', code: totp.hotp(su.j.secret, Math.floor(Date.now() / 30000)) }, lo.j.token); ok(off.s === 200, '2FA can be turned off with password and code');
+      const again = await call('POST', '/api/auth/login', { username: 'admin', password: 'Qa-Pass-12345' }); ok(again.s === 200, 'password-only login again'); T = again.j.token; // the earlier session was ended on purpose
+      void crypto; XFF = '';
+    }
     ok((await call('GET', '/api/jobs/run')).s === 404, 'job trigger hidden without key');
     ok((await call('GET', '/api/jobs/run?key=qa-cron-secret-123456')).s === 200, 'job trigger with key');
     ok((await call('GET', '/api/events/abc')).s < 500, 'bad id is not a 500');

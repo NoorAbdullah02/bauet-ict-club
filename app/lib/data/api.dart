@@ -8,6 +8,9 @@ class ApiException implements Exception {
   final int? status;
   final Map<String, String> fields;
 
+  /// True when the server wants the 6-digit authenticator code (or a backup code) to finish signing in.
+  bool get needsCode => status == 401 && message.contains('code');
+
   @override
   String toString() => message;
 }
@@ -131,8 +134,8 @@ class Api {
   Future<void> submitRegistration(Map<String, dynamic> body) => _send(() => _dio.post('/registrations', data: body));
 
   // ---- admin ----
-  Future<Map<String, dynamic>> login(String username, String password) async {
-    final data = await _send(() => _dio.post('/auth/login', data: {'username': username, 'password': password}));
+  Future<Map<String, dynamic>> login(String username, String password, {String? code}) async {
+    final data = await _send(() => _dio.post('/auth/login', data: {'username': username, 'password': password, if (code != null && code.isNotEmpty) 'code': code}));
     return data is Map ? Map<String, dynamic>.from(data) : {};
   }
 

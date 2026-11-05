@@ -231,8 +231,8 @@ const useStore = create((set, get) => ({
     return res.data;
   },
 
-  login: async (username, password) => {
-    const res = await api.post('/auth/login', { username, password });
+  login: async (username, password, code) => {
+    const res = await api.post('/auth/login', { username, password, ...(code ? { code } : {}) });
     localStorage.setItem('bauet-token', res.data.token);
     set({ user: res.data.user });
     return res.data;

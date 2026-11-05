@@ -178,8 +178,8 @@ class AppState extends ChangeNotifier {
   }
 
   // ---- auth ----
-  Future<void> login(String username, String password) async {
-    final res = await api.login(username, password);
+  Future<void> login(String username, String password, {String? code}) async {
+    final res = await api.login(username, password, code: code);
     final token = (res['token'] ?? '').toString();
     if (token.isEmpty) throw ApiException('Login failed');
     api.token = token;

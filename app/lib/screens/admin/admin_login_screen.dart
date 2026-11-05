@@ -21,6 +21,8 @@ class AdminLoginScreen extends StatefulWidget {
 class _AdminLoginScreenState extends State<AdminLoginScreen> {
   final _user = TextEditingController();
   final _pass = TextEditingController();
+  final _code = TextEditingController();
+  bool _needCode = false;
   bool _busy = false;
   String? _error;
 
@@ -28,6 +30,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
   void dispose() {
     _user.dispose();
     _pass.dispose();
+    _code.dispose();
     super.dispose();
   }
 
@@ -41,10 +44,15 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
       _error = null;
     });
     try {
-      await context.read<AppState>().login(_user.text.trim(), _pass.text);
+      await context.read<AppState>().login(_user.text.trim(), _pass.text, code: _needCode ? _code.text.trim() : null);
       // Router redirect sends the user to /admin once isAdmin flips.
     } on ApiException catch (e) {
-      if (mounted) setState(() => _error = e.message);
+      if (mounted) {
+        setState(() {
+          if (e.needsCode) _needCode = true;
+          _error = _needCode && _code.text.isEmpty ? null : e.message;
+        });
+      }
     } catch (e) {
       if (mounted) setState(() => _error = e.toString());
     } finally {
@@ -85,6 +93,10 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                   AppField(controller: _user, label: 'Username', icon: Icons.person_outline_rounded, textInputAction: TextInputAction.next),
                   const SizedBox(height: 14),
                   AppField(controller: _pass, label: 'Password', icon: Icons.lock_outline_rounded, obscure: true, textInputAction: TextInputAction.done, onSubmitted: _login),
+                  if (_needCode) ...[
+                    const SizedBox(height: 14),
+                    AppField(controller: _code, label: '6-digit code or backup code', icon: Icons.shield_outlined, textInputAction: TextInputAction.done, onSubmitted: _login),
+                  ],
                   if (_error != null) ...[
                     const SizedBox(height: 12),
                     Row(children: [
