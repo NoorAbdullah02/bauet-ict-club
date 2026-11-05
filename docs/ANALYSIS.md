@@ -1,24 +1,27 @@
-# Deep-dive analysis (November 2026)
+# Project analysis and suggestions (November 2026)
 
-## Size
-Website 92 files / 8.2k lines, server 43 files / 4.3k lines, Flutter app 44 files / 8.5k lines. 23 pages, 72 API handlers, 18 tables.
+## What exists
+Website (React), server (Express + PostgreSQL), Flutter app, docs. Admin panel: events (one-page Event Studio), forms (templates, pages, rules, payment, summary, spreadsheet-style table with editing), check-in with QR tickets, certificates, committees, newsletter, visitors, trash, short links (`/s/code`).
 
-## Verified (in-memory Postgres test bench, not the real services)
-- 152 feature checks and 526 fuzz/junk requests: 0 server errors.
-- Race conditions (limit, duplicate sign-up) serialised. CSV formula injection, SSRF through picture URLs, bad ids/bodies handled.
-- Contrast WCAG AA, keyboard and screen-reader basics. Website lint: 0 errors.
+## What was verified (in-memory database, `npm run qa`, 52 checks, also run by GitHub on every push)
+Login and password change, limits under 20 simultaneous sign-ups, duplicates, bot trap, CSV formula safety, tickets and check-in, answer rules, templates, copies, deletes, short links, link safety. Website build and lint clean. Website `npm audit`: 0.
 
-## Not verified (needs your real services)
-Neon (real Postgres), Brevo delivery, Cloudinary uploads, Groq chat, phone camera QR scan, Flutter on a real phone.
+## NOT verified (needs the real thing)
+Neon database, Brevo email, Cloudinary pictures, Groq chat, camera QR scan on a phone, the Flutter app on a phone.
 
-## Findings and what was done
-| Risk | Status |
-|---|---|
-| Admin could change password only from the command line | **Fixed**: Settings -> Change password (needs current password, min 10 chars) |
-| No health endpoint | **Fixed**: `GET /api/health` (also checks database) |
-| Render free plan sleeps after 15 min, so reminders/digests never run | **Fixed**: `GET /api/jobs/run?key=CRON_SECRET` from cron-job.org every 10-15 min wakes it and runs the jobs (safe to repeat) |
-| `npm audit` (server): nodemailer (only used if you configure SMTP; Brevo API is the default path) and archiver/glob chain (ZIP downloads, admin-only input) | **Open, low real risk**: fixes are major upgrades with API changes; do in a separate tested step |
-| No automatic database backup | **Open**: Neon keeps point-in-time history on its plan; also export CSVs before each semester change |
-| Brevo free plan 300 emails/day | Watch on big events; reminders and receipts share it |
-| Single admin role, no 2-step login, no audit log | **Open**: strong unique password now possible; audit log is the next feature |
-| Old `index.html` at repo root (first prototype) | Safe to delete when you agree |
+## Known gaps
+- Flutter app has none of the newer form features (pages, rules, colour, Table edit, Event Studio, short links).
+- Server `npm audit`: 6 findings (nodemailer, archiver chain). Fixes are major upgrades; low real risk (SMTP is optional, ZIP input is admin-only).
+- No audit log (who changed what), one admin role, no 2-step login.
+- No automatic database backup of our own (rely on Neon history, export CSVs often).
+- Free Render plan sleeps; reminders need the `CRON_SECRET` ping (see AFTER_DEPLOY).
+- Google Forms features not built: grid questions, quiz mode, jump-to-page by answer, response edit by the person, co-editors, undo/redo, Sheets sync.
+- Pattern rules are checked on submit, not on Next.
+
+## Suggestions, in order
+1. Deploy, set the real keys, and do the 6-step live test: create event, register, get email, scan QR, download CSV, change password.
+2. Rotate the Neon and admin passwords that were shared in chat.
+3. Add audit log + an "Editor" role (can edit forms, cannot delete or see payments).
+4. Quiz mode, then grid questions.
+5. Bring pages/rules/short links to the Flutter app, or decide the app is read-and-check-in only.
+6. Monthly: export all responses, check Brevo daily limit (300 on free), check Neon storage.
