@@ -122,6 +122,33 @@ router.get('/:id/responses', async (req, res) => {
   try { res.json((await pool.query('SELECT * FROM form_responses WHERE form_id = $1 AND deleted_at IS NULL ORDER BY created_at DESC', [req.params.id])).rows); } catch (e) { fail(res, e); }
 });
 
+router.patch('/responses/:rid/answers', (req, res) => serial('form-edit', async () => {
+  const change = req.body?.answers;
+  if (!change || typeof change !== 'object' || Array.isArray(change)) return res.status(400).json({ error: 'Nothing to change' });
+  try {
+    const r = (await pool.query('SELECT * FROM form_responses WHERE id = $1 AND deleted_at IS NULL', [req.params.rid])).rows[0];
+    if (!r) return res.status(404).json({ error: 'Not found' });
+    const f = (await pool.query('SELECT * FROM forms WHERE id = $1', [r.form_id])).rows[0];
+    if (!f) return res.status(404).json({ error: 'Form not found' });
+    const fields = forms.fieldsOf(f.reg_form?.fields?.length ? f : { reg_form: STARTER });
+    const known = new Set(fields.map((q) => q.id));
+    const merged = { ...(r.answers || {}) };
+    for (const [k, v] of Object.entries(change)) if (known.has(k)) merged[k] = v;
+    const { clean, errors } = forms.validateAnswers(fields, merged);
+    const bad = Object.keys(errors).filter((k) => k in change);
+    if (bad.length) return res.status(400).json({ error: errors[bad[0]], fields: errors });
+    const u = f.reg_form?.unique;
+    if (u && u in change && clean[u] !== undefined) {
+      const mine = forms.show(clean[u]).toLowerCase();
+      const others = (await pool.query("SELECT answers FROM form_responses WHERE form_id = $1 AND id <> $2 AND deleted_at IS NULL AND COALESCE(pay_status, 'none') <> 'rejected'", [f.id, r.id])).rows;
+      if (others.some((o) => forms.show(o.answers?.[u]).toLowerCase() === mine)) return res.status(409).json({ error: 'Someone else already has this value', fields: { [u]: 'Already used' } });
+    }
+    const col = forms.columnsFrom(fields, clean);
+    const to = col.email || forms.show(clean[(fields.find((q) => q.type === 'email') || {}).id]);
+    const { rows } = await pool.query('UPDATE form_responses SET answers = $1, full_name = $2, email = $3 WHERE id = $4 RETURNING *', [JSON.stringify(clean), col.full_name, to || null, r.id]);
+    res.json(rows[0]);
+  } catch (e) { fail(res, e); }
+}));
 router.patch('/responses/:rid/payment', async (req, res) => {
   const status = ['verified', 'rejected', 'pending'].includes(req.body?.status) ? req.body.status : null;
   if (!status) return res.status(400).json({ error: 'Choose verified, rejected or pending' });

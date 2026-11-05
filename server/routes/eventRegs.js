@@ -255,6 +255,35 @@ router.patch('/:id/payment', async (req, res) => {
   } catch (e) { fail(res, e); }
 });
 
+/** Admin: correct what someone answered (like editing a cell in a spreadsheet). Body: { answers: { fieldId: value } } */
+router.patch('/:id/answers', (req, res) => serial('event-edit', async () => {
+  const change = req.body?.answers;
+  if (!change || typeof change !== 'object' || Array.isArray(change)) return res.status(400).json({ error: 'Nothing to change' });
+  try {
+    const r = (await pool.query('SELECT * FROM event_registrations WHERE id = $1 AND deleted_at IS NULL', [req.params.id])).rows[0];
+    if (!r) return res.status(404).json({ error: 'Not found' });
+    const ev = (await pool.query('SELECT * FROM events WHERE id = $1', [r.event_id])).rows[0];
+    if (!ev) return res.status(404).json({ error: 'Event not found' });
+    const fields = forms.fieldsOf(ev);
+    const known = new Set(fields.map((f) => f.id));
+    const merged = { ...(r.answers || {}) };
+    for (const [k, v] of Object.entries(change)) if (known.has(k)) merged[k] = v;
+    const { clean, errors } = forms.validateAnswers(fields, merged);
+    const bad = Object.keys(errors).filter((k) => k in change);
+    if (bad.length) return res.status(400).json({ error: errors[bad[0]], fields: errors });
+    const u = forms.uniqueId(ev);
+    if (u && u in change && clean[u] !== undefined) {
+      const mine = forms.show(clean[u]).toLowerCase();
+      const others = (await pool.query("SELECT answers, email FROM event_registrations WHERE event_id = $1 AND id <> $2 AND deleted_at IS NULL AND COALESCE(pay_status, 'none') <> 'rejected'", [ev.id, r.id])).rows;
+      if (others.some((o) => forms.show(o.answers?.[u]).toLowerCase() === mine || (u === 'email' && o.email === mine))) return res.status(409).json({ error: 'Someone else already has this value', fields: { [u]: 'Already used' } });
+    }
+    const col = forms.columnsFrom(fields, clean);
+    const { rows } = await pool.query('UPDATE event_registrations SET answers = $1, full_name = $2, student_id = $3, email = $4, phone = $5, department = $6, batch = $7 WHERE id = $8 RETURNING *',
+      [JSON.stringify(clean), col.full_name, col.student_id, col.email, col.phone, col.department, col.batch, r.id]);
+    res.json(rows[0]);
+  } catch (e) { fail(res, e); }
+}));
+
 /** Admin: remove one sign-up (goes to the Trash). */
 router.delete('/:id', async (req, res) => {
   try {
