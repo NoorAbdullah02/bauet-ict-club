@@ -51,7 +51,7 @@ function HeroScene3D({ p, dark, lite }) {
       <Float speed={1.2} rotationIntensity={0.25} floatIntensity={0.5}>
         <Spin speed={[0.04, 0.09, 0.02]}>
           <mesh scale={1.55}>
-            <icosahedronGeometry args={[1.7, lite ? 1 : 2]} />
+            <icosahedronGeometry args={[1.7, 1]} />
             <meshBasicMaterial color={p.b} wireframe transparent opacity={dark ? 0.24 : 0.22} />
           </mesh>
           <mesh scale={1.1}>
@@ -60,7 +60,7 @@ function HeroScene3D({ p, dark, lite }) {
           </mesh>
         </Spin>
         <mesh scale={1.3}>
-          <sphereGeometry args={[1.5, lite ? 32 : 64, lite ? 32 : 64]} />
+          <sphereGeometry args={[1.5, lite ? 24 : 40, lite ? 24 : 40]} />
           <MeshDistortMaterial color={p.a} emissive={p.a} emissiveIntensity={dark ? 0.5 : 0.2} roughness={0.25} metalness={0.5} distort={0.3} speed={1.2} transparent opacity={dark ? 0.22 : 0.16} />
         </mesh>
       </Float>
@@ -68,8 +68,8 @@ function HeroScene3D({ p, dark, lite }) {
       <Spin speed={[-0.08, 0.14, 0.06]}><mesh rotation={[0.4, 0.8, 0]}><torusGeometry args={[4.1, 0.008, 16, 240]} /><meshBasicMaterial color={p.c} transparent opacity={0.55} /></mesh></Spin>
       <Orbiters count={6} radius={3.4} color={p.b} size={0.07} />
       <Orbiters count={4} radius={4.1} color={p.c} size={0.06} speed={-0.18} />
-      <Sparkles count={lite ? 40 : 110} scale={[12, 7, 7]} size={dark ? 2.6 : 2.2} speed={0.3} color={p.b} />
-      {dark && <Stars radius={40} depth={40} count={lite ? 500 : 1400} factor={3} fade speed={0.6} />}
+      <Sparkles count={lite ? 25 : 60} scale={[12, 7, 7]} size={dark ? 2.6 : 2.2} speed={0.3} color={p.b} />
+      {dark && <Stars radius={40} depth={40} count={lite ? 300 : 700} factor={3} fade speed={0.6} />}
     </Rig>
   );
 }
@@ -139,7 +139,7 @@ export default function Scene3D({ variant = 'orbs', dark, active = true, lite = 
   const p = palette(dark);
   const Scene = SCENES[variant] || OrbsScene3D;
   return (
-    <Canvas eventSource={document.getElementById('root')} eventPrefix="client" dpr={lite ? [1, 1.25] : [1, 1.5]} camera={{ position: [0, 0, 8], fov: 48 }} frameloop={active ? 'always' : 'never'} gl={{ antialias: !lite, alpha: true, powerPreference: 'default' }}
+    <Canvas eventSource={document.getElementById('root')} eventPrefix="client" dpr={lite ? [1, 1] : [1, 1.25]} camera={{ position: [0, 0, 8], fov: 48 }} frameloop={active ? 'always' : 'never'} gl={{ antialias: !lite, alpha: true, powerPreference: 'default' }}
       onCreated={({ gl }) => gl.domElement.addEventListener('webglcontextlost', (e) => { e.preventDefault(); onLost?.(); })}>
       <ambientLight intensity={dark ? 0.55 : 0.9} />
       <pointLight position={[6, 5, 6]} intensity={dark ? 60 : 40} color={p.a} />
