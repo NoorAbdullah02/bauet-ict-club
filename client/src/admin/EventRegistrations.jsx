@@ -26,7 +26,7 @@ function tallyChoices(f, rows) {
 }
 
 /** Everyone who signed up for one event: responses, payment checks, a summary with charts, and downloads. */
-export default function EventRegistrations({ event, onClose, kind = 'event' }) {
+export function ResponsesPanel({ event, kind = 'event' }) {
   const isForm = kind === 'form';
   const P = isForm ? {
     list: (id) => `/forms/${id}/responses`, file: (id) => `/forms/${id}/export`, zip: (id) => `/forms/${id}/zip`, pay: (rid) => `/forms/responses/${rid}/payment`, del: (rid) => `/forms/responses/${rid}`,
@@ -68,9 +68,8 @@ export default function EventRegistrations({ event, onClose, kind = 'event' }) {
     try { const { data } = await api.patch(P.pay(r.id), { status }); setRows((p) => p.map((x) => (x.id === r.id ? data : x))); toast.success(status === 'verified' ? 'Payment verified' : status === 'rejected' ? 'Payment rejected' : 'Back to waiting'); } catch (e) { toast.error(e.response?.data?.error || 'Could not update'); }
   };
 
+  if (!event) return null;
   return (
-    <Drawer open={!!event} title={isForm ? 'Responses' : 'Event registrations'} onClose={onClose}>
-      {event && (
         <>
           <div className="rounded-2xl border border-line bg-alt/50 p-4">
             <div className="font-display text-lg text-fg">{event.title}</div>
@@ -172,7 +171,14 @@ export default function EventRegistrations({ event, onClose, kind = 'event' }) {
             </>
           )}
         </>
-      )}
+  );
+}
+
+/** The same panel inside a side drawer (used for events in the admin list). */
+export default function EventRegistrations({ event, onClose, kind = 'event' }) {
+  return (
+    <Drawer open={!!event} title={kind === 'form' ? 'Responses' : 'Event registrations'} onClose={onClose}>
+      <ResponsesPanel event={event} kind={kind} />
     </Drawer>
   );
 }

@@ -41,7 +41,7 @@ function PhotoAnswer({ value, onChange, disabled, error }) {
 }
 
 /** Draws a form from its question list. values = { fieldId: answer }, errors = { fieldId: message } */
-export default function DynamicForm({ fields, values, errors = {}, onChange, disabled }) {
+export default function DynamicForm({ fields, values, errors = {}, onChange, disabled, hideLabels }) {
   const AUTO = { name: 'name', email: 'email', phone: 'tel' };
   return (
     <div className="space-y-5">
@@ -110,7 +110,7 @@ export default function DynamicForm({ fields, values, errors = {}, onChange, dis
         const grouped = ['radio', 'yesno', 'checkbox', 'scale', 'photo'].includes(f.type);
         return (
           <div key={f.id}>
-            {grouped ? <div>{label(f)}{control}</div> : <label className="block">{label(f)}{control}</label>}
+            {grouped ? <div>{!hideLabels && label(f)}{control}</div> : <label className="block">{!hideLabels && label(f)}{control}</label>}
             {err && <span className="mt-1.5 block text-xs text-red-500">{err}</span>}
           </div>
         );
