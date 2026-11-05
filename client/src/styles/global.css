@@ -524,3 +524,18 @@ body.admin-mode .cursor-glow { display: none; }
 }
 @keyframes ictFloat { to { transform: translateY(-6px); } }
 @media (prefers-reduced-motion: reduce) { .hero-ict { animation: none; } }
+
+
+/* small phones: the logo and the buttons share one row without ever touching */
+@media (max-width: 420px) {
+  header nav { padding-left: 10px !important; padding-right: 6px !important; }
+  .nav-logo img { height: 34px !important; width: auto !important; }
+  .nav-actions { gap: 6px !important; }
+  .nav-actions .btn-join { padding: 4px 4px 4px 12px; gap: 6px; font-size: 12px; }
+  .nav-actions .btn-join i { width: 28px; height: 28px; }
+}
+@media (max-width: 350px) {
+  .nav-logo img { height: 28px !important; }
+  .nav-actions .btn-join span { display: none; }
+  .nav-actions .btn-join { padding: 4px; }
+}

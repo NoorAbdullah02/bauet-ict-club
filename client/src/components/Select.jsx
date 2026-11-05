@@ -3,6 +3,19 @@ import { createPortal } from 'react-dom';
 import { Check, ChevronDown } from 'lucide-react';
 import { cn } from '../lib/cn';
 
+/** Phones and tablets (touch): the system's own picker is the most reliable and the easiest to use there. */
+function useTouch() {
+  const [t, setT] = useState(() => typeof window !== 'undefined' && !!window.matchMedia?.('(pointer: coarse)').matches);
+  useEffect(() => {
+    const m = window.matchMedia?.('(pointer: coarse)');
+    if (!m) return undefined;
+    const on = () => setT(m.matches);
+    m.addEventListener?.('change', on);
+    return () => m.removeEventListener?.('change', on);
+  }, []);
+  return t;
+}
+
 /**
  * Drop-in replacement for <select>: same props (value, onChange(e), className, disabled) and <option> children,
  * but with a styled, keyboard-accessible list. The menu is portalled so it is never clipped by cards or drawers.
@@ -14,6 +27,8 @@ export default function Select({ value = '', onChange, children, className, disa
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(-1);
   const [pos, setPos] = useState(null);
+  const touch = useTouch();
+  const openedAt = useRef(0);
 
   const options = useMemo(() => Children.toArray(children).filter(isValidElement).map((c) => {
     const label = Children.toArray(c.props.children).join('');
@@ -47,7 +62,9 @@ export default function Select({ value = '', onChange, children, className, disa
     if (!open) return;
     setActive(selected >= 0 ? selected : options.findIndex((o) => !o.disabled));
     const away = (e) => { if (!btn.current?.contains(e.target) && !menu.current?.contains(e.target)) close(false); };
-    const onScroll = (e) => { if (!menu.current?.contains(e.target)) close(false); };
+    openedAt.current = Date.now();
+    // ignore the tiny scroll some browsers cause while the menu opens; only a real page scroll closes it
+    const onScroll = (e) => { if (Date.now() - openedAt.current > 400 && !menu.current?.contains(e.target)) close(false); };
     document.addEventListener('pointerdown', away);
     window.addEventListener('scroll', onScroll, true);
     window.addEventListener('resize', place);
@@ -84,6 +101,18 @@ export default function Select({ value = '', onChange, children, className, disa
       if (i >= 0) setActive(i);
     }
   };
+
+  if (touch) {
+    return (
+      <span className="relative block">
+        <select id={id} name={name} value={value ?? ''} disabled={disabled} aria-label={ariaLabel} onChange={onChange}
+          className={cn(className, 'w-full cursor-pointer appearance-none truncate !pr-10 disabled:cursor-not-allowed disabled:opacity-60', isPlaceholder && 'text-muted')}>
+          {children}
+        </select>
+        <ChevronDown size={16} className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-muted" />
+      </span>
+    );
+  }
 
   return (
     <>

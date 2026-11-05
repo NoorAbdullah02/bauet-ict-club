@@ -91,36 +91,9 @@ class PickerField extends StatelessWidget {
     final picked = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
-      builder: (ctx) {
-        final p = ctx.pal;
-        return DraggableScrollableSheet(
-          expand: false,
-          initialChildSize: 0.6,
-          maxChildSize: 0.9,
-          minChildSize: 0.35,
-          builder: (_, scroll) => Column(children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
-              child: Align(alignment: Alignment.centerLeft, child: Text(label, style: displayStyle(ctx, 22))),
-            ),
-            Expanded(
-              child: ListView.builder(
-                controller: scroll,
-                itemCount: options.length,
-                itemBuilder: (_, i) {
-                  final o = options[i];
-                  final sel = o == value;
-                  return ListTile(
-                    title: Text(o, style: bodyStyle(ctx, weight: sel ? FontWeight.w700 : FontWeight.w500)),
-                    trailing: sel ? Icon(Icons.check_circle_rounded, color: p.tech) : null,
-                    onTap: () => Navigator.pop(ctx, o),
-                  );
-                },
-              ),
-            ),
-          ]),
-        );
-      },
+      useSafeArea: true,
+      showDragHandle: true,
+      builder: (ctx) => _PickerSheet(label: label, options: options, value: value),
     );
     if (picked != null) onChanged(picked);
   }
@@ -140,6 +113,66 @@ class PickerField extends StatelessWidget {
         ),
         isEmpty: value.isEmpty,
         child: Text(value, style: bodyStyle(context), maxLines: 2, overflow: TextOverflow.ellipsis),
+      ),
+    );
+  }
+}
+
+/// Bottom sheet list with a search box for long lists (batches, departments). Safe-area aware, keyboard aware, scrolls on every phone.
+class _PickerSheet extends StatefulWidget {
+  const _PickerSheet({required this.label, required this.options, required this.value});
+  final String label;
+  final List<String> options;
+  final String value;
+
+  @override
+  State<_PickerSheet> createState() => _PickerSheetState();
+}
+
+class _PickerSheetState extends State<_PickerSheet> {
+  String _q = '';
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.pal;
+    final shown = widget.options.where((o) => o.toLowerCase().contains(_q.toLowerCase())).toList();
+    final height = MediaQuery.of(context).size.height;
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: SizedBox(
+        height: height * 0.7,
+        child: Column(children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
+            child: Align(alignment: Alignment.centerLeft, child: Text(widget.label, style: displayStyle(context, 22))),
+          ),
+          if (widget.options.length > 10)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+              child: TextField(
+                onChanged: (v) => setState(() => _q = v),
+                decoration: const InputDecoration(prefixIcon: Icon(Icons.search_rounded, size: 20), hintText: 'Search'),
+              ),
+            ),
+          Expanded(
+            child: shown.isEmpty
+                ? Center(child: Text('Nothing found', style: bodyStyle(context, color: p.muted)))
+                : ListView.builder(
+                    padding: EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom + 8),
+                    itemCount: shown.length,
+                    itemBuilder: (_, i) {
+                      final o = shown[i];
+                      final sel = o == widget.value;
+                      return ListTile(
+                        minVerticalPadding: 14,
+                        title: Text(o, style: bodyStyle(context, weight: sel ? FontWeight.w700 : FontWeight.w500)),
+                        trailing: sel ? Icon(Icons.check_circle_rounded, color: p.tech) : null,
+                        onTap: () => Navigator.pop(context, o),
+                      );
+                    },
+                  ),
+          ),
+        ]),
       ),
     );
   }

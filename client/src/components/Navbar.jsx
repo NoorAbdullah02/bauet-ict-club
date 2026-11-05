@@ -44,7 +44,7 @@ export default function Navbar() {
         className="fixed inset-x-0 top-0 z-[100] flex justify-center px-3 pt-3">
         <nav className={cn('flex w-full max-w-6xl items-center justify-between rounded-full border px-3 py-2 pl-4 transition-all duration-500',
           scrolled ? 'border-line bg-[var(--glass)] shadow-[var(--shadow-lg)] backdrop-blur-xl backdrop-saturate-150' : 'border-transparent bg-transparent')}>
-          <Link to="/" className="flex items-center" aria-label="BAUET ICT Club home"><Logo kind="club" height={42} priority /></Link>
+          <Link to="/" className="nav-logo flex shrink-0 items-center" aria-label="BAUET ICT Club home"><Logo kind="club" height={42} priority /></Link>
 
           <ul className="hidden items-center gap-0.5 lg:flex">
             {LINKS.map((l) => (
@@ -60,7 +60,7 @@ export default function Navbar() {
             ))}
           </ul>
 
-          <div className="flex items-center gap-2">
+          <div className="nav-actions flex shrink-0 items-center gap-2">
             <button onClick={() => setTheme(isDark ? 'light' : 'dark')} className={iconBtn} aria-label="Toggle theme">
               {isDark ? <Sun size={16} /> : <Moon size={16} />}
             </button>
