@@ -20,6 +20,8 @@ jobs:
         run: npm ci
       - name: Build the website
         run: npm run build
+      - name: End-to-end checks (in-memory database)
+        run: npm --prefix server run qa
       - name: Server files parse
         run: |
           set -e
