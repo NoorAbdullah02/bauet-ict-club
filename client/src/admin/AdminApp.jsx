@@ -82,12 +82,16 @@ export default function AdminApp() {
   useEffect(() => { if (user) { fetchRegistrations().catch(() => {}); fetchMessages().catch(() => {}); fetchTrash().catch(() => {}); useStore.getState().fetchSessions().catch(() => {}); } }, [user]);
   useEffect(() => setOpen(false), [pathname]);
 
+  // exact page title, else the section the page belongs to (forms/12 -> Forms, events/3/form -> Events)
+  const clean = pathname.replace(/\/$/, '');
+  const title = TITLES[clean] || TITLES[Object.keys(TITLES).filter((k) => k !== '/admin' && clean.startsWith(`${k}/`)).sort((x, y) => y.length - x.length)[0]] || 'Dashboard';
+  useEffect(() => { document.title = `${title} | Admin | BAUET ICT Club`; }, [title]);
+
   if (!ready) return <div className="grid min-h-screen place-items-center"><Loader2 className="animate-spin text-accent" /></div>;
   if (!user) return <Login />;
 
   const badges = { pending: registrations.filter((r) => r.status === 'pending').length, unread: messages.filter((m) => !m.is_read).length, trash: trash.items.length };
   const isDark = adminTheme === 'dark';
-  const title = TITLES[pathname.replace(/\/$/, '')] || 'Dashboard';
   const btn = 'grid size-10 place-items-center rounded-full border border-line bg-surface text-fg2 transition hover:border-accent hover:text-accent';
 
   return (
