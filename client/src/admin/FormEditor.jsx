@@ -123,12 +123,7 @@ function QuestionCard({ q, i, total, fields, active, onActivate, patch, remove, 
                   <label>Most characters<input type="number" min="0" className={cn(inputCls, 'mt-1 !py-1.5')} value={q.maxLen ?? ''} onChange={(e) => patch({ maxLen: e.target.value === '' ? undefined : Number(e.target.value) })} /></label>
                 </div>
               )}
-              {q.type === 'short' && (
-                <div className="grid gap-2 sm:grid-cols-2">
-                  <label>Must match pattern (optional)<input className={cn(inputCls, 'mt-1 !py-1.5 font-mono')} placeholder="^[0-9]{9}$" maxLength={80} value={q.pattern || ''} onChange={(e) => patch({ pattern: e.target.value || undefined })} /></label>
-                  <label>Message if it does not match<input className={cn(inputCls, 'mt-1 !py-1.5')} placeholder="Enter your 9 digit ID" maxLength={100} value={q.patternMsg || ''} onChange={(e) => patch({ patternMsg: e.target.value })} /></label>
-                </div>
-              )}
+              {q.type === 'short' && <PatternRule q={q} patch={patch} />}
               {q.type === 'number' && (
                 <div className="space-y-2">
                   <div className="grid grid-cols-2 gap-2">
@@ -171,6 +166,47 @@ function QuestionCard({ q, i, total, fields, active, onActivate, patch, remove, 
 
 /** Full-page form editor, like Google Forms: questions on a canvas, autosave, preview, responses and settings in tabs.
  *  Works for stand-alone forms (/admin/forms/:id) and for the registration form of an event (/admin/events/:id/form). */
+const PATTERNS = [
+  { id: 'none', label: 'Any text', pattern: '' },
+  { id: 'digits', label: 'Digits only', pattern: '^[0-9]+$', msg: 'Use digits only' },
+  { id: 'id9', label: 'Student ID (9 digits)', pattern: '^[0-9]{9}$', msg: 'Enter your 9 digit ID' },
+  { id: 'phone', label: 'Bangladesh mobile number', pattern: '^(\\+?88)?01[3-9][0-9]{8}$', msg: 'Enter a valid Bangladesh mobile number' },
+  { id: 'letters', label: 'Letters only', pattern: "^[A-Za-z .'-]+$", msg: 'Use letters only' },
+  { id: 'custom', label: 'Custom (advanced)' },
+];
+
+function PatternRule({ q, patch }) {
+  const found = PATTERNS.find((p) => p.id !== 'custom' && p.id !== 'none' && p.pattern === q.pattern);
+  const [custom, setCustom] = useState(!!q.pattern && !found);
+  const mode = custom ? 'custom' : q.pattern ? found?.id : 'none';
+  const pick = (id) => {
+    const p = PATTERNS.find((x) => x.id === id);
+    if (id === 'custom') { setCustom(true); return; }
+    setCustom(false);
+    patch({ pattern: p.pattern || undefined, patternMsg: p.msg || undefined });
+  };
+  return (
+    <div className="space-y-2">
+      <label className="block">What should people type?
+        <Select className={cn(inputCls, 'mt-1 !py-1.5')} value={mode} onChange={(e) => pick(e.target.value)}>
+          {PATTERNS.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
+        </Select>
+      </label>
+      {mode !== 'none' && (
+        <label className="block">Message if it is wrong
+          <input className={cn(inputCls, 'mt-1 !py-1.5')} placeholder="Please check this answer" maxLength={100} value={q.patternMsg || ''} onChange={(e) => patch({ patternMsg: e.target.value })} />
+        </label>
+      )}
+      {mode === 'custom' && (
+        <label className="block">Pattern (regular expression)
+          <input className={cn(inputCls, 'mt-1 !py-1.5 font-mono')} placeholder="^[0-9]{9}$" maxLength={80} value={q.pattern || ''} onChange={(e) => patch({ pattern: e.target.value || undefined })} />
+          <span className="mt-1 block text-[11px] text-muted">For example ^[0-9]{'{9}'}$ means exactly 9 digits.</span>
+        </label>
+      )}
+    </div>
+  );
+}
+
 export default function FormEditor({ kind = 'form', eventId }) {
   const routeId = useParams().id;
   const id = eventId ?? routeId;
