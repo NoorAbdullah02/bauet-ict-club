@@ -29,10 +29,26 @@ async function weeklyDigest() {
   } catch (e) { console.warn('Weekly digest failed:', e.message); }
 }
 
+/** The day before an event, everyone who is registered (and not rejected) gets a reminder with their ticket link. Sent once per event. */
+async function reminders() {
+  if (!mail.provider() || (process.env.EVENT_REMINDERS || '').toLowerCase() === 'false') return;
+  try {
+    const { formalDate, formalTime } = require('./format');
+    const tomorrow = iso(new Date(Date.now() + 6 * 3600e3 + 864e5)); // Bangladesh is UTC+6
+    const events = (await pool.query('SELECT * FROM events WHERE deleted_at IS NULL AND reminded_at IS NULL AND COALESCE(reg_open, true) = true')).rows
+      .filter((e) => String(e.date instanceof Date ? e.date.toISOString() : e.date).slice(0, 10) === tomorrow);
+    for (const ev of events) {
+      const regs = (await pool.query("SELECT * FROM event_registrations WHERE event_id = $1 AND deleted_at IS NULL AND email IS NOT NULL AND ticket IS NOT NULL AND COALESCE(pay_status, 'none') NOT IN ('rejected', 'pending')", [ev.id])).rows;
+      regs.forEach((r) => mail.sendMail({ to: r.email, ...mail.templates.eventReminder(r, ev, formalDate, formalTime) }));
+      await pool.query('UPDATE events SET reminded_at = NOW() WHERE id = $1', [ev.id]);
+    }
+  } catch (e) { console.warn('Event reminders failed:', e.message); }
+}
+
 function start() {
-  const tick = () => { purge(); weeklyDigest(); };
+  const tick = () => { purge(); weeklyDigest(); reminders(); };
   setTimeout(tick, 60 * 1000).unref?.();
   setInterval(tick, 6 * 60 * 60 * 1000).unref?.();
 }
 
-module.exports = { start, purge, weeklyDigest };
+module.exports = { start, purge, weeklyDigest, reminders };

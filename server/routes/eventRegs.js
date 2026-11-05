@@ -8,6 +8,7 @@ const { formalDate, formalTime } = require('../utils/format');
 const { tableToPdf, tableToDocx } = require('../utils/exporters');
 const forms = require('../utils/forms');
 const { serial } = require('../utils/serial');
+const tickets = require('../utils/tickets');
 const { sendZip, safe } = require('../utils/zipper');
 const { toCsv } = require('../utils/csv');
 // sign-ups saved before forms existed only have the standard columns
@@ -29,9 +30,69 @@ router.get('/counts', async (_req, res) => {
   } catch (e) { res.status(500).json({ error: 'Could not load counts' }); }
 });
 
+
+/* ---------- tickets, check-in and certificates ---------- */
+const statusOf = (r) => (r.pay_status === 'rejected' ? 'cancelled' : r.pay_status === 'pending' ? 'pending' : 'confirmed');
+async function byCode(raw) {
+  const code = tickets.normalize(raw);
+  if (code.length < 8) return null;
+  const r = (await pool.query('SELECT r.*, e.title AS ev_title, e.date AS ev_date, e.time AS ev_time, e.location AS ev_location, e.reg_form AS ev_form FROM event_registrations r JOIN events e ON e.id = r.event_id WHERE r.ticket = $1 AND r.deleted_at IS NULL', [code])).rows[0];
+  return r || null;
+}
+const certOn = (r) => !!r.ev_form?.cert?.enabled && !!r.checked_in_at && statusOf(r) !== 'cancelled';
+const site = (req) => (process.env.PUBLIC_URL || process.env.RENDER_EXTERNAL_URL || `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');
+
+/** Public: one ticket (name and event only; no email or phone). The code is the secret. */
+router.get('/ticket/:code', async (req, res) => {
+  try {
+    const r = await byCode(req.params.code);
+    if (!r) return res.status(404).json({ error: 'This ticket was not found.' });
+    res.set('Cache-Control', 'no-store');
+    res.json({ code: r.ticket, name: r.full_name || forms.show(answersOf(r)[forms.fieldsOf({ reg_form: r.ev_form })[0]?.id]) || 'Guest', status: statusOf(r), checked_in: !!r.checked_in_at,
+      event: { id: r.event_id, title: r.ev_title, date: r.ev_date, time: r.ev_time, location: r.ev_location }, certificate: certOn(r) });
+  } catch (e) { fail(res, e); }
+});
+
+/** Public: the certificate as a PDF (only for people who were checked in at an event with certificates switched on). */
+router.get('/certificate/:code', async (req, res) => {
+  try {
+    const r = await byCode(req.params.code);
+    if (!r || !certOn(r)) return res.status(404).json({ error: 'There is no certificate for this code.' });
+    const pdf = await tickets.certificatePdf({ name: r.full_name || 'Participant', event: { title: r.ev_title, date: r.ev_date, location: r.ev_location }, cert: r.ev_form.cert, code: r.ticket, siteUrl: site(req) });
+    res.set({ 'Content-Type': 'application/pdf', 'Content-Disposition': `inline; filename="certificate-${r.ticket}.pdf"`, 'Cache-Control': 'no-store' });
+    res.send(pdf);
+  } catch (e) { fail(res, e); }
+});
+
+/** Public: is this certificate real? (the QR code on every certificate opens this) */
+router.get('/verify/:code', async (req, res) => {
+  try {
+    const r = await byCode(req.params.code);
+    if (!r || !certOn(r)) return res.json({ valid: false });
+    res.set('Cache-Control', 'no-store');
+    res.json({ valid: true, name: r.full_name, event: r.ev_title, date: r.ev_date, issuedBy: 'BAUET ICT Club', code: r.ticket });
+  } catch (e) { fail(res, e); }
+});
+
+/** Admin: check someone in by their ticket code (typed, or read from the QR code). Body: { code, force? } */
+router.post('/checkin', authMiddleware, async (req, res) => {
+  try {
+    const r = await byCode(req.body?.code);
+    if (!r) return res.status(404).json({ error: 'No ticket with this code.' });
+    const person = { id: r.id, name: r.full_name || 'Guest', event_id: r.event_id, event: r.ev_title, status: statusOf(r) };
+    if (req.body?.event && String(req.body.event) !== String(r.event_id)) return res.status(409).json({ error: `This ticket is for another event: ${r.ev_title}.`, person });
+    if (person.status === 'cancelled') return res.status(409).json({ error: 'This registration was cancelled (payment rejected).', person });
+    if (r.checked_in_at) return res.json({ already: true, at: r.checked_in_at, person });
+    if (person.status === 'pending' && !req.body?.force) return res.status(409).json({ error: 'The payment is not verified yet.', needs_confirm: true, person });
+    await pool.query('UPDATE event_registrations SET checked_in_at = NOW() WHERE id = $1', [r.id]);
+    res.json({ ok: true, person });
+  } catch (e) { fail(res, e); }
+});
+
 /** Public: sign up for one event. Body: { answers: { fieldId: value } } following the event's form (or the default form). */
 router.post('/:eventId', limiter, (req, res) => serial(`event:${req.params.eventId}`, () => register(req, res)));
 async function register(req, res) {
+  if (req.body?._hp) return res.status(201).json({ success: true }); // a bot filled the hidden trap field: pretend it worked, save nothing
   try {
     const ev = (await pool.query('SELECT * FROM events WHERE id = $1 AND deleted_at IS NULL', [req.params.eventId])).rows[0];
     if (!ev) return res.status(404).json({ error: 'Event not found' });
@@ -61,15 +122,16 @@ async function register(req, res) {
       return res.status(409).json({ error: 'This transaction ID has already been used.', payment: { trx_id: 'Already used' } });
     }
     const col = forms.columnsFrom(fields, clean);
+    const ticket = tickets.newCode();
     const { rows } = await pool.query(
-      'INSERT INTO event_registrations (event_id, full_name, student_id, email, phone, department, batch, answers, payment, pay_status) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id',
-      [ev.id, col.full_name, col.student_id, col.email, col.phone, col.department, col.batch, JSON.stringify(clean), pay?.payment ? JSON.stringify(pay.payment) : null, pay?.payment ? 'pending' : 'none']
+      'INSERT INTO event_registrations (event_id, full_name, student_id, email, phone, department, batch, answers, payment, pay_status, ticket) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id',
+      [ev.id, col.full_name, col.student_id, col.email, col.phone, col.department, col.batch, JSON.stringify(clean), pay?.payment ? JSON.stringify(pay.payment) : null, pay?.payment ? 'pending' : 'none', ticket]
     );
-    res.status(201).json({ success: true, id: rows[0].id, pending_payment: !!pay?.payment, message: ev.reg_form?.confirmation || '' });
+    res.status(201).json({ success: true, id: rows[0].id, ticket, pending_payment: !!pay?.payment, message: ev.reg_form?.confirmation || '' });
     // a short confirmation to the person (switch off with EVENT_CONFIRM_EMAIL=false); needs an email question in the form
     const to = col.email || forms.show(clean[(fields.find((f) => f.type === 'email') || {}).id]);
     if (to && !pay?.payment && (process.env.EVENT_CONFIRM_EMAIL || '').toLowerCase() !== 'false') {
-      mail.sendMail({ to, ...mail.templates.eventRegistered({ full_name: col.full_name || 'there' }, ev, formalDate, formalTime) });
+      mail.sendMail({ to, ...mail.templates.eventRegistered({ full_name: col.full_name || 'there' }, { ...ev, ticket }, formalDate, formalTime) });
     }
     // with a payment: tell them at once that it is being checked; the place is confirmed when the admin verifies it (PATCH /:id/payment)
     if (to && pay?.payment && (process.env.EVENT_CONFIRM_EMAIL || '').toLowerCase() !== 'false') {
@@ -154,6 +216,29 @@ router.get('/zip', async (req, res) => {
   } catch (e) { if (!res.headersSent) fail(res, e); else res.end(); }
 });
 
+/** Admin: check a person in by hand, or undo it. Body: { checked: true|false } */
+router.patch('/:id/checkin', async (req, res) => {
+  try {
+    const { rows } = await pool.query(req.body?.checked ? 'UPDATE event_registrations SET checked_in_at = COALESCE(checked_in_at, NOW()) WHERE id = $1 AND deleted_at IS NULL RETURNING *' : 'UPDATE event_registrations SET checked_in_at = NULL WHERE id = $1 AND deleted_at IS NULL RETURNING *', [req.params.id]);
+    if (!rows.length) return res.status(404).json({ error: 'Not found' });
+    res.json(rows[0]);
+  } catch (e) { fail(res, e); }
+});
+
+/** Admin: email every checked-in person their certificate link (once each). */
+router.post('/event/:eventId/certificates/send', async (req, res) => {
+  try {
+    const ev = (await pool.query('SELECT * FROM events WHERE id = $1', [req.params.eventId])).rows[0];
+    if (!ev) return res.status(404).json({ error: 'Event not found' });
+    if (!ev.reg_form?.cert?.enabled) return res.status(409).json({ error: 'Switch certificates on for this event first.' });
+    if (!mail.provider()) return res.status(400).json({ error: 'Email is not configured. Set BREVO_API_KEY and MAIL_FROM in .env.' });
+    const rows = (await pool.query("SELECT * FROM event_registrations WHERE event_id = $1 AND deleted_at IS NULL AND checked_in_at IS NOT NULL AND certificate_sent_at IS NULL AND email IS NOT NULL AND COALESCE(pay_status, 'none') <> 'rejected'", [ev.id])).rows;
+    for (const r of rows) { mail.sendMail({ to: r.email, ...mail.templates.certificateReady(r, ev, r.ticket) }); await pool.query('UPDATE event_registrations SET certificate_sent_at = NOW() WHERE id = $1', [r.id]); }
+    const total = Number((await pool.query('SELECT COUNT(*) AS n FROM event_registrations WHERE event_id = $1 AND deleted_at IS NULL AND checked_in_at IS NOT NULL', [ev.id])).rows[0].n);
+    res.json({ sent: rows.length, checked_in: total });
+  } catch (e) { fail(res, e); }
+});
+
 /** Admin: mark a payment verified / rejected / pending (the person gets an email for verified and rejected). Body: { status, note? } */
 router.patch('/:id/payment', async (req, res) => {
   const status = ['verified', 'rejected', 'pending'].includes(req.body?.status) ? req.body.status : null;
@@ -165,7 +250,7 @@ router.patch('/:id/payment', async (req, res) => {
     const r = rows[0];
     const ev = (await pool.query('SELECT * FROM events WHERE id = $1', [r.event_id])).rows[0];
     if (ev && r.email && status !== 'pending') {
-      mail.sendMail({ to: r.email, ...(status === 'verified' ? mail.templates.paymentVerified(r, { ...ev, email_note: ev.reg_form?.email_note }, formalDate) : mail.templates.paymentRejected(r, ev, r.admin_note)) });
+      mail.sendMail({ to: r.email, ...(status === 'verified' ? mail.templates.paymentVerified(r, { ...ev, email_note: ev.reg_form?.email_note, ticket: r.ticket }, formalDate) : mail.templates.paymentRejected(r, ev, r.admin_note)) });
     }
   } catch (e) { fail(res, e); }
 });

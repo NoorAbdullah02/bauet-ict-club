@@ -182,7 +182,12 @@ async function initDb() {
       ALTER TABLE event_registrations ADD COLUMN IF NOT EXISTS payment JSONB;
       ALTER TABLE event_registrations ADD COLUMN IF NOT EXISTS pay_status VARCHAR(12) DEFAULT 'none';
       ALTER TABLE event_registrations ADD COLUMN IF NOT EXISTS admin_note VARCHAR(300);
+      ALTER TABLE event_registrations ADD COLUMN IF NOT EXISTS ticket VARCHAR(16);
+      ALTER TABLE event_registrations ADD COLUMN IF NOT EXISTS checked_in_at TIMESTAMPTZ;
+      ALTER TABLE event_registrations ADD COLUMN IF NOT EXISTS certificate_sent_at TIMESTAMPTZ;
+      ALTER TABLE events ADD COLUMN IF NOT EXISTS reminded_at TIMESTAMPTZ;
       CREATE INDEX IF NOT EXISTS idx_event_regs_event ON event_registrations (event_id, created_at);
+      CREATE INDEX IF NOT EXISTS idx_event_regs_ticket ON event_registrations (ticket);
     `);
     // stand-alone forms (surveys, feedback, recruitment...) built in Admin -> Forms, each with its own public link /f/<slug>
     await client.query(`
@@ -212,6 +217,12 @@ async function initDb() {
       );
       CREATE INDEX IF NOT EXISTS idx_form_responses_form ON form_responses (form_id, created_at);
     `);
+    // sign-ups made before tickets existed get a code now
+    {
+      const { newCode } = require('../utils/tickets');
+      const missing = (await client.query('SELECT id FROM event_registrations WHERE ticket IS NULL')).rows;
+      for (const r of missing) await client.query('UPDATE event_registrations SET ticket = $1 WHERE id = $2', [newCode(), r.id]);
+    }
     // website visits (IP, page, device) for the admin Visitors page
     await client.query(`
       CREATE TABLE IF NOT EXISTS page_views (

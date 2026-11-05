@@ -15,6 +15,9 @@ const AboutPage = named('AboutPage');
 const EventsPage = named('EventsPage');
 const EventDetailPage = named('EventDetailPage');
 const FormPageRoute = named('FormPageRoute');
+const TicketRoute = named('TicketRoute');
+const VerifyRoute = named('VerifyRoute');
+const CertificateRoute = named('CertificateRoute');
 const NoticesPage = named('NoticesPage');
 const TeamPage = named('TeamPage');
 const GalleryPage = named('GalleryPage');
@@ -135,6 +138,9 @@ export default function App() {
           <Route path="events" element={<EventsPage />} />
           <Route path="events/:id" element={<EventDetailPage />} />
           <Route path="f/:slug" element={<FormPageRoute />} />
+          <Route path="ticket/:code" element={<TicketRoute />} />
+          <Route path="verify/:code" element={<VerifyRoute />} />
+          <Route path="certificate/:code" element={<CertificateRoute />} />
           <Route path="notices" element={<NoticesPage />} />
           <Route path="team" element={<TeamPage />} />
           <Route path="gallery" element={<GalleryPage />} />

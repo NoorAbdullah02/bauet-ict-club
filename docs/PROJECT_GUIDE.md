@@ -63,6 +63,15 @@ Admin → Applications: export PDF, Word or CSV (tick *All types* for everyone),
 - **Downloads, one per event / form / committee / application list:** CSV, PDF, Word and a ZIP that also holds every uploaded picture in full quality (choose Original, JPG or PNG).
 - **Events page:** Upcoming (soonest first), Past events (newest first) grouped by semester, search, semester and category filters; every committee's events stay available.
 
+## Tickets, check-in, certificates and reminders
+
+- Everyone who registers for an event gets a **ticket**: a 10-character code and a QR code, shown right after registering, in the confirmation email and at `/ticket/<code>` (paid events get the ticket at once; the place is confirmed when the payment is verified).
+- **Admin → Events → the scanner icon** opens the **check-in desk**: type the code, or scan the QR code with the phone camera (Chrome and Edge; other browsers type the code). It shows how many people are in, warns about unverified payments, and lets you undo.
+- **Certificates:** turn them on in the event's form settings (title, who signs). People who are checked in can download a PDF certificate with a QR code; scanning it opens `/verify/<code>`, which confirms the name and event. *Email certificates* on the check-in desk sends everyone their link (once each).
+- **Reminders:** the day before an event, every confirmed registrant gets a reminder with their ticket link (switch off with `EVENT_REMINDERS=false`).
+- **QR code for any link:** the *QR code* button in the form editor gives a poster-size PNG of the registration or form link.
+- **Spam:** public forms have a hidden trap field that bots fill; their submissions are dropped without being saved.
+
 ## Visitors
 
 Admin → Visitors shows people per day and per week, page views, top pages, devices, where they came from and the IP address of every visitor (search by IP or page, export CSV). The website reports each page it shows to `POST /api/analytics/hit`; bots, the admin area and "Do Not Track" visitors are not counted. IP addresses are deleted after `ANALYTICS_RETENTION_DAYS` days (default 180), and every Monday the admin gets last week's numbers by email. Because IP addresses are personal data, mention visitor statistics in your privacy notice.

@@ -4,13 +4,14 @@ import toast from 'react-hot-toast';
 import { motion } from 'framer-motion';
 import {
   ArrowDown, ArrowLeft, ArrowUp, Check, CircleAlert, Copy, ExternalLink, Eye, GripVertical, Heading, Loader2, Plus, PlusCircle,
-  Settings2, Trash2, Users, X, Wallet, ListChecks, Pencil, Link2,
+  Settings2, Trash2, Users, X, Wallet, ListChecks, Pencil, Link2, QrCode, Award,
 } from 'lucide-react';
 import useStore, { api } from '../context/store';
 import Select from '../components/Select';
 import DynamicForm from '../components/DynamicForm';
 import PaymentBox from '../components/PaymentBox';
 import { inputCls } from './ui';
+import QrModal from '../components/QrModal';
 import { ResponsesPanel } from './EventRegistrations';
 import { DEFAULT_FIELDS, PRESETS, TYPE_LABELS, PAY_METHODS, hasOptions, newField, uid } from '../lib/forms';
 import { copyText, eventLink } from '../lib/share';
@@ -148,6 +149,7 @@ export default function FormEditor({ kind = 'form' }) {
   const [problem, setProblem] = useState('');
   const [activeId, setActiveId] = useState(null);
   const [preview, setPreview] = useState(false);
+  const [qr, setQr] = useState(false);
   const [sample, setSample] = useState({});
   const [notFound, setNotFound] = useState(false);
   const rev = useRef(0);
@@ -165,7 +167,7 @@ export default function FormEditor({ kind = 'form' }) {
       const f = row.reg_form?.fields?.length ? clone(row.reg_form) : { title: '', intro: '', confirmation: '', unique: kind === 'form' ? '' : 'email', fields: clone(kind === 'form' ? [{ id: 'name', key: 'name', type: 'short', label: 'Your name', required: true }] : DEFAULT_FIELDS) };
       setDoc({
         title: kind === 'form' ? row.title : row.title, heading: f.title || '', intro: f.intro || row.description || '', confirmation: f.confirmation || '', email_note: f.email_note || '', unique: f.unique || '',
-        notify_admin: !!f.notify_admin, closes_at: f.closes_at || '', payment: f.payment || null, fields: f.fields,
+        notify_admin: !!f.notify_admin, closes_at: f.closes_at || '', payment: f.payment || null, cert: f.cert || null, fields: f.fields,
         capacity: Number(row.capacity) || 0, open: kind === 'form' ? row.is_open !== false : row.reg_open !== false, slug: row.slug || '',
       });
       setActiveId(null);
@@ -183,6 +185,7 @@ export default function FormEditor({ kind = 'form' }) {
   const body = useCallback((d) => ({
     title: d.heading.trim(), intro: d.intro, confirmation: d.confirmation, email_note: d.email_note, unique: d.unique, notify_admin: d.notify_admin, closes_at: d.closes_at || undefined,
     payment: d.payment?.enabled ? { ...d.payment, amount: Number(d.payment.amount) } : undefined,
+    cert: d.cert?.enabled ? d.cert : undefined,
     fields: d.fields.map((q) => ({ ...q, options: hasOptions(q.type) ? q.options.map((o) => o.trim()).filter(Boolean) : undefined })),
   }), []);
 
@@ -247,6 +250,7 @@ export default function FormEditor({ kind = 'form' }) {
           <span className={cn('flex items-center gap-1.5 text-xs font-medium', sColor)} title={problem || ''}><SIcon size={14} className={status === 'saving' ? 'animate-spin' : ''} /> {sLabel}</span>
           <button onClick={() => { setPreview((p) => !p); setTab('questions'); }} className={cn('flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold transition', preview ? 'border-tech bg-tech/10 text-tech' : 'border-line text-fg2 hover:border-tech hover:text-tech')}><Eye size={14} /> Preview</button>
           <button onClick={async () => toast[(await copyText(link)) ? 'success' : 'error']('Link copied')} className="flex items-center gap-1.5 rounded-lg border border-line px-3 py-2 text-xs font-semibold text-fg2 hover:border-tech hover:text-tech"><Link2 size={14} /> Copy link</button>
+          <button onClick={() => setQr(true)} className="flex items-center gap-1.5 rounded-lg border border-line px-3 py-2 text-xs font-semibold text-fg2 hover:border-tech hover:text-tech"><QrCode size={14} /> QR code</button>
           <a href={link} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 rounded-lg bg-accent px-3.5 py-2 text-xs font-semibold text-white"><ExternalLink size={14} /> Open</a>
         </div>
         {status === 'invalid' && problem && <p className="mt-2 flex items-center gap-1.5 text-xs text-amber-600"><CircleAlert size={13} /> {problem}. Your changes are saved as soon as this is fixed.</p>}
@@ -257,6 +261,8 @@ export default function FormEditor({ kind = 'form' }) {
           <div className="ml-auto flex items-center pr-1"><Switch checked={doc.open} onChange={(v) => patchDoc({ open: v })} label={doc.open ? 'Accepting responses' : 'Closed'} /></div>
         </div>
       </div>
+
+      {qr && <QrModal url={link} title={kind === 'form' ? doc.title : item.title} onClose={() => setQr(false)} />}
 
       {tab === 'responses' && <div className="mx-auto max-w-3xl"><ResponsesPanel event={{ ...item, reg_form: { ...(item.reg_form || {}), fields: doc.fields, payment: doc.payment?.enabled ? doc.payment : undefined }, capacity: doc.capacity }} kind={kind} /></div>}
 
@@ -349,6 +355,22 @@ export default function FormEditor({ kind = 'form' }) {
               </div>
             )}
           </section>
+
+          {kind === 'event' && (
+            <section className="rounded-2xl border border-line bg-surface p-6">
+              <div className="flex items-center justify-between gap-3"><h3 className="flex items-center gap-2 text-lg text-fg"><Award size={18} className="text-accent" /> Certificates</h3>
+                <Switch checked={!!doc.cert?.enabled} onChange={(v) => patchDoc({ cert: { title: 'Certificate of Participation', signer: '', signer_title: 'BAUET ICT Club', note: '', ...doc.cert, enabled: v } })} label={doc.cert?.enabled ? 'On' : 'Off'} /></div>
+              <p className="mt-1 text-xs text-muted">People who are checked in at the entrance can download a certificate with a QR code anyone can verify. You can also email them all at once from the Check-in desk.</p>
+              {doc.cert?.enabled && (
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <label className="block sm:col-span-2"><span className="mb-1 block font-mono text-[10px] uppercase tracking-wider text-muted">Title</span><input className={inputCls} value={doc.cert.title} maxLength={60} onChange={(e) => patchDoc({ cert: { ...doc.cert, title: e.target.value } })} /></label>
+                  <label className="block"><span className="mb-1 block font-mono text-[10px] uppercase tracking-wider text-muted">Signed by</span><input className={inputCls} placeholder="Dr. Md. Rubel Bashar" value={doc.cert.signer} maxLength={60} onChange={(e) => patchDoc({ cert: { ...doc.cert, signer: e.target.value } })} /></label>
+                  <label className="block"><span className="mb-1 block font-mono text-[10px] uppercase tracking-wider text-muted">Role</span><input className={inputCls} placeholder="President, BAUET ICT Club" value={doc.cert.signer_title} maxLength={80} onChange={(e) => patchDoc({ cert: { ...doc.cert, signer_title: e.target.value } })} /></label>
+                  <label className="block sm:col-span-2"><span className="mb-1 block font-mono text-[10px] uppercase tracking-wider text-muted">Line under the event name (optional)</span><input className={inputCls} placeholder="for completing the full-day workshop" value={doc.cert.note} maxLength={160} onChange={(e) => patchDoc({ cert: { ...doc.cert, note: e.target.value } })} /></label>
+                </div>
+              )}
+            </section>
+          )}
 
           <section className="rounded-2xl border border-line bg-surface p-6">
             <h3 className="mb-4 text-lg text-fg">After someone submits</h3>
