@@ -135,11 +135,12 @@ function QuestionCard({ q, i, total, fields, active, onActivate, patch, remove, 
 
 /** Full-page form editor, like Google Forms: questions on a canvas, autosave, preview, responses and settings in tabs.
  *  Works for stand-alone forms (/admin/forms/:id) and for the registration form of an event (/admin/events/:id/form). */
-export default function FormEditor({ kind = 'form' }) {
-  const { id } = useParams();
+export default function FormEditor({ kind = 'form', eventId }) {
+  const routeId = useParams().id;
+  const id = eventId ?? routeId;
   const [params, setParams] = useSearchParams();
   const tab = params.get('tab') || 'questions';
-  const setTab = (t) => setParams(t === 'questions' ? {} : { tab: t }, { replace: true });
+  const setTab = (t) => { const n = new URLSearchParams(params); if (t === 'questions') n.delete('tab'); else n.set('tab', t); setParams(n, { replace: true }); };
   const updateItem = useStore((s) => s.updateItem);
   const storeEvents = useStore((s) => s.events);
 
@@ -248,17 +249,24 @@ export default function FormEditor({ kind = 'form' }) {
             ? <input className="min-w-0 flex-1 bg-transparent font-display text-xl text-fg outline-none focus:border-b focus:border-tech" value={doc.title} maxLength={200} onChange={(e) => patchDoc({ title: e.target.value })} aria-label="Form name" />
             : <div className="min-w-0 flex-1"><div className="truncate font-display text-xl text-fg">{item.title}</div><div className="text-xs text-muted">Registration form for this event</div></div>}
           <span className={cn('flex items-center gap-1.5 text-xs font-medium', sColor)} title={problem || ''}><SIcon size={14} className={status === 'saving' ? 'animate-spin' : ''} /> {sLabel}</span>
-          <button onClick={() => { setPreview((p) => !p); setTab('questions'); }} className={cn('flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold transition', preview ? 'border-tech bg-tech/10 text-tech' : 'border-line text-fg2 hover:border-tech hover:text-tech')}><Eye size={14} /> Preview</button>
+          <button onClick={() => { setPreview((p) => !p); setTab('questions'); }} className={cn('flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold transition', preview ? 'border-tech bg-tech/10 text-tech' : 'border-line text-fg2 hover:border-tech hover:text-tech')}>{preview ? <Pencil size={14} /> : <Eye size={14} />} {preview ? 'Back to editing' : 'Preview'}</button>
           <button onClick={async () => toast[(await copyText(link)) ? 'success' : 'error']('Link copied')} className="flex items-center gap-1.5 rounded-lg border border-line px-3 py-2 text-xs font-semibold text-fg2 hover:border-tech hover:text-tech"><Link2 size={14} /> Copy link</button>
           <button onClick={() => setQr(true)} className="flex items-center gap-1.5 rounded-lg border border-line px-3 py-2 text-xs font-semibold text-fg2 hover:border-tech hover:text-tech"><QrCode size={14} /> QR code</button>
           <a href={link} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 rounded-lg bg-accent px-3.5 py-2 text-xs font-semibold text-white"><ExternalLink size={14} /> Open</a>
+        </div>
+        <div className={cn('mt-3 flex flex-wrap items-center gap-2 rounded-xl border px-3 py-2 text-xs', doc.open ? 'border-emerald-500/30 bg-emerald-500/8' : 'border-amber-500/30 bg-amber-500/10')}>
+          {doc.open
+            ? <><span className="inline-flex items-center gap-1.5 font-semibold text-emerald-600"><Check size={14} /> Published</span><span className="min-w-0 flex-1 truncate font-mono text-fg2">{link}</span>
+              <button onClick={async () => toast[(await copyText(link)) ? 'success' : 'error']('Link copied')} className="font-semibold text-tech">Copy link</button></>
+            : <><span className="inline-flex items-center gap-1.5 font-semibold text-amber-600"><CircleAlert size={14} /> Not published: nobody can fill this in yet</span><span className="flex-1" />
+              <button onClick={async () => { patchDoc({ open: true }); toast.success((await copyText(link)) ? 'Published. Link copied' : 'Published'); }} className="rounded-lg bg-accent px-3.5 py-1.5 font-semibold text-white">Publish</button></>}
         </div>
         {status === 'invalid' && problem && <p className="mt-2 flex items-center gap-1.5 text-xs text-amber-600"><CircleAlert size={13} /> {problem}. Your changes are saved as soon as this is fixed.</p>}
         <div className="mt-3 flex gap-1 border-t border-line pt-2">
           {[['questions', Pencil, 'Questions'], ['responses', Users, 'Responses'], ['settings', Settings2, 'Settings']].map(([k, I, l]) => (
             <button key={k} onClick={() => { setTab(k); setPreview(false); }} className={cn('flex items-center gap-1.5 rounded-t-lg border-b-2 px-4 py-2 text-sm font-medium transition', tab === k ? 'border-tech text-tech' : 'border-transparent text-fg2 hover:text-fg')}><I size={15} /> {l}</button>
           ))}
-          <div className="ml-auto flex items-center pr-1"><Switch checked={doc.open} onChange={(v) => patchDoc({ open: v })} label={doc.open ? 'Accepting responses' : 'Closed'} /></div>
+          <div className="ml-auto flex items-center pr-1"><Switch checked={doc.open} onChange={(v) => patchDoc({ open: v })} label={doc.open ? 'Published' : 'Not published'} /></div>
         </div>
       </div>
 
@@ -270,7 +278,7 @@ export default function FormEditor({ kind = 'form' }) {
         <div className="mx-auto max-w-2xl">
           <div className="relative rounded-3xl border border-line bg-surface p-6 shadow-[var(--shadow-md)] sm:p-9">
             <div className="absolute inset-x-0 top-0 h-2 rounded-t-3xl" style={{ background: 'linear-gradient(90deg,var(--accent),var(--tech))' }} />
-            <p className="mb-4 rounded-xl bg-alt px-3 py-2 text-xs text-fg2">Preview: this is what people see. Nothing here is saved.</p>
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-alt px-3 py-2 text-xs text-fg2"><span>Preview: this is what people see. Nothing here is saved.</span><button onClick={() => setPreview(false)} className="inline-flex items-center gap-1 font-semibold text-tech"><Pencil size={12} /> Back to editing</button></div>
             <h2 className="text-3xl text-fg">{doc.heading || (kind === 'form' ? doc.title : item.title)}</h2>
             {doc.intro && <p className="mt-3 whitespace-pre-line text-fg2">{doc.intro}</p>}
             <div className="mt-6"><DynamicForm fields={previewFields} values={sample} onChange={(k, v) => setSample((s) => ({ ...s, [k]: v }))} /></div>

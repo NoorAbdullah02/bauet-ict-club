@@ -42,8 +42,9 @@ export default function DataView({ type }) {
   const rows = useMemo(() => items.filter((i) => !q || JSON.stringify(i).toLowerCase().includes(q.toLowerCase())), [items, q]);
 
   const today = new Date().toISOString().slice(0, 10);
-  const [buildForm, setBuildForm] = useState(true); // new event: go straight to its registration form after saving
-  const openAdd = () => { setForm({ ...(cfg.fields.some((f) => f.key === 'date') ? { date: today } : {}), ...(type === 'events' ? { reg_open: true } : {}) }); setDrawer({ mode: 'add' }); };
+  const openAdd = () => {
+    if (type === 'events') { navigate('/admin/events/new'); return; } // events get their own full page: details and registration form together
+    setForm({ ...(cfg.fields.some((f) => f.key === 'date') ? { date: today } : {}), ...(type === 'events' ? { reg_open: true } : {}) }); setDrawer({ mode: 'add' }); };
 
   // dashboard shortcuts (…/notices?new=1) open the form straight away
   useEffect(() => {
@@ -57,12 +58,9 @@ export default function DataView({ type }) {
     setSaving(true);
     try {
       const body = Object.fromEntries(fields.map((f) => [f.key, form[f.key] ?? (f.type === 'checkbox' ? false : '')]));
-      let made = null;
-      if (drawer.mode === 'add') made = await store.addItem(type, body); else await store.updateItem(type, drawer.id, body);
-      const goForm = drawer.mode === 'add' && type === 'events' && buildForm && !body.reg_url && made?.id;
-      toast.success(goForm ? 'Event added: now build its registration form' : drawer.mode === 'add' ? 'Added' : 'Saved');
+      if (drawer.mode === 'add') await store.addItem(type, body); else await store.updateItem(type, drawer.id, body);
+      toast.success(drawer.mode === 'add' ? 'Added' : 'Saved');
       setDrawer(null);
-      if (goForm) navigate(`/admin/events/${made.id}/form`);
     } catch (e) { toast.error(e.response?.data?.error || e.message); }
     setSaving(false);
   };
@@ -137,12 +135,6 @@ export default function DataView({ type }) {
         footer={<><button onClick={() => setDrawer(null)} className="btn-outline !px-5 !py-2.5 text-xs">Cancel</button>
           <button onClick={save} disabled={saving} className="btn-primary !px-5 !py-2.5 text-xs disabled:opacity-60">{saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} Save</button></>}>
         {fields.map((f) => <FormField key={f.key} field={f} value={form[f.key]} upload={uploadWhere(type, form)} onChange={(k, v) => setForm((p) => ({ ...p, [k]: v }))} />)}
-        {type === 'events' && drawer?.mode === 'add' && !form.reg_url && (
-          <label className="mt-2 flex cursor-pointer items-start gap-3 rounded-2xl border border-tech/30 bg-tech/8 p-4">
-            <input type="checkbox" checked={buildForm} onChange={(e) => setBuildForm(e.target.checked)} className="mt-0.5 size-4 accent-[var(--tech,#2563eb)]" />
-            <span className="text-sm text-fg"><b>Build the registration form next</b><br /><span className="text-xs text-fg2">After saving, the form editor opens for this event: add questions, a seat limit, a deadline and a bKash payment. You can also do it later.</span></span>
-          </label>
-        )}
       </Drawer>
     </div>
   );

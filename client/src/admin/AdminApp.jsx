@@ -18,6 +18,7 @@ import Visitors from './Visitors';
 import FormsAdmin from './FormsAdmin';
 import FormEditor from './FormEditor';
 import CheckIn from './CheckIn';
+import EventStudio from './EventStudio';
 import Logo from '../components/Logo';
 import { cn } from '../lib/cn';
 
@@ -131,6 +132,7 @@ export default function AdminApp() {
             <Route path="visitors" element={<Visitors />} />
             <Route path="forms" element={<FormsAdmin />} />
             <Route path="forms/:id" element={<FormEditor kind="form" />} />
+            <Route path="events/new" element={<EventStudio />} />
             <Route path="events/:id/form" element={<FormEditor kind="event" />} />
             <Route path="events/:id/checkin" element={<CheckIn />} />
             <Route path="trash" element={<Trash />} />
