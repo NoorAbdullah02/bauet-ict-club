@@ -46,6 +46,8 @@ jobs:
       # adds the Android project files the repository does not keep; existing files (manifest, network config) are left alone
       - run: flutter create . --org com.bauet --project-name bauet_ict_club --platforms android
       - run: flutter pub get
+      - name: Home-screen icon from the club logo
+        run: dart run flutter_launcher_icons
       - name: Analyse (errors fail the build)
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
       - run: flutter test
