@@ -26,29 +26,55 @@ class AuroraBackground extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = context.pal;
-    final a = p.dark ? 0.30 : 0.2;
+    final a = p.dark ? 0.36 : 0.24;
     return Stack(
       children: [
         Positioned.fill(child: ColoredBox(color: p.bg)),
-        Positioned(
-          top: -140,
-          left: -120,
-          child: _Glow(color: p.accent.withValues(alpha: a), size: 380),
-        ),
-        Positioned(
-          top: 220,
-          right: -160,
-          child: _Glow(color: p.tech.withValues(alpha: a * 0.8), size: 340),
-        ),
-        Positioned(
-          bottom: -160,
-          left: -60,
-          child: _Glow(color: p.third.withValues(alpha: a * 0.6), size: 340),
+        Positioned(top: -150, left: -130, child: _Glow(color: p.accent.withValues(alpha: a), size: 440)),
+        Positioned(top: 200, right: -170, child: _Glow(color: p.tech.withValues(alpha: a * 0.8), size: 380)),
+        Positioned(bottom: -170, left: -70, child: _Glow(color: p.third.withValues(alpha: a * 0.7), size: 400)),
+        Positioned(bottom: 120, right: -120, child: _Glow(color: const Color(0xFF8B5CF6).withValues(alpha: a * 0.6), size: 320)),
+        // faint grid that fades out toward the edges
+        Positioned.fill(
+          child: IgnorePointer(
+            child: ShaderMask(
+              blendMode: BlendMode.dstIn,
+              shaderCallback: (r) => const RadialGradient(
+                center: Alignment(0, -0.2),
+                radius: 0.95,
+                colors: [Colors.white, Colors.transparent],
+                stops: [0.25, 1],
+              ).createShader(r),
+              child: CustomPaint(painter: _GridPainter(p.accent.withValues(alpha: p.dark ? 0.09 : 0.07))),
+            ),
+          ),
         ),
         Positioned.fill(child: child),
       ],
     );
   }
+}
+
+class _GridPainter extends CustomPainter {
+  const _GridPainter(this.color);
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 1;
+    const step = 40.0;
+    for (double x = 0; x <= size.width; x += step) {
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
+    }
+    for (double y = 0; y <= size.height; y += step) {
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_GridPainter old) => old.color != color;
 }
 
 class _Glow extends StatelessWidget {
@@ -68,7 +94,7 @@ class _Glow extends StatelessWidget {
         ),
       )
           .animate(onPlay: (c) => c.repeat(reverse: true))
-          .move(begin: const Offset(-14, -10), end: const Offset(14, 12), duration: 6.seconds, curve: Curves.easeInOut),
+          .move(begin: const Offset(-14, -10), end: const Offset(14, 12), duration: 9.seconds, curve: Curves.easeInOut),
     );
   }
 }
