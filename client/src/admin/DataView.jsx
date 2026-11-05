@@ -96,8 +96,18 @@ export default function DataView({ type }) {
                 {rows.map((item) => (
                   <tr key={item.id} className="border-b border-line/60 transition last:border-0 hover:bg-accent/5">
                     {cfg.cols.map((c, ci) => (
-                      <td key={c} className={`max-w-xs truncate px-5 py-3.5 ${ci === 0 ? 'font-medium text-fg' : 'text-fg2'}`}>
-                        {typeof item[c] === 'boolean' ? (item[c] ? <span className="rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-xs text-emerald-500">Yes</span> : '—') : (/^\d{4}-\d{2}-\d{2}/.test(String(item[c])) ? formalDate(item[c], { short: true }) : c === 'time' ? formalTime(item[c]) : String(item[c] ?? '—').slice(0, 80))}
+                      <td key={c} className={`max-w-xs truncate px-5 py-3.5 ${ci === 0 && type === 'events' ? 'min-w-64 ' : ''}${ci === 0 ? 'font-medium text-fg' : 'text-fg2'}`}>
+                        {ci === 0 && type === 'events' && (
+                          <span className="mb-1 block whitespace-normal">{String(item[c] ?? '')}</span>
+                        )}
+                        {ci === 0 && type === 'events' && (
+                          <span className="flex flex-wrap gap-1.5 whitespace-normal">
+                            {!item.reg_url && <button onClick={() => navigate(`/admin/events/${item.id}/form`)} className="inline-flex items-center gap-1 rounded-full border border-line px-2.5 py-1 text-[11px] font-semibold text-tech hover:bg-tech/10"><ClipboardList size={12} /> Registration form</button>}
+                            <button onClick={() => setRegEvent(item)} className="inline-flex items-center gap-1 rounded-full border border-line px-2.5 py-1 text-[11px] font-semibold text-tech hover:bg-tech/10"><Users size={12} /> Registrations</button>
+                            <button onClick={() => navigate(`/admin/events/${item.id}/checkin`)} className="inline-flex items-center gap-1 rounded-full border border-line px-2.5 py-1 text-[11px] font-semibold text-tech hover:bg-tech/10"><ScanLine size={12} /> Check-in</button>
+                          </span>
+                        )}
+                        {!(ci === 0 && type === 'events') && (typeof item[c] === 'boolean' ? (item[c] ? <span className="rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-xs text-emerald-500">Yes</span> : '—') : (/^\d{4}-\d{2}-\d{2}/.test(String(item[c])) ? formalDate(item[c], { short: true }) : c === 'time' ? formalTime(item[c]) : String(item[c] ?? '—').slice(0, 80)))}
                       </td>
                     ))}
                     <td className="px-5 py-3.5"><div className="flex justify-end gap-1.5">
