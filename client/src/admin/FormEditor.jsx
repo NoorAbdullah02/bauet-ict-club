@@ -187,6 +187,7 @@ export default function FormEditor({ kind = 'form', eventId }) {
   const [activeId, setActiveId] = useState(null);
   const [preview, setPreview] = useState(false);
   const [shortCode, setShortCode] = useState('');
+  const [which, setWhich] = useState('short'); // which of the two working links is shown, copied and used for the QR code
   const [alias, setAlias] = useState('');
   const pagePath = item ? (kind === 'form' ? `/f/${item.slug || doc?.slug}` : `/events/${item.id}`) : '';
   useEffect(() => { // short link of this form / event, made on first view
@@ -275,7 +276,8 @@ export default function FormEditor({ kind = 'form', eventId }) {
   const dropQ = (toId) => { if (dragFrom && dragFrom !== toId) edit((d) => { const n = [...d.fields]; const a = n.findIndex((x) => x.id === dragFrom); const b = n.findIndex((x) => x.id === toId); const [m] = n.splice(a, 1); n.splice(b, 0, m); return { ...d, fields: n }; }); setDragFrom(null); setDragOver(null); setDragId(null); };
 
   const longLink = item ? (kind === 'form' ? `${window.location.origin}/f/${doc?.slug || item.slug}` : eventLink(item.id)) : '';
-  const link = shortCode ? `${window.location.origin}/s/${shortCode}` : longLink; // the short one is what gets shared
+  const shortUrl = shortCode ? `${window.location.origin}/s/${shortCode}` : '';
+  const link = which === 'short' && shortUrl ? shortUrl : longLink; // both links work; the short one is the default
   const backTo = kind === 'form' ? '/admin/forms' : '/admin/events';
   const previewFields = useMemo(() => (doc ? doc.fields.map((q) => (hasOptions(q.type) ? { ...q, options: q.options.filter(Boolean) } : q)) : []), [doc]);
 
@@ -300,8 +302,12 @@ export default function FormEditor({ kind = 'form', eventId }) {
         </div>
         <div className={cn('mt-3 flex flex-wrap items-center gap-2 rounded-xl border px-3 py-2 text-xs', doc.open ? 'border-emerald-500/30 bg-emerald-500/8' : 'border-amber-500/30 bg-amber-500/10')}>
           {doc.open
-            ? <><span className="inline-flex items-center gap-1.5 font-semibold text-emerald-600"><Check size={14} /> Published</span><span className="min-w-0 flex-1 truncate font-mono text-fg2">{link}</span>
-              <button onClick={async () => toast[(await copyText(link)) ? 'success' : 'error']('Link copied')} className="font-semibold text-tech">Copy link</button></>
+            ? <><span className="inline-flex items-center gap-1.5 font-semibold text-emerald-600"><Check size={14} /> Published</span>
+              <Select className={cn(inputCls, '!w-auto min-w-0 flex-1 !py-1.5 font-mono text-xs')} value={which} onChange={(e) => setWhich(e.target.value)} aria-label="Which link to share">
+                {shortUrl && <option value="short">Short · {shortUrl}</option>}
+                <option value="long">Full · {longLink}</option>
+              </Select>
+              <button onClick={async () => toast[(await copyText(link)) ? 'success' : 'error']('Link copied')} className="inline-flex items-center gap-1 font-semibold text-tech"><Copy size={13} /> Copy link</button></>
             : <><span className="inline-flex items-center gap-1.5 font-semibold text-amber-600"><CircleAlert size={14} /> Not published: nobody can fill this in yet</span><span className="flex-1" />
               <button onClick={async () => { patchDoc({ open: true }); toast.success((await copyText(link)) ? 'Published. Link copied' : 'Published'); }} className="rounded-lg bg-accent px-3.5 py-1.5 font-semibold text-white">Publish</button></>}
         </div>

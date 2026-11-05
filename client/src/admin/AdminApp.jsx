@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Link, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutDashboard, Eye, ClipboardList, Users, Calendar, Bell, Image, Trophy, FileText, MessageSquare, Mail, Settings, Trash2, LogOut, Sun, Moon, Menu, ExternalLink, Loader2, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, Eye, ClipboardList, Users, Calendar, Bell, Image, Trophy, FileText, MessageSquare, Mail, Settings, Trash2, History, LogOut, Sun, Moon, Menu, ExternalLink, Loader2, ChevronRight } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import useStore from '../context/store';
 import Login from './Login';
@@ -19,6 +19,7 @@ import FormsAdmin from './FormsAdmin';
 import FormEditor from './FormEditor';
 import CheckIn from './CheckIn';
 import EventStudio from './EventStudio';
+import Activity from './Activity';
 import Logo from '../components/Logo';
 import { cn } from '../lib/cn';
 
@@ -26,7 +27,7 @@ const NAV = [
   ['Overview', [['/admin', LayoutDashboard, 'Dashboard', true], ['/admin/visitors', Eye, 'Visitors']]],
   ['People', [['/admin/applications', ClipboardList, 'Applications', false, 'pending'], ['/admin/members', Users, 'Committee']]],
   ['Content', [['/admin/events', Calendar, 'Events'], ['/admin/notices', Bell, 'Notices'], ['/admin/gallery', Image, 'Gallery'], ['/admin/achievements', Trophy, 'Achievements'], ['/admin/posts', FileText, 'Posts']]],
-  ['System', [['/admin/forms', ClipboardList, 'Forms'], ['/admin/messages', MessageSquare, 'Messages', false, 'unread'], ['/admin/newsletter', Mail, 'Newsletter'], ['/admin/trash', Trash2, 'Trash', false, 'trash'], ['/admin/settings', Settings, 'Settings']]],
+  ['System', [['/admin/forms', ClipboardList, 'Forms'], ['/admin/messages', MessageSquare, 'Messages', false, 'unread'], ['/admin/newsletter', Mail, 'Newsletter'], ['/admin/trash', Trash2, 'Trash', false, 'trash'], ['/admin/activity', History, 'Activity'], ['/admin/settings', Settings, 'Settings']]],
 ];
 FEATURES.forEach((f) => {
   const group = NAV.find(([g]) => g === (f.nav || 'Content')) || NAV[2];
@@ -35,6 +36,7 @@ FEATURES.forEach((f) => {
 const TITLES = Object.fromEntries(NAV.flatMap(([, items]) => items.map(([to, , label]) => [to, label])));
 
 function Sidebar({ badges, onNavigate }) {
+  const user = useStore((s) => s.user);
   return (
     <div className="flex h-full flex-col">
       <Link to="/" className="mb-8 block px-2" onClick={onNavigate}>
@@ -46,7 +48,7 @@ function Sidebar({ badges, onNavigate }) {
           <div key={group}>
             <div className="mb-2 px-3 font-mono text-[10px] uppercase tracking-[0.22em] text-muted">{group}</div>
             <ul className="space-y-1">
-              {items.map(([to, Icon, label, end, badge]) => (
+              {items.filter(([to]) => user?.role === 'superadmin' || !['/admin/trash', '/admin/activity'].includes(to)).map(([to, Icon, label, end, badge]) => (
                 <li key={to}>
                   <NavLink to={to} end={end} onClick={onNavigate}
                     className={({ isActive }) => cn('group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors', isActive ? 'text-white' : 'text-fg2 hover:bg-accent/8 hover:text-fg')}>
@@ -135,6 +137,7 @@ export default function AdminApp() {
             <Route path="events/new" element={<EventStudio />} />
             <Route path="events/:id/form" element={<FormEditor kind="event" />} />
             <Route path="events/:id/checkin" element={<CheckIn />} />
+            <Route path="activity" element={<Activity />} />
             <Route path="trash" element={<Trash />} />
             <Route path="settings" element={<SettingsView />} />
             <Route path="*" element={<Navigate to="/admin" replace />} />

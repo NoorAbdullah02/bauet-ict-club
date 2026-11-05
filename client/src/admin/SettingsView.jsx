@@ -5,6 +5,7 @@ import { useShallow } from 'zustand/react/shallow';
 import useStore from '../context/store';
 import { Panel, PageTitle, inputCls, askConfirm } from './ui';
 import ServiceStatus from './ServiceStatus';
+import Security from './Security';
 import { api } from '../context/store';
 
 function PasswordPanel() {
@@ -39,6 +40,7 @@ const FIELDS = [['heroTitle', 'Hero title', 'text'], ['heroSub', 'Hero subtitle'
 
 export default function SettingsView() {
   const { settings, updateSettings } = useStore(useShallow((s) => ({ settings: s.settings, updateSettings: s.updateSettings })));
+  const user = useStore((s) => s.user);
   const [f, setF] = useState(null);
   const [busy, setBusy] = useState(false);
   const [demo, setDemo] = useState(null);
@@ -86,6 +88,7 @@ export default function SettingsView() {
         </Panel>
         <ServiceStatus />
         <PasswordPanel />
+        {user?.role === 'superadmin' && <Security />}
         <Panel className="self-start p-6 xl:col-start-2">
           <div className="flex items-start gap-4">
             <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-tech/12 text-tech"><FlaskConical size={22} /></span>

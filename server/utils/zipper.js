@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const archiver = require('archiver');
+const { ZipArchive } = require('archiver');
 const { detect, UPLOAD_DIR } = require('./saveImage');
 
 const safe = (s, fallback = 'file') => String(s || '').normalize('NFKD').replace(/[^\w.-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 50) || fallback;
@@ -36,7 +36,7 @@ const extOf = (buf) => EXT[detect(buf)] || 'jpg';
  */
 async function sendZip(res, filename, entries, { format = 'original' } = {}) {
   res.set({ 'Content-Type': 'application/zip', 'Content-Disposition': `attachment; filename="${safe(filename, 'download')}.zip"`, 'Cache-Control': 'no-store' });
-  const zip = archiver('zip', { zlib: { level: 3 } });
+  const zip = new ZipArchive({ zlib: { level: 3 } });
   zip.on('error', () => { try { res.end(); } catch { /* connection already closed */ } });
   zip.pipe(res);
   const used = new Set(); const missing = [];

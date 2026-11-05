@@ -203,6 +203,20 @@ async function initDb() {
         deleted_at TIMESTAMPTZ,
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
+      CREATE TABLE IF NOT EXISTS form_slug_history (
+        slug VARCHAR(80) PRIMARY KEY,
+        form_id INTEGER NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS audit_log (
+        id SERIAL PRIMARY KEY,
+        admin_id INTEGER,
+        username VARCHAR(100),
+        method VARCHAR(8),
+        path VARCHAR(200),
+        status INTEGER,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_log (created_at);
       CREATE TABLE IF NOT EXISTS short_links (
         code VARCHAR(40) PRIMARY KEY,
         target VARCHAR(120) NOT NULL,

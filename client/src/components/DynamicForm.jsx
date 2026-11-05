@@ -4,7 +4,7 @@ import { cn } from '../lib/cn';
 import { useEffect, useMemo, useState } from 'react';
 import { Loader2, ImagePlus, ArrowLeft, ArrowRight } from 'lucide-react';
 import { api } from '../context/store';
-import { isVisible, isOther, OTHER, isEmpty } from '../lib/forms';
+import { isVisible, isOther, OTHER, isEmpty, ruleProblem } from '../lib/forms';
 import { compressImage } from '../lib/compressImage';
 
 const label = (f) => (
@@ -68,7 +68,11 @@ export default function DynamicForm({ fields: all, values, errors = {}, onChange
   }, [errors]); // eslint-disable-line react-hooks/exhaustive-deps
   const next = () => {
     const err = {};
-    here.forEach((f) => { if (f.type !== 'section' && isVisible(f, values) && f.required && isEmpty(values[f.id])) err[f.id] = 'This question is required'; });
+    here.forEach((f) => {
+      if (f.type === 'section' || !isVisible(f, values)) return;
+      if (f.required && isEmpty(values[f.id])) err[f.id] = 'This question is required';
+      else { const m = ruleProblem(f, values[f.id]); if (m) err[f.id] = m; }
+    });
     if (Object.keys(err).length) { onPageError?.(err); return; }
     setPage((p) => p + 1); window.scrollTo?.({ top: 0, behavior: 'smooth' });
   };

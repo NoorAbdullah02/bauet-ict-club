@@ -11,12 +11,25 @@ if (!JWT_SECRET || JWT_SECRET.length < 16) {
   console.warn('⚠  JWT_SECRET missing or shorter than 16 characters in .env: using a temporary random secret (logins reset on restart).');
 }
 
+// What an "editor" login may NOT do: delete anything, touch payments, backups, the activity log, team logins, the trash, committee moves, or the club e-mail tools.
+const EDITOR_BLOCKED = /^\/api\/(backup|audit|team|trash|committees|email)(\/|$)|\/payment(\/|$)/;
+const MUTATING = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+const QUIET = /^\/api\/(short|auth\/login)/; // not worth a line in the activity log
+
 function authMiddleware(req, res, next) {
   const token = req.headers.authorization?.split(' ')[1];
   if (!token) return res.status(401).json({ error: 'No token provided' });
   try {
     const decoded = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] });
     req.user = decoded;
+    const url = String(req.originalUrl || '').split('?')[0];
+    if (decoded.role === 'editor' && (req.method === 'DELETE' || EDITOR_BLOCKED.test(url))) return res.status(403).json({ error: 'Your login can edit but cannot do this. Ask the main admin.' });
+    if (MUTATING.has(req.method) && !QUIET.test(url)) {
+      res.on('finish', () => { // who did what, kept for 180 days
+        if (res.statusCode >= 400) return;
+        require('../config/db').query('INSERT INTO audit_log (admin_id, username, method, path, status) VALUES ($1,$2,$3,$4,$5)', [decoded.id, decoded.username, req.method, url.slice(0, 200), res.statusCode]).catch(() => {});
+      });
+    }
     next();
   } catch (e) {
     return res.status(401).json({ error: 'Invalid token' });
@@ -27,4 +40,7 @@ function generateToken(user) {
   return jwt.sign({ id: user.id, username: user.username, role: user.role }, JWT_SECRET, { algorithm: 'HS256', expiresIn: '12h' });
 }
 
-module.exports = { authMiddleware, generateToken, JWT_SECRET };
+/** Only the main admin (superadmin) passes. Use after authMiddleware. */
+const requireSuper = (req, res, next) => (req.user?.role === 'superadmin' ? next() : res.status(403).json({ error: 'Only the main admin can do this.' }));
+
+module.exports = { requireSuper, authMiddleware, generateToken, JWT_SECRET };
