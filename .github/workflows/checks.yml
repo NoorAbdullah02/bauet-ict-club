@@ -56,3 +56,13 @@ jobs:
           name: bauet-ict-club-debug-apk
           path: app/build/app/outputs/flutter-apk/app-debug.apk
           if-no-files-found: error
+      # the version to install on a phone: much smaller and faster than the debug one (arm64 = almost every phone made after 2017)
+      - name: Build a release APK (small, fast)
+        run: flutter build apk --release --split-per-abi --dart-define-from-file=env.production.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bauet-ict-club-phone-apk
+          path: |
+            app/build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
+            app/build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
+          if-no-files-found: error
