@@ -147,7 +147,7 @@ export default function DynamicForm({ fields: all, values, errors = {}, onChange
           case 'number': control = <input type="number" inputMode="decimal" className={inputCls(err)} value={v ?? ''} onChange={(e) => set(e.target.value)} disabled={disabled} />; break;
           case 'email': control = <input type="email" className={inputCls(err)} value={v || ''} onChange={(e) => set(e.target.value)} autoComplete="email" disabled={disabled} />; break;
           case 'phone': control = <input type="tel" className={inputCls(err)} value={v || ''} onChange={(e) => set(e.target.value)} autoComplete="tel" placeholder="01XXXXXXXXX" disabled={disabled} />; break;
-          default: control = <input className={inputCls(err)} value={v || ''} onChange={(e) => set(e.target.value)} autoComplete={AUTO[f.key] || 'off'} disabled={disabled} />;
+          default: control = <input className={inputCls(err)} value={v || ''} onChange={(e) => set(e.target.value)} autoComplete={AUTO[f.key] || 'off'} inputMode={/^\^?\(?\[0-9\]|^\^?\\d/.test(f.pattern || '') ? 'numeric' : undefined} autoCapitalize={f.key === 'full_name' ? 'words' : undefined} enterKeyHint="next" disabled={disabled} />;
         }
         if (f.type === 'section') return <div key={f.id} className="border-t border-line pt-4"><h4 className="text-base font-semibold text-fg">{f.label}</h4>{f.help && <p className="mt-1 whitespace-pre-line text-sm text-fg2">{f.help}</p>}</div>;
         const grouped = ['radio', 'yesno', 'checkbox', 'scale', 'photo'].includes(f.type);
