@@ -10,6 +10,7 @@ import { downloadIcs } from '../lib/ics';
 const STATUS = {
   confirmed: ['You are in', 'text-emerald-600 bg-emerald-500/10', CheckCircle2],
   pending: ['Waiting for payment check', 'text-amber-600 bg-amber-500/10', Clock],
+  waitlist: ['On the waiting list', 'text-sky-600 bg-sky-500/10', Clock],
   cancelled: ['Cancelled', 'text-red-500 bg-red-500/10', XCircle],
 };
 
@@ -54,6 +55,7 @@ export default function TicketPage() {
             </div>
             <div className="mt-3 font-mono text-lg tracking-[0.25em] text-fg">{prettyCode(t.code)}</div>
             <p className="mt-1 text-xs text-muted">Show this at the entrance. Keep the code private.</p>
+            {t.status === 'waitlist' && <p className="mt-3 rounded-xl bg-sky-500/10 p-3 text-xs text-sky-700">The event is full, so you are in line. If a seat opens up you get it automatically and we email you. Keep this page; it will show "You are in" then.</p>}
             {t.status === 'pending' && <p className="mt-3 rounded-xl bg-amber-500/10 p-3 text-xs text-amber-700">Your place is confirmed once we verify your payment. You will get an email.</p>}
             <div className="mt-6 flex flex-wrap justify-center gap-2 print:hidden">
               <button onClick={() => window.print()} className="btn-outline !px-4 !py-2.5 text-xs"><Printer size={14} /> Print</button>

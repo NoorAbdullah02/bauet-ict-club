@@ -184,6 +184,7 @@ async function initDb() {
       ALTER TABLE event_registrations ADD COLUMN IF NOT EXISTS admin_note VARCHAR(300);
       ALTER TABLE event_registrations ADD COLUMN IF NOT EXISTS ticket VARCHAR(16);
       ALTER TABLE event_registrations ADD COLUMN IF NOT EXISTS checked_in_at TIMESTAMPTZ;
+      ALTER TABLE event_registrations ADD COLUMN IF NOT EXISTS waitlisted BOOLEAN DEFAULT FALSE;
       ALTER TABLE event_registrations ADD COLUMN IF NOT EXISTS certificate_sent_at TIMESTAMPTZ;
       ALTER TABLE events ADD COLUMN IF NOT EXISTS reminded_at TIMESTAMPTZ;
       CREATE INDEX IF NOT EXISTS idx_event_regs_event ON event_registrations (event_id, created_at);

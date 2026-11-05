@@ -39,7 +39,7 @@ async function reminders() {
     const events = (await pool.query('SELECT * FROM events WHERE deleted_at IS NULL AND reminded_at IS NULL AND COALESCE(reg_open, true) = true')).rows
       .filter((e) => String(e.date instanceof Date ? e.date.toISOString() : e.date).slice(0, 10) === tomorrow);
     for (const ev of events) {
-      const regs = (await pool.query("SELECT * FROM event_registrations WHERE event_id = $1 AND deleted_at IS NULL AND email IS NOT NULL AND ticket IS NOT NULL AND COALESCE(pay_status, 'none') NOT IN ('rejected', 'pending')", [ev.id])).rows;
+      const regs = (await pool.query("SELECT * FROM event_registrations WHERE event_id = $1 AND deleted_at IS NULL AND email IS NOT NULL AND ticket IS NOT NULL AND COALESCE(pay_status, 'none') NOT IN ('rejected', 'pending') AND NOT COALESCE(waitlisted, FALSE)", [ev.id])).rows;
       regs.forEach((r) => mail.sendMail({ to: r.email, ...mail.templates.eventReminder(r, ev, formalDate, formalTime) }));
       await pool.query('UPDATE events SET reminded_at = NOW() WHERE id = $1', [ev.id]);
     }
