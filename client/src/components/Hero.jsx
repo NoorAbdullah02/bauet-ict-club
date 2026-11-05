@@ -53,13 +53,14 @@ export default function Hero() {
 
   return (
     <section id="home" ref={root} className="relative flex min-h-screen items-center overflow-hidden">
-      <Backdrop3D variant="hero" className="absolute inset-0 opacity-90" />
+      <Backdrop3D variant="hero" className="hero-3d absolute inset-0 opacity-90" />
 
       <motion.div className="hero-orb pointer-events-none absolute -right-32 top-1/4 size-[34rem] rounded-full opacity-40"
         style={{ y: orbY, background: 'radial-gradient(circle, rgba(var(--accent-rgb),0.5), transparent 65%)' }} />
       <div className="hero-orb pointer-events-none absolute -left-40 bottom-10 size-[28rem] rounded-full opacity-30"
         style={{ background: 'radial-gradient(circle, rgba(var(--tech-rgb),0.45), transparent 65%)', animationDelay: '-6s' }} />
       <div className="hero-grid pointer-events-none absolute inset-0" />
+      <div className="hero-scrim pointer-events-none absolute inset-0" />
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-bg to-transparent" />
 
       <motion.div style={{ y: contentY, opacity: contentOpacity }} className="container relative z-10 pb-24 pt-36 text-center">
@@ -76,11 +77,12 @@ export default function Hero() {
           <span className="sm:hidden">BAUET · Rajshahi</span>
         </motion.div>
 
-        <motion.h1 {...rise(0.25)}
-          className="text-[clamp(3.4rem,11vw,9rem)] font-bold leading-[0.92] text-fg">
-          <span className="grad-anim bg-clip-text text-transparent" style={{ backgroundImage: 'var(--grad-text)' }}>BAUET</span>
+        <motion.h1 initial={{ opacity: 0, y: 26, filter: 'blur(14px)', scale: 0.96 }} animate={{ opacity: 1, y: 0, filter: 'blur(0px)', scale: 1 }}
+          transition={{ duration: 1.1, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
+          className="hero-title text-[clamp(3.4rem,11vw,9rem)] font-bold leading-[0.92] text-fg">
+          <span className="hero-bauet grad-anim bg-clip-text text-transparent" style={{ backgroundImage: 'var(--grad-text)' }}>BAUET</span>
           <br />
-          <span className="italic">ICT Club</span>
+          <span className="hero-ict italic">ICT Club</span>
         </motion.h1>
 
         <motion.div {...rise(0.5)}

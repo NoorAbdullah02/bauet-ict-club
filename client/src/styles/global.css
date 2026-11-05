@@ -500,3 +500,27 @@ body.admin-mode .cursor-glow { display: none; }
 
 /* filled accent chips: readable text in both themes (white on the dark-mode light-blue accent was only 2.7:1) */
 .bg-accent.text-white, .bg-accent .text-white { color: var(--on-accent); }
+
+
+/* ---- hero: make the headline the star, let the 3D scene frame it ---- */
+/* the 3D scene fades out right behind the headline and shows around it */
+.hero-3d {
+  -webkit-mask-image: radial-gradient(ellipse 46% 40% at 50% 47%, transparent 22%, #000 78%);
+  mask-image: radial-gradient(ellipse 46% 40% at 50% 47%, transparent 22%, #000 78%);
+}
+/* soft pool of calm colour behind the text so letters never fight the wireframe */
+.hero-scrim {
+  background: radial-gradient(ellipse 52% 40% at 50% 46%, color-mix(in srgb, var(--bg) 72%, transparent) 0%, transparent 72%);
+}
+.hero-bauet {
+  display: inline-block;
+  filter: drop-shadow(0 8px 34px rgba(var(--accent-rgb), 0.5));
+  background-size: 240% 100%;
+}
+.hero-ict {
+  display: inline-block;
+  text-shadow: 0 6px 46px rgba(var(--accent-rgb), 0.38);
+  animation: ictFloat 7s ease-in-out infinite alternate;
+}
+@keyframes ictFloat { to { transform: translateY(-6px); } }
+@media (prefers-reduced-motion: reduce) { .hero-ict { animation: none; } }
