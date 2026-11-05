@@ -1,10 +1,39 @@
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
-import { Save, Loader2, FlaskConical, Trash2 } from 'lucide-react';
+import { Save, Loader2, FlaskConical, Trash2, KeyRound } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import useStore from '../context/store';
 import { Panel, PageTitle, inputCls, askConfirm } from './ui';
 import ServiceStatus from './ServiceStatus';
+import { api } from '../context/store';
+
+function PasswordPanel() {
+  const [v, setV] = useState({ current: '', next: '', again: '' });
+  const [busy, setBusy] = useState(false);
+  const submit = async (e) => {
+    e.preventDefault();
+    if (v.next !== v.again) return toast.error('The two new passwords do not match');
+    setBusy(true);
+    try { await api.post('/auth/change-password', { current: v.current, next: v.next }); toast.success('Password changed'); setV({ current: '', next: '', again: '' }); }
+    catch (err) { toast.error(err.response?.data?.error || 'Could not change password'); }
+    setBusy(false);
+  };
+  const field = (k, label, ac) => (
+    <label className="block"><span className="mb-1.5 block font-mono text-[11px] uppercase tracking-[0.14em] text-fg2">{label}</span>
+      <input type="password" autoComplete={ac} required className={inputCls} value={v[k]} onChange={(e) => setV({ ...v, [k]: e.target.value })} /></label>
+  );
+  return (
+    <Panel className="self-start p-6 xl:col-start-2">
+      <form onSubmit={submit} className="space-y-4">
+        <h3 className="flex items-center gap-2 text-xl text-fg"><KeyRound size={18} /> Change password</h3>
+        {field('current', 'Current password', 'current-password')}
+        {field('next', 'New password (min 10 characters)', 'new-password')}
+        {field('again', 'Repeat new password', 'new-password')}
+        <button disabled={busy} className="btn-primary !px-5 !py-2.5 text-xs disabled:opacity-60">{busy ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} Change password</button>
+      </form>
+    </Panel>
+  );
+}
 
 const FIELDS = [['heroTitle', 'Hero title', 'text'], ['heroSub', 'Hero subtitle', 'text'], ['aboutText', 'About text', 'textarea'], ['mission', 'Mission', 'textarea'], ['vision', 'Vision', 'textarea'], ['goal', 'Goal', 'textarea']];
 
@@ -56,6 +85,7 @@ export default function SettingsView() {
           ))}
         </Panel>
         <ServiceStatus />
+        <PasswordPanel />
         <Panel className="self-start p-6 xl:col-start-2">
           <div className="flex items-start gap-4">
             <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-tech/12 text-tech"><FlaskConical size={22} /></span>

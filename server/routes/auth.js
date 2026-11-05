@@ -43,4 +43,18 @@ router.get('/me', authMiddleware, async (req, res) => {
   }
 });
 
+// admin changes own password (needs the current one)
+router.post('/change-password', authMiddleware, loginLimiter, async (req, res) => {
+  const { current, next } = req.body || {};
+  if (typeof current !== 'string' || typeof next !== 'string' || !current || current.length > 200) return res.status(400).json({ error: 'Current and new password required' });
+  if (next.length < 10 || next.length > 200) return res.status(400).json({ error: 'New password must be at least 10 characters' });
+  if (next === current) return res.status(400).json({ error: 'New password must be different' });
+  try {
+    const admin = (await pool.query('SELECT * FROM admins WHERE id = $1', [req.user.id])).rows[0];
+    if (!admin || !(await bcrypt.compare(current, admin.password_hash))) return res.status(401).json({ error: 'Current password is wrong' });
+    await pool.query('UPDATE admins SET password_hash = $1 WHERE id = $2', [await bcrypt.hash(next, 12), admin.id]);
+    res.json({ ok: true });
+  } catch (e) { fail(res, e); }
+});
+
 module.exports = router;
