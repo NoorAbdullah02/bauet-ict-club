@@ -203,6 +203,13 @@ async function initDb() {
         deleted_at TIMESTAMPTZ,
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
+      CREATE TABLE IF NOT EXISTS short_links (
+        code VARCHAR(40) PRIMARY KEY,
+        target VARCHAR(120) NOT NULL,
+        clicks INTEGER DEFAULT 0,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_short_links_target ON short_links (target);
       CREATE TABLE IF NOT EXISTS form_responses (
         id SERIAL PRIMARY KEY,
         form_id INTEGER NOT NULL,

@@ -186,6 +186,13 @@ export default function FormEditor({ kind = 'form', eventId }) {
   const [problem, setProblem] = useState('');
   const [activeId, setActiveId] = useState(null);
   const [preview, setPreview] = useState(false);
+  const [shortCode, setShortCode] = useState('');
+  const [alias, setAlias] = useState('');
+  const pagePath = item ? (kind === 'form' ? `/f/${item.slug || doc?.slug}` : `/events/${item.id}`) : '';
+  useEffect(() => { // short link of this form / event, made on first view
+    if (!pagePath || pagePath.endsWith('undefined')) return;
+    api.post('/short', { path: pagePath }).then((r) => { setShortCode(r.data.code); setAlias(r.data.code); }).catch(() => {});
+  }, [pagePath]);
   const [qr, setQr] = useState(false);
   const [sample, setSample] = useState({});
   const [notFound, setNotFound] = useState(false);
@@ -267,7 +274,8 @@ export default function FormEditor({ kind = 'form', eventId }) {
   const moveQ = (qid, dir) => edit((d) => { const n = [...d.fields]; const i = n.findIndex((x) => x.id === qid); const j = i + dir; if (j < 0 || j >= n.length) return d; [n[i], n[j]] = [n[j], n[i]]; return { ...d, fields: n }; });
   const dropQ = (toId) => { if (dragFrom && dragFrom !== toId) edit((d) => { const n = [...d.fields]; const a = n.findIndex((x) => x.id === dragFrom); const b = n.findIndex((x) => x.id === toId); const [m] = n.splice(a, 1); n.splice(b, 0, m); return { ...d, fields: n }; }); setDragFrom(null); setDragOver(null); setDragId(null); };
 
-  const link = item ? (kind === 'form' ? `${window.location.origin}/f/${doc?.slug || item.slug}` : eventLink(item.id)) : '';
+  const longLink = item ? (kind === 'form' ? `${window.location.origin}/f/${doc?.slug || item.slug}` : eventLink(item.id)) : '';
+  const link = shortCode ? `${window.location.origin}/s/${shortCode}` : longLink; // the short one is what gets shared
   const backTo = kind === 'form' ? '/admin/forms' : '/admin/events';
   const previewFields = useMemo(() => (doc ? doc.fields.map((q) => (hasOptions(q.type) ? { ...q, options: q.options.filter(Boolean) } : q)) : []), [doc]);
 
@@ -288,7 +296,7 @@ export default function FormEditor({ kind = 'form', eventId }) {
           <button onClick={() => { setPreview((p) => !p); setTab('questions'); }} className={cn('flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold transition', preview ? 'border-tech bg-tech/10 text-tech' : 'border-line text-fg2 hover:border-tech hover:text-tech')}>{preview ? <Pencil size={14} /> : <Eye size={14} />} {preview ? 'Back to editing' : 'Preview'}</button>
           <button onClick={async () => toast[(await copyText(link)) ? 'success' : 'error']('Link copied')} className="flex items-center gap-1.5 rounded-lg border border-line px-3 py-2 text-xs font-semibold text-fg2 hover:border-tech hover:text-tech"><Link2 size={14} /> Copy link</button>
           <button onClick={() => setQr(true)} className="flex items-center gap-1.5 rounded-lg border border-line px-3 py-2 text-xs font-semibold text-fg2 hover:border-tech hover:text-tech"><QrCode size={14} /> QR code</button>
-          <a href={link} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 rounded-lg bg-accent px-3.5 py-2 text-xs font-semibold text-white"><ExternalLink size={14} /> Open</a>
+          <a href={longLink} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 rounded-lg bg-accent px-3.5 py-2 text-xs font-semibold text-white"><ExternalLink size={14} /> Open</a>
         </div>
         <div className={cn('mt-3 flex flex-wrap items-center gap-2 rounded-xl border px-3 py-2 text-xs', doc.open ? 'border-emerald-500/30 bg-emerald-500/8' : 'border-amber-500/30 bg-amber-500/10')}>
           {doc.open
@@ -370,7 +378,15 @@ export default function FormEditor({ kind = 'form', eventId }) {
               <p className="mt-2 text-xs text-muted">If you change the link name, the old link stops working.</p>
             </section>
           )}
-                    <section className="rounded-2xl border border-line bg-surface p-6">
+          <section className="rounded-2xl border border-line bg-surface p-6">
+            <h3 className="mb-3 text-lg text-fg">Short link</h3>
+            <div className="flex flex-wrap items-center gap-2 text-sm text-fg2"><span className="shrink-0">{window.location.origin}/s/</span>
+              <input className={cn(inputCls, '!w-48 !py-2')} value={alias} maxLength={40} aria-label="Short link name" onChange={(e) => setAlias(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))} />
+              <button type="button" disabled={alias.length < 3 || alias === shortCode} onClick={async () => { try { const r = await api.post('/short', { path: pagePath, alias }); setShortCode(r.data.code); toast.success('Short link saved'); } catch (e) { toast.error(e.response?.data?.error || 'Could not save'); } }} className="rounded-lg bg-accent px-3.5 py-2 text-xs font-semibold text-white disabled:opacity-40">Save</button>
+              <button type="button" onClick={async () => toast[(await copyText(link)) ? 'success' : 'error']('Link copied')} className="rounded-lg border border-line px-3.5 py-2 text-xs font-semibold text-fg2 hover:border-tech hover:text-tech">Copy</button></div>
+            <p className="mt-2 text-xs text-muted">A short link is easy to type, read out and fit on a poster. Pick your own name, like <b>python-workshop</b>. The old short links keep working.</p>
+          </section>
+          <section className="rounded-2xl border border-line bg-surface p-6">
             <h3 className="mb-3 flex items-center gap-2 text-lg text-fg"><Palette size={18} /> Colour</h3>
             <div className="flex flex-wrap items-center gap-2.5">
               {[['', 'Club colours'], ['#1f4fd8', 'Blue'], ['#0b7f58', 'Green'], ['#7c3aed', 'Purple'], ['#c2410c', 'Orange'], ['#be123c', 'Rose'], ['#0e7490', 'Teal']].map(([c, l]) => (

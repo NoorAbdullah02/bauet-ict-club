@@ -84,7 +84,27 @@ router.post('/', async (req, res) => {
   try {
     let slug = slugify(title) || 'form';
     if ((await pool.query('SELECT 1 FROM forms WHERE slug = $1', [slug])).rows.length) slug = `${slug}-${crypto.randomBytes(2).toString('hex')}`;
-    const { rows } = await pool.query('INSERT INTO forms (slug, title, description, reg_form) VALUES ($1,$2,$3,$4) RETURNING *', [slug, title, clean(req.body?.description, 1000) || null, JSON.stringify({ ...STARTER, title })]);
+    let start = { ...STARTER, title };
+    if (req.body?.reg_form) { // started from a ready-made template: checked like any other form
+      const r = forms.sanitizeForm(req.body.reg_form);
+      if (r.error) return res.status(400).json({ error: r.error });
+      if (r.form) start = { ...r.form, title: r.form.title || title };
+    }
+    const { rows } = await pool.query('INSERT INTO forms (slug, title, description, reg_form) VALUES ($1,$2,$3,$4) RETURNING *', [slug, title, clean(req.body?.description, 1000) || null, JSON.stringify(start)]);
+    res.status(201).json({ ...rows[0], responses: 0 });
+  } catch (e) { fail(res, e); }
+});
+
+/** A copy of a form (questions and settings, no responses). */
+router.post('/:id/duplicate', async (req, res) => {
+  try {
+    const old = (await pool.query('SELECT * FROM forms WHERE id = $1 AND deleted_at IS NULL', [req.params.id])).rows[0];
+    if (!old) return res.status(404).json({ error: 'Form not found' });
+    const title = clean(`Copy of ${old.title}`, 200);
+    let slug = slugify(title) || 'form';
+    if ((await pool.query('SELECT 1 FROM forms WHERE slug = $1', [slug])).rows.length) slug = `${slug}-${crypto.randomBytes(2).toString('hex')}`;
+    const rf = old.reg_form ? { ...old.reg_form, title: `Copy of ${old.reg_form.title || old.title}`.slice(0, 120) } : null;
+    const { rows } = await pool.query('INSERT INTO forms (slug, title, description, reg_form, capacity) VALUES ($1,$2,$3,$4,$5) RETURNING *', [slug, title, old.description, rf ? JSON.stringify(rf) : null, old.capacity || 0]);
     res.status(201).json({ ...rows[0], responses: 0 });
   } catch (e) { fail(res, e); }
 });
@@ -106,6 +126,7 @@ router.put('/:id', async (req, res) => {
     const { rows } = await pool.query('UPDATE forms SET title = $1, description = $2, reg_form = $3, capacity = $4, is_open = $5, slug = $6 WHERE id = $7 RETURNING *', [
       b.title !== undefined ? clean(b.title, 200) || old.title : old.title, b.description !== undefined ? clean(b.description, 1000) || null : old.description, regForm,
       b.capacity !== undefined ? (Number(b.capacity) > 0 ? Math.floor(Number(b.capacity)) : null) : old.capacity, b.is_open !== undefined ? !!b.is_open : old.is_open, slug, old.id]);
+    if (slug !== old.slug) await pool.query('UPDATE short_links SET target = $1 WHERE target = $2', [`/f/${slug}`, `/f/${old.slug}`]); // short links keep working when the link name changes
     res.json(rows[0]);
   } catch (e) { fail(res, e); }
 });

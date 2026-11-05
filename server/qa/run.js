@@ -67,6 +67,14 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
     ok(bad.s === 400 && bad.j.fields.sid === 'Six digits' && /whole/.test(bad.j.fields.age) && /at least 2/.test(bad.j.fields.pick), 'answer rules are enforced', bad.j);
     ok((await call('POST', `/api/forms/public/${f3.slug}`, { answers: { sid: '123456', age: 20, pick: ['a', 'c'] } })).s === 201, 'valid answers accepted');
 
+    // templates and copies
+    const tpl = await call('POST', '/api/forms', { title: 'From template', reg_form: { title: 'T', unique: 'email', fields: [{ id: 'name', key: 'name', type: 'short', label: 'Name', required: true }, { id: 'email', key: 'email', type: 'email', label: 'Email', required: true }] } }, T);
+    ok(tpl.s === 201 && tpl.j.reg_form.fields.length === 2 && tpl.j.reg_form.unique === 'email', 'form from a template');
+    ok((await call('POST', '/api/forms', { title: 'Bad template', reg_form: { fields: [{ id: 'a', type: 'dropdown', label: 'x', options: ['one'] }] } }, T)).s === 400, 'broken template refused');
+    const cp = await call('POST', `/api/forms/${tpl.j.id}/duplicate`, undefined, T);
+    ok(cp.s === 201 && cp.j.title === 'Copy of From template' && cp.j.slug !== tpl.j.slug && cp.j.reg_form.fields.length === 2, 'form copied');
+    ok((await call('DELETE', `/api/forms/${cp.j.id}`, undefined, T)).s === 200 && (await call('GET', `/api/forms/public/${cp.j.slug}`)).s === 404, 'deleted form link stops working');
+
     // spreadsheet formula injection
     const f2 = (await call('POST', '/api/forms', { title: 'QA inject' }, T)).j; const p2 = (await call('GET', `/api/forms/public/${f2.slug}`)).j;
     const a = fill(p2.reg_form.fields, 1); const nameId = p2.reg_form.fields.find((x) => x.type === 'short').id; a[nameId] = '=HYPERLINK("http://evil")';
@@ -90,6 +98,17 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
     ok((await call('POST', '/api/events', { title: 'Bad link', date: '2099-01-01', reg_url: 'javascript:alert(1)' }, T)).s === 409, 'javascript: link refused');
     const ext = await call('POST', '/api/events', { title: 'Google form event', date: '2099-02-01', reg_url: ' https://forms.gle/abc123 ' }, T);
     ok(ext.s === 201 && ext.j.reg_url === 'https://forms.gle/abc123', 'web link accepted and trimmed', ext.j);
+
+    // short links
+    const sl = await call('POST', '/api/short', { path: `/f/${f.slug}` }, T);
+    ok(sl.s === 201 && /^[a-z0-9]{6}$/.test(sl.j.code), 'short link made');
+    ok((await call('POST', '/api/short', { path: `/f/${f.slug}` }, T)).j.code === sl.j.code, 'same page gets the same short link');
+    const go = await fetch(`${B}/s/${sl.j.code}`, { redirect: 'manual' });
+    ok(go.status === 302 && go.headers.get('location') === `/f/${f.slug}`, 'short link redirects');
+    ok((await fetch(`${B}/s/zzzzzz`, { redirect: 'manual' })).status !== 302, 'unknown short link does not redirect');
+    ok((await call('POST', '/api/short', { path: 'https://evil.example' }, T)).s === 400, 'short link only for our own pages');
+    ok((await call('POST', '/api/short', { path: `/f/${f.slug}` })).s === 401, 'short link needs login');
+    ok((await call('POST', '/api/short', { path: `/f/${f.slug}`, alias: 'qa-survey' }, T)).j.code === 'qa-survey' && (await call('POST', '/api/short', { path: '/events/1', alias: 'qa-survey' }, T)).s === 409, 'custom name works and cannot be stolen');
 
     // password change
     ok((await call('POST', '/api/auth/change-password', { current: 'wrong-pass', next: 'Another-Pass-99' }, T)).s === 401, 'change password needs current one');
