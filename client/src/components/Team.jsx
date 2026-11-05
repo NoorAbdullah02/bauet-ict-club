@@ -87,7 +87,7 @@ function MemberCard({ member, index, compact }) {
           position: 'relative',
         }}>
           {!member.image_url && (
-            <span style={{ fontSize: compact ? 18 : 22, fontWeight: 700, color: deptColor, fontFamily: 'var(--font-display)' }}>
+            <span style={{ fontSize: compact ? 18 : 22, fontWeight: 700, color: `color-mix(in srgb, ${deptColor} 60%, var(--fg))`, fontFamily: 'var(--font-display)' }}>
               {getInitials(member.name)}
             </span>
           )}
@@ -103,15 +103,15 @@ function MemberCard({ member, index, compact }) {
           )}
         </div>
 
-        <h4 style={{
+        <h3 style={{
           fontSize: compact ? 13 : 15, fontWeight: 700, color: 'var(--fg)',
           fontFamily: 'var(--font-display)', marginBottom: 5, lineHeight: 1.3,
         }}>
           {member.name}
-        </h4>
+        </h3>
 
         <div style={{
-          fontSize: 11, fontWeight: 600, color: deptColor,
+          fontSize: 11, fontWeight: 600, color: `color-mix(in srgb, ${deptColor} 55%, var(--fg))`, // the department colour stays on the tint and border; the text is mixed toward the page text colour so it is readable
           padding: '3px 10px', borderRadius: 16,
           background: `${deptColor}0D`, border: `1px solid ${deptColor}1A`,
           display: 'inline-block', marginBottom: 6, letterSpacing: 0.2,
@@ -213,7 +213,7 @@ export default function Team() {
         .session-btn { position: relative; padding: 10px 20px; border-radius: 50px; font-size: 13px; font-weight: 600;
           border: 1px solid var(--border); background: var(--bg-surface); color: var(--fg-secondary); cursor: pointer;
           transition: all 0.3s ease; white-space: nowrap; }
-        .session-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); box-shadow: 0 4px 16px rgba(var(--accent-rgb),0.25); }
+        .session-btn.active { background: var(--accent); color: var(--on-accent); border-color: var(--accent); box-shadow: 0 4px 16px rgba(var(--accent-rgb),0.25); }
         .session-btn:not(.active):hover { border-color: var(--accent); color: var(--accent); }
         .dept-chip { padding: 5px 14px; border-radius: 20px; font-size: 11px; font-weight: 600; cursor: pointer;
           transition: all 0.25s ease; border: 1px solid var(--border); background: transparent; color: var(--fg-muted); }

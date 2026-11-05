@@ -102,23 +102,23 @@ export default function Contact() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
             <div>
               <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--fg-secondary)', display: 'block', marginBottom: 6 }}>Name *</label>
-              <input name="name" autoComplete="name" style={inputStyle} value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} required
+              <input name="name" aria-label="Your name" autoComplete="name" style={inputStyle} value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} required
                 onFocus={(e) => e.target.style.borderColor = 'var(--accent)'} onBlur={(e) => e.target.style.borderColor = 'var(--border)'} />
             </div>
             <div>
               <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--fg-secondary)', display: 'block', marginBottom: 6 }}>Email *</label>
-              <input name="email" autoComplete="email" style={inputStyle} type="email" value={form.email} onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))} required
+              <input name="email" aria-label="Your email" autoComplete="email" style={inputStyle} type="email" value={form.email} onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))} required
                 onFocus={(e) => e.target.style.borderColor = 'var(--accent)'} onBlur={(e) => e.target.style.borderColor = 'var(--border)'} />
             </div>
           </div>
           <div>
             <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--fg-secondary)', display: 'block', marginBottom: 6 }}>Subject</label>
-            <input name="subject" autoComplete="off" style={inputStyle} value={form.subject} onChange={(e) => setForm((p) => ({ ...p, subject: e.target.value }))}
+            <input name="subject" aria-label="Subject" autoComplete="off" style={inputStyle} value={form.subject} onChange={(e) => setForm((p) => ({ ...p, subject: e.target.value }))}
               onFocus={(e) => e.target.style.borderColor = 'var(--accent)'} onBlur={(e) => e.target.style.borderColor = 'var(--border)'} />
           </div>
           <div>
             <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--fg-secondary)', display: 'block', marginBottom: 6 }}>Message *</label>
-            <textarea style={{ ...inputStyle, resize: 'vertical', minHeight: 120 }} value={form.message}
+            <textarea aria-label="Your message" style={{ ...inputStyle, resize: 'vertical', minHeight: 120 }} value={form.message}
               onChange={(e) => setForm((p) => ({ ...p, message: e.target.value }))} required
               onFocus={(e) => e.target.style.borderColor = 'var(--accent)'} onBlur={(e) => e.target.style.borderColor = 'var(--border)'} />
           </div>

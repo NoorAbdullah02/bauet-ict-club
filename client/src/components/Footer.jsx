@@ -39,17 +39,17 @@ export default function Footer() {
           </div>
 
           <nav aria-label="Explore">
-            <h4 className="mb-3 font-mono text-[10px] uppercase tracking-[0.22em] text-white/45">Explore</h4>
+            <h3 className="mb-3 font-mono text-[10px] uppercase tracking-[0.22em] text-white/45">Explore</h3>
             <ul className="space-y-0.5">{EXPLORE.map(([l, to]) => <li key={to}><Link to={to} className={link}>{l}</Link></li>)}</ul>
           </nav>
 
           <nav aria-label="Get involved">
-            <h4 className="mb-3 font-mono text-[10px] uppercase tracking-[0.22em] text-white/45">Get involved</h4>
+            <h3 className="mb-3 font-mono text-[10px] uppercase tracking-[0.22em] text-white/45">Get involved</h3>
             <ul className="space-y-0.5">{INVOLVED.map(([l, to]) => <li key={to}><Link to={to} className={link}>{l}</Link></li>)}</ul>
           </nav>
 
           <div>
-            <h4 className="mb-3 font-mono text-[10px] uppercase tracking-[0.22em] text-white/45">Contact</h4>
+            <h3 className="mb-3 font-mono text-[10px] uppercase tracking-[0.22em] text-white/45">Contact</h3>
             <ul className="space-y-2.5 text-[13px]">
               <li><a href={`mailto:${email}`} className="flex items-start gap-2.5 text-white/80 transition hover:text-white"><Mail size={14} className="mt-0.5 shrink-0 text-[#7CF0B2]" /><span className="break-all">{email}</span></a></li>
               <li><a href={`tel:${phone}`} className="flex items-start gap-2.5 text-white/80 transition hover:text-white"><Phone size={14} className="mt-0.5 shrink-0 text-[#7CF0B2]" />{phone}</a></li>
