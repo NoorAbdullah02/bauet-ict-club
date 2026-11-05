@@ -4,7 +4,7 @@ import useStore from '../context/store';
 import Logo from './Logo';
 
 const EXPLORE = [['About', '/about'], ['Events', '/events'], ['Notices', '/notices'], ['Projects', '/projects'], ['Team', '/team'], ['Ambassadors', '/ambassadors'], ['FAQ', '/faq']];
-const INVOLVED = [['Join the club', '/join'], ['Committee', '/join/committee'], ['General member', '/join/general'], ['Ambassador', '/join/ambassador']];
+const INVOLVED = [['Join the club', '/join'], ['Committee', '/join/committee'], ['General member', '/join/general'], ['Ambassador', '/join/ambassador'], ['Get the app', '/app']];
 
 const link = 'inline-block py-1.5 text-[13px] text-white/70 transition-colors hover:text-white';
 const social = 'grid size-9 place-items-center rounded-full border border-white/20 bg-white/10 text-white transition hover:-translate-y-0.5 hover:bg-white hover:text-[#0A1A4A]';

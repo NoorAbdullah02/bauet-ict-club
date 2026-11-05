@@ -17,6 +17,7 @@ import JoinGeneral from '../components/join/JoinGeneral';
 import JoinHub from './JoinHub';
 import JoinAmbassador from '../components/join/JoinAmbassador';
 import Ambassadors from './Ambassadors';
+import GetApp from '../components/GetApp';
 
 const page = (Comp, variant) => function Page() { return <PageShell variant={variant}><Comp /></PageShell>; };
 
@@ -39,3 +40,4 @@ export const JoinCommitteePage = JoinCommittee;
 export const JoinGeneralPage = JoinGeneral;
 export const JoinAmbassadorPage = JoinAmbassador;
 export const AmbassadorsPage = Ambassadors;
+export const GetAppPage = page(GetApp, 'orbs');
