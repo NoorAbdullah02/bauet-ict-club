@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { motion } from 'framer-motion';
 import { CalendarPlus, CheckCircle2, Clock, Download, Loader2, MapPin, Printer, XCircle, Calendar, ScanLine } from 'lucide-react';
 import { api } from '../context/store';
@@ -19,6 +20,8 @@ export default function TicketPage() {
   const { code } = useParams();
   const [t, setT] = useState(null); // null = loading, false = not found
   const [qr, setQr] = useState('');
+  const [gone, setGone] = useState(false);
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     api.get(`/event-registrations/ticket/${code}`).then((r) => { setT(r.data); document.title = `Ticket: ${r.data.event.title} | BAUET ICT Club`; }).catch(() => setT(false));
@@ -30,6 +33,15 @@ export default function TicketPage() {
 
   if (t === null) return <section className="section"><div className="container grid min-h-[50vh] place-items-center"><Loader2 className="animate-spin text-muted" /></div></section>;
   if (t === false) return <section className="section"><div className="container grid min-h-[40vh] place-items-center text-center"><div><h1 className="text-3xl text-fg">Ticket not found</h1><p className="mt-2 text-fg2">Check the link in your email, or the code you typed.</p><Link to="/events" className="btn-primary mt-6 inline-flex">See events</Link></div></div></section>;
+
+  const cancel = async () => {
+    if (!window.confirm('Cancel your registration? Your seat goes to the next person and this ticket stops working.')) return;
+    setBusy(true);
+    try { await api.post(`/event-registrations/ticket/${t.code}/cancel`); setGone(true); }
+    catch (ex) { toast.error(ex.response?.data?.error || 'Could not cancel. Please try again.'); }
+    setBusy(false);
+  };
+  if (gone) return <section className="section"><div className="container grid min-h-[40vh] place-items-center text-center"><div><CheckCircle2 size={44} className="mx-auto text-emerald-500" /><h1 className="mt-3 text-3xl text-fg">Registration cancelled</h1><p className="mt-2 text-fg2">Your seat was given back. You can register again any time while seats are open.</p><a href="/events" className="btn-primary mt-5 inline-flex">See events</a></div></div></section>;
 
   const [label, tone, Icon] = STATUS[t.status] || STATUS.confirmed;
   const ev = t.event;
@@ -64,6 +76,7 @@ export default function TicketPage() {
             </div>
           </div>
         </motion.div>
+        {t.can_cancel && <div className="mt-4 text-center print:hidden"><button onClick={cancel} disabled={busy} className="text-xs font-semibold text-red-500 underline underline-offset-2 disabled:opacity-50">{busy ? 'Cancelling…' : 'Cannot come? Cancel my registration'}</button></div>}
         <p className="mt-4 flex items-center justify-center gap-1.5 text-xs text-muted print:hidden"><ScanLine size={13} /> Staff scan this code to check you in</p>
       </div>
     </section>
