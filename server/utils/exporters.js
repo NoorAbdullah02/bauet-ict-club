@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const PDFDocument = require('pdfkit');
-const { Document, Packer, Paragraph, Table, TableRow, TableCell, TextRun, ImageRun, HeadingLevel, WidthType, AlignmentType, BorderStyle, ShadingType, Footer, PageNumber } = require('docx');
+const { Document, Packer, Paragraph, Table, TableRow, TableCell, TextRun, ImageRun, WidthType, AlignmentType, BorderStyle, ShadingType, Footer, PageNumber } = require('docx');
 const { UPLOAD_DIR } = require('./saveImage');
 
 const TYPE_LABEL = { committee: 'Committee', general: 'General member', ambassador: 'Department ambassador' };
@@ -56,7 +56,7 @@ async function photoOf(url) {
       const file = path.join(UPLOAD_DIR, path.basename(url));
       if (!fs.existsSync(file)) return null;
       buf = fs.readFileSync(file);
-    } else if (/^https:\/\//.test(url)) {
+    } else if (/^https:\/\/res\.cloudinary\.com\//.test(url)) {
       const src = /res\.cloudinary\.com\/.+\/upload\//.test(url) && !url.includes('/upload/w_') ? url.replace('/upload/', '/upload/w_700,h_700,c_fill,g_face,f_jpg,q_90/') : url;
       const ctl = new AbortController();
       const timer = setTimeout(() => ctl.abort(), 4000);

@@ -174,6 +174,10 @@ async function initDb() {
         deleted_at TIMESTAMPTZ,
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
+      -- a database made by an earlier version required these; custom forms may not have them
+      ALTER TABLE event_registrations ALTER COLUMN full_name DROP NOT NULL;
+      ALTER TABLE event_registrations ALTER COLUMN student_id DROP NOT NULL;
+      ALTER TABLE event_registrations ALTER COLUMN email DROP NOT NULL;
       ALTER TABLE event_registrations ADD COLUMN IF NOT EXISTS answers JSONB;
       ALTER TABLE event_registrations ADD COLUMN IF NOT EXISTS payment JSONB;
       ALTER TABLE event_registrations ADD COLUMN IF NOT EXISTS pay_status VARCHAR(12) DEFAULT 'none';

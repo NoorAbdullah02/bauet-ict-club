@@ -3,11 +3,11 @@ const { fail } = require('../utils/http');
 const mail = require('../utils/mailer');
 const exporters = require('../utils/exporters');
 const { sendZip, safe } = require('../utils/zipper');
+const { toCsv } = require('../utils/csv');
 const { storeImage, cloneImage } = require('../utils/images');
 const multer = require('multer');
 const rateLimit = require('express-rate-limit');
 const pool = require('../config/db');
-const cloudinary = require('../config/cloudinary');
 const { authMiddleware } = require('../middleware/auth');
 
 const { positionRank, leadershipConflict } = require('../utils/positions');
@@ -70,7 +70,7 @@ function validate(body) {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) errors.email = 'Enter a valid email';
   if (!GENDERS.includes(data.gender)) errors.gender = 'Invalid selection';
 
-  if (data.photo_url && !/^(https:\/\/|\/uploads\/[a-f0-9]{24}\.(jpg|png)$)/.test(data.photo_url)) errors.photo_url = 'Invalid photo';
+  if (data.photo_url && !/^(https:\/\/res\.cloudinary\.com\/|\/uploads\/[a-f0-9]{24}\.(jpg|png|webp)$)/.test(data.photo_url)) errors.photo_url = 'Invalid photo';
 
   if (type === 'committee') {
     if (data.post.length < 2) errors.post = 'Select the post you are applying for';
@@ -156,9 +156,8 @@ async function buildExport(src) {
 router.get('/zip', authMiddleware, async (req, res) => {
   try {
     const { rows, type, status } = await selectRows(req.query);
-    const cell = (v) => `"${String(Array.isArray(v) ? v.join('; ') : v ?? '').replace(/"/g, '""')}"`;
     const cols = ['full_name', 'type', 'post', 'student_id', 'batch', 'department', 'gender', 'phone', 'email', 'interests', 'experience', 'note', 'status', 'created_at'];
-    const csv = `\uFEFF${[cols.join(','), ...rows.map((r) => cols.map((c) => cell(r[c])).join(','))].join('\n')}`;
+    const csv = toCsv(cols, rows.map((r) => cols.map((c) => r[c])));
     const entries = [
       { name: 'applications.csv', data: csv },
       { name: 'applications.pdf', data: await exporters.toPdf(rows, { type, status }) },

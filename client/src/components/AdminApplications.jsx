@@ -20,7 +20,8 @@ const STATUS_STYLE = {
   rejected: 'bg-red-500/15 text-red-600',
 };
 
-const csvCell = (v) => `"${String(Array.isArray(v) ? v.join('; ') : v ?? '').replace(/"/g, '""')}"`;
+// a leading ' stops spreadsheets from running text such as =HYPERLINK(...) as a formula
+const csvCell = (v) => { let s = String(Array.isArray(v) ? v.join('; ') : v ?? ''); if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`; return `"${s.replace(/"/g, '""')}"`; };
 
 function exportCsv(rows, type) {
   const cols = ['full_name', 'student_id', 'batch', 'department', 'phone', 'email', 'gender', type === 'committee' ? 'post' : 'interests', 'experience', 'status', 'created_at'];

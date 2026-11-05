@@ -17,7 +17,7 @@ async function fetchOriginal(url, format = 'original') {
       const file = path.join(UPLOAD_DIR, path.basename(url));
       return fs.existsSync(file) ? fs.readFileSync(file) : null;
     }
-    if (!/^https:\/\//.test(url)) return null;
+    if (!/^https:\/\/res\.cloudinary\.com\//.test(url)) return null; // only our own Cloudinary storage: never a link typed by a visitor
     let src = url;
     if (/res\.cloudinary\.com\/[^/]+\/image\/upload\//.test(url) && ['jpg', 'png'].includes(format) && !/\/upload\/[^/]*f_/.test(url)) src = url.replace('/upload/', `/upload/f_${format},q_100/`);
     const res = await fetch(src, { signal: AbortSignal.timeout(20000) });

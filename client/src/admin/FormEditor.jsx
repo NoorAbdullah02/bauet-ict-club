@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { motion } from 'framer-motion';
 import {
@@ -136,7 +136,6 @@ function QuestionCard({ q, i, total, fields, active, onActivate, patch, remove, 
  *  Works for stand-alone forms (/admin/forms/:id) and for the registration form of an event (/admin/events/:id/form). */
 export default function FormEditor({ kind = 'form' }) {
   const { id } = useParams();
-  const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const tab = params.get('tab') || 'questions';
   const setTab = (t) => setParams(t === 'questions' ? {} : { tab: t }, { replace: true });

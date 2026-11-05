@@ -1,0 +1,56 @@
+name: Checks
+
+# Runs on every push to master and on pull requests: the website and server must build, and the Flutter app must analyse, pass its tests and build an APK.
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  website:
+    name: Website and server
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Install (root, client and server)
+        run: npm ci
+      - name: Build the website
+        run: npm run build
+      - name: Server files parse
+        run: |
+          set -e
+          for f in $(git ls-files 'server/*.js'); do node --check "$f"; done
+
+  app:
+    name: Flutter app
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      # adds the Android project files the repository does not keep; existing files (manifest, network config) are left alone
+      - run: flutter create . --org com.bauet --project-name bauet_ict_club --platforms android
+      - run: flutter pub get
+      - name: Analyse (errors fail the build)
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+      - run: flutter test
+      - name: Build a debug APK
+        run: flutter build apk --debug --dart-define-from-file=env.production.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bauet-ict-club-debug-apk
+          path: app/build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error

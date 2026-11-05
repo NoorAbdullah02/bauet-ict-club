@@ -75,6 +75,10 @@ Set `GROQ_API_KEY`. The assistant answers from your live events, notices, commit
 
 Admin → Settings → *Load demo data* fills every section (events, notices, gallery, posts, projects, members, applications, messages) with illustrated sample content; *Remove demo data* deletes only the demo rows. Demo subscribers never receive email.
 
+## Automatic checks on GitHub
+
+`.github/workflows/checks.yml` runs on every push to `master`: it builds the website, checks the server files and, for the app, runs `flutter analyze`, the Flutter tests and builds a debug APK (download it from the run's *Artifacts*). Open the repository's **Actions** tab to see the result; this is how the app gets compiled even if Flutter is not installed on your computer.
+
 ## Checks before you push
 
 ```bash
