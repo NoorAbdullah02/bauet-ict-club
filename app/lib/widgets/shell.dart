@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
@@ -44,7 +43,7 @@ String _titleFor(String loc) {
   return AppConfig.clubName;
 }
 
-/// Main scaffold: aurora backdrop, app bar with theme toggle, drawer, bottom nav, chat FAB.
+/// Main scaffold: aurora backdrop, app bar with theme toggle, drawer, bottom nav. The chat assistant is an app-bar icon (no floating button over the page).
 class AppShell extends StatelessWidget {
   const AppShell({super.key, required this.location, required this.child});
   final String location;
@@ -71,6 +70,14 @@ class AppShell extends StatelessWidget {
         actions: [
           IconButton(tooltip: 'Search', onPressed: () => context.push('/search'), icon: const Icon(Icons.search_rounded)),
           IconButton(
+            tooltip: 'Chat with us',
+            onPressed: () {
+              HapticFeedback.lightImpact();
+              context.push('/chat');
+            },
+            icon: ChatFace(size: 26, bubble: p.accent, face: p.bg),
+          ),
+          IconButton(
             tooltip: 'Toggle theme',
             onPressed: () {
               HapticFeedback.selectionClick();
@@ -94,29 +101,6 @@ class AppShell extends StatelessWidget {
       ),
       endDrawer: _AppDrawer(location: location, isAdmin: state.isAdmin),
       body: child,
-      floatingActionButton: Semantics(
-        button: true,
-        label: 'Chat with us',
-        child: GestureDetector(
-          onTap: () {
-            HapticFeedback.lightImpact();
-            context.push('/chat');
-          },
-          child: RepaintBoundary(
-            child: Container(
-              width: 60,
-              height: 60,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: p.brand,
-                boxShadow: [BoxShadow(color: p.gradient.first.withValues(alpha: 0.45), blurRadius: 22, offset: const Offset(0, 8))],
-              ),
-              child: const ChatFace(size: 34),
-            ).animate(onPlay: (c) => c.repeat(reverse: true)).moveY(begin: 0, end: -4, duration: 1800.ms, curve: Curves.easeInOut),
-          ),
-        ),
-      ),
       bottomNavigationBar: _GlossNav(
         selected: tabIndex,
         onTap: (i) {
