@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Link, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutDashboard, Eye, ClipboardList, Users, Calendar, Bell, Image, Trophy, FileText, MessageSquare, Mail, Settings, Trash2, History, LogOut, Sun, Moon, Menu, ExternalLink, Loader2, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, Eye, ClipboardList, Users, Calendar, Bell, Image, Trophy, FileText, MessageSquare, Mail, Settings, Trash2, History, LogOut, Sun, Moon, Menu, ExternalLink, Loader2, ChevronRight, Award } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import useStore from '../context/store';
 import Login from './Login';
@@ -15,6 +15,7 @@ import AdminApplications from '../components/AdminApplications';
 import { FEATURES } from './config';
 import Newsletter from './Newsletter';
 import Visitors from './Visitors';
+import Points from './Points';
 import FormsAdmin from './FormsAdmin';
 import FormEditor from './FormEditor';
 import CheckIn from './CheckIn';
@@ -26,7 +27,7 @@ import { cn } from '../lib/cn';
 const NAV = [
   ['Overview', [['/admin', LayoutDashboard, 'Dashboard', true], ['/admin/visitors', Eye, 'Visitors']]],
   ['People', [['/admin/applications', ClipboardList, 'Applications', false, 'pending'], ['/admin/members', Users, 'Committee']]],
-  ['Content', [['/admin/events', Calendar, 'Events'], ['/admin/notices', Bell, 'Notices'], ['/admin/gallery', Image, 'Gallery'], ['/admin/achievements', Trophy, 'Achievements'], ['/admin/posts', FileText, 'Posts']]],
+  ['Content', [['/admin/events', Calendar, 'Events'], ['/admin/notices', Bell, 'Notices'], ['/admin/points', Award, 'Points'], ['/admin/gallery', Image, 'Gallery'], ['/admin/achievements', Trophy, 'Achievements'], ['/admin/posts', FileText, 'Posts']]],
   ['System', [['/admin/forms', ClipboardList, 'Forms'], ['/admin/messages', MessageSquare, 'Messages', false, 'unread'], ['/admin/newsletter', Mail, 'Newsletter'], ['/admin/trash', Trash2, 'Trash', false, 'trash'], ['/admin/activity', History, 'Activity'], ['/admin/settings', Settings, 'Settings']]],
 ];
 FEATURES.forEach((f) => {
@@ -132,6 +133,7 @@ export default function AdminApp() {
             <Route path="messages" element={<Inbox />} />
             <Route path="newsletter" element={<Newsletter />} />
             <Route path="visitors" element={<Visitors />} />
+            <Route path="points" element={<Points />} />
             <Route path="forms" element={<FormsAdmin />} />
             <Route path="forms/:id" element={<FormEditor kind="form" />} />
             <Route path="events/new" element={<EventStudio />} />

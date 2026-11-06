@@ -81,7 +81,7 @@ app.all('/api/jobs/run', async (req, res) => {
 
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 200,
+  max: Number(process.env.API_RATE_MAX) || 200, // the QA run raises it; real visitors keep 200 per 15 minutes
   message: { error: 'Too many requests, please try again later' },
 });
 app.use('/api/', apiLimiter);
@@ -111,6 +111,7 @@ app.use('/api/forms', require('./routes/forms'));
 app.use('/api/search', require('./routes/search'));
 app.use('/api/pay', require('./routes/pay'));
 app.use('/api/card', require('./routes/card'));
+app.use('/api/points', require('./routes/points'));
 app.use('/api/email', require('./routes/email'));
 app.use('/api/registrations', require('./routes/registrations'));
 app.use('/api/settings', require('./routes/settings'));
@@ -206,7 +207,7 @@ app.get('/sitemap-events.xml', async (req, res) => {
     res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${rows.map((r) => `  <url><loc>${origin(req)}/events/${r.id}</loc></url>`).join('\n')}\n</urlset>\n`);
   } catch { res.status(500).end(); }
 });
-const SITE_PATHS = ['/', '/about', '/events', '/notices', '/projects', '/resources', '/team', '/ambassadors', '/gallery', '/achievements', '/faq', '/contact', '/join', '/join/committee', '/join/general', '/join/ambassador', '/app'];
+const SITE_PATHS = ['/', '/about', '/events', '/notices', '/projects', '/resources', '/leaderboard', '/team', '/ambassadors', '/gallery', '/achievements', '/faq', '/contact', '/join', '/join/committee', '/join/general', '/join/ambassador', '/app'];
 const origin = (req) => (process.env.PUBLIC_URL || process.env.RENDER_EXTERNAL_URL || '').replace(/\/$/, '') || `${req.protocol}://${req.get('host')}`;
 app.get('/sitemap.xml', (req, res) => {
   const base = origin(req);

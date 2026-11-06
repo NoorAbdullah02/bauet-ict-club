@@ -242,6 +242,7 @@ class _TicketScreenState extends State<TicketScreen> {
                 label: const Text('Certificate'),
               ),
           ]),
+          if (status == 'confirmed') ...[const SizedBox(height: 14), _PointsCard(code: code)],
           if (t['can_cancel'] == true)
             Center(
               child: TextButton(
@@ -401,6 +402,48 @@ class _MyTicketsScreenState extends State<MyTicketsScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Points and badges of the person who owns this ticket.
+class _PointsCard extends StatefulWidget {
+  const _PointsCard({required this.code});
+  final String code;
+
+  @override
+  State<_PointsCard> createState() => _PointsCardState();
+}
+
+class _PointsCardState extends State<_PointsCard> {
+  Map<String, dynamic>? _p;
+
+  @override
+  void initState() {
+    super.initState();
+    context.read<AppState>().api.pointsOfTicket(widget.code).then((d) {
+      if (mounted) setState(() => _p = d);
+    }).catchError((_) {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final d = _p;
+    if (d == null) return const SizedBox.shrink();
+    final p = context.pal;
+    final badges = d['badges'] is List ? (d['badges'] as List).whereType<Map>().toList() : <Map>[];
+    final next = d['next'] is Map ? Map<String, dynamic>.from(d['next'] as Map) : null;
+    return GlassCard(
+      padding: const EdgeInsets.all(14),
+      onTap: () => context.push('/leaderboard'),
+      child: Column(children: [
+        Text('YOUR POINTS', style: monoStyle(context, size: 10)),
+        Text('${d['points']}', style: displayStyle(context, 34, color: p.accent)),
+        if (badges.isNotEmpty) Text(badges.map((b) => '${b['icon']}').join('  '), style: bodyStyle(context, size: 20)) else Text('Get checked in at the event to earn ${d['per_event']} points', textAlign: TextAlign.center, style: bodyStyle(context, size: 12.5, color: p.muted)),
+        if (next != null) Padding(padding: const EdgeInsets.only(top: 4), child: Text('Next badge: ${next['icon']} ${next['name']} (${'${next['hint']}'.toLowerCase()})', textAlign: TextAlign.center, style: bodyStyle(context, size: 12, color: p.muted))),
+        const SizedBox(height: 4),
+        Text('See the leaderboard${d['rank'] != null ? ' · you are #${d['rank']}' : ''}', style: bodyStyle(context, size: 12.5, color: p.accent, weight: FontWeight.w700)),
+      ]),
     );
   }
 }

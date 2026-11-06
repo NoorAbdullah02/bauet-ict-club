@@ -16,6 +16,22 @@ const STATUS = {
 };
 
 /** One person's ticket for one event: a QR code to show at the entrance. Opened from the email or right after registering. */
+/** Points and badges of the person who owns this ticket. */
+function MyPoints({ code }) {
+  const [p, setP] = useState(null);
+  useEffect(() => { api.get('/points/me', { params: { ticket: code } }).then((r) => setP(r.data)).catch(() => setP(false)); }, [code]);
+  if (!p) return null;
+  return (
+    <div className="mt-5 rounded-2xl border border-line bg-surface p-4 text-center print:hidden">
+      <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted">Your points</div>
+      <div className="mt-1 font-display text-3xl text-accent">{p.points}</div>
+      <div className="mt-1 flex flex-wrap justify-center gap-1.5 text-lg" aria-label="Badges">{p.badges.length ? p.badges.map((b) => <span key={b.id} title={b.name}>{b.icon}</span>) : <span className="text-xs text-muted">Get checked in at the event to earn {p.per_event} points</span>}</div>
+      {p.next && <div className="mt-1 text-xs text-muted">Next badge: {p.next.icon} {p.next.name} ({p.next.hint.toLowerCase()})</div>}
+      <Link to="/leaderboard" className="mt-2 inline-block text-xs font-semibold text-accent underline underline-offset-2">See the leaderboard{p.rank ? ` · you are #${p.rank}` : ''}</Link>
+    </div>
+  );
+}
+
 export default function TicketPage() {
   const { code } = useParams();
   const [t, setT] = useState(null); // null = loading, false = not found
@@ -78,6 +94,7 @@ export default function TicketPage() {
             </div>
           </div>
         </motion.div>
+        {t.status === 'confirmed' && <MyPoints code={t.code} />}
         {t.can_cancel && <div className="mt-4 text-center print:hidden"><button onClick={cancel} disabled={busy} className="text-xs font-semibold text-red-500 underline underline-offset-2 disabled:opacity-50">{busy ? 'Cancelling…' : 'Cannot come? Cancel my registration'}</button></div>}
         <p className="mt-4 flex items-center justify-center gap-1.5 text-xs text-muted print:hidden"><ScanLine size={13} /> Staff scan this code to check you in</p>
       </div>

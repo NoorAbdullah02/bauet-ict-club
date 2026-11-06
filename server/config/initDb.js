@@ -153,6 +153,11 @@ async function initDb() {
     for (const t of ['events', 'notices', 'members', 'gallery', 'achievements', 'posts', 'messages', 'registrations', ...features.map((f) => f.table)]) {
       await client.query(`ALTER TABLE ${t} ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ`);
     }
+    await client.query(`CREATE TABLE IF NOT EXISTS point_awards (
+      id SERIAL PRIMARY KEY, email TEXT NOT NULL, name TEXT, points INTEGER NOT NULL, reason TEXT NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW(), deleted_at TIMESTAMPTZ
+    )`);
+    await client.query('CREATE INDEX IF NOT EXISTS idx_point_awards_email ON point_awards (LOWER(email))');
     // drafts and scheduled posts
     for (const t of ['events', 'notices']) {
       await client.query(`ALTER TABLE ${t} ADD COLUMN IF NOT EXISTS publish_at TIMESTAMPTZ`);

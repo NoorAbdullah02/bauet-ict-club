@@ -46,6 +46,8 @@ import '../screens/faq_screen.dart';
 import '../screens/notices_screen.dart';
 import '../screens/projects_screen.dart';
 import '../screens/resources_screen.dart';
+import '../screens/leaderboard_screen.dart';
+import '../screens/admin/admin_points_screen.dart';
 import '../screens/splash_screen.dart';
 import '../screens/team_screen.dart';
 import '../state/app_state.dart';
@@ -103,6 +105,7 @@ GoRouter buildRouter(AppState state) {
           GoRoute(path: '/achievements', pageBuilder: (c, s) => _fade(s, const AchievementsScreen())),
           GoRoute(path: '/projects', pageBuilder: (c, s) => _fade(s, const ProjectsScreen())),
           GoRoute(path: '/resources', pageBuilder: (c, s) => _fade(s, const ResourcesScreen())),
+          GoRoute(path: '/leaderboard', pageBuilder: (c, s) => _fade(s, const LeaderboardScreen())),
           GoRoute(path: '/faq', pageBuilder: (c, s) => _fade(s, const FaqScreen())),
           GoRoute(path: '/about', pageBuilder: (c, s) => _fade(s, const AboutScreen())),
           GoRoute(path: '/contact', pageBuilder: (c, s) => _fade(s, const ContactScreen())),
@@ -134,6 +137,7 @@ GoRouter buildRouter(AppState state) {
       GoRoute(path: '/admin/committees', pageBuilder: (c, s) => _slide(s, _admin(const AdminCommitteesScreen()))),
       GoRoute(path: '/admin/checkin', pageBuilder: (c, s) => _slide(s, _admin(const AdminCheckinScreen()))),
       GoRoute(path: '/admin/signups', pageBuilder: (c, s) => _slide(s, _admin(const AdminSignupsScreen()))),
+      GoRoute(path: '/admin/points', pageBuilder: (c, s) => _slide(s, _admin(const AdminPointsScreen()))),
       GoRoute(path: '/admin/insights', pageBuilder: (c, s) => _slide(s, _admin(const AdminInsightsScreen()))),
       GoRoute(path: '/admin/activity', pageBuilder: (c, s) => _slide(s, _admin(const AdminActivityScreen()))),
       GoRoute(path: '/admin/team', pageBuilder: (c, s) => _slide(s, _admin(const AdminTeamScreen()))),

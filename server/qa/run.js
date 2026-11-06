@@ -147,6 +147,25 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
     ok((await call('POST', '/api/event-registrations/checkin', { code }, T)).s === 200, 'check-in');
     ok((await call('POST', '/api/event-registrations/checkin', { code }, T)).j?.already === true || (await call('POST', '/api/event-registrations/checkin', { code }, T)).s === 409, 'second check-in is reported');
 
+    // points, badges and the leaderboard
+    {
+      const me = await call('GET', `/api/points/me?ticket=${code}`);
+      ok(me.s === 200 && me.j.points === 10 && me.j.events === 1 && me.j.badges.some((b) => b.id === 'first') && me.j.rank === 1, 'a checked-in person has 10 points, the First step badge and rank 1', me.j);
+      ok(/^\S+( \S\.)?$/.test(me.j.name) && !JSON.stringify(me.j).includes('@'), 'the person is shown with a masked name and no e-mail');
+      ok((await call('GET', '/api/points/me?ticket=ZZZZZZZZ')).s === 404, 'an unknown ticket has no points');
+      ok((await call('POST', '/api/points/award', { email: 'e0@example.com', points: 5, reason: 'x' })).s === 401, 'only an admin gives points');
+      ok((await call('POST', '/api/points/award', { email: 'not-an-email', points: 5, reason: 'x' }, T)).s === 400 && (await call('POST', '/api/points/award', { email: 'a@b.co', points: 0, reason: 'x' }, T)).s === 400 && (await call('POST', '/api/points/award', { email: 'a@b.co', points: 5, reason: '' }, T)).s === 400, 'a bad award is refused');
+      const aw = await call('POST', '/api/points/award', { email: 'volunteer@example.com', name: 'Zara Volunteer', points: 120, reason: 'Ran the registration desk' }, T);
+      ok(aw.s === 201, 'an admin can give bonus points', aw.j);
+      const lb = (await call('GET', '/api/points/leaderboard')).j;
+      ok(lb.top[0]?.name === 'Zara V.' && lb.top[0].points === 120 && lb.top[0].badges.some((b) => b.id === 'century') && lb.top[0].badges.some((b) => b.id === 'helper'), 'the leaderboard ranks by points and masks names', lb.top);
+      ok(!JSON.stringify(lb).includes('@'), 'the public leaderboard never shows an e-mail');
+      const adm = (await call('GET', '/api/points/admin', undefined, T)).j;
+      ok(adm.people.some((x) => x.email === 'volunteer@example.com') && adm.awards.length === 1, 'the admin sees e-mails and the award history');
+      ok((await call('GET', '/api/points/admin')).s === 401, 'the admin table needs a login');
+      ok((await call('DELETE', `/api/points/award/${aw.j.id}`, undefined, T)).s === 200 && ((await call('GET', '/api/points/leaderboard')).j.top[0]?.points || 0) === 10, 'an award can be undone');
+    }
+
     // waiting list: a seat freed up gives the place to the oldest person waiting
     const all = (await call('GET', `/api/event-registrations/by-event/${ev.id}`, undefined, T)).j;
     const waiting = all.filter((x) => x.waitlisted).sort((a, b) => a.id - b.id);
