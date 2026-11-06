@@ -198,62 +198,29 @@ class _Hero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = context.pal;
-    return SizedBox(
-      height: 500,
+    // the rings are painted by one painter that listens to the controller (no widget rebuilds per frame);
+    // scrolling only moves the finished layer
+    final rings = RepaintBoundary(child: SizedBox(width: 260, height: 260, child: CustomPaint(painter: _RingsPainter(orbit, p))));
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: 470),
       child: Stack(
         clipBehavior: Clip.none,
         children: [
           // Parallax orb: drifts slower than the page.
           Positioned.fill(
             child: AnimatedBuilder(
-            animation: Listenable.merge([scroll, orbit]),
-            builder: (context, _) {
-              final off = scroll.hasClients ? scroll.offset.clamp(0.0, 600.0).toDouble() : 0.0;
-              final t = orbit.value * 2 * math.pi;
-              return Stack(clipBehavior: Clip.none, children: [
-                Positioned(
-                right: -50,
-                top: 30 + off * 0.35,
-                child: Opacity(
-                  opacity: (1 - off / 450).clamp(0.0, 1.0).toDouble(),
-                  child: SizedBox(
-                    width: 260,
-                    height: 260,
-                    child: Stack(alignment: Alignment.center, children: [
-                      Container(
-                        width: 120,
-                        height: 120,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: RadialGradient(colors: [p.tech.withValues(alpha: 0.9), p.accent.withValues(alpha: 0.6), p.accent.withValues(alpha: 0)]),
-                        ),
-                      ),
-                      for (var i = 0; i < 4; i++)
-                        Transform(
-                          alignment: Alignment.center,
-                          transform: Matrix4.identity()
-                            ..setEntry(3, 2, 0.0015)
-                            ..rotateX(t + i * 0.8)
-                            ..rotateY(t * (i.isEven ? 1 : -1) * 0.7 + i * 0.5)
-                            ..rotateZ(i * 0.6),
-                          child: Container(
-                            width: 240 - i * 28.0,
-                            height: 240 - i * 28.0,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(color: [p.accent, p.tech, p.third, p.accent][i].withValues(alpha: 0.75), width: 1.6),
-                            ),
-                          ),
-                        ),
-                    ]),
-                  ),
-                ),
-              ),
-              ]);
-            },
-          )),
+              animation: scroll,
+              child: rings,
+              builder: (context, child) {
+                final off = scroll.hasClients ? scroll.offset.clamp(0.0, 600.0).toDouble() : 0.0;
+                return Stack(clipBehavior: Clip.none, children: [
+                  Positioned(right: -50, top: 30 + off * 0.35, child: Opacity(opacity: (1 - off / 450).clamp(0.0, 1.0).toDouble(), child: child)),
+                ]);
+              },
+            ),
+          ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 40, 20, 0),
+            padding: const EdgeInsets.fromLTRB(20, 36, 20, 26),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -261,16 +228,18 @@ class _Hero extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
                   decoration: BoxDecoration(borderRadius: BorderRadius.circular(99), border: Border.all(color: p.line), color: p.surface.withValues(alpha: 0.5)),
                   child: Row(mainAxisSize: MainAxisSize.min, children: [
-                    Container(width: 7, height: 7, decoration: BoxDecoration(shape: BoxShape.circle, color: p.tech))
-                        .animate(onPlay: (c) => c.repeat(reverse: true))
-                        .fade(begin: 0.3, end: 1, duration: 900.ms),
+                    RepaintBoundary(
+                      child: Container(width: 7, height: 7, decoration: BoxDecoration(shape: BoxShape.circle, color: p.tech))
+                          .animate(onPlay: (c) => c.repeat(reverse: true))
+                          .fade(begin: 0.3, end: 1, duration: 900.ms),
+                    ),
                     const SizedBox(width: 8),
                     Text('// bauet.ict.club', style: monoStyle(context, size: 10.5, color: p.fg)),
                   ]),
                 ).animate().fadeIn(duration: 500.ms),
-                const SizedBox(height: 22),
+                const SizedBox(height: 20),
                 const Row(children: [LogoImage.crest(height: 46), SizedBox(width: 14), LogoImage.club(height: 40)]),
-                const SizedBox(height: 70),
+                const SizedBox(height: 40),
                 Text('Where code', style: displayStyle(context, 46)).animate().fadeIn(delay: 150.ms, duration: 600.ms).slideY(begin: 0.25, end: 0),
                 GradientText('meets community.', style: displayStyle(context, 46))
                     .animate()
@@ -296,6 +265,45 @@ class _Hero extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Four tilted rings around a glowing core. A ring seen from the side is an ellipse, so the "3D" turn is drawn
+/// with squashed ellipses: cheap enough for any phone.
+class _RingsPainter extends CustomPainter {
+  _RingsPainter(this.orbit, this.p) : super(repaint: orbit);
+  final AnimationController orbit;
+  final Pal p;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final c = size.center(Offset.zero);
+    final t = orbit.value * 2 * math.pi;
+    canvas.drawCircle(
+      c,
+      60,
+      Paint()..shader = RadialGradient(colors: [p.tech.withValues(alpha: 0.9), p.accent.withValues(alpha: 0.6), p.accent.withValues(alpha: 0)]).createShader(Rect.fromCircle(center: c, radius: 60)),
+    );
+    final colors = [p.accent, p.tech, p.third, p.accent];
+    for (var i = 0; i < 4; i++) {
+      final r = (240 - i * 28.0) / 2;
+      final squashX = math.cos(t * (i.isEven ? 1 : -1) * 0.7 + i * 0.5).abs().clamp(0.12, 1.0);
+      final squashY = math.cos(t + i * 0.8).abs().clamp(0.12, 1.0);
+      canvas.save();
+      canvas.translate(c.dx, c.dy);
+      canvas.rotate(i * 0.6 + t * 0.15);
+      canvas.drawOval(
+        Rect.fromCenter(center: Offset.zero, width: r * 2 * squashX.toDouble(), height: r * 2 * squashY.toDouble()),
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.6
+          ..color = colors[i].withValues(alpha: 0.75),
+      );
+      canvas.restore();
+    }
+  }
+
+  @override
+  bool shouldRepaint(_RingsPainter old) => old.p != p;
 }
 
 class _Stats extends StatelessWidget {
