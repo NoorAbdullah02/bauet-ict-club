@@ -59,7 +59,7 @@ async function feedbackRequests() {
 }
 
 function start() {
-  const tick = () => { purge(); weeklyDigest(); reminders(); feedbackRequests(); require('./schedule').publishDue(); require('../routes/pay').expireStale(); };
+  const tick = () => { purge(); weeklyDigest(); reminders(); feedbackRequests(); require('./schedule').publishDue(); require('./remoteJobs').maybeRefresh(); require('../routes/pay').expireStale(); };
   setInterval(() => require('../routes/pay').expireStale(), 10 * 60 * 1000).unref?.(); // unfinished online payments free their seat after 30 minutes
   setTimeout(tick, 60 * 1000).unref?.();
   setInterval(tick, 6 * 60 * 60 * 1000).unref?.();

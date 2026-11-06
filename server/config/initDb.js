@@ -153,6 +153,11 @@ async function initDb() {
     for (const t of ['events', 'notices', 'members', 'gallery', 'achievements', 'posts', 'messages', 'registrations', ...features.map((f) => f.table)]) {
       await client.query(`ALTER TABLE ${t} ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ`);
     }
+    await client.query(`CREATE TABLE IF NOT EXISTS remote_jobs (
+      id SERIAL PRIMARY KEY, source VARCHAR(20) NOT NULL, ext_id VARCHAR(80) NOT NULL, title VARCHAR(255) NOT NULL, company VARCHAR(160), kind VARCHAR(30),
+      location VARCHAR(160), salary VARCHAR(120), url TEXT NOT NULL, logo TEXT, tags JSONB DEFAULT '[]', summary TEXT, published_at TIMESTAMPTZ,
+      seen_at TIMESTAMPTZ DEFAULT NOW(), UNIQUE (source, ext_id)
+    )`);
     await client.query(`CREATE TABLE IF NOT EXISTS point_awards (
       id SERIAL PRIMARY KEY, email TEXT NOT NULL, name TEXT, points INTEGER NOT NULL, reason TEXT NOT NULL,
       created_at TIMESTAMPTZ DEFAULT NOW(), deleted_at TIMESTAMPTZ

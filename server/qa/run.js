@@ -3,6 +3,7 @@ const { spawn } = require('child_process');
 const path = require('path');
 const PORT = process.env.QA_PORT || '5099';
 const B = `http://127.0.0.1:${PORT}`;
+const feedHits = { remotive: 0, remoteok: 0 };
 let pass = 0, failed = 0, XFF = ''; // XFF: pretend to be another visitor so the 8-wrong-attempts-per-IP guard does not block later checks
 const ok = (c, name, extra) => { if (c) pass++; else { failed++; console.log(`  FAIL  ${name}`, extra === undefined ? '' : JSON.stringify(extra)); } };
 const call = async (method, url, body, token, raw) => {
@@ -25,6 +26,18 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
         if (f.get('store_id') !== 'qa_store' || f.get('store_passwd') !== 'qa_pass' || f.get('currency') !== 'BDT') return res.end(JSON.stringify({ status: 'FAILED', failedreason: 'bad store' }));
         return res.end(JSON.stringify({ status: 'SUCCESS', GatewayPageURL: `http://pay.example/${f.get('tran_id')}`, amount: f.get('total_amount') }));
       }
+      if (url.pathname === '/remotive') {
+        feedHits.remotive += 1;
+        return res.end(JSON.stringify({ jobs: [
+          { id: 9001, url: 'https://remotive.com/remote-jobs/software-dev/qa-quokka-engineer-9001', title: 'QA Quokka Engineer', company_name: 'Quokka <b>Labs</b>', job_type: 'full_time', category: 'Software Development', tags: ['python', 'qa'], publication_date: '2026-11-04T10:00:00', candidate_required_location: 'Worldwide', salary: '$40k', description: '<p>Test <b>things</b></p>' },
+          { id: 9002, url: 'https://remotive.com/remote-jobs/x/us-only-9002', title: 'US Only Role', company_name: 'Acme', job_type: 'contract', tags: ['sales'], publication_date: '2026-11-03T10:00:00', candidate_required_location: 'USA Only', description: 'x' },
+          { id: 9003, url: 'javascript:alert(1)', title: 'Bad link job', company_name: 'Evil', publication_date: '2026-11-03T10:00:00' },
+        ] }));
+      }
+      if (url.pathname === '/remoteok') {
+        feedHits.remoteok += 1;
+        return res.end(JSON.stringify([{ legal: 'terms' }, { id: '777', position: 'Remote OK Quokka Designer', company: 'Okapi', tags: ['design'], date: '2026-11-05T00:00:04+00:00', location: 'Anywhere', salary_min: '60000', salary_max: '90000', url: 'https://remoteok.com/remote-jobs/777', description: '<p>Draw</p>' }]));
+      }
       if (url.pathname === '/validator/api/validationserverAPI.php') {
         const m = /^val-(bauet-[a-f0-9]{16})-([\d.]+)$/.exec(url.searchParams.get('val_id') || '');
         if (!m || url.searchParams.get('store_id') !== 'qa_store') return res.end(JSON.stringify({ status: 'INVALID_TRANSACTION' }));
@@ -35,7 +48,7 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
   });
   await new Promise((r) => gw.listen(0, '127.0.0.1', r));
   const GW = `http://127.0.0.1:${gw.address().port}`;
-  const srv = spawn(process.execPath, [path.join(__dirname, 'harness.js')], { env: { ...process.env, QA_PORT: PORT, SSLCOMMERZ_STORE_ID: 'qa_store', SSLCOMMERZ_STORE_PASSWD: 'qa_pass', SSLCOMMERZ_BASE: GW }, stdio: 'ignore' });
+  const srv = spawn(process.execPath, [path.join(__dirname, 'harness.js')], { env: { ...process.env, QA_PORT: PORT, SSLCOMMERZ_STORE_ID: 'qa_store', SSLCOMMERZ_STORE_PASSWD: 'qa_pass', SSLCOMMERZ_BASE: GW, REMOTIVE_URL: `${GW}/remotive`, REMOTEOK_URL: `${GW}/remoteok` }, stdio: 'ignore' });
   try {
     for (let i = 0; i < 60; i++) { try { if ((await fetch(`${B}/api/health`)).ok) break; } catch { /* booting */ } await new Promise((r) => setTimeout(r, 1000)); }
 
@@ -381,6 +394,29 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
       ok((await call('PATCH', `/api/contest-teams/admin/team/${npId}`, { team_name: 'byte me' }, T)).s === 409, 'a corrected name cannot clash with another team');
       ok((await call('PATCH', `/api/contest-teams/admin/team/${npId}`, { email: 'bad' }, T)).s === 400, 'a corrected e-mail must be valid');
       ok((await call('DELETE', `/api/contest-teams/admin/team/${npId}`, undefined, T)).s === 200 && (await call('GET', `/api/contest-teams/admin/${ct.j.id}`, undefined, T)).j.teams.length === 1, 'a team can be removed');
+    }
+
+    // remote jobs from Remotive and Remote OK
+    {
+      const first = await call('GET', '/api/remote-jobs');
+      ok(first.s === 200 && first.j.enabled === true && Array.isArray(first.j.sources) && first.j.sources.length === 2, 'the remote jobs list answers');
+      await new Promise((r) => setTimeout(r, 1500)); // the first visit starts reading the feeds in the background
+      const lst = (await call('GET', '/api/remote-jobs')).j;
+      const titles = lst.jobs.map((x) => x.title);
+      ok(titles.includes('QA Quokka Engineer') && titles.includes('Remote OK Quokka Designer'), 'jobs from both feeds are listed', titles);
+      ok(!titles.includes('Bad link job'), 'a job without a real web link is dropped');
+      const q1 = lst.jobs.find((x) => x.title === 'QA Quokka Engineer');
+      ok(q1.company === 'Quokka Labs' && q1.source === 'remotive' && q1.url.startsWith('https://remotive.com/') && !/[<>]/.test(q1.summary), 'text is cleaned and the source link is kept', q1);
+      ok(lst.jobs.find((x) => x.title === 'Remote OK Quokka Designer').salary === '$60k to $90k a year', 'a RemoteOK salary range is shown');
+      const open = (await call('GET', '/api/remote-jobs?open=1')).j.jobs.map((x) => x.title);
+      ok(open.includes('QA Quokka Engineer') && !open.includes('US Only Role'), 'the "open to Bangladesh" filter hides US-only jobs', open);
+      ok((await call('GET', '/api/remote-jobs?tag=design')).j.jobs.length === 1 && (await call('GET', '/api/remote-jobs?q=zzzznothing')).j.jobs.length === 0, 'search and tag filters work');
+      const hits = feedHits.remotive;
+      await call('GET', '/api/remote-jobs'); await call('GET', '/api/remote-jobs');
+      ok(feedHits.remotive === hits, 'visitors do not make the server read the feeds again (at most 4 reads a day)');
+      ok((await call('POST', '/api/remote-jobs/refresh')).s === 401, 'only an admin refreshes by hand');
+      const rf = await call('POST', '/api/remote-jobs/refresh', undefined, T);
+      ok(rf.s === 200 && feedHits.remotive === hits + 1, 'an admin can refresh now', rf.j);
     }
 
     // job and internship board

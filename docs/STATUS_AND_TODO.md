@@ -29,6 +29,7 @@ Last updated: 2026-11-06. **What only the owner can do (keys, accounts, Firebase
 - Draft and scheduled events and notices: hidden from the public (website, app, search, sitemap, chat) until they go live; admins see them with a Draft or "Goes live" tag. The "new event / notice" e-mail goes out when they go live. Visibility needs no cron job; the e-mail is sent by the next public visit or the cron call.
 - Points, badges and leaderboard: 10 points per event a person was checked in at (people are told apart by e-mail), extra points given by an admin, public leaderboard with masked names, points card on the ticket page.
 - Contests and hackathons: contest pages, team sign-up (size limits, deadline, unique names and e-mails), admin sees teams, gives places, publishes results (1st 50, 2nd 30, 3rd 20, others 5 points to every member), spreadsheet export, teams and awards can be edited and deleted.
+- Job and internship board (club openings with drafts and scheduling) plus a Remote jobs tab fed by Remotive and Remote OK (read every 6 hours, stored in our database, shown with the source name and a normal link to the original page, as their terms ask; `REMOTE_JOBS=off` turns it off).
 - Event Studio in the app: a whole event (details, how people register, seats, publish time) on one page, then straight to the sign-up form.
 - Admin login says what is missing; Insights opens on the busiest event; the app Insights too.
 

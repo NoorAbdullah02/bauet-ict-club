@@ -75,7 +75,7 @@ app.all('/api/jobs/run', async (req, res) => {
   const given = String(req.get('x-cron-secret') || req.query.key || '');
   if (!secret || secret.length < 16 || given.length !== secret.length || !require('crypto').timingSafeEqual(Buffer.from(given), Buffer.from(secret))) return res.status(404).json({ error: 'Not found' });
   const jobs = require('./utils/analyticsJobs');
-  await Promise.allSettled([jobs.purge(), jobs.weeklyDigest(), jobs.reminders(), require('./utils/schedule').publishDue()]);
+  await Promise.allSettled([jobs.purge(), jobs.weeklyDigest(), jobs.reminders(), require('./utils/schedule').publishDue(), require('./utils/remoteJobs').maybeRefresh()]);
   res.set('Cache-Control', 'no-store').json({ ok: true });
 });
 
@@ -113,6 +113,7 @@ app.use('/api/pay', require('./routes/pay'));
 app.use('/api/card', require('./routes/card'));
 app.use('/api/points', require('./routes/points'));
 app.use('/api/contest-teams', require('./routes/contestTeams'));
+app.use('/api/remote-jobs', require('./routes/remoteJobs'));
 app.use('/api/email', require('./routes/email'));
 app.use('/api/registrations', require('./routes/registrations'));
 app.use('/api/settings', require('./routes/settings'));
