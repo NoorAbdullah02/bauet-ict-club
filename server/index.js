@@ -107,6 +107,8 @@ app.use('/api/chat', require('./routes/chat'));
 app.use('/api/analytics', require('./routes/analytics'));
 app.use('/api/event-registrations', require('./routes/eventRegs'));
 app.use('/api/forms', require('./routes/forms'));
+app.use('/api/search', require('./routes/search'));
+app.use('/api/card', require('./routes/card'));
 app.use('/api/email', require('./routes/email'));
 app.use('/api/registrations', require('./routes/registrations'));
 app.use('/api/settings', require('./routes/settings'));
@@ -203,7 +205,7 @@ app.get('/sitemap.xml', (req, res) => {
   const base = origin(req);
   res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${SITE_PATHS.map((p) => `  <url><loc>${base}${p}</loc></url>`).join('\n')}\n</urlset>\n`);
 });
-app.get('/robots.txt', (req, res) => res.type('text/plain').send(`User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /f/\nDisallow: /s/\nDisallow: /ticket/\nDisallow: /api/\nSitemap: ${origin(req)}/sitemap.xml\n`));
+app.get('/robots.txt', (req, res) => res.type('text/plain').send(`User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /f/\nDisallow: /s/\nDisallow: /ticket/\nDisallow: /card/\nDisallow: /api/\nSitemap: ${origin(req)}/sitemap.xml\n`));
 app.use('/api/trash', require('./routes/trash'));
 app.use('/api/committees', require('./routes/committees'));
 app.use('/api/messages', require('./routes/messages'));
@@ -224,8 +226,27 @@ if (process.env.NODE_ENV === 'production') {
       .replace(/(<meta property="og:title" content=")[^"]*(")/, `$1${escAttr(m.title)}$2`)
       .replace(/(<meta property="og:description" content=")[^"]*(")/, `$1${escAttr(m.description)}$2`)
       .replace(/(<meta property="og:image" content=")[^"]*(")/, `$1${escAttr(abs(m.image))}$2`)
-      .replace('</head>', `  <meta property="og:url" content="${escAttr(m.url)}" />\n  <meta name="twitter:card" content="summary_large_image" />\n  <link rel="canonical" href="${escAttr(m.url)}" />\n</head>`);
+      .replace('</head>', `${m.jsonld ? `  <script type="application/ld+json">${JSON.stringify(m.jsonld).replace(/</g, '\\u003c')}</script>\n` : ''}  <meta property="og:url" content="${escAttr(m.url)}" />\n  <meta name="twitter:card" content="summary_large_image" />\n  <link rel="canonical" href="${escAttr(m.url)}" />\n</head>`);
     return html;
+  };
+  /** Event structured data: Google can show the date and place right in the search results. */
+  const eventJsonLd = (ev, base, image) => {
+    const d = String(ev.date instanceof Date ? ev.date.toISOString() : ev.date || '').slice(0, 10);
+    let start = d;
+    const t = /(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i.exec(String(ev.time || ''));
+    if (d && t) { let h = Number(t[1]); const ap = (t[3] || '').toLowerCase(); if (ap === 'pm' && h < 12) h += 12; if (ap === 'am' && h === 12) h = 0; if (h < 24) start = `${d}T${String(h).padStart(2, '0')}:${t[2] || '00'}:00+06:00`; }
+    const pay = ev.reg_form?.payment;
+    const url = `${base}/events/${ev.id}`;
+    return {
+      '@context': 'https://schema.org', '@type': 'Event', name: ev.title, startDate: start || undefined,
+      eventStatus: 'https://schema.org/EventScheduled', eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
+      location: { '@type': 'Place', name: ev.location || 'BAUET', address: { '@type': 'PostalAddress', addressCountry: 'BD', streetAddress: ev.location || 'BAUET, Qadirabad Cantonment, Natore' } },
+      description: String(ev.description || ev.title).slice(0, 300),
+      image: [/^https?:\/\//.test(image) ? image : base + image],
+      organizer: { '@type': 'Organization', name: 'BAUET ICT Club', url: base },
+      url,
+      offers: { '@type': 'Offer', url, price: pay?.enabled ? String(pay.amount) : '0', priceCurrency: 'BDT', availability: ev.reg_open === false ? 'https://schema.org/SoldOut' : 'https://schema.org/InStock' },
+    };
   };
   app.get('/f/:slug', async (req, res, next) => {
     try {
@@ -240,7 +261,7 @@ if (process.env.NODE_ENV === 'production') {
       if (!ev) return next();
       const when = [formalDate(ev.date), formalTime(ev.time), ev.location].filter(Boolean).join(' · ');
       const image = ev.image_url && /^(https?:\/\/|\/uploads\/)/.test(ev.image_url) ? ev.image_url.replace('/upload/', '/upload/c_fill,w_1200,h_630,f_jpg,q_auto/') : '/logos/ict-club.png';
-      res.set('Cache-Control', 'no-cache').type('html').send(page(req, { title: `${ev.title} | BAUET ICT Club`, description: `${when}${ev.description ? `. ${String(ev.description).slice(0, 160)}` : ''}`, image }));
+      res.set('Cache-Control', 'no-cache').type('html').send(page(req, { title: `${ev.title} | BAUET ICT Club`, description: `${when}${ev.description ? `. ${String(ev.description).slice(0, 160)}` : ''}`, image, jsonld: eventJsonLd(ev, origin(req), image) }));
     } catch { next(); }
   });
   app.get('*', (req, res) => {

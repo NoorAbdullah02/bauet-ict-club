@@ -233,6 +233,15 @@ export default function FormEditor({ kind = 'form', eventId }) {
   const [qr, setQr] = useState(false);
   const [sample, setSample] = useState({});
   const [notFound, setNotFound] = useState(false);
+  const [formsList, setFormsList] = useState([]); // for "ask for feedback after the event"
+  const [sendingFb, setSendingFb] = useState(false);
+  useEffect(() => { if (kind === 'event') api.get('/forms').then((r) => setFormsList(r.data)).catch(() => {}); }, [kind]);
+  const sendFeedbackNow = async () => {
+    setSendingFb(true);
+    try { const r = await api.post(`/event-registrations/event/${id}/feedback/send`); toast.success(`Feedback link sent to ${r.data.sent} ${r.data.sent === 1 ? 'person' : 'people'}`); }
+    catch (ex) { toast.error(ex.response?.data?.error || 'Could not send'); }
+    setSendingFb(false);
+  };
   const rev = useRef(0);
   const timer = useRef(null);
   const [dragId, setDragId] = useState(null);
@@ -248,7 +257,7 @@ export default function FormEditor({ kind = 'form', eventId }) {
       const f = row.reg_form?.fields?.length ? clone(row.reg_form) : { title: '', intro: '', confirmation: '', unique: kind === 'form' ? '' : 'email', fields: clone(kind === 'form' ? [{ id: 'name', key: 'name', type: 'short', label: 'Your name', required: true }] : DEFAULT_FIELDS) };
       setDoc({
         title: kind === 'form' ? row.title : row.title, heading: f.title || '', intro: f.intro || row.description || '', confirmation: f.confirmation || '', email_note: f.email_note || '', unique: f.unique || '',
-        notify_admin: !!f.notify_admin, theme: f.theme || '', closes_at: f.closes_at || '', payment: f.payment || null, cert: f.cert || null, fields: f.fields,
+        notify_admin: !!f.notify_admin, feedback_form: f.feedback_form || '', theme: f.theme || '', closes_at: f.closes_at || '', payment: f.payment || null, cert: f.cert || null, fields: f.fields,
         capacity: Number(row.capacity) || 0, open: kind === 'form' ? row.is_open !== false : row.reg_open !== false, slug: row.slug || '',
       });
       setActiveId(null);
@@ -264,11 +273,11 @@ export default function FormEditor({ kind = 'form', eventId }) {
 
   // ---- autosave ----
   const body = useCallback((d) => ({
-    title: d.heading.trim(), intro: d.intro, confirmation: d.confirmation, email_note: d.email_note, unique: d.unique, notify_admin: d.notify_admin, theme: d.theme || undefined, closes_at: d.closes_at || undefined,
+    title: d.heading.trim(), intro: d.intro, confirmation: d.confirmation, email_note: d.email_note, unique: d.unique, notify_admin: d.notify_admin, feedback_form: kind === 'event' ? d.feedback_form || undefined : undefined, theme: d.theme || undefined, closes_at: d.closes_at || undefined,
     payment: d.payment?.enabled ? { ...d.payment, amount: Number(d.payment.amount) } : undefined,
     cert: d.cert?.enabled ? d.cert : undefined,
     fields: d.fields.map((q) => ({ ...q, options: hasOptions(q.type) ? q.options.map((o) => o.trim()).filter(Boolean) : undefined })),
-  }), []);
+  }), [kind]);
 
   const save = useCallback(async (d, mine) => {
     setStatus('saving');
@@ -491,6 +500,19 @@ export default function FormEditor({ kind = 'form', eventId }) {
             <label className="block"><span className="mb-1 block font-mono text-[10px] uppercase tracking-wider text-muted">Message on the page</span><textarea className={cn(inputCls, 'min-h-16 resize-y')} placeholder="Thank you! Please bring your student ID." value={doc.confirmation} maxLength={500} onChange={(e) => patchDoc({ confirmation: e.target.value })} /></label>
             <label className="mt-4 block"><span className="mb-1 block font-mono text-[10px] uppercase tracking-wider text-muted">Extra note in their confirmation email</span><textarea className={cn(inputCls, 'min-h-16 resize-y')} placeholder="Room 301. Doors open at 2:30 PM." value={doc.email_note} maxLength={600} onChange={(e) => patchDoc({ email_note: e.target.value })} /></label>
             <div className="mt-4"><Switch checked={doc.notify_admin} onChange={(v) => patchDoc({ notify_admin: v })} label="Email me for every new response" /></div>
+            {kind === 'event' && (
+              <div className="mt-5 rounded-2xl border border-line bg-alt/50 p-4">
+                <p className="text-sm font-semibold text-fg">Ask for feedback after the event</p>
+                <p className="mt-1 text-xs text-muted">The day after the event, everyone who came (checked in) gets an email with a link to this form. Make the form first under Forms.</p>
+                <div className="mt-3 flex flex-wrap items-center gap-3">
+                  <Select className={cn(inputCls, 'min-w-[14rem] flex-1 !py-2')} value={doc.feedback_form || ''} onChange={(e) => patchDoc({ feedback_form: e.target.value })} aria-label="Feedback form">
+                    <option value="">No feedback email</option>
+                    {formsList.map((f) => <option key={f.id} value={f.slug}>{f.title}</option>)}
+                  </Select>
+                  {doc.feedback_form && <button type="button" onClick={sendFeedbackNow} disabled={sendingFb} className="btn-outline !px-4 !py-2 text-xs disabled:opacity-60">{sendingFb ? 'Sending…' : 'Send the link now'}</button>}
+                </div>
+              </div>
+            )}
             <p className="mt-3 text-xs text-muted">{doc.fields.some((q) => q.type === 'email') ? 'The confirmation email goes to the first Email question.' : 'Add an Email question if people should get a confirmation email.'}</p>
           </section>
         </div>

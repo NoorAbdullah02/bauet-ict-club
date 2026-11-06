@@ -46,10 +46,22 @@ async function reminders() {
   } catch (e) { console.warn('Event reminders failed:', e.message); }
 }
 
+/** The day after an event, people who came get the feedback form link (once per event; needs a feedback form chosen on the event). */
+async function feedbackRequests() {
+  if (!mail.provider()) return;
+  try {
+    const { sendFeedback } = require('./feedback');
+    const today = iso(new Date(Date.now() + 6 * 3600e3)); // Bangladesh is UTC+6
+    const events = (await pool.query('SELECT * FROM events WHERE deleted_at IS NULL AND feedback_sent_at IS NULL')).rows
+      .filter((e) => e.reg_form?.feedback_form && String(e.date instanceof Date ? e.date.toISOString() : e.date).slice(0, 10) < today);
+    for (const ev of events) await sendFeedback(ev);
+  } catch (e) { console.warn('Feedback requests failed:', e.message); }
+}
+
 function start() {
-  const tick = () => { purge(); weeklyDigest(); reminders(); };
+  const tick = () => { purge(); weeklyDigest(); reminders(); feedbackRequests(); };
   setTimeout(tick, 60 * 1000).unref?.();
   setInterval(tick, 6 * 60 * 60 * 1000).unref?.();
 }
 
-module.exports = { start, purge, weeklyDigest, reminders };
+module.exports = { start, purge, weeklyDigest, reminders, feedbackRequests };

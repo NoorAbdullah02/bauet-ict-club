@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { NavLink, Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, Sun, Moon, Shield, ArrowRight, Download } from 'lucide-react';
+import { Menu, X, Sun, Moon, Shield, ArrowRight, Download, Search } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import Logo from './Logo';
+import SearchBox from './SearchBox';
 import useStore from '../context/store';
 import { cn } from '../lib/cn';
 
@@ -23,6 +24,7 @@ export const LINKS = [
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [searching, setSearching] = useState(false);
   const { theme, setTheme } = useStore(useShallow((s) => ({ theme: s.theme, setTheme: s.setTheme })));
   const { pathname } = useLocation();
   const isDark = theme === 'dark';
@@ -34,6 +36,14 @@ export default function Navbar() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
   useEffect(() => setMobileOpen(false), [pathname]);
+  useEffect(() => { // "/" or Ctrl+K opens the search (not while typing in a field)
+    const k = (e) => {
+      const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName) || document.activeElement?.isContentEditable;
+      if ((e.key === '/' && !typing) || ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k')) { e.preventDefault(); setSearching(true); }
+    };
+    window.addEventListener('keydown', k);
+    return () => window.removeEventListener('keydown', k);
+  }, []);
 
   const iconBtn = 'grid size-10 place-items-center rounded-full border border-line bg-surface/60 text-fg2 backdrop-blur transition hover:border-tech hover:text-tech';
 
@@ -61,6 +71,7 @@ export default function Navbar() {
           </ul>
 
           <div className="nav-actions flex shrink-0 items-center gap-2">
+            <button onClick={() => setSearching(true)} className={iconBtn} aria-label="Search the site" title="Search ( / )"><Search size={16} /></button>
             <button onClick={() => setTheme(isDark ? 'light' : 'dark')} className={iconBtn} aria-label="Toggle theme">
               {isDark ? <Sun size={16} /> : <Moon size={16} />}
             </button>
@@ -74,6 +85,7 @@ export default function Navbar() {
         </nav>
       </motion.header>
 
+      {searching && <SearchBox onClose={() => setSearching(false)} />}
       <AnimatePresence>
         {mobileOpen && (
           <motion.div initial={{ opacity: 0, clipPath: 'circle(0% at 90% 5%)' }} animate={{ opacity: 1, clipPath: 'circle(150% at 90% 5%)' }} exit={{ opacity: 0, clipPath: 'circle(0% at 90% 5%)' }}

@@ -264,6 +264,17 @@ router.post('/event/:eventId/certificates/send', async (req, res) => {
   } catch (e) { fail(res, e); }
 });
 
+/** Admin: email the feedback form link of this event now (people who came, or everyone confirmed). */
+router.post('/event/:eventId/feedback/send', async (req, res) => {
+  try {
+    const ev = (await pool.query('SELECT * FROM events WHERE id = $1 AND deleted_at IS NULL', [req.params.eventId])).rows[0];
+    if (!ev) return res.status(404).json({ error: 'Event not found' });
+    const r = await require('../utils/feedback').sendFeedback(ev);
+    if (!r.sent && r.reason) return res.status(409).json({ error: r.reason });
+    res.json(r);
+  } catch (e) { fail(res, e); }
+});
+
 /** Admin: mark a payment verified / rejected / pending (the person gets an email for verified and rejected). Body: { status, note? } */
 router.patch('/:id/payment', async (req, res) => {
   const status = ['verified', 'rejected', 'pending'].includes(req.body?.status) ? req.body.status : null;

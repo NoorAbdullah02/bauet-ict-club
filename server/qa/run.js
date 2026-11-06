@@ -196,6 +196,26 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
     ok(log.some((x) => x.username === 'editor1' && x.method === 'POST' && x.path === '/api/forms'), 'activity log shows who created a form', log.slice(0, 3));
     ok((await call('DELETE', `/api/team/${mk.j.id}`, undefined, T)).s === 200, 'editor login removed');
 
+    // site search, member card, feedback form link, event structured data
+    const se = await call('POST', '/api/events', { title: 'Zebra Python Workshop', date: '2099-05-05', time: '03:30 PM', location: 'Lab 9', description: 'learn zebras', reg_form: { fields: [{ id: 'name', type: 'short', label: 'Name', required: true }, { id: 'email', type: 'email', label: 'Email', required: true }], feedback_form: 'qa-feedback' } }, T);
+    ok(se.s === 201, 'event with a feedback form chosen can be saved', se.j);
+    const seId = se.j?.id;
+    ok((await call('GET', `/api/events/${seId}`)).j?.reg_form?.feedback_form === 'qa-feedback', 'the chosen feedback form is kept');
+    const srch = (await call('GET', '/api/search?q=zebra')).j || [];
+    ok(srch.some((r) => r.type === 'event' && r.id === seId && r.path === `/events/${seId}`), 'search finds an event by a word', srch);
+    ok(((await call('GET', '/api/search?q=a')).j || []).length === 0, 'a one-letter search returns nothing');
+    ok((await call('GET', '/api/search?q=%25%25')).s === 200, 'percent signs in a search do not break it');
+    const mem = ((await call('GET', '/api/members')).j || [])[0];
+    const card = (await call('GET', `/api/card/${mem.id}`)).j;
+    ok(!!card?.code && /^M\d+-[A-Z2-9]{6}$/.test(card.code) && card.verified === false && card.member?.name === mem.name, 'member card has a signed code', card);
+    ok((await call('GET', `/api/card/${mem.id}?c=${card.code}`)).j?.verified === true, 'the real card code is verified');
+    ok((await call('GET', `/api/card/${mem.id}?c=M${mem.id}-AAAAAA`)).j?.verified === false, 'a made-up card code is not verified');
+    ok((await call('GET', '/api/card/99999999')).s === 404, 'card of an unknown member is 404');
+    ok((await call('POST', `/api/event-registrations/event/${seId}/feedback/send`, {}, T)).s === 409, 'feedback link cannot be sent when email is not set up');
+    ok((await call('POST', `/api/event-registrations/event/${seId}/feedback/send`, {})).s === 401, 'sending feedback needs an admin login');
+    const html = await (await fetch(`${B}/events/${seId}`)).text();
+    ok(html.includes('application/ld+json') && html.includes('"@type":"Event"') && html.includes('2099-05-05T15:30:00+06:00'), 'event page carries structured data for Google', html.slice(0, 200));
+
     // password change
     ok((await call('POST', '/api/auth/change-password', { current: 'wrong-pass', next: 'Another-Pass-99' }, T)).s === 401, 'change password needs current one');
     ok((await call('POST', '/api/auth/change-password', { current: 'Qa-Pass-12345', next: 'short' }, T)).s === 400, 'short new password refused');

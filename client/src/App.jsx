@@ -31,6 +31,7 @@ const JoinGeneralPage = named('JoinGeneralPage');
 const JoinAmbassadorPage = named('JoinAmbassadorPage');
 const AmbassadorsPage = named('AmbassadorsPage');
 const GetAppPage = named('GetAppPage');
+const MemberCardRoute = named('MemberCardRoute');
 
 const Fallback = () => <div className="grid min-h-[60vh] place-items-center"><span className="size-8 animate-spin rounded-full border-2 border-line border-t-accent" /></div>;
 
@@ -141,6 +142,7 @@ export default function App() {
           <Route path="events/:id" element={<EventDetailPage />} />
           <Route path="f/:slug" element={<FormPageRoute />} />
           <Route path="ticket/:code" element={<TicketRoute />} />
+          <Route path="card/:id" element={<MemberCardRoute />} />
           <Route path="verify/:code" element={<VerifyRoute />} />
           <Route path="certificate/:code" element={<CertificateRoute />} />
           <Route path="notices" element={<NoticesPage />} />
