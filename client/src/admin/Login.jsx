@@ -19,6 +19,8 @@ export default function Login() {
 
   const submit = async (e) => {
     e.preventDefault();
+    if (!f.username.trim() || !f.password) { setErr(!f.username.trim() ? 'Type your username first.' : 'Type your password.'); return; }
+    if (needCode && !f.code.trim()) { setErr('Type the 6-digit code from your authenticator app.'); return; }
     setErr(''); setBusy(true);
     try { await login(f.username.trim(), f.password, needCode ? f.code.trim() : undefined); } catch (ex) {
       const d = ex?.response?.data;
@@ -38,7 +40,7 @@ export default function Login() {
       <motion.div initial={{ opacity: 0, y: 30, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }} className="relative z-10 w-full max-w-[26rem]">
         {/* soft gradient frame */}
         <div className="absolute -inset-px rounded-[34px] opacity-70 blur-[1px]" style={{ background: 'linear-gradient(135deg, var(--accent), transparent 40%, var(--tech))' }} />
-        <form onSubmit={submit} className="relative rounded-[33px] border border-line bg-[var(--glass)] p-8 shadow-[var(--shadow-xl)] backdrop-blur-2xl sm:p-10">
+        <form onSubmit={submit} noValidate className="relative rounded-[33px] border border-line bg-[var(--glass)] p-8 shadow-[var(--shadow-xl)] backdrop-blur-2xl sm:p-10">
           <div className="mb-8 text-center">
             <div className="mb-5 flex justify-center"><Logo kind="club" height={92} priority /></div>
             <span className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface/70 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.2em] text-tech"><ShieldCheck size={12} /> Admin console</span>

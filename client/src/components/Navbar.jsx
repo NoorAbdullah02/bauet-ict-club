@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { NavLink, Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, Sun, Moon, Shield, ArrowRight, Download, Search } from 'lucide-react';
+import { Menu, X, Sun, Moon, Monitor, Shield, ArrowRight, Download, Search } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import Logo from './Logo';
 import SearchBox from './SearchBox';
@@ -27,7 +27,8 @@ export default function Navbar() {
   const [searching, setSearching] = useState(false);
   const { theme, setTheme } = useStore(useShallow((s) => ({ theme: s.theme, setTheme: s.setTheme })));
   const { pathname } = useLocation();
-  const isDark = theme === 'dark';
+  const nextTheme = { light: 'dark', dark: 'system', system: 'light' }[theme] || 'light';
+  const themeLabel = { light: 'Light theme', dark: 'Dark theme', system: 'Automatic theme (follows your device)' }[theme] || 'Light theme';
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
@@ -72,8 +73,8 @@ export default function Navbar() {
 
           <div className="nav-actions flex shrink-0 items-center gap-2">
             <button onClick={() => setSearching(true)} className={iconBtn} aria-label="Search the site" title="Search ( / )"><Search size={16} /></button>
-            <button onClick={() => setTheme(isDark ? 'light' : 'dark')} className={iconBtn} aria-label="Toggle theme">
-              {isDark ? <Sun size={16} /> : <Moon size={16} />}
+            <button onClick={() => setTheme(nextTheme)} className={iconBtn} aria-label={`${themeLabel}. Press to change`} title={`${themeLabel}. Press to change`}>
+              {theme === 'dark' ? <Moon size={16} /> : theme === 'system' ? <Monitor size={16} /> : <Sun size={16} />}
             </button>
             <Link to="/app" className={cn(iconBtn, 'max-sm:hidden')} aria-label="Download the app" title="Download the app"><Download size={16} /></Link>
             <Link to="/admin" onMouseEnter={() => import("../admin/AdminApp")} className={cn(iconBtn, 'max-sm:hidden')} aria-label="Admin"><Shield size={16} /></Link>

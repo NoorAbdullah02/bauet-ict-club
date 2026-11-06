@@ -33,6 +33,30 @@ class _AdminInsightsScreenState extends State<AdminInsightsScreen> {
       _eventId = first.id;
       _load();
     }
+    _pickBusiest(ev);
+  }
+
+  /// Open on the event with the most sign-ups (falls back to the next upcoming one when the numbers cannot be loaded).
+  Future<void> _pickBusiest(List<EventItem> ev) async {
+    try {
+      final c = await _state.api.eventCounts();
+      EventItem? best;
+      var top = 0;
+      for (final e in ev) {
+        final n = c[e.id.toString()] ?? 0;
+        if (n > top) {
+          top = n;
+          best = e;
+        }
+      }
+      if (best != null && best.id != _eventId && mounted) {
+        setState(() {
+          _eventId = best!.id;
+          _d = null;
+        });
+        await _load();
+      }
+    } catch (_) {}
   }
 
   Future<void> _load() async {
