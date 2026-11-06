@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/downloads.dart';
 import '../../core/theme.dart';
 import '../../core/utils.dart';
 import '../../data/api.dart';
@@ -147,6 +148,17 @@ class _AdminSecurityScreenState extends State<AdminSecurityScreen> {
                 ErrorState(message: _error!, onRetry: _load)
               else ...[
                 if (_backup != null) _backupCard(context, p) else if (_setup != null) _setupCard(context, p) else _statusCard(context, p),
+                const SizedBox(height: 14),
+                GlassCard(
+                  padding: const EdgeInsets.all(18),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text('Full backup', style: displayStyle(context, 18)),
+                    const SizedBox(height: 6),
+                    Text('One ZIP with every table (main admin only). Keep it somewhere safe.', style: bodyStyle(context, size: 13, color: p.muted)),
+                    const SizedBox(height: 12),
+                    GhostButton(label: 'Download backup', icon: Icons.backup_rounded, onPressed: () => downloadAndShare(context, _state.api, '/backup', 'bauet-ict-backup.zip')),
+                  ]),
+                ),
                 const SizedBox(height: 14),
                 GlassCard(
                   padding: const EdgeInsets.all(18),

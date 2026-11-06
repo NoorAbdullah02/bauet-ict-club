@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/utils.dart';
@@ -8,6 +7,7 @@ import '../../data/api.dart';
 import '../../state/app_state.dart';
 import '../../widgets/common.dart';
 import '../../widgets/form_widgets.dart';
+import '../../widgets/image_editor.dart';
 
 /// Light/dark toggle for the admin area (independent from the public theme).
 class AdminThemeButton extends StatelessWidget {
@@ -64,35 +64,13 @@ class _ImageUploadFieldState extends State<ImageUploadField> {
   bool _busy = false;
 
   Future<void> _choose() async {
-    final size = await showModalBottomSheet<int>(
-      context: context,
-      showDragHandle: true,
-      builder: (ctx) => SafeArea(
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          const Padding(padding: EdgeInsets.fromLTRB(20, 0, 20, 8), child: Align(alignment: Alignment.centerLeft, child: Text('Picture size', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18)))),
-          for (final o in const [('Small', 'Fast to load, 640 px', 640), ('Medium', 'Best for most pictures, 1000 px', 1000), ('Large', 'Sharp on big screens, 1600 px', 1600)])
-            ListTile(
-              leading: const Icon(Icons.photo_size_select_large_rounded),
-              title: Text(o.$1),
-              subtitle: Text(o.$2),
-              onTap: () => Navigator.pop(ctx, o.$3),
-            ),
-        ]),
-      ),
-    );
-    if (size == null || !mounted) return;
     final state = context.read<AppState>();
+    final avatar = widget.kind == 'avatar';
+    final r = await pickAndEdit(context, aspect: avatar ? 1 : null, circle: avatar, maxSide: 1000);
+    if (r == null || !mounted) return;
     try {
-      final x = await ImagePicker().pickImage(source: ImageSource.gallery, maxWidth: size.toDouble(), maxHeight: size.toDouble(), imageQuality: 86);
-      if (x == null) return;
-      final lower = x.name.toLowerCase();
-      final mime = lower.endsWith('.png') ? 'image/png' : lower.endsWith('.webp') ? 'image/webp' : (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) ? 'image/jpeg' : '';
-      if (mime.isEmpty) {
-        if (mounted) showSnack(context, 'Please choose a JPG, PNG or WebP picture', error: true);
-        return;
-      }
       setState(() => _busy = true);
-      final url = await state.api.uploadAdminImage(x.path, x.name, mime, kind: widget.kind);
+      final url = await state.api.uploadAdminImage(r.path, r.name, r.mime, kind: widget.kind);
       if (mounted) {
         setState(() => widget.controller.text = url);
         showSnack(context, 'Picture uploaded');
@@ -101,7 +79,7 @@ class _ImageUploadFieldState extends State<ImageUploadField> {
       await state.handleAuthError(e);
       if (mounted) showSnack(context, e.message, error: true);
     } catch (_) {
-      if (mounted) showSnack(context, 'Could not open the gallery', error: true);
+      if (mounted) showSnack(context, 'Could not upload the picture', error: true);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -123,7 +101,7 @@ class _ImageUploadFieldState extends State<ImageUploadField> {
           child: OutlinedButton.icon(
             onPressed: _busy ? null : _choose,
             icon: _busy ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.crop_rounded),
-            label: Text(_busy ? 'Uploading…' : url.isEmpty ? 'Choose & resize' : 'Change / resize'),
+            label: Text(_busy ? 'Uploading…' : url.isEmpty ? 'Add & edit picture' : 'Change / edit picture'),
           ),
         ),
         if (url.isNotEmpty) IconButton(tooltip: 'Remove', onPressed: () => setState(() => widget.controller.clear()), icon: const Icon(Icons.close_rounded)),

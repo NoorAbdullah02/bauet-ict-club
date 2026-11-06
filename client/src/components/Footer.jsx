@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Facebook, Mail, Phone, MapPin, ArrowUp, ArrowUpRight, Smartphone, Heart } from 'lucide-react';
-import useStore from '../context/store';
+import toast from 'react-hot-toast';
+import { Facebook, Github, Linkedin, Youtube, Mail, Phone, MapPin, ArrowUp, ArrowUpRight, ArrowRight, Check, Loader2, Smartphone, Heart, Send } from 'lucide-react';
+import useStore, { api } from '../context/store';
 import Logo from './Logo';
 
 const EXPLORE = [['About', '/about'], ['Events', '/events'], ['Notices', '/notices'], ['Projects', '/projects'], ['Team', '/team'], ['Ambassadors', '/ambassadors'], ['FAQ', '/faq']];
@@ -10,12 +12,35 @@ const link = 'group/l inline-flex items-center gap-1.5 py-1.5 text-[13px] text-w
 const social = 'grid size-10 place-items-center rounded-full border border-white/20 bg-white/10 text-white backdrop-blur transition duration-300 hover:-translate-y-1 hover:border-white hover:bg-white hover:text-[#0A1A4A] hover:shadow-[0_8px_24px_rgba(124,240,178,0.35)]';
 const prefetchAdmin = () => import('../admin/AdminApp');
 
+/** News signup that fits the dark footer: one field, one button, a friendly confirmation. */
+function FooterSubscribe() {
+  const [email, setEmail] = useState('');
+  const [state, setState] = useState('idle');
+  const submit = async (e) => {
+    e.preventDefault();
+    setState('busy');
+    try { await api.post('/subscribers', { email }); setState('done'); setEmail(''); }
+    catch (err) { setState('idle'); toast.error(err.response?.data?.error || 'Could not subscribe right now'); }
+  };
+  if (state === 'done') return <div className="flex items-center gap-2 rounded-2xl border border-[#7CF0B2]/40 bg-[#7CF0B2]/10 px-4 py-3 text-sm font-medium text-[#7CF0B2]"><Check size={16} /> You are subscribed. Thank you!</div>;
+  return (
+    <form onSubmit={submit} className="flex w-full max-w-md items-center gap-1.5 rounded-full border border-white/20 bg-white/10 p-1.5 pl-4 backdrop-blur transition focus-within:border-[#7CF0B2]/70 focus-within:bg-white/15">
+      <Mail size={16} className="shrink-0 text-white/60" />
+      <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Your email for club news" aria-label="Your email for club news" autoComplete="email"
+        className="min-w-0 flex-1 bg-transparent px-1 py-2 text-sm text-white outline-none placeholder:text-white/50" />
+      <button disabled={state === 'busy'} className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-white px-4 py-2 text-sm font-semibold text-[#0A1A4A] transition hover:bg-[#7CF0B2] disabled:opacity-60">
+        {state === 'busy' ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />} Subscribe
+      </button>
+    </form>
+  );
+}
+
 export default function Footer() {
   const settings = useStore((s) => s.settings);
   const s = settings?.socialLinks || {};
   const email = s.email || 'ictclubbauet@gmail.com';
   const phone = s.phone || '01707-533471';
-  const h3 = 'mb-3 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.22em] text-white/50 before:h-px before:w-4 before:bg-[#7CF0B2]/70';
+  const h3 = 'mb-3 flex items-center gap-2 whitespace-nowrap font-mono text-[10px] uppercase tracking-[0.22em] text-white/50 before:h-px before:w-4 before:bg-[#7CF0B2]/70';
   const contact = 'group flex items-start gap-3 text-white/80 transition hover:text-white';
   const chip = 'mt-0.5 grid size-7 shrink-0 place-items-center rounded-lg bg-white/10 text-[#7CF0B2] transition group-hover:bg-[#7CF0B2]/20';
 
@@ -42,8 +67,17 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="grid gap-10 px-6 py-10 sm:px-10 md:grid-cols-[1.4fr_0.7fr_0.8fr_1.2fr]">
+        {/* news signup */}
+        <div className="flex flex-col items-start justify-between gap-4 border-b border-white/12 bg-white/[0.04] px-6 py-6 sm:px-10 md:flex-row md:items-center">
           <div>
+            <p className="flex items-center gap-2 text-[15px] font-semibold"><Mail size={16} className="text-[#7CF0B2]" /> Never miss an event</p>
+            <p className="mt-1 text-[13px] text-white/65">Workshops, contests and notices in your inbox. No spam, leave any time.</p>
+          </div>
+          <FooterSubscribe />
+        </div>
+
+        <div className="grid gap-10 px-6 py-10 sm:px-10 md:grid-cols-12">
+          <div className="md:col-span-4">
             <div className="inline-flex items-center gap-3 rounded-2xl bg-white px-3.5 py-2.5 shadow-lg">
               <Logo kind="crest" height={40} className="!filter-none" />
               <span className="h-7 w-px bg-slate-200" />
@@ -52,25 +86,28 @@ export default function Footer() {
             <p className="mt-4 max-w-xs text-[13px] leading-6 text-white/70">Bangladesh Army University of Engineering &amp; Technology, Rajshahi. A community of students who learn, build and lead in technology.</p>
             <div className="mt-4 flex gap-2.5">
               {s.fb && <a href={s.fb} target="_blank" rel="noopener noreferrer" aria-label="Facebook" className={social}><Facebook size={16} /></a>}
+              {(s.li || s.linkedin) && <a href={s.li || s.linkedin} target="_blank" rel="noopener noreferrer" aria-label="LinkedIn" className={social}><Linkedin size={16} /></a>}
+              {(s.gh || s.github) && <a href={s.gh || s.github} target="_blank" rel="noopener noreferrer" aria-label="GitHub" className={social}><Github size={16} /></a>}
+              {(s.yt || s.youtube) && <a href={s.yt || s.youtube} target="_blank" rel="noopener noreferrer" aria-label="YouTube" className={social}><Youtube size={16} /></a>}
               <a href={`mailto:${email}`} aria-label="Email" className={social}><Mail size={16} /></a>
               <a href={`tel:${phone}`} aria-label="Phone" className={social}><Phone size={16} /></a>
             </div>
           </div>
 
-          <nav aria-label="Explore">
+          <nav aria-label="Explore" className="md:col-span-2">
             <h3 className={h3}>Explore</h3>
             <ul className="space-y-0.5">{EXPLORE.map(([l, to]) => <li key={to}><Link to={to} className={link}>{l}</Link></li>)}</ul>
           </nav>
 
-          <nav aria-label="Get involved">
+          <nav aria-label="Get involved" className="md:col-span-2">
             <h3 className={h3}>Get involved</h3>
             <ul className="space-y-0.5">{INVOLVED.map(([l, to]) => <li key={to}><Link to={to} className={link}>{l}</Link></li>)}</ul>
           </nav>
 
-          <div>
+          <div className="md:col-span-4">
             <h3 className={h3}>Contact</h3>
             <ul className="space-y-3 text-[13px]">
-              <li><a href={`mailto:${email}`} className={contact}><span className={chip}><Mail size={14} /></span><span className="break-all pt-0.5">{email}</span></a></li>
+              <li><a href={`mailto:${email}`} className={contact}><span className={chip}><Mail size={14} /></span><span className="min-w-0 break-words pt-0.5 [overflow-wrap:anywhere]">{email}</span></a></li>
               <li><a href={`tel:${phone}`} className={contact}><span className={chip}><Phone size={14} /></span><span className="pt-0.5">{phone}</span></a></li>
               <li><a href="https://maps.google.com/?q=BAUET+Qadirabad+Cantonment+Natore" target="_blank" rel="noopener noreferrer" className={contact}><span className={chip}><MapPin size={14} /></span><span className="pt-0.5">Qadirabad Cantonment, Natore</span></a></li>
             </ul>
@@ -85,7 +122,7 @@ export default function Footer() {
 
         <div className="relative flex flex-wrap items-center justify-between gap-2 border-t border-white/12 bg-black/10 px-6 py-3.5 text-[12px] text-white/65 backdrop-blur-sm sm:px-10">
           <span>© {new Date().getFullYear()} BAUET ICT Club</span>
-          <span className="inline-flex items-center gap-1.5 max-sm:hidden">Made with <Heart size={12} className="fill-[#FF6B8A] text-[#FF6B8A]" /> in Rajshahi</span>
+          <span className="inline-flex items-center gap-1.5 max-sm:hidden">Made with <Heart size={12} className="fill-[#FF6B8A] text-[#FF6B8A]" /> by the ICT Club</span>
           <span><Link to="/admin" onMouseEnter={prefetchAdmin} onFocus={prefetchAdmin} className="inline-block py-2 text-white/75 hover:text-white">Admin</Link></span>
           <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} aria-label="Back to top" className="flex items-center gap-1.5 rounded-full border border-white/20 px-3 py-1.5 text-white/85 transition hover:bg-white/15 hover:text-white">Top <ArrowUp size={13} /></button>
         </div>

@@ -74,7 +74,7 @@ export default function Hero() {
           className="chip-live mx-auto mb-8 inline-flex items-center gap-2 rounded-full border border-line bg-surface/60 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.18em] text-tech backdrop-blur">
           <GraduationCap size={14} />
           <span className="max-sm:hidden">Bangladesh Army University of Engineering &amp; Technology</span>
-          <span className="sm:hidden">BAUET · Rajshahi</span>
+          <span className="sm:hidden">BAUET</span>
         </motion.div>
 
         <motion.h1 initial={{ opacity: 0, y: 26, filter: 'blur(14px)', scale: 0.96 }} animate={{ opacity: 1, y: 0, filter: 'blur(0px)', scale: 1 }}
@@ -91,7 +91,7 @@ export default function Hero() {
         </motion.div>
 
         <motion.p {...rise(0.65)} className="mt-3 font-mono text-xs tracking-wider text-muted">
-          Rajshahi, Bangladesh · Est. 2019
+          Bangladesh · Est. 2019
         </motion.p>
 
         <motion.div {...rise(0.8)} className="mt-10 flex flex-wrap justify-center gap-3">

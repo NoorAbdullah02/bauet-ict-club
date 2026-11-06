@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/downloads.dart';
 import '../../core/forms.dart';
 import '../../core/theme.dart';
 import '../../core/utils.dart';
@@ -124,7 +126,22 @@ class _AdminSignupsScreenState extends State<AdminSignupsScreen> {
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 40),
               children: [
-                const PageTopBar(title: 'Event sign-ups', fallback: '/admin', trailing: AdminThemeButton()),
+                PageTopBar(
+                  title: 'Event sign-ups',
+                  fallback: '/admin',
+                  trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                    if (_eventId != null)
+                      ExportMenu(onPick: (f) {
+                        final id = _eventId!;
+                        if (f == 'zip') {
+                          downloadAndShare(context, _state.api, '/event-registrations/zip', 'event-$id-everything.zip', query: {'event': id, 'format': 'original'});
+                        } else {
+                          downloadAndShare(context, _state.api, '/event-registrations/export', 'event-$id-registrations.$f', query: {'event': id, 'format': f});
+                        }
+                      }),
+                    const AdminThemeButton(),
+                  ]),
+                ),
                 const SizedBox(height: 16),
                 PickerField(
                   label: 'Event',
@@ -139,6 +156,11 @@ class _AdminSignupsScreenState extends State<AdminSignupsScreen> {
                     _load();
                   },
                 ),
+                if (_eventId != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 10),
+                    child: OutlinedButton.icon(onPressed: () => context.push('/admin/event-form/$_eventId'), icon: const Icon(Icons.edit_note_rounded), label: const Text('Edit sign-up form, payment, certificate')),
+                  ),
                 const SizedBox(height: 14),
                 Row(children: [
                   _stat('Registered', seated, p.accent),

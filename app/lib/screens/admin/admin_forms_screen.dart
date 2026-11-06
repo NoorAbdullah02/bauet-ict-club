@@ -6,12 +6,14 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/config.dart';
+import '../../core/downloads.dart';
 import '../../core/forms.dart';
 import '../../core/theme.dart';
 import '../../core/utils.dart';
 import '../../data/api.dart';
 import '../../state/app_state.dart';
 import '../../widgets/common.dart';
+import '../../widgets/dynamic_form.dart' show PickerTapField;
 import '../../widgets/form_widgets.dart';
 import 'admin_page.dart';
 import 'admin_widgets.dart';
@@ -167,10 +169,12 @@ class _AdminFormsScreenState extends State<AdminFormsScreen> {
   }
 }
 
-/// Form editor: name, description, link name, limit, and the list of questions (add, edit, move, remove).
+/// Form editor, for a stand-alone form ([formId]) or for the sign-up form of an event ([eventId]):
+/// questions with their rules, colour, messages, deadline, payment, certificate and e-mail to the admin.
 class AdminFormEditScreen extends StatefulWidget {
-  const AdminFormEditScreen({super.key, required this.formId});
+  const AdminFormEditScreen({super.key, this.formId = 0, this.eventId = 0});
   final int formId;
+  final int eventId;
 
   @override
   State<AdminFormEditScreen> createState() => _AdminFormEditScreenState();
@@ -178,16 +182,39 @@ class AdminFormEditScreen extends StatefulWidget {
 
 class _AdminFormEditScreenState extends State<AdminFormEditScreen> {
   late final AppState _state = context.read<AppState>();
+  bool get _isEvent => widget.eventId > 0;
+
   final _title = TextEditingController();
   final _desc = TextEditingController();
   final _slug = TextEditingController();
   final _cap = TextEditingController();
+  final _heading = TextEditingController();
+  final _intro = TextEditingController();
+  final _confirm = TextEditingController();
+  final _emailNote = TextEditingController();
+  final _theme = TextEditingController();
+  final _amount = TextEditingController();
+  final _payNote = TextEditingController();
+  final Map<String, TextEditingController> _numbers = {for (final m in kPayMethods) m: TextEditingController()};
+  final _certTitle = TextEditingController();
+  final _certSigner = TextEditingController();
+  final _certSignerTitle = TextEditingController();
+
   Map<String, dynamic> _regForm = {};
   List<Q> _fields = [];
   bool _open = true;
+  bool _notify = false;
+  bool _payOn = false;
+  bool _certOn = false;
+  String _payKind = 'send_money';
+  final Set<String> _methods = {'bKash'};
+  String _closes = '';
+  String _unique = '';
   bool _loading = true;
   bool _busy = false;
   String? _error;
+
+  List<TextEditingController> get _all => [_title, _desc, _slug, _cap, _heading, _intro, _confirm, _emailNote, _theme, _amount, _payNote, ..._numbers.values, _certTitle, _certSigner, _certSignerTitle];
 
   @override
   void initState() {
@@ -197,27 +224,59 @@ class _AdminFormEditScreenState extends State<AdminFormEditScreen> {
 
   @override
   void dispose() {
-    _title.dispose();
-    _desc.dispose();
-    _slug.dispose();
-    _cap.dispose();
+    for (final c in _all) {
+      c.dispose();
+    }
     super.dispose();
   }
 
   Future<void> _load() async {
     try {
-      final all = await _state.api.adminList('/forms');
-      final f = all.where((x) => '${x['id']}' == '${widget.formId}').firstOrNull;
-      if (f == null) throw ApiException('Form not found', status: 404);
+      Map<String, dynamic> f;
+      if (_isEvent) {
+        f = await _state.api.event(widget.eventId);
+        if (f.isEmpty) throw ApiException('Event not found', status: 404);
+      } else {
+        final all = await _state.api.adminList('/forms');
+        final found = all.where((x) => '${x['id']}' == '${widget.formId}').firstOrNull;
+        if (found == null) throw ApiException('Form not found', status: 404);
+        f = found;
+      }
       if (!mounted) return;
+      final rf = f['reg_form'] is Map ? Map<String, dynamic>.from(f['reg_form'] as Map) : <String, dynamic>{};
+      final pay = rf['payment'] is Map ? Map<String, dynamic>.from(rf['payment'] as Map) : <String, dynamic>{};
+      final cert = rf['cert'] is Map ? Map<String, dynamic>.from(rf['cert'] as Map) : <String, dynamic>{};
+      String s(dynamic v) => v == null ? '' : '$v';
       setState(() {
-        _title.text = '${f['title'] ?? ''}';
-        _desc.text = '${f['description'] ?? ''}';
-        _slug.text = '${f['slug'] ?? ''}';
-        _cap.text = (int.tryParse('${f['capacity'] ?? 0}') ?? 0) > 0 ? '${f['capacity']}' : '';
+        _title.text = s(f['title']);
+        _desc.text = s(f['description']);
+        _slug.text = s(f['slug']);
+        _cap.text = (int.tryParse(s(f['capacity'])) ?? 0) > 0 ? s(f['capacity']) : '';
         _open = f['is_open'] != false;
-        _regForm = f['reg_form'] is Map ? Map<String, dynamic>.from(f['reg_form'] as Map) : <String, dynamic>{};
-        _fields = fieldsOfForm(_regForm).map((e) => Map<String, dynamic>.from(e)).toList();
+        _regForm = rf;
+        _fields = fieldsOfForm(rf).map((e) => Map<String, dynamic>.from(e)).toList();
+        _heading.text = s(rf['title']);
+        _intro.text = s(rf['intro']);
+        _confirm.text = s(rf['confirmation']);
+        _emailNote.text = s(rf['email_note']);
+        _theme.text = s(rf['theme']);
+        _notify = rf['notify_admin'] == true;
+        _closes = s(rf['closes_at']);
+        _unique = s(rf['unique']);
+        _payOn = pay['enabled'] == true;
+        _amount.text = s(pay['amount']);
+        _payNote.text = s(pay['note']);
+        _payKind = pay['kind'] == 'payment' ? 'payment' : 'send_money';
+        _methods
+          ..clear()
+          ..addAll(pay['methods'] is List ? (pay['methods'] as List).map((e) => '$e') : ['bKash']);
+        if (pay['numbers'] is Map) {
+          (pay['numbers'] as Map).forEach((k, v) => _numbers[k]?.text = '$v');
+        }
+        _certOn = cert['enabled'] == true;
+        _certTitle.text = s(cert['title']);
+        _certSigner.text = s(cert['signer']);
+        _certSignerTitle.text = s(cert['signer_title']);
       });
     } on ApiException catch (e) {
       if (!mounted) return;
@@ -228,6 +287,43 @@ class _AdminFormEditScreenState extends State<AdminFormEditScreen> {
     }
   }
 
+  Map<String, dynamic> _buildRegForm() {
+    final rf = <String, dynamic>{
+      ..._regForm,
+      'title': _heading.text.trim(),
+      'intro': _intro.text.trim(),
+      'confirmation': _confirm.text.trim(),
+      'email_note': _emailNote.text.trim(),
+      'theme': _theme.text.trim(),
+      'notify_admin': _notify,
+      'unique': _unique,
+      'fields': _fields,
+    };
+    if (_closes.isEmpty) {
+      rf.remove('closes_at');
+    } else {
+      rf['closes_at'] = _closes;
+    }
+    if (_payOn) {
+      rf['payment'] = {
+        'enabled': true,
+        'amount': num.tryParse(_amount.text.trim()) ?? 0,
+        'methods': kPayMethods.where(_methods.contains).toList(),
+        'numbers': {for (final m in _methods) m: _numbers[m]?.text.trim() ?? ''},
+        'kind': _payKind,
+        'note': _payNote.text.trim(),
+      };
+    } else {
+      rf.remove('payment');
+    }
+    if (_certOn) {
+      rf['cert'] = {'enabled': true, 'title': _certTitle.text.trim(), 'signer': _certSigner.text.trim(), 'signer_title': _certSignerTitle.text.trim()};
+    } else {
+      rf.remove('cert');
+    }
+    return rf;
+  }
+
   Future<void> _save() async {
     if (_fields.any((q) => qLabel(q).trim().isEmpty)) {
       showSnack(context, 'Every question needs a title', error: true);
@@ -235,14 +331,19 @@ class _AdminFormEditScreenState extends State<AdminFormEditScreen> {
     }
     setState(() => _busy = true);
     try {
-      await _state.api.adminCall('PUT', '/forms/${widget.formId}', data: {
-        'title': _title.text.trim(),
-        'description': _desc.text.trim(),
-        'slug': _slug.text.trim(),
-        'capacity': int.tryParse(_cap.text.trim()) ?? 0,
-        'is_open': _open,
-        'reg_form': {..._regForm, 'fields': _fields},
-      });
+      if (_isEvent) {
+        await _state.api.adminCall('PUT', '/events/${widget.eventId}', data: {'reg_form': _buildRegForm()});
+        await _state.loadAll(fresh: true);
+      } else {
+        await _state.api.adminCall('PUT', '/forms/${widget.formId}', data: {
+          'title': _title.text.trim(),
+          'description': _desc.text.trim(),
+          'slug': _slug.text.trim(),
+          'capacity': int.tryParse(_cap.text.trim()) ?? 0,
+          'is_open': _open,
+          'reg_form': _buildRegForm(),
+        });
+      }
       if (mounted) {
         showSnack(context, 'Saved');
         context.pop();
@@ -285,49 +386,143 @@ class _AdminFormEditScreenState extends State<AdminFormEditScreen> {
     });
   }
 
+  Future<void> _pickClose() async {
+    final now = DateTime.now();
+    final d = await showDatePicker(context: context, initialDate: now, firstDate: DateTime(now.year - 1), lastDate: DateTime(now.year + 5));
+    if (d == null || !mounted) return;
+    final t = await showTimePicker(context: context, initialTime: const TimeOfDay(hour: 23, minute: 59));
+    String two(int n) => n.toString().padLeft(2, '0');
+    setState(() => _closes = '${d.year}-${two(d.month)}-${two(d.day)}T${two((t ?? const TimeOfDay(hour: 23, minute: 59)).hour)}:${two((t ?? const TimeOfDay(hour: 23, minute: 59)).minute)}');
+  }
+
+  Widget _section(String title, List<Widget> children) => Padding(
+        padding: const EdgeInsets.only(bottom: 14),
+        child: GlassCard(
+          padding: const EdgeInsets.all(18),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(title, style: displayStyle(context, 17)),
+            const SizedBox(height: 12),
+            ...children,
+          ]),
+        ),
+      );
+
+  Widget _gap() => const SizedBox(height: 12);
+
   @override
   Widget build(BuildContext context) {
     final p = context.pal;
     return AdminPage(
-      title: 'Edit form',
+      title: _isEvent ? 'Event sign-up form' : 'Edit form',
       children: [
         if (_loading)
           const ShimmerList(count: 3, height: 100)
         else if (_error != null)
           ErrorState(message: _error!, onRetry: _load)
         else ...[
-          GlassCard(
-            padding: const EdgeInsets.all(18),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          if (!_isEvent)
+            _section('Basics', [
               AppField(controller: _title, label: 'Form name', icon: Icons.title_rounded),
-              const SizedBox(height: 12),
+              _gap(),
               AppField(controller: _desc, label: 'Description (optional)', maxLines: 3),
-              const SizedBox(height: 12),
+              _gap(),
               AppField(controller: _slug, label: 'Link name (/f/…)', icon: Icons.link_rounded),
-              const SizedBox(height: 12),
+              _gap(),
               AppField(controller: _cap, label: 'Limit of responses (empty = no limit)', keyboard: TextInputType.number, icon: Icons.people_alt_rounded),
               SwitchListTile(contentPadding: EdgeInsets.zero, title: const Text('Accepting responses'), value: _open, onChanged: (v) => setState(() => _open = v)),
             ]),
-          ),
-          const SizedBox(height: 16),
+          _section('Look and messages', [
+            AppField(controller: _heading, label: 'Heading above the questions (optional)'),
+            _gap(),
+            AppField(controller: _intro, label: 'Short introduction (optional)', maxLines: 3),
+            _gap(),
+            AppField(controller: _confirm, label: 'Thank-you message (optional)', maxLines: 2),
+            _gap(),
+            AppField(controller: _emailNote, label: 'Extra note in the confirmation email (optional)', maxLines: 2),
+            _gap(),
+            AppField(controller: _theme, label: 'Colour (hex, e.g. #1F4FD8)', icon: Icons.palette_outlined),
+            PickerTapField(label: 'Closes on (optional)', value: _closes.replaceAll('T', ' '), icon: Icons.event_busy_rounded, onTap: _pickClose),
+            if (_closes.isNotEmpty) Align(alignment: Alignment.centerLeft, child: TextButton(onPressed: () => setState(() => _closes = ''), child: const Text('Remove the closing date'))),
+            SwitchListTile(contentPadding: EdgeInsets.zero, title: const Text('Email me for every new response'), value: _notify, onChanged: (v) => setState(() => _notify = v)),
+            PickerField(
+              label: 'One answer per person (stops double sign-ups)',
+              value: _fields.where((q) => qId(q) == _unique).map(qLabel).firstOrNull ?? 'No check',
+              options: ['No check', ..._fields.where((q) => qType(q) != 'section' && qLabel(q).isNotEmpty).map(qLabel)],
+              onChanged: (v) => setState(() => _unique = v == 'No check' ? '' : (_fields.where((q) => qLabel(q) == v).map(qId).firstOrNull ?? '')),
+            ),
+          ]),
           Text('QUESTIONS', style: monoStyle(context)),
           const SizedBox(height: 10),
-          for (var i = 0; i < _fields.length; i++) _QuestionCard(key: ValueKey(qId(_fields[i])), q: _fields[i], index: i, count: _fields.length, onMove: (d) => _move(i, d), onRemove: () => setState(() => _fields.removeAt(i)), onChanged: () => setState(() {})),
+          for (var i = 0; i < _fields.length; i++)
+            QuestionCard(
+              key: ValueKey(qId(_fields[i])),
+              q: _fields[i],
+              before: _fields.take(i).where((x) => qType(x) != 'section' && qLabel(x).isNotEmpty).toList(),
+              index: i,
+              count: _fields.length,
+              onMove: (d) => _move(i, d),
+              onRemove: () => setState(() => _fields.removeAt(i)),
+              onChanged: () => setState(() {}),
+            ),
           const SizedBox(height: 6),
           OutlinedButton.icon(onPressed: _addQuestion, icon: const Icon(Icons.add_rounded), label: const Text('Add a question')),
           const SizedBox(height: 18),
-          if (_regForm['payment'] is Map && (_regForm['payment'] as Map)['enabled'] == true)
-            Padding(padding: const EdgeInsets.only(bottom: 12), child: Text('This form takes payments. Change the fee on the website admin.', style: bodyStyle(context, size: 12.5, color: p.muted))),
-          GradientButton(label: 'Save form', icon: Icons.check_rounded, loading: _busy, onPressed: _busy ? null : _save),
+          _section('Payment (bKash, Nagad, Rocket)', [
+            SwitchListTile(contentPadding: EdgeInsets.zero, title: const Text('This needs a payment'), value: _payOn, onChanged: (v) => setState(() => _payOn = v)),
+            if (_payOn) ...[
+              AppField(controller: _amount, label: 'Amount (BDT)', keyboard: TextInputType.number, icon: Icons.payments_outlined),
+              _gap(),
+              Wrap(spacing: 8, children: [
+                for (final m in kPayMethods) FilterChip(label: Text(m), selected: _methods.contains(m), onSelected: (v) => setState(() => v ? _methods.add(m) : _methods.remove(m))),
+              ]),
+              for (final m in kPayMethods.where(_methods.contains)) ...[
+                _gap(),
+                AppField(controller: _numbers[m]!, label: '$m number people send money to', keyboard: TextInputType.phone),
+              ],
+              _gap(),
+              Row(children: [
+                PillChip(label: 'Send Money', selected: _payKind == 'send_money', onTap: () => setState(() => _payKind = 'send_money')),
+                const SizedBox(width: 10),
+                PillChip(label: 'Payment', selected: _payKind == 'payment', onTap: () => setState(() => _payKind = 'payment')),
+              ]),
+              _gap(),
+              AppField(controller: _payNote, label: 'Note for people paying (optional)', maxLines: 2),
+            ],
+          ]),
+          if (_isEvent)
+            _section('Certificate', [
+              SwitchListTile(contentPadding: EdgeInsets.zero, title: const Text('Give certificates to people who were checked in'), value: _certOn, onChanged: (v) => setState(() => _certOn = v)),
+              if (_certOn) ...[
+                AppField(controller: _certTitle, label: 'Certificate title (Certificate of Participation)'),
+                _gap(),
+                AppField(controller: _certSigner, label: 'Signer name'),
+                _gap(),
+                AppField(controller: _certSignerTitle, label: 'Signer title (President, ICT Club)'),
+              ],
+            ]),
+          GradientButton(label: 'Save', icon: Icons.check_rounded, loading: _busy, onPressed: _busy ? null : _save),
+          const SizedBox(height: 6),
+          Text('Everything here is checked again by the server when you save.', textAlign: TextAlign.center, style: bodyStyle(context, size: 12, color: p.muted)),
         ],
       ],
     );
   }
 }
 
-class _QuestionCard extends StatefulWidget {
-  const _QuestionCard({super.key, required this.q, required this.index, required this.count, required this.onMove, required this.onRemove, required this.onChanged});
+const List<String> kPayMethods = ['bKash', 'Nagad', 'Rocket'];
+const Map<String, List<String>> _kPatterns = {
+  'Any text': ['', ''],
+  'Digits only': [r'^[0-9]+$', 'Use digits only'],
+  'Student ID (9 digits)': [r'^[0-9]{9}$', 'Enter your 9 digit ID'],
+  'Bangladesh mobile number': [r'^(\+?88)?01[3-9][0-9]{8}$', 'Enter a valid Bangladesh mobile number'],
+  'Letters only': [r"^[A-Za-z .'-]+$", 'Use letters only'],
+};
+
+/// One question in the editor: title, help text, answer rules, choices and "show only if" condition.
+class QuestionCard extends StatefulWidget {
+  const QuestionCard({super.key, required this.q, required this.before, required this.index, required this.count, required this.onMove, required this.onRemove, required this.onChanged});
   final Q q;
+  final List<Q> before; // earlier questions a condition can look at
   final int index;
   final int count;
   final void Function(int delta) onMove;
@@ -335,18 +530,52 @@ class _QuestionCard extends StatefulWidget {
   final VoidCallback onChanged;
 
   @override
-  State<_QuestionCard> createState() => _QuestionCardState();
+  State<QuestionCard> createState() => _QuestionCardState();
 }
 
-class _QuestionCardState extends State<_QuestionCard> {
+class _QuestionCardState extends State<QuestionCard> {
   late final TextEditingController _label = TextEditingController(text: qLabel(widget.q));
+  late final TextEditingController _help = TextEditingController(text: '${widget.q['help'] ?? ''}');
   late final TextEditingController _options = TextEditingController(text: qOptions(widget.q).join('\n'));
+  late final TextEditingController _msg = TextEditingController(text: '${widget.q['patternMsg'] ?? ''}');
+  late final TextEditingController _minLen = TextEditingController(text: '${widget.q['minLen'] ?? ''}');
+  late final TextEditingController _maxLen = TextEditingController(text: '${widget.q['maxLen'] ?? ''}');
+  late final TextEditingController _min = TextEditingController(text: '${widget.q['min'] ?? ''}');
+  late final TextEditingController _max = TextEditingController(text: '${widget.q['max'] ?? ''}');
+  late final TextEditingController _minSel = TextEditingController(text: '${widget.q['minSel'] ?? ''}');
+  late final TextEditingController _maxSel = TextEditingController(text: '${widget.q['maxSel'] ?? ''}');
+  late final TextEditingController _low = TextEditingController(text: '${(widget.q['scale'] is Map ? (widget.q['scale'] as Map)['low'] : '') ?? ''}');
+  late final TextEditingController _high = TextEditingController(text: '${(widget.q['scale'] is Map ? (widget.q['scale'] as Map)['high'] : '') ?? ''}');
+  late final TextEditingController _equals = TextEditingController(text: '${widget.q['showIf'] is Map ? (widget.q['showIf'] as Map)['equals'] ?? '' : ''}');
 
   @override
   void dispose() {
-    _label.dispose();
-    _options.dispose();
+    for (final c in [_label, _help, _options, _msg, _minLen, _maxLen, _min, _max, _minSel, _maxSel, _low, _high, _equals]) {
+      c.dispose();
+    }
     super.dispose();
+  }
+
+  /// Sets or removes a number rule.
+  void _numRule(String key, TextEditingController c) {
+    final n = num.tryParse(c.text.trim());
+    if (n == null) {
+      widget.q.remove(key);
+    } else {
+      widget.q[key] = n;
+    }
+  }
+
+  void _setShowIf(String fieldLabel) {
+    final q = widget.q;
+    final f = widget.before.where((x) => qLabel(x) == fieldLabel).firstOrNull;
+    if (f == null) {
+      q.remove('showIf');
+    } else {
+      q['showIf'] = {'field': qId(f), 'equals': _equals.text.trim()};
+    }
+    setState(() {});
+    widget.onChanged();
   }
 
   @override
@@ -354,7 +583,10 @@ class _QuestionCardState extends State<_QuestionCard> {
     final p = context.pal;
     final q = widget.q;
     final t = qType(q);
-    final hasOptions = ['dropdown', 'radio', 'checkbox'].contains(t);
+    final choice = ['dropdown', 'radio', 'checkbox'].contains(t);
+    final cond = q['showIf'] is Map ? Map<String, dynamic>.from(q['showIf'] as Map) : null;
+    final condLabel = cond == null ? 'Always' : (widget.before.where((x) => qId(x) == '${cond['field']}').map(qLabel).firstOrNull ?? 'Always');
+    final currentPattern = _kPatterns.entries.where((e) => e.value[0] == '${q['pattern'] ?? ''}').map((e) => e.key).firstOrNull ?? 'Custom';
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: GlassCard(
@@ -371,23 +603,105 @@ class _QuestionCardState extends State<_QuestionCard> {
             q['label'] = _label.text;
             widget.onChanged();
           }),
-          if (hasOptions) ...[
+          const SizedBox(height: 10),
+          AppField(controller: _help, label: t == 'section' ? 'Note under the heading (optional)' : 'Help text (optional)', onChanged: () {
+            if (_help.text.trim().isEmpty) {
+              q.remove('help');
+            } else {
+              q['help'] = _help.text;
+            }
+          }),
+          if (choice) ...[
             const SizedBox(height: 10),
-            AppField(controller: _options, label: 'Options (one per line)', maxLines: 6, onChanged: () {
+            AppField(controller: _options, label: 'Options (one per line, at least 2)', maxLines: 6, onChanged: () {
               q['options'] = _options.text.split('\n').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
             }),
+            SwitchListTile(contentPadding: EdgeInsets.zero, dense: true, title: const Text('Let people type their own answer ("Other")'), value: q['allowOther'] == true, onChanged: (v) => setState(() => q['allowOther'] = v)),
+            SwitchListTile(contentPadding: EdgeInsets.zero, dense: true, title: const Text('Shuffle the options'), value: q['shuffle'] == true, onChanged: (v) => setState(() => q['shuffle'] = v)),
           ],
-          if (t != 'section')
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              dense: true,
-              title: const Text('Required'),
-              value: qRequired(q),
+          if (t == 'short') ...[
+            const SizedBox(height: 6),
+            PickerField(
+              label: 'What should people type?',
+              value: currentPattern,
+              options: _kPatterns.keys.toList(),
               onChanged: (v) {
-                q['required'] = v;
-                widget.onChanged();
+                final r = _kPatterns[v];
+                if (r == null) return;
+                setState(() {
+                  if (r[0].isEmpty) {
+                    q.remove('pattern');
+                    q.remove('patternMsg');
+                    _msg.clear();
+                  } else {
+                    q['pattern'] = r[0];
+                    q['patternMsg'] = r[1];
+                    _msg.text = r[1];
+                  }
+                });
               },
             ),
+            if ('${q['pattern'] ?? ''}'.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              AppField(controller: _msg, label: 'Message if it is wrong', onChanged: () => q['patternMsg'] = _msg.text),
+            ],
+          ],
+          if (t == 'short' || t == 'long') ...[
+            const SizedBox(height: 10),
+            Row(children: [
+              Expanded(child: AppField(controller: _minLen, label: 'Min letters', keyboard: TextInputType.number, onChanged: () => _numRule('minLen', _minLen))),
+              const SizedBox(width: 10),
+              Expanded(child: AppField(controller: _maxLen, label: 'Max letters', keyboard: TextInputType.number, onChanged: () => _numRule('maxLen', _maxLen))),
+            ]),
+          ],
+          if (t == 'number') ...[
+            const SizedBox(height: 10),
+            Row(children: [
+              Expanded(child: AppField(controller: _min, label: 'Smallest', keyboard: const TextInputType.numberWithOptions(signed: true, decimal: true), onChanged: () => _numRule('min', _min))),
+              const SizedBox(width: 10),
+              Expanded(child: AppField(controller: _max, label: 'Biggest', keyboard: const TextInputType.numberWithOptions(signed: true, decimal: true), onChanged: () => _numRule('max', _max))),
+            ]),
+            SwitchListTile(contentPadding: EdgeInsets.zero, dense: true, title: const Text('Whole numbers only'), value: q['whole'] == true, onChanged: (v) => setState(() => q['whole'] = v)),
+          ],
+          if (t == 'checkbox') ...[
+            const SizedBox(height: 10),
+            Row(children: [
+              Expanded(child: AppField(controller: _minSel, label: 'Choose at least', keyboard: TextInputType.number, onChanged: () => _numRule('minSel', _minSel))),
+              const SizedBox(width: 10),
+              Expanded(child: AppField(controller: _maxSel, label: 'Choose at most', keyboard: TextInputType.number, onChanged: () => _numRule('maxSel', _maxSel))),
+            ]),
+          ],
+          if (t == 'scale') ...[
+            const SizedBox(height: 10),
+            Row(children: [
+              PillChip(label: '1 to 5', selected: ((q['scale'] as Map?)?['max'] ?? 5) != 10, onTap: () => setState(() => (q['scale'] as Map)['max'] = 5)),
+              const SizedBox(width: 10),
+              PillChip(label: '1 to 10', selected: (q['scale'] as Map?)?['max'] == 10, onTap: () => setState(() => (q['scale'] as Map)['max'] = 10)),
+            ]),
+            const SizedBox(height: 10),
+            Row(children: [
+              Expanded(child: AppField(controller: _low, label: 'Low end label', onChanged: () => (q['scale'] as Map)['low'] = _low.text)),
+              const SizedBox(width: 10),
+              Expanded(child: AppField(controller: _high, label: 'High end label', onChanged: () => (q['scale'] as Map)['high'] = _high.text)),
+            ]),
+          ],
+          if (t == 'section')
+            SwitchListTile(contentPadding: EdgeInsets.zero, dense: true, title: const Text('Start a new page here (Next / Back buttons)'), value: q['page'] == true, onChanged: (v) => setState(() => q['page'] = v)),
+          if (t != 'section') ...[
+            SwitchListTile(contentPadding: EdgeInsets.zero, dense: true, title: const Text('Required'), value: qRequired(q), onChanged: (v) {
+              setState(() => q['required'] = v);
+              widget.onChanged();
+            }),
+            if (widget.before.isNotEmpty) ...[
+              PickerField(label: 'Show this question', value: condLabel == 'Always' ? 'Always' : 'Only if "$condLabel" is…', options: ['Always', ...widget.before.map(qLabel)], onChanged: _setShowIf),
+              if (cond != null) ...[
+                const SizedBox(height: 10),
+                AppField(controller: _equals, label: 'Answer that shows it (e.g. Yes)', onChanged: () {
+                  if (q['showIf'] is Map) (q['showIf'] as Map)['equals'] = _equals.text.trim();
+                }),
+              ],
+            ],
+          ],
         ]),
       ),
     );
@@ -408,6 +722,7 @@ class _AdminFormResponsesScreenState extends State<AdminFormResponsesScreen> {
   List<Map<String, dynamic>> _rows = [];
   List<Q> _fields = [];
   String _title = 'Responses';
+  bool _summary = false;
   bool _loading = true;
   String? _error;
 
@@ -440,21 +755,82 @@ class _AdminFormResponsesScreenState extends State<AdminFormResponsesScreen> {
     }
   }
 
+  /// One card per question: counts for choices, ratings and yes/no, a sample of answers for the rest.
+  List<Widget> _summaryCards(BuildContext context, Pal p) {
+    final out = <Widget>[];
+    for (final q in _fields.where((q) => qType(q) != 'section')) {
+      final id = qId(q);
+      final answers = _rows.map((r) => r['answers'] is Map ? (r['answers'] as Map)[id] : null).where((v) => !isBlank(v)).toList();
+      final t = qType(q);
+      final counted = ['dropdown', 'radio', 'checkbox', 'yesno', 'scale'].contains(t);
+      final counts = <String, int>{};
+      if (counted) {
+        for (final a in answers) {
+          for (final x in (a is List ? a : [a])) {
+            counts['$x'] = (counts['$x'] ?? 0) + 1;
+          }
+        }
+      }
+      final top = counts.values.fold<int>(1, (m, v) => v > m ? v : m);
+      out.add(Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: GlassCard(
+          padding: const EdgeInsets.all(14),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(qLabel(q), style: bodyStyle(context, weight: FontWeight.w700)),
+            Text('${answers.length} of ${_rows.length} answered', style: bodyStyle(context, size: 12, color: p.muted)),
+            const SizedBox(height: 8),
+            if (counted)
+              for (final e in (counts.entries.toList()..sort((a, b) => b.value.compareTo(a.value))))
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Row(children: [
+                    SizedBox(width: 90, child: Text(e.key, maxLines: 1, overflow: TextOverflow.ellipsis, style: bodyStyle(context, size: 13))),
+                    Expanded(child: ClipRRect(borderRadius: BorderRadius.circular(99), child: LinearProgressIndicator(value: e.value / top, minHeight: 10, backgroundColor: p.alt, color: p.accent))),
+                    const SizedBox(width: 8),
+                    Text('${e.value}', style: monoStyle(context, size: 11)),
+                  ]),
+                )
+            else
+              for (final a in answers.take(5)) Padding(padding: const EdgeInsets.only(bottom: 4), child: Text('• ${showValue(a)}', maxLines: 2, overflow: TextOverflow.ellipsis, style: bodyStyle(context, size: 13, color: p.muted))),
+          ]),
+        ),
+      ));
+    }
+    return out;
+  }
+
   @override
   Widget build(BuildContext context) {
     final p = context.pal;
     return AdminPage(
       title: _title,
       onRefresh: _load,
+      actions: [
+        ExportMenu(onPick: (f) {
+          final id = widget.formId;
+          if (f == 'zip') {
+            downloadAndShare(context, _state.api, '/forms/$id/zip', 'form-$id-everything.zip', query: {'format': 'original'});
+          } else {
+            downloadAndShare(context, _state.api, '/forms/$id/export', 'form-$id-responses.$f', query: {'format': f});
+          }
+        }),
+      ],
       children: [
         if (_loading)
           const ShimmerList(count: 3, height: 120)
         else if (_error != null)
           ErrorState(message: _error!, onRetry: _load)
         else ...[
-          Text('${_rows.length} RESPONSES', style: monoStyle(context)),
-          const SizedBox(height: 10),
+          Row(children: [
+            PillChip(label: 'Responses (${_rows.length})', selected: !_summary, onTap: () => setState(() => _summary = false)),
+            const SizedBox(width: 10),
+            PillChip(label: 'Summary', selected: _summary, onTap: () => setState(() => _summary = true)),
+          ]),
+          const SizedBox(height: 12),
           if (_rows.isEmpty) const EmptyState(icon: Icons.inbox_outlined, title: 'No responses yet', message: 'Share the form link to start collecting answers.'),
+          if (_summary && _rows.isNotEmpty) ..._summaryCards(context, p),
+          if (!_summary)
           for (final r in _rows)
             Padding(
               padding: const EdgeInsets.only(bottom: 10),
