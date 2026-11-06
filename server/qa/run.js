@@ -163,6 +163,9 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
       const adm = (await call('GET', '/api/points/admin', undefined, T)).j;
       ok(adm.people.some((x) => x.email === 'volunteer@example.com') && adm.awards.length === 1, 'the admin sees e-mails and the award history');
       ok((await call('GET', '/api/points/admin')).s === 401, 'the admin table needs a login');
+      const upd = await call('PUT', `/api/points/award/${aw.j.id}`, { points: 40, reason: 'Ran the desk (corrected)' }, T);
+      ok(upd.s === 200 && upd.j.points === 40 && (await call('GET', '/api/points/leaderboard')).j.top[0].points === 40, 'an award can be corrected', upd.j);
+      ok((await call('PUT', `/api/points/award/${aw.j.id}`, { points: 0 }, T)).s === 400 && (await call('PUT', `/api/points/award/${aw.j.id}`, { points: 5 })).s === 401, 'a bad correction is refused and needs a login');
       ok((await call('DELETE', `/api/points/award/${aw.j.id}`, undefined, T)).s === 200 && ((await call('GET', '/api/points/leaderboard')).j.top[0]?.points || 0) === 10, 'an award can be undone');
     }
 
@@ -372,7 +375,12 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
       ok((await call('GET', `/api/contests`)).j.find((x) => x.id === ct.j.id)?.status === 'finished', 'a published contest becomes finished');
       const lb = (await call('GET', '/api/points/leaderboard')).j.top.map((x) => `${x.name}:${x.points}`);
       ok(lb.includes('Rafi H.:50') && lb.includes('Mim A.:50') && lb.includes('Nila R.:30') && lb.includes('Sami:30'), 'the winners got 50 and 30 points', lb);
-      ok((await call('DELETE', `/api/contest-teams/admin/team/${idOf('Null Pointers')}`, undefined, T)).s === 200 && (await call('GET', `/api/contest-teams/admin/${ct.j.id}`, undefined, T)).j.teams.length === 1, 'a team can be removed');
+      const npId = idOf('Null Pointers');
+      const ed = await call('PATCH', `/api/contest-teams/admin/team/${npId}`, { team_name: 'Null Pointers 2', leader_name: 'Nila R. Roy', phone: '01800000000', members: [{ name: 'Sami Khan', email: 'sami@example.com', student_id: '77' }, { name: 'Tuli' }] }, T);
+      ok(ed.s === 200 && ed.j.team_name === 'Null Pointers 2' && ed.j.members.length === 2, 'the admin can correct a team details and members', ed.j);
+      ok((await call('PATCH', `/api/contest-teams/admin/team/${npId}`, { team_name: 'byte me' }, T)).s === 409, 'a corrected name cannot clash with another team');
+      ok((await call('PATCH', `/api/contest-teams/admin/team/${npId}`, { email: 'bad' }, T)).s === 400, 'a corrected e-mail must be valid');
+      ok((await call('DELETE', `/api/contest-teams/admin/team/${npId}`, undefined, T)).s === 200 && (await call('GET', `/api/contest-teams/admin/${ct.j.id}`, undefined, T)).j.teams.length === 1, 'a team can be removed');
     }
 
     // drafts and scheduled posts

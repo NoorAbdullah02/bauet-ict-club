@@ -100,6 +100,31 @@ router.patch('/admin/team/:id', authMiddleware, async (req, res) => {
       add('status', req.body.status);
     }
     if (req.body?.prize_note !== undefined) add('prize_note', clean(req.body.prize_note, 160) || null);
+    // the team's own details can be corrected too
+    const cur = (await pool.query('SELECT * FROM contest_teams WHERE id = $1 AND deleted_at IS NULL', [Number(req.params.id) || 0])).rows[0];
+    if (!cur) return res.status(404).json({ error: 'Team not found' });
+    if (req.body?.team_name !== undefined) {
+      const n = clean(req.body.team_name, 80);
+      if (!n) return res.status(400).json({ error: 'The team needs a name.' });
+      const same = await pool.query("SELECT 1 FROM contest_teams WHERE contest_id = $1 AND LOWER(team_name) = LOWER($2) AND id <> $3 AND deleted_at IS NULL AND status <> 'withdrawn'", [cur.contest_id, n, cur.id]);
+      if (same.rowCount) return res.status(409).json({ error: 'Another team already uses this name.' });
+      add('team_name', n);
+    }
+    if (req.body?.leader_name !== undefined) { const n = clean(req.body.leader_name, 120); if (!n) return res.status(400).json({ error: 'The leader needs a name.' }); add('leader_name', n); }
+    if (req.body?.email !== undefined) { const e = clean(req.body.email, 160).toLowerCase(); if (!EMAIL.test(e)) return res.status(400).json({ error: 'Enter a valid e-mail address.' }); add('email', e); }
+    if (req.body?.phone !== undefined) add('phone', clean(req.body.phone, 40) || null);
+    if (req.body?.members !== undefined) {
+      if (!Array.isArray(req.body.members) || req.body.members.length > 20) return res.status(400).json({ error: 'The members must be a list of at most 20 people.' });
+      const ms = [];
+      for (const m of req.body.members) {
+        const name = clean(m?.name, 120); const e = clean(m?.email, 160).toLowerCase(); const sid = clean(m?.student_id, 40);
+        if (!name && !e && !sid) continue;
+        if (!name) return res.status(400).json({ error: 'Every member needs a name.' });
+        if (e && !EMAIL.test(e)) return res.status(400).json({ error: `"${e}" is not a valid e-mail address.` });
+        ms.push({ name, email: e || null, student_id: sid || null });
+      }
+      add('members', JSON.stringify(ms));
+    }
     if (!sets.length) return res.status(400).json({ error: 'Nothing to save' });
     vals.push(Number(req.params.id) || 0);
     const { rows } = await pool.query(`UPDATE contest_teams SET ${sets.join(', ')} WHERE id = $${vals.length} AND deleted_at IS NULL RETURNING *`, vals);

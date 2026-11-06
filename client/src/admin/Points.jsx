@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Award, Loader2, Trash2 } from 'lucide-react';
+import { Award, Check, Loader2, Pencil, Trash2, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { api } from '../context/store';
 import { Panel, PageTitle, inputCls } from './ui';
@@ -17,6 +17,11 @@ export default function Points() {
     try { await api.post('/points/award', { ...f, points: Number(f.points) }); toast.success('Points saved'); setF({ email: '', name: '', points: '10', reason: '' }); await load(); }
     catch (ex) { toast.error(ex.response?.data?.error || 'Could not save'); }
     setBusy(false);
+  };
+  const [edit, setEdit] = useState(null); // { id, points, reason }
+  const saveEdit = async () => {
+    try { await api.put(`/points/award/${edit.id}`, { points: Number(edit.points), reason: edit.reason }); toast.success('Award corrected'); setEdit(null); await load(); }
+    catch (ex) { toast.error(ex.response?.data?.error || 'Could not save'); }
   };
   const undo = async (id) => { try { await api.delete(`/points/award/${id}`); toast.success('Award removed'); load(); } catch (ex) { toast.error(ex.response?.data?.error || 'Could not remove'); } };
   return (
@@ -47,9 +52,14 @@ export default function Points() {
             <div className="border-b border-line px-5 py-3 font-mono text-[11px] uppercase tracking-[0.16em] text-muted">Extra points given</div>
             {d.awards.length === 0 ? <p className="p-5 text-sm text-fg2">No extra points yet.</p> : (
               <ul>{d.awards.map((a) => (
-                <li key={a.id} className="flex items-center gap-3 border-b border-line/60 px-5 py-2.5 last:border-0"><span className={`w-14 font-display text-lg ${a.points > 0 ? 'text-emerald-600' : 'text-red-500'}`}>{a.points > 0 ? '+' : ''}{a.points}</span>
+                <li key={a.id} className="flex items-center gap-3 border-b border-line/60 px-5 py-2.5 last:border-0">{edit?.id === a.id ? (<>
+                  <input className={`${inputCls} !w-20`} type="number" aria-label="Points" value={edit.points} onChange={(e) => setEdit({ ...edit, points: e.target.value })} />
+                  <input className={`${inputCls} min-w-0 flex-1`} aria-label="Reason" value={edit.reason} maxLength={120} onChange={(e) => setEdit({ ...edit, reason: e.target.value })} />
+                  <button onClick={saveEdit} aria-label="Save" className="grid size-8 place-items-center rounded-lg text-emerald-600 hover:bg-emerald-500/10"><Check size={15} /></button>
+                  <button onClick={() => setEdit(null)} aria-label="Cancel" className="grid size-8 place-items-center rounded-lg text-fg2 hover:bg-alt"><X size={15} /></button></>) : (<><span className={`w-14 font-display text-lg ${a.points > 0 ? 'text-emerald-600' : 'text-red-500'}`}>{a.points > 0 ? '+' : ''}{a.points}</span>
                   <span className="min-w-0 flex-1"><span className="block truncate text-sm text-fg">{a.reason}</span><span className="block truncate text-xs text-muted">{a.name || a.email}</span></span>
-                  <button onClick={() => undo(a.id)} aria-label="Remove this award" className="grid size-8 place-items-center rounded-lg text-fg2 hover:bg-red-500/10 hover:text-red-500"><Trash2 size={14} /></button></li>
+                  <button onClick={() => setEdit({ id: a.id, points: a.points, reason: a.reason })} aria-label="Edit this award" className="grid size-8 place-items-center rounded-lg text-fg2 hover:bg-tech/10 hover:text-tech"><Pencil size={14} /></button>
+                  <button onClick={() => undo(a.id)} aria-label="Remove this award" className="grid size-8 place-items-center rounded-lg text-fg2 hover:bg-red-500/10 hover:text-red-500"><Trash2 size={14} /></button></>)}</li>
               ))}</ul>
             )}
           </Panel>

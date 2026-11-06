@@ -1,21 +1,46 @@
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
-import { Download, Loader2, Megaphone, Trash2 } from 'lucide-react';
+import { Check, Download, Loader2, Megaphone, Pencil, Trash2 } from 'lucide-react';
 import { api } from '../context/store';
 import { Drawer, inputCls, askConfirm } from './ui';
 import { saveFile } from '../lib/download';
+
+const membersToText = (ms) => (ms || []).map((m) => [m.name, m.email, m.student_id].filter(Boolean).join(', ')).join('\n');
+const textToMembers = (t) => String(t || '').split('\n').map((l) => l.trim()).filter(Boolean).map((l) => { const [name, email, student_id] = l.split(',').map((x) => x.trim()); return { name, email: email || '', student_id: student_id || '' }; });
+
+/** Correct a team's name, leader, contact details and members. */
+function TeamEdit({ team, onSave, onCancel }) {
+  const [f, setF] = useState({ team_name: team.team_name, leader_name: team.leader_name, email: team.email, phone: team.phone || '', members: membersToText(team.members) });
+  const set = (k, v) => setF((p) => ({ ...p, [k]: v }));
+  return (
+    <div className="mt-3 space-y-2 rounded-xl bg-alt p-3">
+      <input className={inputCls} aria-label="Team name" placeholder="Team name" value={f.team_name} onChange={(e) => set('team_name', e.target.value)} maxLength={80} />
+      <div className="grid gap-2 sm:grid-cols-2">
+        <input className={inputCls} aria-label="Leader" placeholder="Leader's name" value={f.leader_name} onChange={(e) => set('leader_name', e.target.value)} />
+        <input className={inputCls} aria-label="E-mail" type="email" placeholder="Leader's e-mail" value={f.email} onChange={(e) => set('email', e.target.value)} />
+      </div>
+      <input className={inputCls} aria-label="Phone" placeholder="Phone" value={f.phone} onChange={(e) => set('phone', e.target.value)} />
+      <textarea className={`${inputCls} min-h-24`} aria-label="Members" placeholder={'Members, one per line: name, e-mail, student ID'} value={f.members} onChange={(e) => set('members', e.target.value)} />
+      <div className="flex gap-2">
+        <button type="button" onClick={() => onSave({ ...f, members: textToMembers(f.members) })} className="btn-primary !px-4 !py-2 text-xs"><Check size={14} /> Save</button>
+        <button type="button" onClick={onCancel} className="btn-outline !px-4 !py-2 text-xs">Cancel</button>
+      </div>
+    </div>
+  );
+}
 
 /** The teams of one contest: contact details, give places, publish the results (which also gives points). */
 export default function ContestTeams({ contest, onClose }) {
   const [d, setD] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [editing, setEditing] = useState(null);
   const id = contest?.id;
   const load = () => api.get(`/contest-teams/admin/${id}`).then((r) => setD(r.data)).catch(() => setD(false));
   useEffect(() => { setD(null); if (id) load(); }, [id]);
 
   const patch = async (t, body) => {
-    try { await api.patch(`/contest-teams/admin/team/${t.id}`, body); await load(); }
-    catch (ex) { toast.error(ex.response?.data?.error || 'Could not save'); }
+    try { await api.patch(`/contest-teams/admin/team/${t.id}`, body); await load(); return true; }
+    catch (ex) { toast.error(ex.response?.data?.error || 'Could not save'); return false; }
   };
   const remove = async (t) => {
     if (!(await askConfirm({ title: 'Remove this team?', message: `“${t.team_name}” will be removed from the list.`, confirmText: 'Remove', danger: true }))) return;
@@ -56,8 +81,10 @@ export default function ContestTeams({ contest, onClose }) {
                     <div className="text-xs text-fg2">{t.leader_name} · {t.email}{t.phone ? ` · ${t.phone}` : ''}</div>
                     {(t.members || []).length > 0 && <div className="mt-1 text-xs text-muted">{t.members.map((m) => [m.name, m.student_id].filter(Boolean).join(' ')).join(', ')}</div>}
                   </div>
+                  <button onClick={() => setEditing(editing === t.id ? null : t.id)} aria-label="Edit team details" title="Edit team details" className="grid size-8 shrink-0 place-items-center rounded-lg text-fg2 hover:bg-tech/10 hover:text-tech"><Pencil size={14} /></button>
                   <button onClick={() => remove(t)} aria-label="Remove team" className="grid size-8 shrink-0 place-items-center rounded-lg text-fg2 hover:bg-red-500/10 hover:text-red-500"><Trash2 size={14} /></button>
                 </div>
+                {editing === t.id && <TeamEdit team={t} onCancel={() => setEditing(null)} onSave={async (body) => { if (await patch(t, body)) { setEditing(null); toast.success('Team saved'); } }} />}
                 <div className="mt-3 grid grid-cols-3 gap-2">
                   <input className={inputCls} type="number" min="1" placeholder="Place" aria-label="Place" defaultValue={t.rank ?? ''} onBlur={(e) => { if (String(t.rank ?? '') !== e.target.value) patch(t, { rank: e.target.value }); }} />
                   <input className={inputCls} type="number" step="any" placeholder="Score" aria-label="Score" defaultValue={t.score ?? ''} onBlur={(e) => { if (String(t.score ?? '') !== e.target.value) patch(t, { score: e.target.value }); }} />

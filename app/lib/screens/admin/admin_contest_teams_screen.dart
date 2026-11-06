@@ -56,6 +56,49 @@ class _AdminContestTeamsScreenState extends State<AdminContestTeamsScreen> {
     }
   }
 
+  Future<void> _editTeam(Map t) async {
+    final name = TextEditingController(text: '${t['team_name']}');
+    final leader = TextEditingController(text: '${t['leader_name']}');
+    final email = TextEditingController(text: '${t['email']}');
+    final phone = TextEditingController(text: '${t['phone'] ?? ''}');
+    final members = TextEditingController(
+        text: (t['members'] is List ? (t['members'] as List).whereType<Map>() : <Map>[]).map((m) => [m['name'], m['email'], m['student_id']].where((x) => x != null && '$x'.isNotEmpty).join(', ')).join('\n'));
+    final ok = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.fromLTRB(20, 8, 20, MediaQuery.of(ctx).viewInsets.bottom + 20),
+        child: SingleChildScrollView(
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('Edit team', style: displayStyle(ctx, 24)),
+            const SizedBox(height: 14),
+            AppField(controller: name, label: 'Team name', icon: Icons.groups_rounded),
+            const SizedBox(height: 10),
+            AppField(controller: leader, label: "Leader's name", icon: Icons.person_outline_rounded),
+            const SizedBox(height: 10),
+            AppField(controller: email, label: "Leader's e-mail", icon: Icons.mail_outline_rounded, keyboard: TextInputType.emailAddress),
+            const SizedBox(height: 10),
+            AppField(controller: phone, label: 'Phone', icon: Icons.phone_outlined, keyboard: TextInputType.phone),
+            const SizedBox(height: 10),
+            AppField(controller: members, label: 'Members, one per line: name, e-mail, student ID', icon: Icons.group_add_outlined, maxLines: 5, keyboard: TextInputType.multiline),
+            const SizedBox(height: 14),
+            GradientButton(label: 'Save', icon: Icons.save_rounded, onPressed: () => Navigator.pop(ctx, true)),
+          ]),
+        ),
+      ),
+    );
+    if (ok == true) {
+      final list = members.text.split('\n').map((l) => l.trim()).where((l) => l.isNotEmpty).map((l) {
+        final p = l.split(',').map((x) => x.trim()).toList();
+        return {'name': p.isNotEmpty ? p[0] : '', 'email': p.length > 1 ? p[1] : '', 'student_id': p.length > 2 ? p[2] : ''};
+      }).toList();
+      await _patch((t['id'] as num).toInt(), {'team_name': name.text.trim(), 'leader_name': leader.text.trim(), 'email': email.text.trim(), 'phone': phone.text.trim(), 'members': list});
+    }
+    for (final c in [name, leader, email, phone, members]) {
+      c.dispose();
+    }
+  }
+
   Future<void> _remove(Map t) async {
     final yes = await showDialog<bool>(
       context: context,
@@ -141,7 +184,8 @@ class _AdminContestTeamsScreenState extends State<AdminContestTeamsScreen> {
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Row(children: [
                       Expanded(child: Text('${t['team_name']}', style: bodyStyle(context, weight: FontWeight.w700, size: 16))),
-                      IconButton(onPressed: () => _remove(t), icon: const Icon(Icons.delete_outline_rounded, color: Color(0xFFEF4444))),
+                      IconButton(tooltip: 'Edit team', onPressed: () => _editTeam(t), icon: Icon(Icons.edit_outlined, color: p.accent)),
+                      IconButton(tooltip: 'Remove team', onPressed: () => _remove(t), icon: const Icon(Icons.delete_outline_rounded, color: Color(0xFFEF4444))),
                     ]),
                     Text('${t['leader_name']} · ${t['email']}${'${t['phone'] ?? ''}'.isNotEmpty ? ' · ${t['phone']}' : ''}', style: bodyStyle(context, size: 12.5, color: p.muted)),
                     if (t['members'] is List && (t['members'] as List).isNotEmpty) Text((t['members'] as List).whereType<Map>().map((m) => '${m['name']}').join(', '), style: bodyStyle(context, size: 12.5, color: p.muted)),

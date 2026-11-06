@@ -88,6 +88,23 @@ router.post('/award', authMiddleware, async (req, res) => {
   } catch (e) { fail(res, e); }
 });
 
+/** Admin: correct one award (points, reason, name, e-mail). */
+router.put('/award/:id', authMiddleware, async (req, res) => {
+  try {
+    const sets = []; const vals = [];
+    const add = (c, v) => { vals.push(v); sets.push(`${c} = $${vals.length}`); };
+    if (req.body?.points !== undefined) { const p = Math.round(Number(req.body.points)); if (!Number.isFinite(p) || p === 0 || Math.abs(p) > 1000) return res.status(400).json({ error: 'Points must be a number between -1000 and 1000 (not 0).' }); add('points', p); }
+    if (req.body?.reason !== undefined) { const r = String(req.body.reason).trim().slice(0, 120); if (!r) return res.status(400).json({ error: 'Write a short reason.' }); add('reason', r); }
+    if (req.body?.name !== undefined) add('name', String(req.body.name).trim().slice(0, 80) || null);
+    if (req.body?.email !== undefined) { const e = String(req.body.email).trim().toLowerCase(); if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) return res.status(400).json({ error: 'Enter a valid e-mail address.' }); add('email', e); }
+    if (!sets.length) return res.status(400).json({ error: 'Nothing to save' });
+    vals.push(Number(req.params.id) || 0);
+    const { rows } = await pool.query(`UPDATE point_awards SET ${sets.join(', ')} WHERE id = $${vals.length} AND deleted_at IS NULL RETURNING id, email, name, points, reason, created_at`, vals);
+    if (!rows.length) return res.status(404).json({ error: 'Not found' });
+    res.json(rows[0]);
+  } catch (e) { fail(res, e); }
+});
+
 /** Admin: undo one award. */
 router.delete('/award/:id', authMiddleware, async (req, res) => {
   try {
