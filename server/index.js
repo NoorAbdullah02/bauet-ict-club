@@ -177,7 +177,7 @@ app.get('/api/subscribers/unsubscribe', async (req, res) => {
 });
 
 features.forEach((f) => {
-  app.use(`/api/${f.table}`, createCrudRouter(f.table, { orderBy: f.orderBy, orderDir: f.orderDir, columns: f.columns, imageCols: f.imageCols, validate: f.validate, readAuth: f.readAuth, auth: authMiddleware, onCreate: f.notify ? (r) => notifySubscribers(f.notify.kind, f.notify.item(r)) : undefined }));
+  app.use(`/api/${f.table}`, createCrudRouter(f.table, { scheduled: !!f.scheduled, orderBy: f.orderBy, orderDir: f.orderDir, columns: f.columns, imageCols: f.imageCols, validate: f.validate, readAuth: f.readAuth, auth: authMiddleware, onCreate: f.notify ? (r) => notifySubscribers(f.notify.kind, f.notify.item(r)) : undefined }));
   if (f.public) PUBLIC_LISTS.push(`/${f.table}`);
 });
 // the announcement e-mail of a draft or scheduled post is sent when it goes live
@@ -197,7 +197,7 @@ app.get('/api/bootstrap', async (req, res) => {
     list('SELECT * FROM achievements WHERE deleted_at IS NULL ORDER BY date DESC'),
   ]);
   const out = { events, notices, members, gallery, achievements, settings: (await list("SELECT value FROM settings WHERE key = 'site'"))[0]?.value || null };
-  await Promise.all(features.filter((f) => f.public).map(async (f) => { out[f.table] = await list(`SELECT * FROM ${f.table} WHERE deleted_at IS NULL ORDER BY ${f.orderBy || 'created_at'} ${f.orderDir === 'ASC' ? 'ASC' : 'DESC'}`); }));
+  await Promise.all(features.filter((f) => f.public).map(async (f) => { out[f.table] = await list(`SELECT * FROM ${f.table} WHERE deleted_at IS NULL${f.scheduled ? live : ''} ORDER BY ${f.orderBy || 'created_at'} ${f.orderDir === 'ASC' ? 'ASC' : 'DESC'}`); }));
   res.json(out);
 });
 
@@ -208,7 +208,7 @@ app.get('/sitemap-events.xml', async (req, res) => {
     res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${rows.map((r) => `  <url><loc>${origin(req)}/events/${r.id}</loc></url>`).join('\n')}\n</urlset>\n`);
   } catch { res.status(500).end(); }
 });
-const SITE_PATHS = ['/', '/about', '/events', '/notices', '/projects', '/resources', '/leaderboard', '/contests', '/team', '/ambassadors', '/gallery', '/achievements', '/faq', '/contact', '/join', '/join/committee', '/join/general', '/join/ambassador', '/app'];
+const SITE_PATHS = ['/', '/about', '/events', '/notices', '/projects', '/resources', '/leaderboard', '/contests', '/jobs', '/team', '/ambassadors', '/gallery', '/achievements', '/faq', '/contact', '/join', '/join/committee', '/join/general', '/join/ambassador', '/app'];
 const origin = (req) => (process.env.PUBLIC_URL || process.env.RENDER_EXTERNAL_URL || '').replace(/\/$/, '') || `${req.protocol}://${req.get('host')}`;
 app.get('/sitemap.xml', (req, res) => {
   const base = origin(req);

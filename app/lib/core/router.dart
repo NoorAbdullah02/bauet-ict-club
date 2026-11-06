@@ -48,6 +48,7 @@ import '../screens/projects_screen.dart';
 import '../screens/resources_screen.dart';
 import '../screens/leaderboard_screen.dart';
 import '../screens/contests_screen.dart';
+import '../screens/jobs_screen.dart';
 import '../screens/contest_detail_screen.dart';
 import '../screens/admin/admin_contest_teams_screen.dart';
 import '../screens/admin/admin_event_studio_screen.dart';
@@ -111,6 +112,7 @@ GoRouter buildRouter(AppState state) {
           GoRoute(path: '/resources', pageBuilder: (c, s) => _fade(s, const ResourcesScreen())),
           GoRoute(path: '/leaderboard', pageBuilder: (c, s) => _fade(s, const LeaderboardScreen())),
           GoRoute(path: '/contests', pageBuilder: (c, s) => _fade(s, const ContestsScreen())),
+          GoRoute(path: '/jobs', pageBuilder: (c, s) => _fade(s, const JobsScreen())),
           GoRoute(path: '/faq', pageBuilder: (c, s) => _fade(s, const FaqScreen())),
           GoRoute(path: '/about', pageBuilder: (c, s) => _fade(s, const AboutScreen())),
           GoRoute(path: '/contact', pageBuilder: (c, s) => _fade(s, const ContactScreen())),

@@ -171,6 +171,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                 nav('Events', 'Edit, schedule and delete events', Icons.event_rounded, '/admin/data/events').stagger(4),
                 nav('Event sign-ups', 'Who registered, verify payments, waiting list', Icons.groups_2_rounded, '/admin/signups', p.accent).stagger(4),
                 nav('Event insights', 'Who signed up, who came, the money', Icons.insights_rounded, '/admin/insights', p.third).stagger(4),
+                nav('Jobs and internships', 'Post openings, schedule or save as draft', Icons.work_rounded, '/admin/data/jobs', p.third).stagger(4),
                 nav('Contests', 'Hackathons, teams and results', Icons.sports_esports_rounded, '/admin/data/contests', p.tech).stagger(4),
                 nav('Points and badges', 'Give extra points, see the leaderboard', Icons.emoji_events_rounded, '/admin/points', p.accent).stagger(4),
                 nav('Check-in desk', 'Scan or type a ticket code at the entrance', Icons.qr_code_scanner_rounded, '/admin/checkin', p.tech).stagger(4),
