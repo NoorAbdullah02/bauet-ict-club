@@ -228,7 +228,11 @@ router.patch('/:id/status', authMiddleware, async (req, res) => {
     if (!rows.length) return res.status(404).json({ error: 'Not found' });
     // the applicant hears about every decision by email
     if (req.body.status === 'rejected') mail.sendMail({ to: rows[0].email, ...mail.templates.applicationRejected(rows[0]) });
-    if (req.body.status === 'approved') mail.sendMail({ to: rows[0].email, ...mail.templates.applicationApproved(rows[0]) });
+    if (req.body.status === 'approved') {
+      const { cardCode } = require('./card');
+      const key = `r${rows[0].id}`;
+      mail.sendMail({ to: rows[0].email, ...mail.templates.applicationApproved({ ...rows[0], card_path: `/card/${key}?c=${cardCode(key)}` }) });
+    }
     res.json(rows[0]);
   } catch (e) {
     fail(res, e);

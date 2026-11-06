@@ -26,6 +26,7 @@ const _tabs = [
 ];
 
 const _more = [
+  _NavItem('/my-card', 'My member card', Icons.badge_outlined, Icons.badge_rounded),
   _NavItem('/notices', 'Notices', Icons.campaign_outlined, Icons.campaign_rounded),
   _NavItem('/ambassadors', 'Ambassadors', Icons.school_outlined, Icons.school_rounded),
   _NavItem('/gallery', 'Gallery', Icons.photo_library_outlined, Icons.photo_library_rounded),
@@ -133,7 +134,7 @@ class _AppDrawer extends StatelessWidget {
 
   static const _groups = <(String, List<String>)>[
     ('Opportunities', ['/jobs', '/jobs/remote', '/contests', '/leaderboard']),
-    ('The club', ['/notices', '/ambassadors', '/gallery', '/achievements', '/projects', '/resources']),
+    ('The club', ['/my-card', '/notices', '/ambassadors', '/gallery', '/achievements', '/projects', '/resources']),
     ('Help', ['/faq', '/about', '/contact']),
   ];
 

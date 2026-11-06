@@ -477,6 +477,23 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
       ok((await call('DELETE', `/api/resources/${rs.j.id}`, undefined, T)).s === 200 && !((await call('GET', '/api/resources')).j || []).some((x) => x.id === rs.j.id), 'a deleted resource leaves the list (Trash)');
     }
 
+    // member cards for approved applicants
+    {
+      const apply = await call('POST', '/api/registrations', { type: 'general', full_name: 'Card Quokka', student_id: 'CQ2301', batch: '23', department: 'CSE', phone: '01712345678', email: 'cardquokka@example.com', interests: ['Web Development'], experience: 'Beginner' });
+      ok(apply.s === 201, 'a general application can be sent', apply.j);
+      const rid = apply.j.registration.id;
+      ok((await call('POST', '/api/card/find', { email: 'cardquokka@example.com', student_id: 'CQ2301' })).s === 409, 'a pending applicant has no card yet');
+      ok((await call('POST', '/api/card/find', { email: 'nobody@example.com', student_id: 'X' })).s === 404 && (await call('POST', '/api/card/find', { email: 'cardquokka@example.com' })).s === 400, 'wrong or missing details find no card');
+      ok((await call('GET', `/api/card/r${rid}`)).s === 404, 'an applicant card cannot be opened without its code');
+      ok((await call('PATCH', `/api/registrations/${rid}/status`, { status: 'approved' }, T)).s === 200, 'an admin approves the application');
+      const f = await call('POST', '/api/card/find', { email: ' CardQuokka@Example.com ', student_id: 'cq2301' });
+      ok(f.s === 200 && f.j.id === `r${rid}` && f.j.code.startsWith(`Mr${rid}-`), 'the approved member finds the card (case and spaces do not matter)', f.j);
+      const card = await call('GET', `/api/card/${f.j.id}?c=${f.j.code}`);
+      ok(card.s === 200 && card.j.verified === true && card.j.member.name === 'Card Quokka' && card.j.member.position === 'General member' && !JSON.stringify(card.j).includes('@') && !JSON.stringify(card.j).includes('01712345678'), 'the card shows name, type and batch, with no e-mail or phone', card.j);
+      ok((await call('GET', `/api/card/${f.j.id}?c=Mr${rid}-AAAAAA`)).s === 404, 'a wrong code shows nothing');
+      ok((await call('PATCH', `/api/registrations/${rid}/status`, { status: 'rejected' }, T)).s === 200 && (await call('GET', `/api/card/${f.j.id}?c=${f.j.code}`)).s === 404, 'a card stops working when the approval is withdrawn');
+    }
+
     // password change
     ok((await call('POST', '/api/auth/login', { username: '  Admin ', password: 'Qa-Pass-12345' })).s === 200, 'the username can be typed with a capital letter or spaces (phone keyboards do that)');
     ok((await call('POST', '/api/auth/change-password', { current: 'wrong-pass', next: 'Another-Pass-99' }, T)).s === 401, 'change password needs current one');

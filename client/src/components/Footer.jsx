@@ -6,7 +6,7 @@ import useStore, { api } from '../context/store';
 import Logo from './Logo';
 import { useT } from '../lib/i18n';
 
-const EXPLORE = [['About', '/about'], ['Events', '/events'], ['Notices', '/notices'], ['Projects', '/projects'], ['Resources', '/resources'], ['Contests', '/contests'], ['Jobs', '/jobs'], ['Remote jobs', '/jobs/remote'], ['Leaderboard', '/leaderboard'], ['Team', '/team'], ['Ambassadors', '/ambassadors'], ['FAQ', '/faq']];
+const EXPLORE = [['About', '/about'], ['Events', '/events'], ['Notices', '/notices'], ['Projects', '/projects'], ['Resources', '/resources'], ['My member card', '/my-card'], ['Contests', '/contests'], ['Jobs', '/jobs'], ['Remote jobs', '/jobs/remote'], ['Leaderboard', '/leaderboard'], ['Team', '/team'], ['Ambassadors', '/ambassadors'], ['FAQ', '/faq']];
 const INVOLVED = [['Join the club', '/join'], ['Committee', '/join/committee'], ['General member', '/join/general'], ['Ambassador', '/join/ambassador'], ['Get the app', '/app']];
 
 const link = 'group/l inline-flex items-center gap-1.5 py-1.5 text-[13px] text-white/70 transition-all duration-300 hover:translate-x-1 hover:text-white';
