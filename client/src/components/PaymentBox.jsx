@@ -1,20 +1,40 @@
-import { Copy, Wallet } from 'lucide-react';
+import { Copy, Wallet, CreditCard, ShieldCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { inputCls } from './join/shared';
 import { copyText } from '../lib/share';
 import { cn } from '../lib/cn';
+import { waysOf, modeOf } from '../lib/pay';
 
 const COLORS = { bKash: '#E2136E', Nagad: '#F6921E', Rocket: '#8C3494' };
 
 /** Shows how much to pay and where (bKash, Nagad or Rocket), then asks for the method, the sender number and the transaction ID. */
-export default function PaymentBox({ setting, value, errors = {}, onChange }) {
-  const v = { method: setting.methods[0], sender: '', trx_id: '', ...value };
+export default function PaymentBox({ setting, value, errors = {}, onChange, gateway = false }) {
+  const ways = waysOf(setting, gateway);
+  const mode = modeOf(setting, gateway, value);
+  const v = { method: setting.methods?.[0] || 'bKash', sender: '', trx_id: '', ...value, mode };
   const set = (k, x) => onChange({ ...v, [k]: x });
   const number = setting.numbers?.[v.method];
   const copy = async () => { toast[(await copyText(number)) ? 'success' : 'error']((await copyText(number)) ? 'Number copied' : 'Could not copy'); };
   return (
     <div className="rounded-2xl border border-line bg-alt/50 p-4">
       <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-fg"><Wallet size={16} className="text-accent" /> Payment: <span className="font-display text-lg text-accent">{setting.amount} BDT</span></div>
+      {ways.manual && ways.online && (
+        <div className="mb-3 grid grid-cols-2 gap-2" role="radiogroup" aria-label="How to pay">
+          {[['online', 'Pay online', 'Instant, nothing to type'], ['manual', 'Send money by hand', 'Then enter the transaction ID']].map(([k, l, d]) => (
+            <button key={k} type="button" role="radio" aria-checked={mode === k} onClick={() => set('mode', k)} className={cn('rounded-xl border p-3 text-left transition', mode === k ? 'border-accent bg-accent/10' : 'border-line hover:border-muted')}>
+              <span className="block text-sm font-semibold text-fg">{l}</span><span className="block text-[11px] text-muted">{d}</span>
+            </button>
+          ))}
+        </div>
+      )}
+      {mode === 'online' ? (
+        <div className="rounded-xl border border-line bg-surface p-4 text-sm text-fg2">
+          <div className="flex items-center gap-2 font-semibold text-fg"><CreditCard size={16} className="text-accent" /> Pay online</div>
+          <p className="mt-1.5">You go to a secure payment page and pay with bKash, Nagad, Rocket or a card. When it is done you come back here and your place is confirmed at once.</p>
+          <p className="mt-2 flex items-center gap-1.5 text-xs text-muted"><ShieldCheck size={13} /> We never see your PIN or card number.</p>
+          {setting.online && !gateway && !ways.manual && <p className="mt-2 text-xs font-semibold text-red-500">Online payment is not available right now. Please try again later.</p>}
+        </div>
+      ) : (<>
       {setting.methods.length > 1 && (
         <div className="mb-3 flex flex-wrap gap-2" role="radiogroup" aria-label="Payment method">
           {setting.methods.map((m) => (
@@ -41,7 +61,8 @@ export default function PaymentBox({ setting, value, errors = {}, onChange }) {
           {errors.trx_id && <span className="mt-1 block text-xs text-red-500">{errors.trx_id}</span>}</label>
       </div>
       {errors.method && <span className="mt-2 block text-xs text-red-500">{errors.method}</span>}
-      <p className="mt-3 text-xs text-muted">After you send the money, enter the transaction ID from the {v.method} message. We check it and confirm your place by email.</p>
+      </>)}
+      <p className="mt-3 text-xs text-muted" hidden={mode === 'online'}>After you send the money, enter the transaction ID from the {v.method} message. We check it and confirm your place by email.</p>
     </div>
   );
 }

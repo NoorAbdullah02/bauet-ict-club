@@ -14,7 +14,28 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
   f.type === 'email' ? `p${i}@example.com` : f.type === 'phone' ? '01712345678' : f.type === 'number' ? 5 : ['dropdown', 'radio'].includes(f.type) ? (f.options || [])[0] : f.type === 'checkbox' ? [(f.options || [])[0]] : f.type === 'yesno' ? 'Yes' : f.type === 'scale' ? 3 : f.type === 'date' ? '2026-01-01' : f.type === 'time' ? '10:00' : `Person ${i}`]));
 
 (async () => {
-  const srv = spawn(process.execPath, [path.join(__dirname, 'harness.js')], { env: { ...process.env, QA_PORT: PORT }, stdio: 'ignore' });
+  // a pretend payment company: opens sessions, and answers "is this payment real?" from the val_id the test sends ("val-<tran>-<amount>")
+  const http = require('http');
+  const gw = http.createServer((req, res) => {
+    let raw = ''; req.on('data', (c) => { raw += c; });
+    req.on('end', () => {
+      const url = new URL(req.url, 'http://x'); res.setHeader('content-type', 'application/json');
+      if (req.method === 'POST' && url.pathname === '/gwprocess/v4/api.php') {
+        const f = new URLSearchParams(raw);
+        if (f.get('store_id') !== 'qa_store' || f.get('store_passwd') !== 'qa_pass' || f.get('currency') !== 'BDT') return res.end(JSON.stringify({ status: 'FAILED', failedreason: 'bad store' }));
+        return res.end(JSON.stringify({ status: 'SUCCESS', GatewayPageURL: `http://pay.example/${f.get('tran_id')}`, amount: f.get('total_amount') }));
+      }
+      if (url.pathname === '/validator/api/validationserverAPI.php') {
+        const m = /^val-(bauet-[a-f0-9]{16})-([\d.]+)$/.exec(url.searchParams.get('val_id') || '');
+        if (!m || url.searchParams.get('store_id') !== 'qa_store') return res.end(JSON.stringify({ status: 'INVALID_TRANSACTION' }));
+        return res.end(JSON.stringify({ status: 'VALID', tran_id: m[1], amount: m[2], currency_type: 'BDT', bank_tran_id: 'BANK123', card_type: 'BKASH-BKash' }));
+      }
+      res.statusCode = 404; res.end('{}');
+    });
+  });
+  await new Promise((r) => gw.listen(0, '127.0.0.1', r));
+  const GW = `http://127.0.0.1:${gw.address().port}`;
+  const srv = spawn(process.execPath, [path.join(__dirname, 'harness.js')], { env: { ...process.env, QA_PORT: PORT, SSLCOMMERZ_STORE_ID: 'qa_store', SSLCOMMERZ_STORE_PASSWD: 'qa_pass', SSLCOMMERZ_BASE: GW }, stdio: 'ignore' });
   try {
     for (let i = 0; i < 60; i++) { try { if ((await fetch(`${B}/api/health`)).ok) break; } catch { /* booting */ } await new Promise((r) => setTimeout(r, 1000)); }
 
@@ -216,6 +237,68 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
     const html = await (await fetch(`${B}/events/${seId}`)).text();
     ok(html.includes('application/ld+json') && html.includes('"@type":"Event"') && html.includes('2099-05-05T15:30:00+06:00'), 'event page carries structured data for Google', html.slice(0, 200));
 
+    // online payment through the gateway (a pretend one), next to paying by hand
+    {
+      ok((await call('GET', '/api/pay/status')).j?.gateway === true, 'the server says online payment is available');
+      const fields = [{ id: 'name', key: 'name', type: 'short', label: 'Name', required: true }, { id: 'email', key: 'email', type: 'email', label: 'Email', required: true }];
+      const mkEv = (title, payment, capacity) => call('POST', '/api/events', { title, date: '2099-06-06', time: '10:00', location: 'Lab', description: 'pay', capacity, reg_form: { fields, payment } }, T);
+      const both = await mkEv('Pay both ways', { enabled: true, amount: 200, manual: true, online: true, methods: ['bKash'], numbers: { bKash: '01711111111' } });
+      ok(both.s === 201 && both.j.reg_form.payment.online === true && both.j.reg_form.payment.manual === true, 'an event can allow both ways to pay', both.j);
+      ok((await mkEv('Pay nothing', { enabled: true, amount: 200, manual: false, online: false })).s >= 400, 'at least one way to pay is required');
+      ok((await mkEv('Manual needs a number', { enabled: true, amount: 200, manual: true, online: false, methods: ['bKash'], numbers: {} })).s >= 400, 'paying by hand still needs a number to send money to');
+      const only = await mkEv('Online only', { enabled: true, amount: 200, manual: false, online: true });
+      ok(only.s === 201 && only.j.reg_form.payment.manual === false && only.j.reg_form.payment.methods.length === 0, 'an online-only event needs no mobile numbers', only.j);
+      const reg = (id, body) => call('POST', `/api/event-registrations/${id}`, { answers: { name: 'Pay Tester', email: `pt${Math.random().toString(36).slice(2, 8)}@example.com` }, ...body });
+      const old = await call('POST', `/api/event-registrations/${only.j.id}`, { answers: { name: 'Hand', email: 'hand@example.com' }, payment: { method: 'bKash', sender: '01712345678', trx_id: 'ABC123XYZ9' } });
+      ok(old.s === 409, 'paying by hand is refused on an online-only event', old.j);
+      const o1 = await reg(only.j.id, { pay_mode: 'online' });
+      ok(o1.s === 201 && /^http:\/\/pay\.example\/bauet-[a-f0-9]{16}$/.test(o1.j.pay_url) && o1.j.pending_payment, 'online sign-up gives the payment page address', o1.j);
+      const tk = (code) => call('GET', `/api/event-registrations/ticket/${code}`);
+      ok((await tk(o1.j.ticket)).j.status === 'pending', 'before paying the place is pending');
+      ok((await call('GET', `/api/pay/check/${o1.j.tran_id}`)).j.status === 'waiting', 'the payment check says waiting');
+      const form = (o) => ({ method: 'POST', redirect: 'manual', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(o) });
+      const bad = await fetch(`${B}/api/pay/ssl/success`, form({ tran_id: o1.j.tran_id, val_id: 'val-nonsense' }));
+      ok(bad.status === 303 && bad.headers.get('location').startsWith(`/events/${only.j.id}?pay=failed`), 'a payment the gateway cannot prove is refused', bad.headers.get('location'));
+      ok((await tk(o1.j.ticket)).j.status === 'cancelled', 'an unproven payment frees the place');
+      const o2 = await reg(only.j.id, { pay_mode: 'online' });
+      const cheap = await fetch(`${B}/api/pay/ssl/success`, form({ tran_id: o2.j.tran_id, val_id: `val-${o2.j.tran_id}-50` }));
+      ok(cheap.status === 303 && cheap.headers.get('location').includes('pay=failed'), 'a payment of less than the price is refused');
+      const o3 = await reg(only.j.id, { pay_mode: 'online' });
+      const good = await fetch(`${B}/api/pay/ssl/success`, form({ tran_id: o3.j.tran_id, val_id: `val-${o3.j.tran_id}-200` }));
+      ok(good.status === 303 && good.headers.get('location') === `/ticket/${o3.j.ticket}?paid=1`, 'a proven payment sends the person to their ticket', good.headers.get('location'));
+      ok((await tk(o3.j.ticket)).j.status === 'confirmed', 'a proven payment confirms the place with no admin work');
+      ok((await call('GET', `/api/pay/check/${o3.j.tran_id}`)).j.status === 'paid', 'the payment check says paid');
+      const again = await fetch(`${B}/api/pay/ssl/success`, form({ tran_id: o3.j.tran_id, val_id: `val-${o3.j.tran_id}-200` }));
+      ok(again.status === 303 && (await tk(o3.j.ticket)).j.status === 'confirmed', 'coming back twice changes nothing');
+      const swap = await fetch(`${B}/api/pay/ssl/success`, form({ tran_id: o3.j.tran_id, val_id: `val-${o2.j.tran_id}-200` }));
+      ok(swap.status === 303 && (await tk(o3.j.ticket)).j.status === 'confirmed', 'a paid sign-up cannot be undone by another payment');
+      const o4 = await reg(only.j.id, { pay_mode: 'online' });
+      const can = await fetch(`${B}/api/pay/ssl/cancel`, form({ tran_id: o4.j.tran_id }));
+      ok(can.status === 303 && (await tk(o4.j.ticket)).j.status === 'cancelled', 'cancelling at the payment page frees the place');
+      const o5 = await reg(only.j.id, { pay_mode: 'online' });
+      ok((await fetch(`${B}/api/pay/ssl/ipn`, form({ tran_id: o5.j.tran_id, val_id: `val-${o5.j.tran_id}-200`, status: 'VALID' }))).status === 200 && (await tk(o5.j.ticket)).j.status === 'confirmed', 'the gateway can confirm directly (IPN) even if the person never comes back');
+      ok((await fetch(`${B}/api/pay/ssl/success`, form({ tran_id: 'bauet-0000000000000000', val_id: 'x' }))).status === 303, 'an unknown transaction does not crash');
+      // a seat is held while someone is paying
+      const small = await mkEv('One seat', { enabled: true, amount: 100, manual: false, online: true }, 1);
+      const s1 = await reg(small.j.id, { pay_mode: 'online' }); const s2 = await reg(small.j.id, { pay_mode: 'online' });
+      ok(s1.s === 201 && s2.s === 409, 'the last seat is held while someone is on the payment page', s2.j);
+      // both ways on one event: the manual way still works
+      const hand = await reg(both.j.id, { payment: { method: 'bKash', sender: '01712345678', trx_id: 'HAND123456' } });
+      ok(hand.s === 201 && (await tk(hand.j.ticket)).j.status === 'pending', 'paying by hand still waits for an admin');
+      const bothOnline = await reg(both.j.id, { pay_mode: 'online' });
+      ok(bothOnline.s === 201 && !!bothOnline.j.pay_url, 'the same event also takes online payment');
+      // stand-alone forms
+      const fm = (await call('POST', '/api/forms', { title: 'Paid form' }, T)).j;
+      const up = await call('PUT', `/api/forms/${fm.id}`, { reg_form: { fields: [{ id: 'name', key: 'name', type: 'short', label: 'Name', required: true }, { id: 'email', key: 'email', type: 'email', label: 'Email', required: true }], payment: { enabled: true, amount: 150, manual: false, online: true } } }, T);
+      ok(up.s === 200, 'a form can take online payment', up.j);
+      const fr = await call('POST', `/api/forms/public/${fm.slug}`, { answers: { name: 'F Tester', email: 'ft@example.com' }, pay_mode: 'online' });
+      ok(fr.s === 201 && !!fr.j.pay_url, 'a form sign-up gives the payment page address', fr.j);
+      const fgood = await fetch(`${B}/api/pay/ssl/success`, form({ tran_id: fr.j.tran_id, val_id: `val-${fr.j.tran_id}-150` }));
+      ok(fgood.status === 303 && fgood.headers.get('location') === `/f/${fm.slug}?paid=1`, 'a paid form returns to the form page', fgood.headers.get('location'));
+      const resp = (await call('GET', `/api/forms/${fm.id}/responses`, undefined, T)).j || [];
+      ok(resp.length === 1 && resp[0].pay_status === 'verified' && resp[0].payment?.status === 'paid', 'the form response is marked paid', resp[0]);
+    }
+
     // password change
     ok((await call('POST', '/api/auth/change-password', { current: 'wrong-pass', next: 'Another-Pass-99' }, T)).s === 401, 'change password needs current one');
     ok((await call('POST', '/api/auth/change-password', { current: 'Qa-Pass-12345', next: 'short' }, T)).s === 400, 'short new password refused');
@@ -223,6 +306,7 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
     ok((await call('POST', '/api/auth/login', { username: 'admin', password: 'Another-Pass-99' })).s === 200, 'new password works');
   } catch (e) { failed++; console.log('  CRASH', e); }
   srv.kill();
+  gw.close();
   console.log(`${failed ? 'FAILED' : 'OK'}: ${pass} passed, ${failed} failed`);
   process.exit(failed ? 1 : 0);
 })();

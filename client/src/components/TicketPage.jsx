@@ -22,6 +22,7 @@ export default function TicketPage() {
   const [qr, setQr] = useState('');
   const [gone, setGone] = useState(false);
   const [busy, setBusy] = useState(false);
+  const justPaid = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('paid') === '1';
 
   useEffect(() => {
     api.get(`/event-registrations/ticket/${code}`).then((r) => { setT(r.data); document.title = `Ticket: ${r.data.event.title} | BAUET ICT Club`; }).catch(() => setT(false));
@@ -48,6 +49,7 @@ export default function TicketPage() {
   return (
     <section className="section">
       <div className="container max-w-md">
+        {justPaid && t.status === 'confirmed' && <p className="mb-4 flex items-center gap-2 rounded-2xl bg-emerald-500/10 px-4 py-3 text-sm font-semibold text-emerald-600"><CheckCircle2 size={18} /> Payment received. Your place is confirmed. We emailed you this ticket.</p>}
         <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="overflow-hidden rounded-[28px] border border-line bg-surface shadow-[var(--shadow-lg)] print:shadow-none">
           <div className="px-7 py-6 text-white" style={{ background: 'linear-gradient(120deg,#0A1A4A,#1F4FD8 70%,#17A2D8)' }}>
             <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-white/70">Event ticket · BAUET ICT Club</div>

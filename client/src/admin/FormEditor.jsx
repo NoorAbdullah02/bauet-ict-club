@@ -15,6 +15,7 @@ import QrModal from '../components/QrModal';
 import { ResponsesPanel } from './EventRegistrations';
 import { DEFAULT_FIELDS, PRESETS, TYPE_LABELS, PAY_METHODS, hasOptions, newField, uid } from '../lib/forms';
 import { copyText, eventLink } from '../lib/share';
+import { useGateway } from '../lib/pay';
 import { cn } from '../lib/cn';
 
 const clone = (x) => JSON.parse(JSON.stringify(x));
@@ -31,17 +32,18 @@ function problemOf(doc) {
   if (few) return `“${few.label}” needs at least two choices`;
   if (doc.payment?.enabled) {
     if (!(Number(doc.payment.amount) > 0)) return 'Enter the fee amount';
-    if (!doc.payment.methods?.length) return 'Choose a payment method';
-    const miss = doc.payment.methods.find((m) => !/^(\+?88)?01[3-9]\d{8}$/.test(String(doc.payment.numbers?.[m] || '').replace(/[\s-]/g, '')));
+    if (doc.payment.manual === false && !doc.payment.online) return 'Choose at least one way to pay';
+    if (doc.payment.manual !== false && !doc.payment.methods?.length) return 'Choose a payment method';
+    const miss = doc.payment.manual === false ? null : doc.payment.methods.find((m) => !/^(\+?88)?01[3-9]\d{8}$/.test(String(doc.payment.numbers?.[m] || '').replace(/[\s-]/g, '')));
     if (miss) return `Enter the ${miss} number people send money to`;
   }
   return '';
 }
 
-function Switch({ checked, onChange, label }) {
+function Switch({ checked, onChange, label, disabled }) {
   return (
-    <label className="flex cursor-pointer items-center gap-2.5 text-sm text-fg2">
-      <button type="button" role="switch" aria-checked={checked} onClick={() => onChange(!checked)} className={cn('relative h-6 w-10 shrink-0 rounded-full transition', checked ? 'bg-accent' : 'bg-line')}>
+    <label className={cn('flex items-center gap-2.5 text-sm text-fg2', disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer')}>
+      <button type="button" role="switch" aria-checked={checked} disabled={disabled} onClick={() => onChange(!checked)} className={cn('relative h-6 w-10 shrink-0 rounded-full transition', checked ? 'bg-accent' : 'bg-line')}>
         <span className={cn('absolute top-0.5 size-5 rounded-full bg-white shadow transition-all', checked ? 'left-[18px]' : 'left-0.5')} />
       </button>
       {label}
@@ -208,6 +210,7 @@ function PatternRule({ q, patch }) {
 }
 
 export default function FormEditor({ kind = 'form', eventId }) {
+  const gateway = useGateway();
   const routeId = useParams().id;
   const id = eventId ?? routeId;
   const [params, setParams] = useSearchParams();
@@ -274,7 +277,7 @@ export default function FormEditor({ kind = 'form', eventId }) {
   // ---- autosave ----
   const body = useCallback((d) => ({
     title: d.heading.trim(), intro: d.intro, confirmation: d.confirmation, email_note: d.email_note, unique: d.unique, notify_admin: d.notify_admin, feedback_form: kind === 'event' ? d.feedback_form || undefined : undefined, theme: d.theme || undefined, closes_at: d.closes_at || undefined,
-    payment: d.payment?.enabled ? { ...d.payment, amount: Number(d.payment.amount) } : undefined,
+    payment: d.payment?.enabled ? { ...d.payment, amount: Number(d.payment.amount), online: !!d.payment.online } : undefined,
     cert: d.cert?.enabled ? d.cert : undefined,
     fields: d.fields.map((q) => ({ ...q, options: hasOptions(q.type) ? q.options.map((o) => o.trim()).filter(Boolean) : undefined })),
   }), [kind]);
@@ -459,12 +462,20 @@ export default function FormEditor({ kind = 'form', eventId }) {
 
           <section className="rounded-2xl border border-line bg-surface p-6">
             <div className="flex items-center justify-between gap-3"><h3 className="flex items-center gap-2 text-lg text-fg"><Wallet size={18} className="text-accent" /> Payment</h3>
-              <Switch checked={!!doc.payment?.enabled} onChange={(v) => patchDoc({ payment: { amount: 100, methods: ['bKash'], numbers: {}, kind: 'send_money', note: '', ...doc.payment, enabled: v } })} label={doc.payment?.enabled ? 'On' : 'Off'} /></div>
-            <p className="mt-1 text-xs text-muted">bKash, Nagad or Rocket. People send money, then give the transaction ID. You check each payment in Responses.</p>
+              <Switch checked={!!doc.payment?.enabled} onChange={(v) => patchDoc({ payment: { amount: 100, manual: true, online: false, methods: ['bKash'], numbers: {}, kind: 'send_money', note: '', ...doc.payment, enabled: v } })} label={doc.payment?.enabled ? 'On' : 'Off'} /></div>
+            <p className="mt-1 text-xs text-muted">Choose how people can pay. You can allow one way or both.</p>
             {doc.payment?.enabled && (
               <div className="mt-4 space-y-3">
                 <label className="block"><span className="mb-1 block font-mono text-[10px] uppercase tracking-wider text-muted">Amount (BDT)</span><input type="number" min="1" className={inputCls} value={doc.payment.amount} onChange={(e) => patchDoc({ payment: { ...doc.payment, amount: e.target.value } })} /></label>
-                {PAY_METHODS.map((m) => {
+                <div className="rounded-2xl border border-line bg-alt/50 p-4">
+                  <Switch checked={doc.payment.manual !== false} onChange={(v) => patchDoc({ payment: { ...doc.payment, manual: v } })} label="Send money by hand (bKash, Nagad, Rocket)" />
+                  <p className="mt-1 text-xs text-muted">People send money to your number and type the transaction ID. You check each payment in Responses and press Verify. No account needed.</p>
+                </div>
+                <div className="rounded-2xl border border-line bg-alt/50 p-4">
+                  <Switch checked={!!doc.payment.online && gateway} disabled={!gateway} onChange={(v) => patchDoc({ payment: { ...doc.payment, online: v } })} label="Pay online (payment gateway)" />
+                  <p className="mt-1 text-xs text-muted">{gateway ? 'People pay on the secure payment page (bKash, Nagad, Rocket or card) and the place is confirmed at once. The company keeps a small fee.' : 'Needs a merchant account. When the keys are added on the server (SSLCOMMERZ_STORE_ID and SSLCOMMERZ_STORE_PASSWD) this switch turns on.'}</p>
+                </div>
+                {doc.payment.manual !== false && PAY_METHODS.map((m) => {
                   const on = doc.payment.methods.includes(m);
                   return (
                     <div key={m} className="flex flex-wrap items-center gap-3">

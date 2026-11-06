@@ -7,6 +7,7 @@ import { useShallow } from 'zustand/react/shallow';
 import useStore, { api } from '../context/store';
 import DynamicForm from './DynamicForm';
 import PaymentBox from './PaymentBox';
+import { useGateway, modeOf } from '../lib/pay';
 import { qrDataUrl, prettyCode } from '../lib/qr';
 import { fieldsOf, isVisible, isEmpty, themeStyle } from '../lib/forms';
 import { formalDate, formalTime } from '../lib/format';
@@ -32,6 +33,8 @@ export default function EventDetail() {
   const [ticket, setTicket] = useState('');
   const [ticketQr, setTicketQr] = useState('');
   const [menu, setMenu] = useState(false);
+  const gateway = useGateway();
+  const payFailed = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('pay') === 'failed';
 
   const ev = useMemo(() => events.find((e) => String(e.id) === String(id)) || fetched, [events, fetched, id]);
 
@@ -73,7 +76,8 @@ export default function EventDetail() {
     const err = {};
     fields.forEach((f) => { if (f.type !== 'section' && isVisible(f, form) && f.required && isEmpty(form[f.id])) err[f.id] = 'This question is required'; });
     const pe = {};
-    if (payCfg) {
+    const payMode = payCfg ? modeOf(payCfg, gateway, payment) : null;
+    if (payCfg && payMode === 'manual') {
       const p = { method: payCfg.methods[0], ...payment };
       if (!/^(\+?88)?01[3-9]\d{8}$/.test(String(p.sender || '').replace(/[\s-]/g, ''))) pe.sender = 'Enter the mobile number you paid from';
       if (!/^[A-Za-z0-9]{6,20}$/.test(String(p.trx_id || '').trim())) pe.trx_id = 'Enter the transaction ID (6 to 20 letters and numbers)';
@@ -81,7 +85,7 @@ export default function EventDetail() {
     setErrors(err); setPayErrors(pe);
     if (Object.keys(err).length || Object.keys(pe).length) { toast.error('Please check the highlighted questions'); return; }
     setBusy(true);
-    try { const r = await api.post(`/event-registrations/${ev.id}`, { _hp: document.querySelector('input[data-hp]')?.value || '', answers: Object.fromEntries(fields.filter((f) => isVisible(f, form)).map((f) => [f.id, form[f.id]]).filter(([, v]) => !isEmpty(v))), ...(payCfg ? { payment: { method: payCfg.methods[0], ...payment } } : {}) }); setThanks(r.data.message || ''); setPendingPay(!!r.data.pending_payment); setTicket(r.data.ticket || ''); setWaiting(r.data.waitlisted ? r.data.position || 1 : 0); setDone(true); }
+    try { const r = await api.post(`/event-registrations/${ev.id}`, { _hp: document.querySelector('input[data-hp]')?.value || '', answers: Object.fromEntries(fields.filter((f) => isVisible(f, form)).map((f) => [f.id, form[f.id]]).filter(([, v]) => !isEmpty(v))), ...(payCfg ? (payMode === 'online' ? { pay_mode: 'online' } : { payment: { method: payCfg.methods[0], ...payment } }) : {}) }); if (r.data.pay_url) { window.location.assign(r.data.pay_url); return; } setThanks(r.data.message || ''); setPendingPay(!!r.data.pending_payment); setTicket(r.data.ticket || ''); setWaiting(r.data.waitlisted ? r.data.position || 1 : 0); setDone(true); }
     catch (ex) { const d = ex.response?.data; if (d?.fields) setErrors(d.fields); if (d?.payment) setPayErrors(d.payment); toast.error(d?.error || 'Could not register. Please try again.'); }
     setBusy(false);
   };
@@ -122,7 +126,7 @@ export default function EventDetail() {
 
           <motion.aside initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.1 }} className="min-w-0 lg:sticky lg:top-24 lg:self-start">
             <div className="rounded-3xl border border-line bg-surface p-6 shadow-[var(--shadow-md)]">
-              <div className="mb-4 flex items-center gap-3"><span className="grid size-11 place-items-center rounded-2xl bg-accent/10 text-accent"><Ticket size={20} /></span><div><h2 className="text-xl text-fg">Register</h2><p className="text-xs text-muted">{closed ? 'Registration is closed' : 'Free · takes a minute'}</p></div></div>
+              <div className="mb-4 flex items-center gap-3"><span className="grid size-11 place-items-center rounded-2xl bg-accent/10 text-accent"><Ticket size={20} /></span><div><h2 className="text-xl text-fg">Register</h2><p className="text-xs text-muted">{closed ? 'Registration is closed' : payCfg ? `Fee ${payCfg.amount} BDT · takes a minute` : 'Free · takes a minute'}</p></div></div>
 
               {done ? (
                 <div className="py-4 text-center">
@@ -152,11 +156,12 @@ export default function EventDetail() {
               ) : (
                 <form onSubmit={submit} noValidate className="space-y-5" style={themeStyle(ev.reg_form?.theme)}>
                   {ev.reg_form?.title && <h3 className="text-lg text-fg">{ev.reg_form.title}</h3>}
+                  {payFailed && <p className="rounded-xl bg-red-500/10 px-3.5 py-2.5 text-sm text-red-600">The payment was not completed, so no seat was kept. You can try again below.</p>}
                   {waitOpen && <p className="rounded-xl bg-sky-500/10 px-3.5 py-2.5 text-sm text-sky-700">All seats are taken. Join the waiting list: if someone drops out you get their seat automatically and we email you.</p>}
                   {ev.reg_form?.intro && <p className="whitespace-pre-line text-sm text-fg2">{ev.reg_form.intro}</p>}
                   {closesAt && <p className="rounded-xl bg-alt px-3.5 py-2 text-xs text-fg2">Registration closes {formalDate(closesAt)}{closesAt.length > 10 ? `, ${formalTime(closesAt.slice(11))}` : ''}</p>}
                   <DynamicForm fields={fields} values={form} errors={errors} onPageError={setErrors} onChange={(id, v) => { setForm((f) => ({ ...f, [id]: v })); setErrors((x) => ({ ...x, [id]: undefined })); }}>
-                    {payCfg && <PaymentBox setting={payCfg} value={payment} errors={payErrors} onChange={(p) => { setPayment(p); setPayErrors({}); }} />}
+                    {payCfg && <PaymentBox gateway={gateway} setting={payCfg} value={payment} errors={payErrors} onChange={(p) => { setPayment(p); setPayErrors({}); }} />}
                     <button disabled={busy} className="btn-primary mt-1 w-full justify-center disabled:opacity-60">{busy ? <Loader2 size={16} className="animate-spin" /> : <Ticket size={16} />} {busy ? 'Submitting…' : waitOpen ? 'Join the waiting list' : 'Submit registration'}</button>
                   </DynamicForm>
                 </form>
