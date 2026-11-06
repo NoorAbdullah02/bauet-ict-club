@@ -47,8 +47,8 @@ class _AdminCheckinScreenState extends State<AdminCheckinScreen> {
     final o = parseOpenable(raw);
     if (o == null || o.kind != 'card') return false;
     final parts = o.value.split('|');
-    final id = int.tryParse(parts.first);
-    if (id == null) return true;
+    final id = parts.first;
+    if (!RegExp(r'^r?\d+$').hasMatch(id)) return true;
     setState(() => _busy = true);
     try {
       final r = await _state.api.memberCard(id, c: parts.length > 1 ? parts[1] : '');

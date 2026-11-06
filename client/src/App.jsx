@@ -28,6 +28,7 @@ const ResourcesPage = named('ResourcesPage');
 const LeaderboardPage = named('LeaderboardPage');
 const ContestsPage = named('ContestsPage');
 const JobsPage = named('JobsPage');
+const MyCardRoute = named('MyCardRoute');
 const RemoteJobsPage = named('RemoteJobsPage');
 const ContestDetailPage = named('ContestDetailPage');
 const FaqPage = named('FaqPage');
@@ -149,6 +150,7 @@ export default function App() {
           <Route path="f/:slug" element={<FormPageRoute />} />
           <Route path="ticket/:code" element={<TicketRoute />} />
           <Route path="card/:id" element={<MemberCardRoute />} />
+          <Route path="my-card" element={<MyCardRoute />} />
           <Route path="verify/:code" element={<VerifyRoute />} />
           <Route path="certificate/:code" element={<CertificateRoute />} />
           <Route path="notices" element={<NoticesPage />} />

@@ -313,8 +313,12 @@ class Api {
   }
 
   /// A member's card: { member: {...}, code, verified }. Pass the scanned code [c] to check it.
-  Future<Map<String, dynamic>> memberCard(int id, {String? c}) async =>
+  Future<Map<String, dynamic>> memberCard(Object id, {String? c}) async =>
       _map(await _send(() => _dio.get('/card/$id', queryParameters: {if (c != null && c.isNotEmpty) 'c': c})));
+
+  /// A member who joined through the application form finds their own card: { id, code, path }.
+  Future<Map<String, dynamic>> findMyCard(String email, String studentId) async =>
+      _map(await _send(() => _dio.post('/card/find', data: {'email': email, 'student_id': studentId})));
 
   /// Remote jobs read from Remotive and Remote OK: { enabled, jobs: [...], sources: [...] }.
   Future<Map<String, dynamic>> remoteJobs() async => _map(await _send(() => _dio.get('/remote-jobs')));

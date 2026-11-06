@@ -49,6 +49,7 @@ import '../screens/resources_screen.dart';
 import '../screens/leaderboard_screen.dart';
 import '../screens/contests_screen.dart';
 import '../screens/jobs_screen.dart';
+import '../screens/my_card_screen.dart';
 import '../screens/contest_detail_screen.dart';
 import '../screens/admin/admin_contest_teams_screen.dart';
 import '../screens/admin/admin_event_studio_screen.dart';
@@ -130,9 +131,10 @@ GoRouter buildRouter(AppState state) {
       GoRoute(path: '/search', pageBuilder: (c, s) => _slide(s, const SearchScreen())),
       GoRoute(
         path: '/card/:id',
-        pageBuilder: (c, s) => _slide(s, MemberCardScreen(memberId: int.tryParse(s.pathParameters['id'] ?? '') ?? 0, code: s.uri.queryParameters['c'])),
+        pageBuilder: (c, s) => _slide(s, MemberCardScreen(memberId: s.pathParameters['id'] ?? '', code: s.uri.queryParameters['c'])),
       ),
       GoRoute(path: '/contests/:id', pageBuilder: (c, s) => _slide(s, ContestDetailScreen(id: int.tryParse(s.pathParameters['id'] ?? '') ?? 0))),
+      GoRoute(path: '/my-card', pageBuilder: (c, s) => _slide(s, const MyCardScreen())),
       GoRoute(path: '/tickets', pageBuilder: (c, s) => _slide(s, const MyTicketsScreen())),
       GoRoute(path: '/ticket/:code', pageBuilder: (c, s) => _slide(s, TicketScreen(code: s.pathParameters['code'] ?? ''))),
       GoRoute(path: '/verify/:code', pageBuilder: (c, s) => _slide(s, VerifyScreen(code: s.pathParameters['code'] ?? ''))),

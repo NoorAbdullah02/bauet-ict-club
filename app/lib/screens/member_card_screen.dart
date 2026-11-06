@@ -13,7 +13,7 @@ import 'event_detail_screen.dart';
 /// [code] is set when somebody scanned a card: then the screen says whether that code is real.
 class MemberCardScreen extends StatefulWidget {
   const MemberCardScreen({super.key, required this.memberId, this.code});
-  final int memberId;
+  final String memberId; // a number (committee member) or r + number (approved applicant)
   final String? code;
 
   @override

@@ -195,8 +195,8 @@ const templates = {
   }),
   applicationApproved: (r) => ({
     subject: 'Your application is approved | BAUET ICT Club',
-    html: layout({ title: 'Welcome to the club 🎉', body: `<p>Dear ${esc(r.full_name)},</p><p>Great news: your ${esc(typeLabel(r).toLowerCase())} has been <b>approved</b>. Welcome to the BAUET ICT Club family!</p><p>Watch our Events and Notices pages for your first workshop, and keep an eye on your inbox.</p>`, button: { href: `${siteUrl()}/events`, label: 'See upcoming events' } }),
-    text: `Dear ${r.full_name}, your application has been approved. Welcome to the BAUET ICT Club! ${siteUrl()}/events`,
+    html: layout({ title: 'Welcome to the club 🎉', body: `<p>Dear ${esc(r.full_name)},</p><p>Great news: your ${esc(typeLabel(r).toLowerCase())} has been <b>approved</b>. Welcome to the BAUET ICT Club family!</p><p>Your digital membership card is ready: open it any time on your phone or print it. You can also find it on our website under <b>My member card</b> with your e-mail and student ID.</p><p>Watch our Events and Notices pages for your first workshop, and keep an eye on your inbox.</p>`, button: { href: r.card_path ? `${siteUrl()}${r.card_path}` : `${siteUrl()}/my-card`, label: 'Open my member card' } }),
+    text: `Dear ${r.full_name}, your application has been approved. Welcome to the BAUET ICT Club! Your member card: ${siteUrl()}${r.card_path || '/my-card'}`,
   }),
   applicationRejected: (r) => ({
     subject: 'About your application | BAUET ICT Club',
