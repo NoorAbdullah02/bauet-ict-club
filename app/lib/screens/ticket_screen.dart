@@ -283,6 +283,18 @@ class _MyTicketsScreenState extends State<MyTicketsScreen> {
       return;
     }
     setState(() => _error = null);
+    if (o.kind == 'short') {
+      final api = context.read<AppState>().api;
+      api.resolveShort(o.value).then((p) {
+        if (!mounted) return;
+        if (p == null || p.isEmpty) {
+          setState(() => _error = 'That short link does not work.');
+        } else {
+          context.push(p);
+        }
+      });
+      return;
+    }
     final path = switch (o.kind) {
       'ticket' => '/ticket/${o.value}',
       'verify' => '/verify/${o.value}',

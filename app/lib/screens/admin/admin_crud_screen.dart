@@ -348,6 +348,9 @@ class _AdminCrudScreenState extends State<AdminCrudScreen> {
                             row: _rows[i],
                             onTap: () => spec.readOnly ? _view(_rows[i]) : _openForm(_rows[i]),
                             onDelete: () => _delete(_rows[i]),
+                            extra: widget.table == 'events'
+                                ? IconButton(tooltip: 'Sign-up form, payment, certificate', onPressed: () => context.push('/admin/event-form/${_rows[i]['id']}'), icon: Icon(Icons.edit_note_rounded, color: p.accent, size: 24))
+                                : null,
                           ).stagger(i),
                         ),
                   ],
@@ -362,7 +365,8 @@ class _AdminCrudScreenState extends State<AdminCrudScreen> {
 }
 
 class _RowTile extends StatelessWidget {
-  const _RowTile({required this.spec, required this.row, required this.onTap, required this.onDelete});
+  const _RowTile({required this.spec, required this.row, required this.onTap, required this.onDelete, this.extra});
+  final Widget? extra; // for example the sign-up form shortcut on events
   final TableSpec spec;
   final Map<String, dynamic> row;
   final VoidCallback onTap;
@@ -394,6 +398,7 @@ class _RowTile extends StatelessWidget {
             if (sub.isNotEmpty) Text(sub, maxLines: 1, overflow: TextOverflow.ellipsis, style: bodyStyle(context, size: 12.5, color: p.muted)),
           ]),
         ),
+        if (extra != null) extra!,
         IconButton(onPressed: onDelete, icon: const Icon(Icons.delete_outline_rounded, color: Color(0xFFEF4444), size: 22)),
       ]),
     );

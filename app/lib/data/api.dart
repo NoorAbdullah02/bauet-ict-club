@@ -304,4 +304,18 @@ class Api {
   /// Where an online payment is: { status: waiting | paid | failed, ticket? }. The transaction id is the secret.
   Future<Map<String, dynamic>> payCheck(String tran) async =>
       _map(await _send(() => _dio.get('/pay/check/${Uri.encodeComponent(tran)}', options: Options(headers: {'Cache-Control': 'no-cache'}))));
+
+  /// Where a short link (/s/code) points: '/f/name' or '/events/12', or null.
+  Future<String?> resolveShort(String code) async {
+    try {
+      final r = await Dio(BaseOptions(connectTimeout: const Duration(seconds: 10), receiveTimeout: const Duration(seconds: 10), followRedirects: false, validateStatus: (s) => s != null && s < 400))
+          .get('${AppConfig.origin}/s/${Uri.encodeComponent(code)}');
+      final loc = r.headers.value('location');
+      if (loc == null) return null;
+      final u = Uri.tryParse(loc);
+      return u == null ? null : (u.hasAuthority ? u.path : loc);
+    } catch (_) {
+      return null;
+    }
+  }
 }

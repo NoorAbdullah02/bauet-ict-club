@@ -81,6 +81,9 @@ void main() {
       expect(parseOpenable('https://x.com/events/12')?.kind, 'event');
       expect(parseOpenable('https://x.com/verify/abcd-1234-efgh')?.kind, 'verify');
       expect(parseOpenable('https://x.com/certificate/abcd1234efgh')?.value, 'ABCD1234EFGH');
+      expect(parseOpenable('https://x.com/s/python-workshop')?.kind, 'short');
+      expect(parseOpenable('https://x.com/s/python-workshop')?.value, 'python-workshop');
+      expect(parseOpenable('https://x.com/card/12?c=M12-ABCDEF')?.value, '12|M12-ABCDEF');
       expect(parseOpenable('ABCD 1234 EFGH')?.kind, 'ticket');
       expect(parseOpenable('abc'), isNull);
       expect(parseOpenable(''), isNull);
