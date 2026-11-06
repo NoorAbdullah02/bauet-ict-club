@@ -156,3 +156,15 @@ String prettyCode(String code) {
   if (bare.length >= 8) return (kind: 'ticket', value: bare);
   return null;
 }
+
+/// The ways a payment setting offers right now: by hand (send money + transaction ID) and / or online (the gateway).
+({bool manual, bool online}) waysOf(Map<String, dynamic> cfg, bool gateway) => (manual: cfg['manual'] != false, online: cfg['online'] == true && gateway);
+
+/// The way the person chose (the first one offered until they choose).
+String payModeOf(Map<String, dynamic> cfg, bool gateway, Map<String, String> value) {
+  final w = waysOf(cfg, gateway);
+  final m = value['mode'];
+  if (m == 'online' && w.online) return 'online';
+  if (m == 'manual' && w.manual) return 'manual';
+  return w.manual ? 'manual' : 'online';
+}

@@ -74,3 +74,12 @@ How it works today: the student sends money to **your** number, types the transa
 ---
 
 Where things live: [STATUS_AND_TODO.md](STATUS_AND_TODO.md) (what exists and what is missing), [AFTER_DEPLOY.md](AFTER_DEPLOY.md), [DEPLOY_RENDER.md](DEPLOY_RENDER.md), [SIGN_IN_SECURITY.md](SIGN_IN_SECURITY.md).
+
+---
+
+## Online payment (SSLCommerz) setup, when you get a merchant account
+The code is ready and tested with a pretend gateway. Until you add the keys the "Pay online" switch stays off and people only see "Send money by hand".
+1. Free test account (sandbox): https://developer.sslcommerz.com/registration/ → you get a test Store ID and Store Password. Put them in Render: `SSLCOMMERZ_STORE_ID`, `SSLCOMMERZ_STORE_PASSWD`. Leave `SSLCOMMERZ_SANDBOX` empty (it is the test gateway outside production; set `SSLCOMMERZ_SANDBOX=true` on Render to be sure).
+2. Try one event with "Pay online" on, pay with the test card shown on the SSLCommerz page.
+3. Real money: get a live merchant account (usually needs trade licence or organisation papers), put the live Store ID / Password in Render and set `SSLCOMMERZ_SANDBOX=false`.
+4. In the SSLCommerz merchant panel set the IPN address to `https://bauet-ict-club.onrender.com/api/pay/ssl/ipn`.

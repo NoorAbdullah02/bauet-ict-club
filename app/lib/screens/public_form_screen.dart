@@ -33,6 +33,8 @@ class _PublicFormScreenState extends State<PublicFormScreen> {
   Map<String, String> _payErrors = {};
   bool _busy = false;
   Map<String, dynamic>? _done;
+  bool _gateway = false;
+  Map<String, String>? _online; // {url, tran} while the person pays on the gateway's page
 
   @override
   void initState() {
@@ -42,6 +44,9 @@ class _PublicFormScreenState extends State<PublicFormScreen> {
 
   Future<void> _load() async {
     setState(() => _loading = true);
+    _state.api.gatewayOn().then((g) {
+      if (mounted) setState(() => _gateway = g);
+    });
     try {
       final f = await _state.api.publicForm(widget.slug);
       if (mounted) {
@@ -75,7 +80,8 @@ class _PublicFormScreenState extends State<PublicFormScreen> {
     final err = problemsOf(fields, _values);
     final pay = _payCfg;
     final pe = <String, String>{};
-    if (pay.isNotEmpty) {
+    final payMode = pay.isEmpty ? '' : payModeOf(pay, _gateway, _payment);
+    if (pay.isNotEmpty && payMode == 'manual') {
       final sender = (_payment['sender'] ?? '').replaceAll(RegExp(r'[\s-]'), '');
       if (!RegExp(r'^(\+?88)?01[3-9]\d{8}$').hasMatch(sender)) pe['sender'] = 'Enter the mobile number you paid from';
       if (!RegExp(r'^[A-Za-z0-9]{6,20}$').hasMatch((_payment['trx_id'] ?? '').trim())) pe['trx_id'] = 'Enter the transaction ID (6 to 20 letters and numbers)';
@@ -92,13 +98,18 @@ class _PublicFormScreenState extends State<PublicFormScreen> {
     try {
       final r = await _state.api.submitPublicForm(widget.slug, {
         'answers': answersToSend(fields, _values),
-        if (pay.isNotEmpty)
+        if (pay.isNotEmpty && payMode == 'online') 'pay_mode': 'online',
+        if (pay.isNotEmpty && payMode == 'manual')
           'payment': {
             'method': (_payment['method'] ?? '').isEmpty ? PaymentBox.methodsOf(pay).first : _payment['method'],
             'sender': _payment['sender'],
             'trx_id': (_payment['trx_id'] ?? '').trim(),
           },
       });
+      if ((r['pay_url'] ?? '').toString().isNotEmpty) {
+        if (mounted) setState(() => _online = {'url': '${r['pay_url']}', 'tran': '${r['tran_id']}'});
+        return;
+      }
       if (mounted) setState(() => _done = r);
     } on ApiException catch (ex) {
       if (!mounted) return;
@@ -151,6 +162,27 @@ class _PublicFormScreenState extends State<PublicFormScreen> {
     final desc = (f['description'] ?? '').toString();
     final intro = (_rf['intro'] ?? '').toString();
 
+    if (_online != null) {
+      return Center(
+        child: GlassCard(
+          padding: const EdgeInsets.all(22),
+          child: OnlinePayPanel(
+            api: _state.api,
+            tran: _online!['tran']!,
+            url: _online!['url']!,
+            onPaid: (_) => setState(() {
+              _online = null;
+              _done = {'message': '', 'pending_payment': false};
+            }),
+            onFailed: () {
+              setState(() => _online = null);
+              showSnack(context, 'The payment was not completed, so your response was not saved. You can try again.', error: true);
+            },
+          ),
+        ),
+      );
+    }
+
     if (_done != null) {
       final msg = (_done!['message'] ?? '').toString();
       return Center(
@@ -196,6 +228,7 @@ class _PublicFormScreenState extends State<PublicFormScreen> {
                   footer: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     if (pay.isNotEmpty) ...[
                       PaymentBox(
+                        gateway: _gateway,
                         setting: pay,
                         value: _payment,
                         errors: _payErrors,
