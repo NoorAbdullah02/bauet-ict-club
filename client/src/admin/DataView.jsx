@@ -78,6 +78,28 @@ export default function DataView({ type }) {
     } catch (e) { toast.error(e.response?.data?.error || 'Could not delete'); }
   };
 
+  /** edit, delete and the shortcuts of each row: the same buttons in the table and in the phone list */
+  const actions = (item) => (
+    <div className="flex flex-wrap justify-end gap-1.5">
+      {type === 'events' && <button onClick={async () => toast[(await copyText(await shortLink(`/events/${item.id}`))) ? 'success' : 'error']('Short registration link copied')} aria-label="Copy registration link" title="Copy registration link" className="grid size-8 place-items-center rounded-lg text-fg2 hover:bg-tech/15 hover:text-tech"><Link2 size={14} /></button>}
+      {type === 'events' && <button onClick={() => navigate(`/admin/events/${item.id}/checkin`)} aria-label="Check-in desk" title="Check-in desk: scan tickets, certificates" className="grid size-8 place-items-center rounded-lg text-fg2 hover:bg-tech/15 hover:text-tech"><ScanLine size={14} /></button>}
+      {type === 'events' && !item.reg_url && <button onClick={() => navigate(`/admin/events/${item.id}/form`)} aria-label="Edit registration form" title="Build the registration form" className="grid size-8 place-items-center rounded-lg text-fg2 hover:bg-tech/15 hover:text-tech"><ClipboardList size={14} /></button>}
+      {type === 'contests' && <button onClick={() => setContestTeams(item)} aria-label="Teams and results" title="Teams and results" className="grid size-8 place-items-center rounded-lg text-fg2 hover:bg-tech/15 hover:text-tech"><Users size={14} /></button>}
+      {type === 'events' && <button onClick={() => setRegEvent(item)} aria-label="See registrations" title="See who registered" className="grid size-8 place-items-center rounded-lg text-fg2 hover:bg-tech/15 hover:text-tech"><Users size={14} /></button>}
+      <button onClick={() => openEdit(item)} aria-label="Edit" className="grid size-8 place-items-center rounded-lg text-fg2 hover:bg-tech/15 hover:text-tech"><Pencil size={14} /></button>
+      <button onClick={() => remove(item)} aria-label="Delete" className="grid size-8 place-items-center rounded-lg text-fg2 hover:bg-red-500/15 hover:text-red-500"><Trash2 size={14} /></button>
+                    
+    </div>
+  );
+
+  /** short text under the title in the phone list: the other columns */
+  const summary = (item) => cfg.cols.slice(1).map((c) => {
+    const v = item[c];
+    if (typeof v === 'boolean') return v ? c.replace('_', ' ') : null;
+    if (v === null || v === undefined || v === '') return null;
+    return /^\d{4}-\d{2}-\d{2}/.test(String(v)) ? formalDate(v, { short: true }) : c === 'time' ? formalTime(v) : String(v).slice(0, 40);
+  }).filter(Boolean).join(' · ');
+
   return (
     <div>
       <PageTitle title={`${cfg.name}s`} sub={`${items.length} total`}>
@@ -91,7 +113,20 @@ export default function DataView({ type }) {
 
       <Panel className="overflow-hidden">
         {rows.length === 0 ? <p className="p-12 text-center text-sm text-muted">Nothing here yet.</p> : (
-          <div className="overflow-x-auto">
+          <>
+          <ul className="divide-y divide-line/60 md:hidden">
+            {rows.map((item) => (
+              <li key={item.id} className="p-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  {postState(item) !== 'live' && <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${postState(item) === 'draft' ? 'bg-amber-500/15 text-amber-600' : 'bg-sky-500/15 text-sky-600'}`}>{postState(item) === 'draft' ? 'Draft' : `Goes live ${whenLabel(item.publish_at)}`}</span>}
+                  <span className="font-medium text-fg">{String(item[cfg.cols[0]] ?? '')}</span>
+                </div>
+                {summary(item) && <div className="mt-1 text-xs text-fg2">{summary(item)}</div>}
+                <div className="mt-3">{actions(item)}</div>
+              </li>
+            ))}
+          </ul>
+          <div className="overflow-x-auto max-md:hidden">
             <table className="w-full text-left text-sm">
               <thead><tr className="border-b border-line bg-alt/60">
                 {cfg.cols.map((c) => <th key={c} className="px-5 py-3.5 font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-muted">{c.replace('_', ' ')}</th>)}
@@ -116,20 +151,13 @@ export default function DataView({ type }) {
                         {!(ci === 0 && type === 'events') && (typeof item[c] === 'boolean' ? (item[c] ? <span className="rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-xs text-emerald-500">Yes</span> : '—') : (/^\d{4}-\d{2}-\d{2}/.test(String(item[c])) ? formalDate(item[c], { short: true }) : c === 'time' ? formalTime(item[c]) : String(item[c] ?? '—').slice(0, 80)))}
                       </td>
                     ))}
-                    <td className="px-5 py-3.5"><div className="flex justify-end gap-1.5">
-                      {type === 'events' && <button onClick={async () => toast[(await copyText(await shortLink(`/events/${item.id}`))) ? 'success' : 'error']('Short registration link copied')} aria-label="Copy registration link" title="Copy registration link" className="grid size-8 place-items-center rounded-lg text-fg2 hover:bg-tech/15 hover:text-tech"><Link2 size={14} /></button>}
-                      {type === 'events' && <button onClick={() => navigate(`/admin/events/${item.id}/checkin`)} aria-label="Check-in desk" title="Check-in desk: scan tickets, certificates" className="grid size-8 place-items-center rounded-lg text-fg2 hover:bg-tech/15 hover:text-tech"><ScanLine size={14} /></button>}
-                      {type === 'events' && !item.reg_url && <button onClick={() => navigate(`/admin/events/${item.id}/form`)} aria-label="Edit registration form" title="Build the registration form" className="grid size-8 place-items-center rounded-lg text-fg2 hover:bg-tech/15 hover:text-tech"><ClipboardList size={14} /></button>}
-                      {type === 'contests' && <button onClick={() => setContestTeams(item)} aria-label="Teams and results" title="Teams and results" className="grid size-8 place-items-center rounded-lg text-fg2 hover:bg-tech/15 hover:text-tech"><Users size={14} /></button>}
-                      {type === 'events' && <button onClick={() => setRegEvent(item)} aria-label="See registrations" title="See who registered" className="grid size-8 place-items-center rounded-lg text-fg2 hover:bg-tech/15 hover:text-tech"><Users size={14} /></button>}
-                      <button onClick={() => openEdit(item)} aria-label="Edit" className="grid size-8 place-items-center rounded-lg text-fg2 hover:bg-tech/15 hover:text-tech"><Pencil size={14} /></button>
-                      <button onClick={() => remove(item)} aria-label="Delete" className="grid size-8 place-items-center rounded-lg text-fg2 hover:bg-red-500/15 hover:text-red-500"><Trash2 size={14} /></button>
-                    </div></td>
+                    <td className="px-5 py-3.5">{actions(item)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
+          </>
         )}
       </Panel>
 
