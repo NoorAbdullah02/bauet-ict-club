@@ -297,6 +297,25 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
       ok(fgood.status === 303 && fgood.headers.get('location') === `/f/${fm.slug}?paid=1`, 'a paid form returns to the form page', fgood.headers.get('location'));
       const resp = (await call('GET', `/api/forms/${fm.id}/responses`, undefined, T)).j || [];
       ok(resp.length === 1 && resp[0].pay_status === 'verified' && resp[0].payment?.status === 'paid', 'the form response is marked paid', resp[0]);
+      // numbers about an event
+      const an = await call('GET', `/api/event-registrations/analytics/${only.j.id}`, undefined, T);
+      ok(an.s === 200 && an.j.total === 2 && an.j.confirmed === 2 && an.j.cancelled === 3, 'event analytics count sign-ups and cancelled ones', an.j);
+      ok(an.j.money?.online === 2 && an.j.money?.verified === 2 && an.j.money?.amount === 400 && an.j.money?.by_hand === 0, 'event analytics add up the money paid online', an.j.money);
+      ok(Array.isArray(an.j.by_day) && an.j.by_day.reduce((n, d) => n + d.count, 0) === 2 && Array.isArray(an.j.by_department), 'event analytics group sign-ups by day and department');
+      ok((await call('GET', `/api/event-registrations/analytics/${only.j.id}`)).s === 401, 'event analytics need an admin login');
+      ok((await call('GET', '/api/event-registrations/analytics/99999999', undefined, T)).s === 404, 'analytics of an unknown event is 404');
+    }
+
+    // resource library
+    {
+      ok((await call('POST', '/api/resources', { title: 'No login' })).s === 401, 'resources need an admin login to add');
+      ok((await call('POST', '/api/resources', { title: 'Bad link', url: 'javascript:alert(1)' }, T)).s === 409, 'a resource link must be http or https');
+      const rs = await call('POST', '/api/resources', { title: 'Python Zebra Slides', description: 'week one', category: 'Python', kind: 'Slides', url: 'https://example.com/slides.pdf' }, T);
+      ok(rs.s === 201 && rs.j.kind === 'Slides', 'an admin can add a resource', rs.j);
+      ok(((await call('GET', '/api/resources')).j || []).some((x) => x.title === 'Python Zebra Slides'), 'resources are public to read');
+      const hit = ((await call('GET', '/api/search?q=zebra%20slides')).j || []).find((x) => x.type === 'resource');
+      ok(hit?.path === '/resources', 'search finds a resource', hit);
+      ok((await call('DELETE', `/api/resources/${rs.j.id}`, undefined, T)).s === 200 && !((await call('GET', '/api/resources')).j || []).some((x) => x.id === rs.j.id), 'a deleted resource leaves the list (Trash)');
     }
 
     // password change

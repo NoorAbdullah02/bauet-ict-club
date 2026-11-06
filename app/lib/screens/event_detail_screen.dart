@@ -41,6 +41,8 @@ class PageTopBar extends StatelessWidget {
 }
 
 /// One event with its own page: details and the registration form (all question types, payment, waiting list, ticket).
+String _iso(DateTime? d) => d == null ? '' : '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
 class EventDetailScreen extends StatefulWidget {
   const EventDetailScreen({super.key, required this.eventId});
   final int eventId;
@@ -143,12 +145,12 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
       final ticket = (r['ticket'] ?? '').toString();
       if ((r['pay_url'] ?? '').toString().isNotEmpty) {
         // the seat is held while the person pays on the gateway's page; the panel moves on when the payment arrives
-        if (ticket.isNotEmpty) await saveMyTicket(SavedTicket(code: ticket, title: e.title, date: e.date == null ? '' : fmtDate(e.date)));
+        if (ticket.isNotEmpty) await saveMyTicket(SavedTicket(code: ticket, title: e.title, date: e.date == null ? '' : fmtDate(e.date), iso: _iso(e.date)));
         if (mounted) setState(() => _online = {'url': '${r['pay_url']}', 'tran': '${r['tran_id']}', 'ticket': ticket});
         return;
       }
       if (ticket.isNotEmpty) {
-        await saveMyTicket(SavedTicket(code: ticket, title: e.title, date: e.date == null ? '' : fmtDate(e.date)));
+        await saveMyTicket(SavedTicket(code: ticket, title: e.title, date: e.date == null ? '' : fmtDate(e.date), iso: _iso(e.date)));
       }
       if (!mounted) return;
       setState(() => _result = r);

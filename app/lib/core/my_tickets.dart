@@ -4,17 +4,18 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 /// Tickets this phone registered (kept only on the phone, so people can find them again without the email).
 class SavedTicket {
-  SavedTicket({required this.code, required this.title, required this.date});
+  SavedTicket({required this.code, required this.title, required this.date, this.iso = ''});
   final String code;
   final String title;
   final String date;
+  final String iso; // yyyy-mm-dd of the event, to find the next one
 
-  Map<String, String> toJson() => {'code': code, 'title': title, 'date': date};
+  Map<String, String> toJson() => {'code': code, 'title': title, 'date': date, 'iso': iso};
   static SavedTicket? from(dynamic j) {
     if (j is! Map) return null;
     final code = (j['code'] ?? '').toString();
     if (code.isEmpty) return null;
-    return SavedTicket(code: code, title: (j['title'] ?? '').toString(), date: (j['date'] ?? '').toString());
+    return SavedTicket(code: code, title: (j['title'] ?? '').toString(), date: (j['date'] ?? '').toString(), iso: (j['iso'] ?? '').toString());
   }
 }
 
@@ -54,4 +55,14 @@ Future<void> forgetMyTicket(String code) async {
   } catch (_) {
     // ignore
   }
+}
+
+/// The saved ticket of the next event (today or later), or the newest one without a date.
+Future<SavedTicket?> nextTicket() async {
+  final all = await loadMyTickets();
+  final n = DateTime.now();
+  final today = '${n.year}-${n.month.toString().padLeft(2, '0')}-${n.day.toString().padLeft(2, '0')}';
+  final coming = all.where((t) => t.iso.isNotEmpty && t.iso.compareTo(today) >= 0).toList()..sort((a, b) => a.iso.compareTo(b.iso));
+  if (coming.isNotEmpty) return coming.first;
+  return null;
 }
