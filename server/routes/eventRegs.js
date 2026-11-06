@@ -188,6 +188,32 @@ async function register(req, res) {
 
 router.use(authMiddleware);
 
+/** Admin: numbers about one event (who signed up, who came, from which department and batch, when, and the money). Editors do not see the money. */
+router.get('/analytics/:eventId', async (req, res) => {
+  try {
+    const ev = (await pool.query('SELECT id, title, date, capacity FROM events WHERE id = $1 AND deleted_at IS NULL', [req.params.eventId])).rows[0];
+    if (!ev) return res.status(404).json({ error: 'Event not found' });
+    const rows = (await pool.query('SELECT * FROM event_registrations WHERE event_id = $1 AND deleted_at IS NULL', [ev.id])).rows;
+    const live = rows.filter((r) => statusOf(r) !== 'cancelled');
+    const tally = (fn, max = 12) => Object.entries(live.reduce((m, r) => { const k = String(fn(r) || '').trim() || 'Not told'; m[k] = (m[k] || 0) + 1; return m; }, {})).map(([label, count]) => ({ label, count })).sort((a, b) => b.count - a.count).slice(0, max);
+    const confirmed = rows.filter((r) => statusOf(r) === 'confirmed').length;
+    const checked = live.filter((r) => r.checked_in_at).length;
+    const days = Object.entries(live.reduce((m, r) => { const d = day(r.created_at); if (d) m[d] = (m[d] || 0) + 1; return m; }, {})).sort((a, b) => a[0].localeCompare(b[0])).slice(-60).map(([d, count]) => ({ day: d, count }));
+    const paid = rows.filter((r) => r.pay_status === 'verified' && r.payment);
+    const money = req.user?.role === 'editor' ? null : {
+      verified: paid.length, online: paid.filter((r) => r.payment.online).length, by_hand: paid.filter((r) => !r.payment.online).length,
+      amount: paid.reduce((n, r) => n + (Number(r.payment.amount) || 0), 0), to_check: rows.filter((r) => r.pay_status === 'pending' && r.payment && !r.waitlisted).length,
+    };
+    res.json({
+      event: { id: ev.id, title: ev.title, date: ev.date, capacity: ev.capacity || 0 },
+      total: live.length, confirmed, waiting: rows.filter((r) => statusOf(r) === 'waitlist').length, pending_payment: rows.filter((r) => statusOf(r) === 'pending').length, cancelled: rows.length - live.length,
+      checked_in: checked, check_in_rate: confirmed + rows.filter((r) => statusOf(r) === 'pending' && r.checked_in_at).length ? Math.round((checked / Math.max(1, confirmed)) * 100) : 0,
+      seats_left: ev.capacity ? Math.max(0, ev.capacity - rows.filter((r) => !r.waitlisted && statusOf(r) !== 'cancelled').length) : null,
+      by_department: tally((r) => r.department), by_batch: tally((r) => r.batch), by_day: days, money,
+    });
+  } catch (e) { fail(res, e); }
+});
+
 /** Admin: everyone who signed up for one event. */
 router.get('/by-event/:eventId', async (req, res) => {
   try {

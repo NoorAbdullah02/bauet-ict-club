@@ -78,6 +78,7 @@ class _SearchScreenState extends State<SearchScreen> {
     'member': ('People', Icons.person_rounded),
     'project': ('Projects', Icons.code_rounded),
     'faq': ('Questions', Icons.help_rounded),
+    'resource': ('Resources', Icons.local_library_rounded),
   };
 
   @override

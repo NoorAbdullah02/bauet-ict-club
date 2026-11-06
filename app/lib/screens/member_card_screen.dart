@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../core/config.dart';
+import '../core/offline_cache.dart';
 import '../core/theme.dart';
 import '../data/api.dart';
 import '../state/app_state.dart';
@@ -35,9 +36,17 @@ class _MemberCardScreenState extends State<MemberCardScreen> {
     setState(() => _error = null);
     try {
       final d = await _state.api.memberCard(widget.memberId, c: widget.code);
+      if ((widget.code ?? '').isEmpty) cacheJson('card_${widget.memberId}', d);
       if (mounted) setState(() => _data = d);
     } on ApiException catch (e) {
       if (!mounted) return;
+      if (e.status != 404 && (widget.code ?? '').isEmpty) {
+        final c = await readCachedJson('card_${widget.memberId}'); // no internet: the card saved last time
+        if (c != null && mounted) {
+          setState(() => _data = c.data);
+          return;
+        }
+      }
       setState(() {
         if (e.status == 404) {
           _missing = true;

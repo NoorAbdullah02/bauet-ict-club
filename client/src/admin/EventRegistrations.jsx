@@ -28,6 +28,50 @@ function tallyChoices(f, rows) {
 }
 
 /** Everyone who signed up for one event: responses, payment checks, a summary with charts, and downloads. */
+/** Numbers about one event: sign-ups, who came, where they study, when they signed up, the money. */
+function EventInsights({ id }) {
+  const [d, setD] = useState(null);
+  useEffect(() => { let on = true; api.get(`/event-registrations/analytics/${id}`).then((r) => on && setD(r.data)).catch(() => on && setD(false)); return () => { on = false; }; }, [id]);
+  if (d === null) return <div className="mt-5 h-28 animate-pulse rounded-2xl bg-alt" />;
+  if (!d || !d.total) return null;
+  const max = (list) => Math.max(1, ...list.map((x) => x.count));
+  const dayMax = max(d.by_day);
+  const Card = ({ label, value, sub, tone }) => (
+    <div className="rounded-2xl border border-line bg-surface p-4"><div className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted">{label}</div><div className={cn('mt-1 font-display text-3xl', tone || 'text-fg')}>{value}</div>{sub && <div className="text-[11px] text-muted">{sub}</div>}</div>
+  );
+  const Bars = ({ title, list }) => (
+    <div className="rounded-2xl border border-line bg-surface p-4">
+      <div className="mb-3 font-mono text-[10px] uppercase tracking-[0.16em] text-muted">{title}</div>
+      <div className="space-y-2">{list.slice(0, 6).map((x) => (
+        <div key={x.label} className="flex items-center gap-3 text-xs"><span className="w-24 shrink-0 truncate text-fg2" title={x.label}>{x.label}</span>
+          <span className="h-2.5 flex-1 overflow-hidden rounded-full bg-alt"><i className="block h-full rounded-full bg-accent" style={{ width: `${(x.count / max(list)) * 100}%` }} /></span><span className="w-6 text-right font-mono text-fg">{x.count}</span></div>
+      ))}</div>
+    </div>
+  );
+  return (
+    <div className="mt-5">
+      <div className="mb-3 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.16em] text-muted"><BarChart3 size={13} className="text-accent" /> Insights</div>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <Card label="Signed up" value={d.total} sub={d.event.capacity ? `${d.seats_left} seats left of ${d.event.capacity}` : 'no limit'} />
+        <Card label="Came" value={`${d.check_in_rate}%`} sub={`${d.checked_in} checked in`} tone="text-emerald-600" />
+        <Card label="Waiting list" value={d.waiting} sub={`${d.pending_payment} waiting for payment`} />
+        {d.money ? <Card label="Money" value={`${d.money.amount} BDT`} sub={`${d.money.online} online · ${d.money.by_hand} by hand${d.money.to_check ? ` · ${d.money.to_check} to check` : ''}`} tone="text-accent" /> : <Card label="Cancelled" value={d.cancelled} />}
+      </div>
+      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+        <Bars title="By department" list={d.by_department} />
+        <Bars title="By batch" list={d.by_batch} />
+      </div>
+      {d.by_day.length > 1 && (
+        <div className="mt-3 rounded-2xl border border-line bg-surface p-4">
+          <div className="mb-3 font-mono text-[10px] uppercase tracking-[0.16em] text-muted">Sign-ups by day</div>
+          <div className="flex h-24 items-end gap-1">{d.by_day.map((x) => <span key={x.day} title={`${x.day}: ${x.count}`} className="flex-1 rounded-t bg-tech/70" style={{ height: `${Math.max(6, (x.count / dayMax) * 100)}%` }} />)}</div>
+          <div className="mt-1 flex justify-between font-mono text-[10px] text-muted"><span>{d.by_day[0].day}</span><span>{d.by_day[d.by_day.length - 1].day}</span></div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function ResponsesPanel({ event, kind = 'event' }) {
   const isForm = kind === 'form';
   const P = isForm ? {
@@ -86,6 +130,8 @@ export function ResponsesPanel({ event, kind = 'event' }) {
             </div>
             {event.reg_url && <p className="mt-2 text-xs text-muted">This event sends people to your own form, so sign-ups from the website form are not collected here.</p>}
           </div>
+
+          {!isForm && !event.reg_url && <EventInsights id={event.id} />}
 
           <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
             <div className="rounded-2xl border border-line bg-surface p-4">

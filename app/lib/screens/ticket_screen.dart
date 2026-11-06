@@ -6,6 +6,7 @@ import '../core/calendar.dart';
 import '../core/config.dart';
 import '../core/forms.dart';
 import '../core/my_tickets.dart';
+import '../core/offline_cache.dart';
 import '../core/theme.dart';
 import '../core/utils.dart';
 import '../data/api.dart';
@@ -33,6 +34,7 @@ class _TicketScreenState extends State<TicketScreen> {
   bool _loading = true;
   bool _busy = false;
   bool _gone = false;
+  DateTime? _offlineAt; // set when the page shows a saved copy because there is no internet
   String? _error;
 
   @override
@@ -45,16 +47,30 @@ class _TicketScreenState extends State<TicketScreen> {
     setState(() => _loading = true);
     try {
       final t = await _state.api.ticket(widget.code);
+      cacheJson('ticket_${widget.code}', t);
       if (!mounted) return;
       final ev = t['event'] is Map ? Map<String, dynamic>.from(t['event'] as Map) : <String, dynamic>{};
       setState(() {
         _t = t;
+        _offlineAt = null;
         _missing = false;
         _error = null;
       });
-      await saveMyTicket(SavedTicket(code: widget.code, title: (ev['title'] ?? '').toString(), date: _day(ev['date'])));
+      await saveMyTicket(SavedTicket(code: widget.code, title: (ev['title'] ?? '').toString(), date: _day(ev['date']), iso: _day(ev['date'])));
     } on ApiException catch (e) {
       if (!mounted) return;
+      if (e.status != 404) {
+        // no internet at the gate: show the copy saved the last time this ticket was opened
+        final c = await readCachedJson('ticket_${widget.code}');
+        if (c != null && mounted) {
+          setState(() {
+            _t = c.data;
+            _offlineAt = c.at;
+            _error = null;
+          });
+          return;
+        }
+      }
       setState(() {
         if (e.status == 404) {
           _missing = true;
@@ -148,6 +164,17 @@ class _TicketScreenState extends State<TicketScreen> {
       child: ListView(
         padding: const EdgeInsets.only(bottom: 40),
         children: [
+          if (_offlineAt != null)
+            Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(borderRadius: BorderRadius.circular(14), color: const Color(0xFFF59E0B).withValues(alpha: 0.14)),
+              child: Row(children: [
+                const Icon(Icons.cloud_off_rounded, size: 18, color: Color(0xFFF59E0B)),
+                const SizedBox(width: 10),
+                Expanded(child: Text('No internet. This is the copy saved on ${fmtDate(_offlineAt)}. The QR code still works at the gate. Pull down to refresh.', style: bodyStyle(context, size: 12.5))),
+              ]),
+            ),
           Container(
             decoration: BoxDecoration(borderRadius: BorderRadius.circular(28), color: p.surface, border: Border.all(color: p.line)),
             clipBehavior: Clip.antiAlias,

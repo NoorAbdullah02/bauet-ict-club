@@ -2,10 +2,10 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Search, X, Calendar, Megaphone, User, Code2, HelpCircle, Loader2 } from 'lucide-react';
+import { Search, X, Calendar, Megaphone, User, Code2, HelpCircle, Library, Loader2 } from 'lucide-react';
 import { api } from '../context/store';
 
-const KINDS = { event: ['Events', Calendar], notice: ['Notices', Megaphone], member: ['People', User], project: ['Projects', Code2], faq: ['Questions', HelpCircle] };
+const KINDS = { event: ['Events', Calendar], notice: ['Notices', Megaphone], member: ['People', User], project: ['Projects', Code2], faq: ['Questions', HelpCircle], resource: ['Resources', Library] };
 
 /** One search box for the whole site: events, notices, people, projects and FAQ. Opens with the search button, or with "/" or Ctrl+K. */
 export default function SearchBox({ onClose }) {

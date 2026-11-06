@@ -108,6 +108,19 @@ const Map<String, TableSpec> kTables = {
       FieldSpec('image_url', 'Picture (optional)', FieldKind.image),
     ],
   ),
+  'resources': TableSpec(
+    title: 'Resources',
+    titleKey: 'title',
+    subtitleKey: 'category',
+    icon: Icons.local_library_rounded,
+    fields: [
+      FieldSpec('title', 'Title', FieldKind.text, true),
+      FieldSpec('description', 'Short description', FieldKind.multiline),
+      FieldSpec('category', 'Category (Web, AI, Career…)'),
+      FieldSpec('kind', 'Kind', FieldKind.choice, false, ['Slides', 'Notes', 'Tutorial', 'Video', 'Code', 'Link']),
+      FieldSpec('url', 'Link (https://…)', FieldKind.text, true),
+    ],
+  ),
   'projects': TableSpec(
     title: 'Projects',
     titleKey: 'title',

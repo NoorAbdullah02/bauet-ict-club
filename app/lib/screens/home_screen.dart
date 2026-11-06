@@ -5,6 +5,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import '../core/my_tickets.dart';
 import '../core/theme.dart';
 import '../core/utils.dart';
 import '../models/models.dart';
@@ -25,6 +26,15 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin {
   final ScrollController _scroll = ScrollController();
   late final AnimationController _orbit = AnimationController(vsync: this, duration: 12.seconds)..repeat();
+  SavedTicket? _ticket; // the saved ticket of the next event
+
+  @override
+  void initState() {
+    super.initState();
+    nextTicket().then((t) {
+      if (mounted) setState(() => _ticket = t);
+    });
+  }
 
   @override
   void dispose() {
@@ -51,6 +61,31 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         padding: const EdgeInsets.only(bottom: 130),
         children: [
           _Hero(scroll: _scroll, orbit: _orbit, blurb: blurb),
+          if (_ticket != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
+              child: GlassCard(
+                onTap: () => context.push('/ticket/${_ticket!.code}'),
+                padding: const EdgeInsets.all(14),
+                child: Row(children: [
+                  Container(
+                    width: 46,
+                    height: 46,
+                    decoration: BoxDecoration(borderRadius: BorderRadius.circular(14), gradient: p.brand),
+                    child: const Icon(Icons.qr_code_2_rounded, color: Colors.white),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text('YOUR TICKET', style: monoStyle(context, size: 9.5, color: p.tech)),
+                      Text(_ticket!.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: bodyStyle(context, weight: FontWeight.w700, size: 15)),
+                      Text(_ticket!.date, style: bodyStyle(context, size: 12.5, color: p.muted)),
+                    ]),
+                  ),
+                  Icon(Icons.chevron_right_rounded, color: p.muted),
+                ]),
+              ),
+            ),
           const Padding(padding: EdgeInsets.symmetric(horizontal: 20), child: TerminalCard()),
           if (upcoming.isNotEmpty) ...[
             const SizedBox(height: 18),
