@@ -1,3 +1,5 @@
+import 'dart:ui' show PointerDeviceKind;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -24,6 +26,13 @@ class ClubApp extends StatefulWidget {
   State<ClubApp> createState() => _ClubAppState();
 }
 
+/// Lists scroll by dragging with a mouse or trackpad too (emulators and desktop browsers), not only by touch.
+class _AppScroll extends MaterialScrollBehavior {
+  const _AppScroll();
+  @override
+  Set<PointerDeviceKind> get dragDevices => {PointerDeviceKind.touch, PointerDeviceKind.mouse, PointerDeviceKind.stylus, PointerDeviceKind.trackpad};
+}
+
 class _ClubAppState extends State<ClubApp> {
   late final GoRouter _router;
 
@@ -46,6 +55,7 @@ class _ClubAppState extends State<ClubApp> {
     return MaterialApp.router(
       title: AppConfig.clubName,
       debugShowCheckedModeBanner: false,
+      scrollBehavior: const _AppScroll(),
       themeMode: mode,
       theme: buildTheme(Pal.lightPal),
       darkTheme: buildTheme(Pal.darkPal),

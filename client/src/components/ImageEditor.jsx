@@ -92,7 +92,7 @@ export default function ImageEditor({ file, aspect = null, keepPng = false, onDo
           <button onClick={onCancel} aria-label="Close" className="grid size-9 place-items-center rounded-full text-fg2 hover:bg-accent/10 hover:text-accent"><X size={18} /></button>
         </header>
 
-        <div className="overflow-y-auto px-5 py-5">
+        <div data-lenis-prevent className="overflow-y-auto overscroll-contain px-5 py-5">
           <div className="mx-auto overflow-hidden rounded-2xl border border-line bg-[repeating-conic-gradient(#e6ebf5_0%_25%,#fff_0%_50%)] bg-[length:16px_16px]" style={{ width: STAGE_W, maxWidth: '100%', aspectRatio: String(r) }}>
             {src && (
               <div onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} className="relative size-full cursor-grab touch-none select-none active:cursor-grabbing">

@@ -52,7 +52,7 @@ function MoreMenu({ t }) {
       <AnimatePresence>
         {open && (
           <motion.div role="menu" initial={{ opacity: 0, y: 8, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 8, scale: 0.97 }} transition={{ duration: 0.18 }}
-            className="absolute right-0 top-full z-10 mt-3 w-[min(92vw,34rem)] rounded-3xl border border-line bg-surface p-4 shadow-[var(--shadow-xl)]">
+            data-lenis-prevent className="absolute right-0 top-full z-10 mt-3 max-h-[75vh] w-[min(92vw,34rem)] overflow-y-auto overscroll-contain rounded-3xl border border-line bg-surface p-4 shadow-[var(--shadow-xl)]">
             <div className="grid gap-4 sm:grid-cols-3">
               {MENU_GROUPS.map(([g, items]) => (
                 <div key={g}>
@@ -144,7 +144,7 @@ export default function Navbar() {
       {searching && <SearchBox onClose={() => setSearching(false)} />}
       <AnimatePresence>
         {mobileOpen && (
-          <div className="fixed inset-0 z-[120] lg:hidden" role="dialog" aria-modal="true" aria-label="Menu">
+          <div data-lenis-prevent className="fixed inset-0 z-[120] overscroll-contain lg:hidden" role="dialog" aria-modal="true" aria-label="Menu">
             <motion.button type="button" aria-label="Close the menu" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setMobileOpen(false)} className="absolute inset-0 bg-[#06113A]/55 backdrop-blur-sm" />
             <motion.aside initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} transition={{ type: 'spring', stiffness: 320, damping: 34 }}
               className="absolute inset-y-0 right-0 flex w-[min(88vw,22rem)] flex-col overflow-hidden rounded-l-[30px] border-l border-line bg-bg shadow-[var(--shadow-xl)]">
@@ -153,7 +153,7 @@ export default function Navbar() {
                 <span className="min-w-0 flex-1"><span className="block font-mono text-[10px] uppercase tracking-[0.2em] text-white/70">{t('Explore')}</span><span className="block truncate text-base font-bold">BAUET ICT Club</span></span>
                 <button type="button" onClick={() => setMobileOpen(false)} aria-label="Close the menu" className="grid size-9 place-items-center rounded-full bg-white/15 hover:bg-white/25"><X size={18} /></button>
               </div>
-              <div className="flex-1 overflow-y-auto px-3 pb-3">
+              <div data-lenis-prevent className="flex-1 overflow-y-auto overscroll-contain px-3 pb-3">
                 <div className="grid grid-cols-4 gap-2 py-2">
                   {MAIN.map(([to, label, Icon]) => {
                     const on = to === '/' ? pathname === '/' : pathname === to || pathname.startsWith(`${to}/`);

@@ -125,7 +125,7 @@ export default function Select({ value = '', onChange, children, className, disa
       {open && pos && createPortal(
         <ul ref={menu} id={`${uid}-list`} role="listbox" data-theme-scope
           style={{ position: 'fixed', left: pos.left, width: pos.width, top: pos.top, bottom: pos.bottom, maxHeight: pos.maxH, zIndex: 2000 }}
-          className="select-menu overflow-y-auto overscroll-contain rounded-2xl border border-line bg-surface p-1.5 shadow-[var(--shadow-xl)] backdrop-blur-xl">
+          data-lenis-prevent className="select-menu overflow-y-auto overscroll-contain rounded-2xl border border-line bg-surface p-1.5 shadow-[var(--shadow-xl)] backdrop-blur-xl">
           {options.map((o, i) => (
             <li key={o.value + i} role="option" aria-selected={i === selected} aria-disabled={o.disabled} data-active={i === active}
               onPointerEnter={() => !o.disabled && setActive(i)} onClick={() => choose(i)}
