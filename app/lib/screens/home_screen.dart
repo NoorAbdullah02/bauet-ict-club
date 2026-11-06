@@ -56,7 +56,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             const SizedBox(height: 18),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: CountdownCard(event: upcoming.first, onTap: () => showEventSheet(context, upcoming.first)).stagger(0),
+              child: CountdownCard(event: upcoming.first, onTap: () => context.push('/events/${upcoming.first.id}')).stagger(0),
             ),
           ],
           const SizedBox(height: 18),

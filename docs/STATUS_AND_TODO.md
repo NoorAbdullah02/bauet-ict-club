@@ -29,22 +29,24 @@ Last updated: 2026-11-06. Everything described as "done" was built and checked a
 
 ## 2. What is missing: features the website has and the app does not
 
+Updated 2026-11-06: event page, registration, payment, waiting list, tickets with QR, stand-alone forms, check-in desk (scan or type), event sign-ups (verify / reject / give a seat) and two-step sign-in setup were added to the app. Still not in the app: the forms editor and responses, newsletter / inbox / activity log, team logins, backup, push notifications. The new screens were checked with `flutter analyze` and widget tests; not yet on a real phone.
+
 | Feature | Website | App | Where to build it in the app |
 | --- | --- | --- | --- |
-| One page per event with a registration form (all question types, conditional questions, multi-page, photo question) | yes | no (details sheet only) | new `event_detail_screen.dart`; port `client/src/components/DynamicForm.jsx`, `client/src/lib/forms.js` |
-| Payment box (bKash / Nagad / Rocket, sender number, transaction ID) | yes | no | port `client/src/components/PaymentBox.jsx` |
-| Waiting list, "event full", registration deadline messages | yes | no | `POST /api/event-registrations/:eventId` already returns everything needed |
-| Ticket with QR code, open ticket, cancel ticket | yes | no | `GET /api/event-registrations/ticket/:code`; add a QR package (for example `qr_flutter`) |
-| Certificate download and verify page | yes | no | `GET /api/event-registrations/certificate/:code`, `.../verify/:code` |
-| Stand-alone public forms (`/f/<slug>`) | yes | no | `GET/POST /api/forms/public/:slug` |
+| One page per event with a registration form (all question types, conditional questions, multi-page, photo question) | yes | yes (`event_detail_screen.dart`, `widgets/dynamic_form.dart`) | new `event_detail_screen.dart`; port `client/src/components/DynamicForm.jsx`, `client/src/lib/forms.js` |
+| Payment box (bKash / Nagad / Rocket, sender number, transaction ID) | yes | yes (`widgets/payment_box.dart`) | port `client/src/components/PaymentBox.jsx` |
+| Waiting list, "event full", registration deadline messages | yes | yes | `POST /api/event-registrations/:eventId` already returns everything needed |
+| Ticket with QR code, open ticket, cancel ticket | yes | yes (`ticket_screen.dart`, `qr_flutter`; tickets are also saved on the phone under "My tickets") | `GET /api/event-registrations/ticket/:code`; add a QR package (for example `qr_flutter`) |
+| Certificate download and verify page | yes | download opens from the ticket; verify page not in the app | `GET /api/event-registrations/certificate/:code`, `.../verify/:code` |
+| Stand-alone public forms (`/f/<slug>`) | yes | yes (`public_form_screen.dart`; open a `/f/name` link from "My tickets") | `GET/POST /api/forms/public/:slug` |
 | Add to calendar, share event | yes | partly (Google Calendar link only) | `share_plus` package |
 | Admin: forms editor and responses | yes | no | `server/routes/forms.js` |
-| Admin: check-in desk (type or scan a code) | yes | no | `POST /api/event-registrations/checkin`; `mobile_scanner` package |
-| Admin: event registrations list, payment verify / reject, promote from waiting list | yes | no | `server/routes/eventRegs.js` |
+| Admin: check-in desk (type or scan a code) | yes | yes (`admin_checkin_screen.dart`, `mobile_scanner`) | `POST /api/event-registrations/checkin`; `mobile_scanner` package |
+| Admin: event registrations list, payment verify / reject, promote from waiting list | yes | yes (`admin_signups_screen.dart`) | `server/routes/eventRegs.js` |
 | Admin: newsletter, inbox / messages, activity log | yes | partly (some as data tables) | `server/routes/email.js`, `messages.js`, `audit.js` |
 | Admin: team logins (editors), backup | yes | no | `server/routes/team.js`, `backup.js` |
 | Admin: launch a new committee, transfer people | yes | no | `server/routes/committees.js` |
-| Admin: turn two-step sign-in on or off, sign out other devices | yes | no (only entering the code at login works) | `server/routes/auth.js` (`/2fa/*`, `/logout-all`) |
+| Admin: turn two-step sign-in on or off, sign out other devices | yes | yes (`admin_security_screen.dart`) | `server/routes/auth.js` (`/2fa/*`, `/logout-all`) |
 | Push notifications for new events and notices | no | no | needs Firebase Cloud Messaging and a server hook |
 
 Rule from the project guide: when a feature changes in one place, change it in all three (server, website, app).

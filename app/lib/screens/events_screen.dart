@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
-import '../core/calendar.dart';
 import '../core/theme.dart';
 import '../core/utils.dart';
 import '../models/models.dart';
@@ -40,6 +40,15 @@ class _EventsScreenState extends State<EventsScreen> {
         physics: const AlwaysScrollableScrollPhysics(),
         children: [
           const SectionHeader(eyebrow: 'Calendar', title: 'Events', subtitle: 'Workshops, contests and meetups.').stagger(0),
+          const SizedBox(height: 12),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: OutlinedButton.icon(
+              onPressed: () => context.push('/tickets'),
+              icon: const Icon(Icons.confirmation_number_outlined, size: 18),
+              label: const Text('My tickets'),
+            ),
+          ),
           const SizedBox(height: 18),
           SizedBox(
             height: 42,
@@ -80,7 +89,7 @@ class EventCard extends StatelessWidget {
     final p = context.pal;
     final d = event.date;
     return GestureDetector(
-      onTap: () => showEventSheet(context, event),
+      onTap: () => context.push('/events/${event.id}'),
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(28),
@@ -131,61 +140,6 @@ class EventCard extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-void showEventSheet(BuildContext context, EventItem e) {
-  showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    builder: (ctx) {
-      final p = ctx.pal;
-      return DraggableScrollableSheet(
-        expand: false,
-        initialChildSize: 0.8,
-        maxChildSize: 0.95,
-        builder: (_, scroll) => ListView(
-          controller: scroll,
-          padding: const EdgeInsets.fromLTRB(22, 0, 22, 32),
-          children: [
-            if (e.imageUrl.isNotEmpty) SizedBox(height: 200, child: NetImage(e.imageUrl, radius: 22)),
-            const SizedBox(height: 18),
-            if (e.category.isNotEmpty) Align(alignment: Alignment.centerLeft, child: Tag(e.category, color: p.tech)),
-            const SizedBox(height: 10),
-            Text(e.title, style: displayStyle(ctx, 28)),
-            const SizedBox(height: 14),
-            _Meta(icon: Icons.calendar_month_rounded, text: fmtDate(e.date)),
-            if (e.time.isNotEmpty) _Meta(icon: Icons.schedule_rounded, text: e.time),
-            if (e.location.isNotEmpty) _Meta(icon: Icons.place_rounded, text: e.location),
-            const SizedBox(height: 14),
-            Text(e.description.isEmpty ? 'More details coming soon.' : e.description, style: bodyStyle(ctx, color: p.muted, size: 15)),
-            if (e.date != null) ...[
-              const SizedBox(height: 20),
-              GradientButton(label: 'Add to calendar', icon: Icons.event_available_rounded, onPressed: () => openUrl(ctx, googleCalendarUri(e).toString())),
-            ],
-          ],
-        ),
-      );
-    },
-  );
-}
-
-class _Meta extends StatelessWidget {
-  const _Meta({required this.icon, required this.text});
-  final IconData icon;
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    if (text.isEmpty) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(children: [
-        Icon(icon, size: 18, color: context.pal.tech),
-        const SizedBox(width: 10),
-        Expanded(child: Text(text, style: bodyStyle(context, weight: FontWeight.w600))),
-      ]),
     );
   }
 }
