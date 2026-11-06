@@ -49,7 +49,7 @@ class Api {
       case DioExceptionType.sendTimeout:
       case DioExceptionType.receiveTimeout:
       case DioExceptionType.connectionError:
-        return ApiException('Cannot reach the server. Check your internet, then try again in a minute (the server may be waking up).');
+        return ApiException('Cannot reach the server (${AppConfig.origin}). Check your internet, then try again in a minute: the server may be waking up.');
       default:
         return ApiException(e.message ?? 'Something went wrong', status: e.response?.statusCode);
     }

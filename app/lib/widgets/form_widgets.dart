@@ -52,7 +52,13 @@ class AppField extends StatelessWidget {
             : (label == 'Full name' || label == 'Your name')
                 ? const [AutofillHints.name]
                 : null;
+    // autocorrect and suggestions change e-mails, user names, IDs and numbers: switch them off there
+    final plain = obscure || keyboard == TextInputType.emailAddress || keyboard == TextInputType.phone || keyboard == TextInputType.number || keyboard == TextInputType.url ||
+        const ['Username', 'Student ID', 'Batch', 'Email', 'Mobile (01XXXXXXXXX)'].contains(label) || label.toLowerCase().contains('e-mail') || label.toLowerCase().contains('code');
     return TextField(
+      autocorrect: !plain,
+      enableSuggestions: !plain,
+      textCapitalization: plain ? TextCapitalization.none : TextCapitalization.sentences,
       autofillHints: hints,
       controller: controller,
       keyboardType: keyboard,

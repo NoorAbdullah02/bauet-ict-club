@@ -50,7 +50,7 @@ router.post('/login', loginLimiter, async (req, res) => {
     return res.status(400).json({ error: 'Username and password required' });
   }
   try {
-    const result = await pool.query('SELECT * FROM admins WHERE username = $1', [username.trim()]);
+    const result = await pool.query('SELECT * FROM admins WHERE LOWER(username) = LOWER($1) ORDER BY (username = $1) DESC, id LIMIT 1', [username.trim()]);
     const admin = result.rows[0];
     if (admin?.locked_until && new Date(admin.locked_until) > new Date()) { await bcrypt.compare(password, DUMMY_HASH); return tooMany(res); }
     const valid = await bcrypt.compare(password, admin ? admin.password_hash : DUMMY_HASH);
