@@ -49,6 +49,7 @@ class AppState extends ChangeNotifier {
   bool get isAdmin => api.token != null;
 
   Future<void> init() async {
+    api.wake(); // wake the (free, sleeping) server while the app starts; not awaited
     try {
       _prefs = await SharedPreferences.getInstance();
       final t = _prefs?.getString('theme');

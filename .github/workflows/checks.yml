@@ -45,6 +45,14 @@ jobs:
           cache: true
       # adds the Android project files the repository does not keep; existing files (manifest, network config) are left alone
       - run: flutter create . --org com.bauet --project-name bauet_ict_club --platforms android
+      # the permanent club key (GitHub secrets ANDROID_KEYSTORE_*): a new APK then installs OVER an older one. Without the secrets nothing changes.
+      - name: Sign with the permanent club key
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: python3 ../tools/android_signing.py android
       - run: flutter pub get
       - name: Home-screen icon from the club logo
         run: dart run flutter_launcher_icons
@@ -60,7 +68,9 @@ jobs:
           if-no-files-found: error
       # the version to install on a phone: much smaller and faster than the debug one (arm64 = almost every phone made after 2017)
       - name: Build a release APK (small, fast)
-        run: flutter build apk --release --split-per-abi --dart-define-from-file=env.production.json
+        run: flutter build apk --release --split-per-abi --split-debug-info=build/symbols --dart-define-from-file=env.production.json
+      - name: Show who signed the APK (the same fingerprint on every build means updates install over the old app)
+        run: keytool -printcert -jarfile build/app/outputs/flutter-apk/app-arm64-v8a-release.apk | grep -E "Owner|SHA256" || true
       - uses: actions/upload-artifact@v4
         with:
           name: bauet-ict-club-phone-apk

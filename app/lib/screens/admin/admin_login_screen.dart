@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
@@ -24,6 +26,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
   final _code = TextEditingController();
   bool _needCode = false;
   bool _busy = false;
+  bool _slow = false; // the server is taking long: probably waking up
   String? _error;
 
   @override
@@ -41,7 +44,11 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
     }
     setState(() {
       _busy = true;
+      _slow = false;
       _error = null;
+    });
+    final slowTimer = Timer(const Duration(seconds: 6), () {
+      if (mounted && _busy) setState(() => _slow = true);
     });
     try {
       await context.read<AppState>().login(_user.text.trim(), _pass.text, code: _needCode ? _code.text.trim() : null);
@@ -56,7 +63,13 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
     } catch (e) {
       if (mounted) setState(() => _error = e.toString());
     } finally {
-      if (mounted) setState(() => _busy = false);
+      slowTimer.cancel();
+      if (mounted) {
+        setState(() {
+          _busy = false;
+          _slow = false;
+        });
+      }
     }
   }
 
@@ -104,6 +117,10 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                       const SizedBox(width: 8),
                       Expanded(child: Text(_error!, style: bodyStyle(context, size: 13, color: const Color(0xFFEF4444)))),
                     ]),
+                  ],
+                  if (_slow) ...[
+                    const SizedBox(height: 12),
+                    Text('The server is waking up. This can take up to a minute the first time.', style: bodyStyle(context, size: 12.5, color: p.muted)),
                   ],
                   const SizedBox(height: 18),
                   GradientButton(label: 'Sign in', icon: Icons.login_rounded, loading: _busy, onPressed: _login),
