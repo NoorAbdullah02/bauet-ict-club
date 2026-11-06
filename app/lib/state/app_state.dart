@@ -189,6 +189,14 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// After "sign out everywhere" the server hands back a fresh token for this device.
+  Future<void> replaceToken(String token) async {
+    if (token.isEmpty) return;
+    api.token = token;
+    await _prefs?.setString('token', token);
+    notifyListeners();
+  }
+
   Future<void> logout() async {
     api.token = null;
     adminName = null;

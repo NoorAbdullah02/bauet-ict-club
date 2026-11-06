@@ -15,7 +15,11 @@ class EventItem {
         description = _s(j['description']),
         imageUrl = AppConfig.resolve(_s(j['image_url'])),
         featured = _b(j['featured']),
-        category = _s(j['category']);
+        category = _s(j['category']),
+        capacity = _i(j['capacity']),
+        regOpen = j['reg_open'] != false,
+        regUrl = _s(j['reg_url']),
+        regForm = j['reg_form'] is Map ? Map<String, dynamic>.from(j['reg_form'] as Map) : const {};
 
   final int id;
   final String title;
@@ -26,6 +30,10 @@ class EventItem {
   final String imageUrl;
   final bool featured;
   final String category;
+  final int capacity;
+  final bool regOpen;
+  final String regUrl;
+  final Map<String, dynamic> regForm;
 
   bool get isUpcoming {
     if (date == null) return false;

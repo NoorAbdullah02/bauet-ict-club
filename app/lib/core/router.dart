@@ -7,7 +7,10 @@ import 'theme.dart';
 import '../screens/about_screen.dart';
 import '../screens/achievements_screen.dart';
 import '../screens/admin/admin_applications_screen.dart';
+import '../screens/admin/admin_checkin_screen.dart';
 import '../screens/admin/admin_committees_screen.dart';
+import '../screens/admin/admin_security_screen.dart';
+import '../screens/admin/admin_signups_screen.dart';
 import '../screens/admin/admin_crud_screen.dart';
 import '../screens/admin/admin_home_screen.dart';
 import '../screens/admin/admin_login_screen.dart';
@@ -17,7 +20,10 @@ import '../screens/admin/admin_visitors_screen.dart';
 import '../screens/ambassadors_screen.dart';
 import '../screens/chat_screen.dart';
 import '../screens/contact_screen.dart';
+import '../screens/event_detail_screen.dart';
 import '../screens/events_screen.dart';
+import '../screens/public_form_screen.dart';
+import '../screens/ticket_screen.dart';
 import '../screens/not_found_screen.dart';
 import '../screens/gallery_screen.dart';
 import '../screens/home_screen.dart';
@@ -93,6 +99,13 @@ GoRouter buildRouter(AppState state) {
       GoRoute(path: '/join/committee', pageBuilder: (c, s) => _slide(s, const JoinCommitteeScreen())),
       GoRoute(path: '/join/ambassador', pageBuilder: (c, s) => _slide(s, const JoinAmbassadorScreen())),
       GoRoute(path: '/join/general', pageBuilder: (c, s) => _slide(s, const JoinGeneralScreen())),
+      GoRoute(
+        path: '/events/:id',
+        pageBuilder: (c, s) => _slide(s, EventDetailScreen(eventId: int.tryParse(s.pathParameters['id'] ?? '') ?? 0)),
+      ),
+      GoRoute(path: '/tickets', pageBuilder: (c, s) => _slide(s, const MyTicketsScreen())),
+      GoRoute(path: '/ticket/:code', pageBuilder: (c, s) => _slide(s, TicketScreen(code: s.pathParameters['code'] ?? ''))),
+      GoRoute(path: '/f/:slug', pageBuilder: (c, s) => _slide(s, PublicFormScreen(slug: s.pathParameters['slug'] ?? ''))),
       GoRoute(path: '/chat', pageBuilder: (c, s) => _slide(s, const ChatScreen())),
       GoRoute(path: '/admin/login', pageBuilder: (c, s) => _slide(s, _admin(const AdminLoginScreen()))),
       GoRoute(path: '/admin', pageBuilder: (c, s) => _slide(s, _admin(const AdminHomeScreen()))),
@@ -100,6 +113,9 @@ GoRouter buildRouter(AppState state) {
       GoRoute(path: '/admin/visitors', pageBuilder: (c, s) => _slide(s, _admin(const AdminVisitorsScreen()))),
       GoRoute(path: '/admin/trash', pageBuilder: (c, s) => _slide(s, _admin(const AdminTrashScreen()))),
       GoRoute(path: '/admin/committees', pageBuilder: (c, s) => _slide(s, _admin(const AdminCommitteesScreen()))),
+      GoRoute(path: '/admin/checkin', pageBuilder: (c, s) => _slide(s, _admin(const AdminCheckinScreen()))),
+      GoRoute(path: '/admin/signups', pageBuilder: (c, s) => _slide(s, _admin(const AdminSignupsScreen()))),
+      GoRoute(path: '/admin/security', pageBuilder: (c, s) => _slide(s, _admin(const AdminSecurityScreen()))),
       GoRoute(path: '/admin/settings', pageBuilder: (c, s) => _slide(s, _admin(const AdminSettingsScreen()))),
       GoRoute(
         path: '/admin/data/:table',

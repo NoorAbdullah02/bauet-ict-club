@@ -194,4 +194,61 @@ class Api {
   Future<void> loadDemo() => _send(() => _dio.post('/committees/demo', options: _auth));
 
   Future<void> removeDemo() => _send(() => _dio.delete('/committees/demo', options: _auth));
+
+  // ---- event registration, tickets, public forms ----
+  Map<String, dynamic> _map(dynamic d) => d is Map ? Map<String, dynamic>.from(d) : <String, dynamic>{};
+
+  Future<Map<String, dynamic>> event(int id) async => _map(await _send(() => _dio.get('/events/$id')));
+
+  /// Seats taken per event id (waiting list not counted).
+  Future<Map<String, int>> eventCounts() async {
+    final d = await _send(() => _dio.get('/event-registrations/counts'));
+    final out = <String, int>{};
+    if (d is Map) d.forEach((k, v) => out[k.toString()] = int.tryParse(v.toString()) ?? 0);
+    return out;
+  }
+
+  /// Sign up for an event. Returns { ticket, waitlisted, position, pending_payment, message }.
+  Future<Map<String, dynamic>> registerForEvent(int eventId, Map<String, dynamic> body) async =>
+      _map(await _send(() => _dio.post('/event-registrations/$eventId', data: body)));
+
+  Future<Map<String, dynamic>> ticket(String code) async =>
+      _map(await _send(() => _dio.get('/event-registrations/ticket/${Uri.encodeComponent(code)}', options: Options(headers: {'Cache-Control': 'no-cache'}))));
+
+  Future<void> cancelTicket(String code) => _send(() => _dio.post('/event-registrations/ticket/${Uri.encodeComponent(code)}/cancel'));
+
+  Future<Map<String, dynamic>> publicForm(String slug) async =>
+      _map(await _send(() => _dio.get('/forms/public/${Uri.encodeComponent(slug)}')));
+
+  Future<Map<String, dynamic>> submitPublicForm(String slug, Map<String, dynamic> body) async =>
+      _map(await _send(() => _dio.post('/forms/public/${Uri.encodeComponent(slug)}', data: body)));
+
+  // ---- admin: event sign-ups, payments, check-in ----
+  Future<List<Map<String, dynamic>>> eventSignups(int eventId) async {
+    final d = await _send(() => _dio.get('/event-registrations/by-event/$eventId',
+        queryParameters: {'_': DateTime.now().millisecondsSinceEpoch}, options: Options(headers: {'Cache-Control': 'no-cache', if (token != null) 'Authorization': 'Bearer $token'})));
+    if (d is! List) return [];
+    return d.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
+  }
+
+  /// Check in by ticket code. Throws ApiException; `needs_confirm` is true when the payment is not verified yet.
+  Future<Map<String, dynamic>> checkIn(String code, {int? eventId, bool force = false}) async =>
+      _map(await _send(() => _dio.post('/event-registrations/checkin',
+          data: {'code': code, if (eventId != null) 'event': eventId, if (force) 'force': true}, options: _auth)));
+
+  Future<void> setSignupCheckin(int id, bool checked) =>
+      _send(() => _dio.patch('/event-registrations/$id/checkin', data: {'checked': checked}, options: _auth));
+
+  Future<void> setSignupPayment(int id, String status) =>
+      _send(() => _dio.patch('/event-registrations/$id/payment', data: {'status': status}, options: _auth));
+
+  Future<void> promoteSignup(int id) => _send(() => _dio.patch('/event-registrations/$id/promote', options: _auth));
+
+  Future<void> deleteSignup(int id) => _send(() => _dio.delete('/event-registrations/$id', options: _auth));
+
+  // ---- admin: sign-in security ----
+  Future<Map<String, dynamic>> authGet(String path) async => _map(await _send(() => _dio.get(path, options: _auth)));
+
+  Future<Map<String, dynamic>> authPost(String path, [Map<String, dynamic>? body]) async =>
+      _map(await _send(() => _dio.post(path, data: body ?? {}, options: _auth)));
 }
