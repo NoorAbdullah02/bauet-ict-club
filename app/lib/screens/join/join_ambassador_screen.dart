@@ -111,7 +111,7 @@ class _JoinAmbassadorScreenState extends State<JoinAmbassadorScreen> {
                     const PromptLine('apply --role=ambassador').stagger(0),
                     const SizedBox(height: 18),
                     Center(child: PhotoSlot(photo: _photo, error: _errors['photo_url'], label: 'Add photo *', onTap: () async {
-                      final ph = await pickPhoto(context);
+                      final ph = await pickPhoto(context, aspect: 1, circle: true);
                       if (ph != null && mounted) {
                         setState(() {
                           _photo = ph;

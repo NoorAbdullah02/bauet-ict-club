@@ -3,10 +3,10 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:image_picker/image_picker.dart';
 
 import '../core/theme.dart';
 import '../core/utils.dart';
+import 'image_editor.dart';
 
 /// Labeled text field with external (server/validator) error text.
 class AppField extends StatelessWidget {
@@ -222,27 +222,20 @@ class PickedPhoto {
   final String mime;
 }
 
-Future<PickedPhoto?> pickPhoto(BuildContext context) async {
+/// Choose or take a picture, crop / turn / adjust it in the editor, and get it back ready to upload (JPEG, under 3 MB).
+Future<PickedPhoto?> pickPhoto(BuildContext context, {double? aspect, bool circle = false}) async {
+  final r = await pickAndEdit(context, aspect: aspect, circle: circle, maxSide: 1600);
+  if (r == null) return null;
   try {
-    final x = await ImagePicker().pickImage(source: ImageSource.gallery, maxWidth: 1600, imageQuality: 88);
-    if (x == null) return null;
-    final lower = x.name.toLowerCase();
-    final isPng = lower.endsWith('.png');
-    final isJpg = lower.endsWith('.jpg') || lower.endsWith('.jpeg');
-    if (!isPng && !isJpg) {
-      if (context.mounted) showSnack(context, 'Please choose a JPG or PNG image', error: true);
-      return null;
-    }
-    final size = await File(x.path).length();
+    final size = await File(r.path).length();
     if (size > 3 * 1024 * 1024) {
-      if (context.mounted) showSnack(context, 'Photo must be 3MB or smaller', error: true);
+      if (context.mounted) showSnack(context, 'Picture is too big. Choose Small or Medium size in the editor.', error: true);
       return null;
     }
-    return PickedPhoto(x.path, x.name, isPng ? 'image/png' : 'image/jpeg');
   } catch (_) {
-    if (context.mounted) showSnack(context, 'Could not open the gallery', error: true);
     return null;
   }
+  return PickedPhoto(r.path, r.name, r.mime);
 }
 
 /// Circular photo slot with gradient ring.

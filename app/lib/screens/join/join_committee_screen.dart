@@ -122,7 +122,7 @@ class _JoinCommitteeScreenState extends State<JoinCommitteeScreen> {
   }
 
   Future<void> _choosePhoto() async {
-    final ph = await pickPhoto(context);
+    final ph = await pickPhoto(context, aspect: 1, circle: true);
     if (ph != null && mounted) {
       setState(() {
         _photo = ph;

@@ -191,7 +191,7 @@ class _JoinGeneralScreenState extends State<JoinGeneralScreen> {
                       padding: const EdgeInsets.all(20),
                       child: Row(children: [
                         PhotoSlot(photo: _photo, size: 76, label: 'Photo', onTap: () async {
-                          final ph = await pickPhoto(context);
+                          final ph = await pickPhoto(context, aspect: 1, circle: true);
                           if (ph != null && mounted) setState(() => _photo = ph);
                         }),
                         const SizedBox(width: 16),

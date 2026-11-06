@@ -269,4 +269,14 @@ class Api {
   /// Public certificate check: { valid, name, event, date, issuedBy, code }.
   Future<Map<String, dynamic>> verifyCertificate(String code) async =>
       _map(await _send(() => _dio.get('/event-registrations/verify/${Uri.encodeComponent(code)}')));
+
+  /// Saves a file the server makes (export, ZIP, backup) to [savePath]. Admin only.
+  Future<void> downloadTo(String path, String savePath, {Map<String, dynamic>? query}) async {
+    try {
+      final r = await _dio.download(path, savePath, queryParameters: query, options: Options(headers: {if (token != null) 'Authorization': 'Bearer $token'}, receiveTimeout: const Duration(minutes: 3)));
+      if (r.statusCode != null && r.statusCode! >= 400) throw ApiException('Download failed', status: r.statusCode);
+    } on DioException catch (e) {
+      throw _wrap(e);
+    }
+  }
 }

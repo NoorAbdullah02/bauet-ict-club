@@ -139,6 +139,10 @@ GoRouter buildRouter(AppState state) {
         path: '/admin/forms/:id/responses',
         pageBuilder: (c, s) => _slide(s, _admin(AdminFormResponsesScreen(formId: int.tryParse(s.pathParameters['id'] ?? '') ?? 0))),
       ),
+      GoRoute(
+        path: '/admin/event-form/:id',
+        pageBuilder: (c, s) => _slide(s, _admin(AdminFormEditScreen(eventId: int.tryParse(s.pathParameters['id'] ?? '') ?? 0))),
+      ),
       GoRoute(path: '/admin/security', pageBuilder: (c, s) => _slide(s, _admin(const AdminSecurityScreen()))),
       GoRoute(path: '/admin/settings', pageBuilder: (c, s) => _slide(s, _admin(const AdminSettingsScreen()))),
       GoRoute(
