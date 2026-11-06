@@ -290,4 +290,18 @@ class Api {
   /// A member's card: { member: {...}, code, verified }. Pass the scanned code [c] to check it.
   Future<Map<String, dynamic>> memberCard(int id, {String? c}) async =>
       _map(await _send(() => _dio.get('/card/$id', queryParameters: {if (c != null && c.isNotEmpty) 'c': c})));
+
+  /// Is paying online (the payment gateway) set up on the server?
+  Future<bool> gatewayOn() async {
+    try {
+      final d = await _send(() => _dio.get('/pay/status'));
+      return d is Map && d['gateway'] == true;
+    } on ApiException {
+      return false;
+    }
+  }
+
+  /// Where an online payment is: { status: waiting | paid | failed, ticket? }. The transaction id is the secret.
+  Future<Map<String, dynamic>> payCheck(String tran) async =>
+      _map(await _send(() => _dio.get('/pay/check/${Uri.encodeComponent(tran)}', options: Options(headers: {'Cache-Control': 'no-cache'}))));
 }

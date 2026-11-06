@@ -100,4 +100,43 @@ void main() {
     expect(got['trx_id'], 'AB12CD34EF');
     expect(got['method'], 'Nagad');
   });
+
+  testWidgets('payment box offers both ways and the choice is reported', (tester) async {
+    Map<String, String> got = {};
+    await tester.pumpWidget(host(StatefulBuilder(builder: (context, setState) {
+      return PaymentBox(
+        gateway: true,
+        setting: const {
+          'enabled': true,
+          'amount': 200,
+          'manual': true,
+          'online': true,
+          'methods': ['bKash'],
+          'numbers': {'bKash': '01711111111'},
+        },
+        value: got,
+        errors: const {},
+        onChanged: (v) => setState(() => got = v),
+      );
+    })));
+    expect(find.text('Pay online'), findsWidgets);
+    expect(find.text('Send money by hand'), findsOneWidget);
+    expect(find.text('01711111111'), findsOneWidget); // by hand is the first way offered
+    await tester.tap(find.text('Pay online').first);
+    await tester.pump();
+    expect(got['mode'], 'online');
+    expect(find.text('01711111111'), findsNothing); // the number box is hidden while paying online
+  });
+
+  testWidgets('online payment is hidden when the gateway is not set up', (tester) async {
+    await tester.pumpWidget(host(PaymentBox(
+      gateway: false,
+      setting: const {'enabled': true, 'amount': 100, 'manual': true, 'online': true, 'methods': ['bKash'], 'numbers': {'bKash': '01711111111'}},
+      value: const {},
+      errors: const {},
+      onChanged: (_) {},
+    )));
+    expect(find.text('Send money by hand'), findsNothing); // only one way left, so no chooser
+    expect(find.text('01711111111'), findsOneWidget);
+  });
 }

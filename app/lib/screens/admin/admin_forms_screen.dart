@@ -205,6 +205,9 @@ class _AdminFormEditScreenState extends State<AdminFormEditScreen> {
   bool _open = true;
   bool _notify = false;
   bool _payOn = false;
+  bool _manual = true; // people send money by hand (an admin checks the transaction ID)
+  bool _onlinePay = false; // people pay on the gateway's page (the server checks it)
+  bool _gateway = false; // is the gateway set up on the server?
   bool _certOn = false;
   String _payKind = 'send_money';
   final Set<String> _methods = {'bKash'};
@@ -268,6 +271,8 @@ class _AdminFormEditScreenState extends State<AdminFormEditScreen> {
         _unique = s(rf['unique']);
         _feedback = s(rf['feedback_form']);
         _payOn = pay['enabled'] == true;
+        _manual = pay['manual'] != false;
+        _onlinePay = pay['online'] == true;
         _amount.text = s(pay['amount']);
         _payNote.text = s(pay['note']);
         _payKind = pay['kind'] == 'payment' ? 'payment' : 'send_money';
@@ -289,6 +294,9 @@ class _AdminFormEditScreenState extends State<AdminFormEditScreen> {
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+    _state.api.gatewayOn().then((g) {
+      if (mounted) setState(() => _gateway = g);
+    });
     if (_isEvent) {
       try {
         final f = await _state.api.adminList('/forms');
@@ -337,8 +345,10 @@ class _AdminFormEditScreenState extends State<AdminFormEditScreen> {
       rf['payment'] = {
         'enabled': true,
         'amount': num.tryParse(_amount.text.trim()) ?? 0,
-        'methods': kPayMethods.where(_methods.contains).toList(),
-        'numbers': {for (final m in _methods) m: _numbers[m]?.text.trim() ?? ''},
+        'manual': _manual,
+        'online': _onlinePay,
+        'methods': _manual ? kPayMethods.where(_methods.contains).toList() : <String>[],
+        'numbers': _manual ? {for (final m in _methods) m: _numbers[m]?.text.trim() ?? ''} : <String, String>{},
         'kind': _payKind,
         'note': _payNote.text.trim(),
       };
@@ -356,6 +366,10 @@ class _AdminFormEditScreenState extends State<AdminFormEditScreen> {
   Future<void> _save() async {
     if (_fields.any((q) => qLabel(q).trim().isEmpty)) {
       showSnack(context, 'Every question needs a title', error: true);
+      return;
+    }
+    if (_payOn && !_manual && !_onlinePay) {
+      showSnack(context, 'Choose at least one way to pay', error: true);
       return;
     }
     setState(() => _busy = true);
@@ -517,12 +531,29 @@ class _AdminFormEditScreenState extends State<AdminFormEditScreen> {
             if (_payOn) ...[
               AppField(controller: _amount, label: 'Amount (BDT)', keyboard: TextInputType.number, icon: Icons.payments_outlined),
               _gap(),
-              Wrap(spacing: 8, children: [
-                for (final m in kPayMethods) FilterChip(label: Text(m), selected: _methods.contains(m), onSelected: (v) => setState(() => v ? _methods.add(m) : _methods.remove(m))),
-              ]),
-              for (final m in kPayMethods.where(_methods.contains)) ...[
-                _gap(),
-                AppField(controller: _numbers[m]!, label: '$m number people send money to', keyboard: TextInputType.phone),
+              Text('Choose how people can pay. You can allow one way or both.', style: bodyStyle(context, size: 12.5, color: p.muted)),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Send money by hand'),
+                subtitle: const Text('bKash, Nagad, Rocket + transaction ID. You press Verify. No account needed.'),
+                value: _manual,
+                onChanged: (v) => setState(() => _manual = v),
+              ),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Pay online (payment gateway)'),
+                subtitle: Text(_gateway ? 'Secure payment page. The place is confirmed at once. The company keeps a small fee.' : 'Needs a merchant account. Turns on when the keys are added on the server.'),
+                value: _onlinePay && _gateway,
+                onChanged: _gateway ? (v) => setState(() => _onlinePay = v) : null,
+              ),
+              if (_manual) ...[
+                Wrap(spacing: 8, children: [
+                  for (final m in kPayMethods) FilterChip(label: Text(m), selected: _methods.contains(m), onSelected: (v) => setState(() => v ? _methods.add(m) : _methods.remove(m))),
+                ]),
+                for (final m in kPayMethods.where(_methods.contains)) ...[
+                  _gap(),
+                  AppField(controller: _numbers[m]!, label: '$m number people send money to', keyboard: TextInputType.phone),
+                ],
               ],
               _gap(),
               Row(children: [

@@ -62,6 +62,8 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
   bool _busy = false;
 
   Map<String, dynamic>? _result; // the server's answer after signing up
+  bool _gateway = false; // is paying online set up on the server?
+  Map<String, String>? _online; // {url, tran, ticket} while the person pays on the gateway's page
 
   @override
   void initState() {
@@ -80,6 +82,9 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
     } on ApiException {
       if (mounted) setState(() => _missing = true);
     }
+    _state.api.gatewayOn().then((g) {
+      if (mounted) setState(() => _gateway = g);
+    });
     try {
       final c = await _state.api.eventCounts();
       if (mounted) setState(() => _count = c['${widget.eventId}'] ?? 0);
@@ -109,7 +114,8 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
     final err = problemsOf(fields, _values);
     final pay = _payCfg;
     final pe = <String, String>{};
-    if (pay.isNotEmpty) {
+    final payMode = pay.isEmpty ? '' : payModeOf(pay, _gateway, _payment);
+    if (pay.isNotEmpty && payMode == 'manual') {
       final sender = (_payment['sender'] ?? '').replaceAll(RegExp(r'[\s-]'), '');
       if (!RegExp(r'^(\+?88)?01[3-9]\d{8}$').hasMatch(sender)) pe['sender'] = 'Enter the mobile number you paid from';
       if (!RegExp(r'^[A-Za-z0-9]{6,20}$').hasMatch((_payment['trx_id'] ?? '').trim())) pe['trx_id'] = 'Enter the transaction ID (6 to 20 letters and numbers)';
@@ -126,7 +132,8 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
     try {
       final r = await _state.api.registerForEvent(e.id, {
         'answers': answersToSend(fields, _values),
-        if (pay.isNotEmpty)
+        if (pay.isNotEmpty && payMode == 'online') 'pay_mode': 'online',
+        if (pay.isNotEmpty && payMode == 'manual')
           'payment': {
             'method': (_payment['method'] ?? '').isEmpty ? PaymentBox.methodsOf(pay).first : _payment['method'],
             'sender': _payment['sender'],
@@ -134,6 +141,12 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
           },
       });
       final ticket = (r['ticket'] ?? '').toString();
+      if ((r['pay_url'] ?? '').toString().isNotEmpty) {
+        // the seat is held while the person pays on the gateway's page; the panel moves on when the payment arrives
+        if (ticket.isNotEmpty) await saveMyTicket(SavedTicket(code: ticket, title: e.title, date: e.date == null ? '' : fmtDate(e.date)));
+        if (mounted) setState(() => _online = {'url': '${r['pay_url']}', 'tran': '${r['tran_id']}', 'ticket': ticket});
+        return;
+      }
       if (ticket.isNotEmpty) {
         await saveMyTicket(SavedTicket(code: ticket, title: e.title, date: e.date == null ? '' : fmtDate(e.date)));
       }
@@ -226,7 +239,28 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
         const SizedBox(height: 20),
         GlassCard(
           padding: const EdgeInsets.all(18),
-          child: _result != null ? _success(context, e, p) : _register(context, e, p, fields, closed, past, full, timeUp, waitOpen),
+          child: _online != null
+              ? OnlinePayPanel(
+                  api: _state.api,
+                  tran: _online!['tran']!,
+                  url: _online!['url']!,
+                  onPaid: (r) {
+                    final t = _online!['ticket'] ?? '';
+                    setState(() {
+                      _online = null;
+                      _result = {'ticket': t, 'pending_payment': false, 'message': ''};
+                    });
+                    _load();
+                  },
+                  onFailed: () {
+                    setState(() => _online = null);
+                    showSnack(context, 'The payment was not completed, so no seat was kept. You can try again.', error: true);
+                    _load();
+                  },
+                )
+              : _result != null
+                  ? _success(context, e, p)
+                  : _register(context, e, p, fields, closed, past, full, timeUp, waitOpen),
         ),
       ],
     );
@@ -262,7 +296,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text('Register', style: displayStyle(context, 21)),
-            Text(closed ? 'Registration is closed' : (pay.isNotEmpty ? 'Paid event' : 'Free · takes a minute'), style: bodyStyle(context, size: 12.5, color: p.muted)),
+            Text(closed ? 'Registration is closed' : (pay.isNotEmpty ? 'Fee ${pay['amount']} BDT · takes a minute' : 'Free · takes a minute'), style: bodyStyle(context, size: 12.5, color: p.muted)),
           ]),
         ),
       ]),
@@ -306,6 +340,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
           footer: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             if (pay.isNotEmpty) ...[
               PaymentBox(
+                gateway: _gateway,
                 setting: pay,
                 value: _payment,
                 errors: _payErrors,
