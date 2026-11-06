@@ -78,7 +78,7 @@ class AppShell extends StatelessWidget {
             icon: ChatFace(size: 26, bubble: p.accent, face: p.bg),
           ),
           IconButton(
-            tooltip: 'Toggle theme',
+            tooltip: state.themeMode == ThemeMode.system ? 'Theme: automatic (follows phone)' : state.themeMode == ThemeMode.dark ? 'Theme: dark' : 'Theme: light',
             onPressed: () {
               HapticFeedback.selectionClick();
               state.toggleTheme();
@@ -86,7 +86,7 @@ class AppShell extends StatelessWidget {
             icon: AnimatedSwitcher(
               duration: const Duration(milliseconds: 300),
               transitionBuilder: (c, a) => RotationTransition(turns: Tween(begin: 0.75, end: 1.0).animate(a), child: FadeTransition(opacity: a, child: c)),
-              child: Icon(p.dark ? Icons.light_mode_rounded : Icons.dark_mode_rounded, key: ValueKey(p.dark)),
+              child: Icon(state.themeMode == ThemeMode.system ? Icons.brightness_auto_rounded : state.themeMode == ThemeMode.dark ? Icons.dark_mode_rounded : Icons.light_mode_rounded, key: ValueKey(state.themeMode)),
             ),
           ),
           Builder(

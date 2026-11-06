@@ -37,7 +37,7 @@ const MemberCardRoute = named('MemberCardRoute');
 const Fallback = () => <div className="grid min-h-[60vh] place-items-center"><span className="size-8 animate-spin rounded-full border-2 border-line border-t-accent" /></div>;
 
 export default function App() {
-  const { fetchAll, theme, adminTheme } = useStore(useShallow((s) => ({ fetchAll: s.fetchAll, theme: s.theme, adminTheme: s.adminTheme })));
+  const { fetchAll, theme, adminTheme } = useStore(useShallow((s) => ({ fetchAll: s.fetchAll, theme: s.resolvedTheme, adminTheme: s.adminTheme })));
   const { pathname } = useLocation();
   const isAdmin = pathname.startsWith('/admin');
 

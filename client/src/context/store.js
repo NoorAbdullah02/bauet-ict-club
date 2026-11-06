@@ -9,6 +9,11 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// 'light' | 'dark' | 'system' (follows the phone or computer setting)
+const media = typeof window !== 'undefined' && window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+const resolveTheme = (t) => (t === 'system' ? (media && media.matches ? 'dark' : 'light') : t === 'dark' ? 'dark' : 'light');
+const savedTheme = (() => { try { const t = localStorage.getItem('bauet-theme'); return t === 'dark' || t === 'system' ? t : 'light'; } catch { return 'light'; } })();
+
 const useStore = create((set, get) => ({
   events: [],
   notices: [],
@@ -27,7 +32,8 @@ const useStore = create((set, get) => ({
   settings: null,
   user: null,
   loading: true,
-  theme: localStorage.getItem('bauet-theme') || 'light',
+  theme: savedTheme,
+  resolvedTheme: resolveTheme(savedTheme),
   adminTheme: localStorage.getItem('bauet-admin-theme') || 'light',
   setAdminTheme: (adminTheme) => {
     localStorage.setItem('bauet-admin-theme', adminTheme);
@@ -35,9 +41,10 @@ const useStore = create((set, get) => ({
   },
 
   setTheme: (theme) => {
-    localStorage.setItem('bauet-theme', theme);
-    document.documentElement.setAttribute('data-theme', theme);
-    set({ theme });
+    try { localStorage.setItem('bauet-theme', theme); } catch { /* storage blocked: the choice lasts until reload */ }
+    const resolvedTheme = resolveTheme(theme);
+    document.documentElement.setAttribute('data-theme', resolvedTheme);
+    set({ theme, resolvedTheme });
   },
 
   fetchAll: async (fresh = false) => {
@@ -261,5 +268,11 @@ const useStore = create((set, get) => ({
     return res.data.url;
   },
 }));
+
+// when the phone switches between light and dark (sunset, a schedule, the user), follow it if the visitor chose "auto"
+if (media) {
+  const follow = () => { if (useStore.getState().theme === 'system') useStore.setState({ resolvedTheme: resolveTheme('system') }); };
+  if (media.addEventListener) media.addEventListener('change', follow); else if (media.addListener) media.addListener(follow);
+}
 
 export default useStore;

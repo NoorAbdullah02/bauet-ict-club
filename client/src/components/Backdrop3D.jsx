@@ -18,7 +18,7 @@ const weakDevice = () => typeof navigator !== 'undefined' && ((navigator.hardwar
 
 /** Lazy, WebGL-guarded 3D canvas that pauses rendering when scrolled out of view. */
 export default function Backdrop3D({ variant = 'orbs', className }) {
-  const dark = useStore((s) => s.theme) === 'dark';
+  const dark = useStore((s) => s.resolvedTheme) === 'dark';
   const ref = useRef(null);
   const [active, setActive] = useState(true);
   const [ready, setReady] = useState(false);

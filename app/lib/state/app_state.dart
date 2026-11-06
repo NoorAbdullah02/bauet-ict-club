@@ -42,7 +42,7 @@ class AppState extends ChangeNotifier {
     try {
       _prefs = await SharedPreferences.getInstance();
       final t = _prefs?.getString('theme');
-      themeMode = t == 'dark' ? ThemeMode.dark : ThemeMode.light;
+      themeMode = t == 'dark' ? ThemeMode.dark : t == 'system' ? ThemeMode.system : ThemeMode.light;
       api.token = _prefs?.getString('token');
       adminName = _prefs?.getString('admin');
       adminDark = _prefs?.getBool('admin_dark') ?? false;
@@ -51,11 +51,16 @@ class AppState extends ChangeNotifier {
     }
   }
 
-  bool isDark(BuildContext context) => themeMode == ThemeMode.dark;
+  bool isDark(BuildContext context) => themeMode == ThemeMode.dark || (themeMode == ThemeMode.system && MediaQuery.platformBrightnessOf(context) == Brightness.dark);
 
+  /// light -> dark -> automatic (follows the phone setting) -> light
   void toggleTheme() {
-    themeMode = themeMode == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark;
-    _prefs?.setString('theme', themeMode == ThemeMode.dark ? 'dark' : 'light');
+    themeMode = switch (themeMode) {
+      ThemeMode.light => ThemeMode.dark,
+      ThemeMode.dark => ThemeMode.system,
+      ThemeMode.system => ThemeMode.light,
+    };
+    _prefs?.setString('theme', themeMode == ThemeMode.dark ? 'dark' : themeMode == ThemeMode.system ? 'system' : 'light');
     notifyListeners();
   }
 
