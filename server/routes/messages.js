@@ -10,7 +10,7 @@ const clean = (v, max) => String(v ?? '').trim().slice(0, max);
 
 const contactLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
-  max: 10,
+  max: 40,
   message: { error: 'Too many messages. Please try again later.' },
 });
 

@@ -20,7 +20,7 @@ const clean = (v, n) => String(v ?? '').trim().slice(0, n);
 const todayStr = () => new Date().toISOString().slice(0, 10);
 const day = (d) => (d instanceof Date ? d.toISOString() : String(d || '')).slice(0, 10);
 
-const limiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 30, standardHeaders: true, legacyHeaders: false, message: { error: 'Too many sign-ups from this network. Please try again later.' } });
+const limiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 600, standardHeaders: true, legacyHeaders: false, message: { error: 'Too many sign-ups from this network. Please try again later.' } });
 
 /** Public: how many people signed up for each event (numbers only), so the pages can show "12 / 40 joined". */
 router.get('/counts', async (_req, res) => {

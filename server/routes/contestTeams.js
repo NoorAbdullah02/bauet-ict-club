@@ -6,7 +6,7 @@ const { fail } = require('../utils/http');
 const { toCsv } = require('../utils/csv');
 
 const router = express.Router();
-const limiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 20, standardHeaders: true, legacyHeaders: false, message: { error: 'Too many team sign-ups from this network. Please try again later.' } });
+const limiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 200, standardHeaders: true, legacyHeaders: false, message: { error: 'Too many team sign-ups from this network. Please try again later.' } });
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const clean = (v, n) => String(v ?? '').replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, n);
 const today = () => new Date(Date.now() + 6 * 3600e3).toISOString().slice(0, 10); // Bangladesh date

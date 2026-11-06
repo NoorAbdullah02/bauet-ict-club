@@ -81,7 +81,7 @@ app.all('/api/jobs/run', async (req, res) => {
 
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: Number(process.env.API_RATE_MAX) || 200, // the QA run raises it; real visitors keep 200 per 15 minutes
+  max: Number(process.env.API_RATE_MAX) || 3000, // per address per 15 minutes; one app start is about 10 requests and a campus shares one address
   message: { error: 'Too many requests, please try again later' },
 });
 app.use('/api/', apiLimiter);

@@ -17,7 +17,7 @@ Last updated: 2026-11-06.
   | `DATABASE_URL` | Neon connection string (`postgresql://…?sslmode=require`) | required (the live site answers `db: true`, so this is set) |
   | `JWT_SECRET` | 32+ random characters (`openssl rand -hex 32`) | required |
   | `ADMIN_PASSWORD` | 12+ characters, not a common word, not `1245` | required, the site refuses weak passwords |
-  | `TRUST_PROXY` | `1` | recommended on Render |
+  | `TRUST_PROXY` | `1` | recommended on Render (the limits are per visitor address; campus Wi-Fi shares one address between many students, so they are generous) |
   | `PUBLIC_URL` | `https://bauet-ict-club.onrender.com` | recommended (links in e-mails, sitemap, QR) |
 
 - [ ] **Change every secret that was ever pasted into a chat** (Neon password, Brevo key, Cloudinary secret, Groq key, old admin password). Make new ones, put them into Render, delete the old ones at the provider.

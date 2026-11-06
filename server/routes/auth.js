@@ -11,9 +11,9 @@ const rateLimit = require('express-rate-limit');
 
 const router = express.Router();
 
-// brute-force guard 1: 8 wrong attempts per IP per 15 minutes (successful logins do not count)
+// brute-force guard 1: 40 wrong attempts per IP per 15 minutes (successful logins do not count). Campus Wi-Fi shares one address between many people, so this is wide; the per-account lock below is the real guard.
 const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, max: 8, skipSuccessfulRequests: true, standardHeaders: true, legacyHeaders: false,
+  windowMs: 15 * 60 * 1000, max: 40, skipSuccessfulRequests: true, standardHeaders: true, legacyHeaders: false,
   message: { error: 'Too many failed attempts. Try again in 15 minutes.' },
 });
 // brute-force guard 2 (per account): 5 wrong passwords or codes lock that account for 15 minutes, whatever IP the attempts come from
