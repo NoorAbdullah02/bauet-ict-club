@@ -291,6 +291,10 @@ class Api {
   Future<Map<String, dynamic>> memberCard(int id, {String? c}) async =>
       _map(await _send(() => _dio.get('/card/$id', queryParameters: {if (c != null && c.isNotEmpty) 'c': c})));
 
+  /// Points and badges: the public leaderboard, and the points of one ticket's owner.
+  Future<Map<String, dynamic>> leaderboard() async => _map(await _send(() => _dio.get('/points/leaderboard')));
+  Future<Map<String, dynamic>> pointsOfTicket(String code) async => _map(await _send(() => _dio.get('/points/me', queryParameters: {'ticket': code})));
+
   /// Is paying online (the payment gateway) set up on the server?
   Future<bool> gatewayOn() async {
     try {

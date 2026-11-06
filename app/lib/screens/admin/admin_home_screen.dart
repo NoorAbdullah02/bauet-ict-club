@@ -170,6 +170,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                 nav('Events', 'Create and edit events', Icons.event_rounded, '/admin/data/events').stagger(4),
                 nav('Event sign-ups', 'Who registered, verify payments, waiting list', Icons.groups_2_rounded, '/admin/signups', p.accent).stagger(4),
                 nav('Event insights', 'Who signed up, who came, the money', Icons.insights_rounded, '/admin/insights', p.third).stagger(4),
+                nav('Points and badges', 'Give extra points, see the leaderboard', Icons.emoji_events_rounded, '/admin/points', p.accent).stagger(4),
                 nav('Check-in desk', 'Scan or type a ticket code at the entrance', Icons.qr_code_scanner_rounded, '/admin/checkin', p.tech).stagger(4),
                 nav('Notices', 'Post announcements', Icons.campaign_rounded, '/admin/data/notices').stagger(5),
                 nav('Team members', 'Edit committee members', Icons.groups_rounded, '/admin/data/members').stagger(6),
