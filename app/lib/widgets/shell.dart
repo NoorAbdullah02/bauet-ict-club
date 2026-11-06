@@ -32,6 +32,7 @@ const _more = [
   _NavItem('/achievements', 'Achievements', Icons.emoji_events_outlined, Icons.emoji_events_rounded),
   _NavItem('/projects', 'Projects', Icons.code_outlined, Icons.code_rounded),
   _NavItem('/resources', 'Resources', Icons.local_library_outlined, Icons.local_library_rounded),
+  _NavItem('/jobs', 'Jobs', Icons.work_outline_rounded, Icons.work_rounded),
   _NavItem('/contests', 'Contests', Icons.sports_esports_outlined, Icons.sports_esports_rounded),
   _NavItem('/leaderboard', 'Leaderboard', Icons.emoji_events_outlined, Icons.emoji_events_rounded),
   _NavItem('/faq', 'FAQ', Icons.help_outline_rounded, Icons.help_rounded),

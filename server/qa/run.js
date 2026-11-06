@@ -383,6 +383,28 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
       ok((await call('DELETE', `/api/contest-teams/admin/team/${npId}`, undefined, T)).s === 200 && (await call('GET', `/api/contest-teams/admin/${ct.j.id}`, undefined, T)).j.teams.length === 1, 'a team can be removed');
     }
 
+    // job and internship board
+    {
+      const soon = new Date(Date.now() + 9 * 864e5).toISOString().slice(0, 10);
+      const gone = new Date(Date.now() - 9 * 864e5).toISOString().slice(0, 10);
+      ok((await call('POST', '/api/jobs', { title: 'No login' })).s === 401, 'only an admin posts a job');
+      ok((await call('POST', '/api/jobs', { title: 'No way to apply', company: 'Acme' }, T)).s === 409, 'a job needs an apply link or e-mail');
+      ok((await call('POST', '/api/jobs', { title: 'Bad link', apply_url: 'javascript:alert(1)' }, T)).s === 409, 'an apply link must be http or https');
+      ok((await call('POST', '/api/jobs', { title: 'Bad kind', apply_email: 'hr@acme.com', kind: 'Spy' }, T)).s === 409, 'an unknown kind is refused');
+      const j1 = await call('POST', '/api/jobs', { title: 'Junior Quokka Developer', company: 'Acme Quokka Ltd', kind: 'Internship', work_mode: 'Remote', apply_email: 'hr@acme.com', deadline: soon, description: 'Learn React' }, T);
+      ok(j1.s === 201, 'an admin can post a job', j1.j);
+      const j2 = await call('POST', '/api/jobs', { title: 'Hidden Quokka Draft Job', apply_url: 'https://acme.com/jobs', is_draft: true }, T);
+      ok(j2.s === 201, 'a draft job can be saved');
+      const pubJobs = ((await call('GET', '/api/jobs')).j || []).map((x) => x.title);
+      ok(pubJobs.includes('Junior Quokka Developer') && !pubJobs.includes('Hidden Quokka Draft Job'), 'the public sees live jobs only', pubJobs);
+      ok(((await call('GET', '/api/jobs', undefined, T)).j || []).some((x) => x.title === 'Hidden Quokka Draft Job'), 'an admin sees drafts');
+      ok(((await call('GET', '/api/search?q=quokka%20ltd')).j || []).some((x) => x.type === 'job'), 'search finds a job');
+      ok(!((await call('GET', '/api/bootstrap')).j.jobs || []).some((x) => /Hidden/.test(x.title)), 'bootstrap hides draft jobs');
+      ok((await call('PUT', `/api/jobs/${j1.j.id}`, { salary: '15,000 BDT' }, T)).s === 200 && (await call('GET', `/api/jobs/${j1.j.id}`)).j.salary === '15,000 BDT', 'a job can be edited');
+      ok((await call('DELETE', `/api/jobs/${j1.j.id}`, undefined, T)).s === 200 && !((await call('GET', '/api/jobs')).j || []).some((x) => x.id === j1.j.id), 'a job can be deleted');
+      void gone;
+    }
+
     // drafts and scheduled posts
     {
       const future = new Date(Date.now() + 3 * 864e5).toISOString();

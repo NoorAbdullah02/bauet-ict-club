@@ -159,7 +159,7 @@ async function initDb() {
     )`);
     await client.query('CREATE INDEX IF NOT EXISTS idx_point_awards_email ON point_awards (LOWER(email))');
     // drafts and scheduled posts
-    for (const t of ['events', 'notices']) {
+    for (const t of ['events', 'notices', ...features.filter((f) => f.scheduled).map((f) => f.table)]) {
       await client.query(`ALTER TABLE ${t} ADD COLUMN IF NOT EXISTS publish_at TIMESTAMPTZ`);
       await client.query(`ALTER TABLE ${t} ADD COLUMN IF NOT EXISTS is_draft BOOLEAN NOT NULL DEFAULT FALSE`);
       await client.query(`ALTER TABLE ${t} ADD COLUMN IF NOT EXISTS pending_notify BOOLEAN NOT NULL DEFAULT FALSE`);
