@@ -251,4 +251,22 @@ class Api {
 
   Future<Map<String, dynamic>> authPost(String path, [Map<String, dynamic>? body]) async =>
       _map(await _send(() => _dio.post(path, data: body ?? {}, options: _auth)));
+
+  /// Any admin call (activity log, team logins, forms, newsletter, links, committees...). Returns the decoded JSON.
+  Future<dynamic> adminCall(String method, String path, {Object? data, Map<String, dynamic>? query}) => _send(() => _dio.request(
+        path,
+        data: data,
+        queryParameters: query,
+        options: Options(method: method, headers: {'Cache-Control': 'no-cache', if (token != null) 'Authorization': 'Bearer $token'}),
+      ));
+
+  Future<List<Map<String, dynamic>>> adminList(String path) async {
+    final d = await adminCall('GET', path, query: {'_': DateTime.now().millisecondsSinceEpoch});
+    if (d is! List) return [];
+    return d.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
+  }
+
+  /// Public certificate check: { valid, name, event, date, issuedBy, code }.
+  Future<Map<String, dynamic>> verifyCertificate(String code) async =>
+      _map(await _send(() => _dio.get('/event-registrations/verify/${Uri.encodeComponent(code)}')));
 }
