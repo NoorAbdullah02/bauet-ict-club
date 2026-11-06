@@ -1,3 +1,4 @@
+import '../../core/i18n.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -49,7 +50,7 @@ class _AdminLinksScreenState extends State<AdminLinksScreen> {
         title: Text('Short link for $name'),
         content: TextField(controller: c, decoration: const InputDecoration(labelText: 'Custom name (optional)', hintText: 'python-workshop')),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(tr('Cancel'))),
           FilledButton(onPressed: () => Navigator.pop(ctx, c.text.trim().toLowerCase()), child: const Text('Make link')),
         ],
       ),

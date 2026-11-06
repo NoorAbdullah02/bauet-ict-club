@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../data/api.dart';
 import '../core/utils.dart';
+import '../core/i18n.dart';
 import '../models/models.dart';
 
 class AppState extends ChangeNotifier {
@@ -14,6 +15,15 @@ class AppState extends ChangeNotifier {
   SharedPreferences? _prefs;
 
   ThemeMode themeMode = ThemeMode.light;
+
+  /// 'en' or 'bn' (Bangla).
+  String get lang => currentLang;
+
+  void setLang(String l) {
+    currentLang = l == 'bn' ? 'bn' : 'en';
+    _prefs?.setString('lang', currentLang);
+    notifyListeners();
+  }
 
   /// Admin screens are light by default and have their own toggle.
   bool adminDark = false;
@@ -42,6 +52,7 @@ class AppState extends ChangeNotifier {
     try {
       _prefs = await SharedPreferences.getInstance();
       final t = _prefs?.getString('theme');
+      currentLang = _prefs?.getString('lang') == 'bn' ? 'bn' : 'en';
       themeMode = t == 'dark' ? ThemeMode.dark : t == 'system' ? ThemeMode.system : ThemeMode.light;
       api.token = _prefs?.getString('token');
       adminName = _prefs?.getString('admin');

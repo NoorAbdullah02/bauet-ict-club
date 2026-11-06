@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import 'i18n.dart';
+
 /// Colour system shared with the website (royal blue / green on cloud-white, aqua on deep navy).
 class Pal {
   const Pal({
@@ -77,6 +79,7 @@ extension PalContext on BuildContext {
 /// Display face: Space Grotesk (both themes, for the coder look).
 TextStyle displayStyle(BuildContext context, double size, {FontWeight weight = FontWeight.w700, Color? color, double? height, double? letterSpacing}) {
   final c = color ?? context.pal.fg;
+  if (isBangla) return GoogleFonts.notoSansBengali(fontSize: size, fontWeight: weight, color: c, height: height ?? 1.25);
   return GoogleFonts.spaceGrotesk(fontSize: size, fontWeight: weight, color: c, height: height ?? 1.08, letterSpacing: letterSpacing ?? -0.5);
 }
 
@@ -90,6 +93,7 @@ TextStyle monoStyle(BuildContext context, {double size = 11, Color? color, FontW
 }
 
 TextStyle bodyStyle(BuildContext context, {double size = 14.5, Color? color, FontWeight weight = FontWeight.w400, double height = 1.55}) {
+  if (isBangla) return GoogleFonts.notoSansBengali(fontSize: size, fontWeight: weight, color: color ?? context.pal.fg, height: height);
   return GoogleFonts.inter(fontSize: size, fontWeight: weight, color: color ?? context.pal.fg, height: height);
 }
 
@@ -107,7 +111,7 @@ ThemeData buildTheme(Pal p) {
     surface: p.surface,
     onSurface: p.fg,
   );
-  final textTheme = GoogleFonts.interTextTheme(base.textTheme).apply(bodyColor: p.fg, displayColor: p.fg);
+  final textTheme = (isBangla ? GoogleFonts.notoSansBengaliTextTheme(base.textTheme) : GoogleFonts.interTextTheme(base.textTheme)).apply(bodyColor: p.fg, displayColor: p.fg);
   OutlineInputBorder border(Color c, [double w = 1]) =>
       OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: c, width: w));
 

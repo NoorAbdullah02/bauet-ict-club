@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import { Facebook, Github, Linkedin, Youtube, Mail, Phone, MapPin, ArrowUp, ArrowUpRight, ArrowRight, Check, Loader2, Smartphone, Heart, Send } from 'lucide-react';
 import useStore, { api } from '../context/store';
 import Logo from './Logo';
+import { useT } from '../lib/i18n';
 
 const EXPLORE = [['About', '/about'], ['Events', '/events'], ['Notices', '/notices'], ['Projects', '/projects'], ['Resources', '/resources'], ['Team', '/team'], ['Ambassadors', '/ambassadors'], ['FAQ', '/faq']];
 const INVOLVED = [['Join the club', '/join'], ['Committee', '/join/committee'], ['General member', '/join/general'], ['Ambassador', '/join/ambassador'], ['Get the app', '/app']];
@@ -36,6 +37,9 @@ function FooterSubscribe() {
 }
 
 export default function Footer() {
+  const t = useT();
+  const lang = useStore((s) => s.lang);
+  const setLang = useStore((s) => s.setLang);
   const settings = useStore((s) => s.settings);
   const s = settings?.socialLinks || {};
   const email = s.email || 'ictclubbauet@gmail.com';
@@ -96,12 +100,12 @@ export default function Footer() {
 
           <nav aria-label="Explore" className="md:col-span-2">
             <h3 className={h3}>Explore</h3>
-            <ul className="space-y-0.5">{EXPLORE.map(([l, to]) => <li key={to}><Link to={to} className={link}>{l}</Link></li>)}</ul>
+            <ul className="space-y-0.5">{EXPLORE.map(([l, to]) => <li key={to}><Link to={to} className={link}>{t(l)}</Link></li>)}</ul>
           </nav>
 
           <nav aria-label="Get involved" className="md:col-span-2">
             <h3 className={h3}>Get involved</h3>
-            <ul className="space-y-0.5">{INVOLVED.map(([l, to]) => <li key={to}><Link to={to} className={link}>{l}</Link></li>)}</ul>
+            <ul className="space-y-0.5">{INVOLVED.map(([l, to]) => <li key={to}><Link to={to} className={link}>{t(l)}</Link></li>)}</ul>
           </nav>
 
           <div className="md:col-span-4">
@@ -123,6 +127,12 @@ export default function Footer() {
         <div className="relative flex flex-wrap items-center justify-between gap-2 border-t border-white/12 bg-black/10 px-6 py-3.5 text-[12px] text-white/65 backdrop-blur-sm sm:px-10">
           <span>© {new Date().getFullYear()} BAUET ICT Club</span>
           <span className="inline-flex items-center gap-1.5 max-sm:hidden">Made with <Heart size={12} className="fill-[#FF6B8A] text-[#FF6B8A]" /> by the ICT Club</span>
+          <span className="inline-flex items-center gap-1" role="group" aria-label={t('Language')}>
+            {[['en', 'English'], ['bn', 'বাংলা']].map(([code, label]) => (
+              <button key={code} type="button" onClick={() => setLang(code)} aria-pressed={lang === code}
+                className={`rounded-full px-2.5 py-1 text-[11px] font-semibold transition ${lang === code ? 'bg-white text-[#0A1A4A]' : 'border border-white/25 text-white/80 hover:bg-white/15'}`}>{label}</button>
+            ))}
+          </span>
           <span><Link to="/admin" onMouseEnter={prefetchAdmin} onFocus={prefetchAdmin} className="inline-block py-2 text-white/75 hover:text-white">Admin</Link></span>
           <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} aria-label="Back to top" className="flex items-center gap-1.5 rounded-full border border-white/20 px-3 py-1.5 text-white/85 transition hover:bg-white/15 hover:text-white">Top <ArrowUp size={13} /></button>
         </div>

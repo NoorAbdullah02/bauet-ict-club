@@ -1,3 +1,4 @@
+import '../core/i18n.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -48,7 +49,7 @@ class _EventsScreenState extends State<EventsScreen> {
             child: OutlinedButton.icon(
               onPressed: () => context.push('/tickets'),
               icon: const Icon(Icons.confirmation_number_outlined, size: 18),
-              label: const Text('My tickets'),
+              label: Text(tr('My tickets')),
             ),
           ),
           const SizedBox(height: 14),

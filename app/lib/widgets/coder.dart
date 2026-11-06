@@ -1,3 +1,4 @@
+import '../core/i18n.dart';
 import 'dart:async';
 import 'dart:ui' as ui;
 
@@ -20,7 +21,7 @@ class CodeLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = color ?? context.pal.tech;
-    return Text('// ${text.toLowerCase()}', style: monoStyle(context, color: c, size: 11.5, weight: FontWeight.w600));
+    return Text('// ${tr(text).toLowerCase()}', style: monoStyle(context, color: c, size: 11.5, weight: FontWeight.w600));
   }
 }
 
@@ -363,7 +364,7 @@ class JoinPill extends StatelessWidget {
           boxShadow: [BoxShadow(color: p.gradient.first.withValues(alpha: 0.35), blurRadius: 20, offset: const Offset(0, 8))],
         ),
         child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          Text(label, style: bodyStyle(context, color: Colors.white, weight: FontWeight.w800, size: 15.5)),
+          Text(tr(label), style: bodyStyle(context, color: Colors.white, weight: FontWeight.w800, size: 15.5)),
           Container(
             width: 42,
             height: 42,

@@ -1,3 +1,4 @@
+import '../../core/i18n.dart';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -79,7 +80,7 @@ class _AdminFormsScreenState extends State<AdminFormsScreen> {
         title: const Text('New form'),
         content: TextField(controller: c, autofocus: true, decoration: const InputDecoration(labelText: 'Form name')),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(tr('Cancel'))),
           FilledButton(onPressed: () => Navigator.pop(ctx, c.text.trim()), child: const Text('Create')),
         ],
       ),
@@ -135,7 +136,7 @@ class _AdminFormsScreenState extends State<AdminFormsScreen> {
                   Text('/f/${f['slug']} · ${f['responses'] ?? 0} responses', style: monoStyle(context, size: 11, color: p.muted)),
                   const SizedBox(height: 6),
                   Wrap(spacing: 4, children: [
-                    TextButton.icon(onPressed: () async { await context.push('/admin/forms/${f['id']}'); _load(); }, icon: const Icon(Icons.edit_rounded, size: 16), label: const Text('Edit')),
+                    TextButton.icon(onPressed: () async { await context.push('/admin/forms/${f['id']}'); _load(); }, icon: const Icon(Icons.edit_rounded, size: 16), label: Text(tr('Edit'))),
                     TextButton.icon(onPressed: () => context.push('/admin/forms/${f['id']}/responses'), icon: const Icon(Icons.table_rows_rounded, size: 16), label: const Text('Responses')),
                     TextButton.icon(
                       onPressed: () async {
@@ -158,7 +159,7 @@ class _AdminFormsScreenState extends State<AdminFormsScreen> {
                         }
                       },
                       icon: const Icon(Icons.delete_outline_rounded, size: 16),
-                      label: const Text('Delete'),
+                      label: Text(tr('Delete')),
                     ),
                   ]),
                 ]),
@@ -534,7 +535,7 @@ class _AdminFormEditScreenState extends State<AdminFormEditScreen> {
               Text('Choose how people can pay. You can allow one way or both.', style: bodyStyle(context, size: 12.5, color: p.muted)),
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
-                title: const Text('Send money by hand'),
+                title: Text(tr('Send money by hand')),
                 subtitle: const Text('bKash, Nagad, Rocket + transaction ID. You press Verify. No account needed.'),
                 value: _manual,
                 onChanged: (v) => setState(() => _manual = v),
@@ -764,7 +765,7 @@ class _QuestionCardState extends State<QuestionCard> {
           if (t == 'section')
             SwitchListTile(contentPadding: EdgeInsets.zero, dense: true, title: const Text('Start a new page here (Next / Back buttons)'), value: q['page'] == true, onChanged: (v) => setState(() => q['page'] = v)),
           if (t != 'section') ...[
-            SwitchListTile(contentPadding: EdgeInsets.zero, dense: true, title: const Text('Required'), value: qRequired(q), onChanged: (v) {
+            SwitchListTile(contentPadding: EdgeInsets.zero, dense: true, title: Text(tr('Required')), value: qRequired(q), onChanged: (v) {
               setState(() => q['required'] = v);
               widget.onChanged();
             }),
@@ -936,7 +937,7 @@ class _AdminFormResponsesScreenState extends State<AdminFormResponsesScreen> {
                         }
                       },
                       icon: const Icon(Icons.delete_outline_rounded, size: 16),
-                      label: const Text('Delete'),
+                      label: Text(tr('Delete')),
                     ),
                   ]),
                 ]),

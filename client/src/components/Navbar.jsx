@@ -7,6 +7,7 @@ import Logo from './Logo';
 import SearchBox from './SearchBox';
 import useStore from '../context/store';
 import { cn } from '../lib/cn';
+import { useT } from '../lib/i18n';
 
 export const LINKS = [
   { to: '/', label: 'Home' },
@@ -26,6 +27,8 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searching, setSearching] = useState(false);
   const { theme, setTheme } = useStore(useShallow((s) => ({ theme: s.theme, setTheme: s.setTheme })));
+  useStore((s) => s.lang); // re-render when the language changes
+  const t = useT();
   const { pathname } = useLocation();
   const nextTheme = { light: 'dark', dark: 'system', system: 'light' }[theme] || 'light';
   const themeLabel = { light: 'Light theme', dark: 'Dark theme', system: 'Automatic theme (follows your device)' }[theme] || 'Light theme';
@@ -64,7 +67,7 @@ export default function Navbar() {
                   className={({ isActive }) => cn('relative block rounded-full px-3 py-2 text-[13px] font-medium transition-colors', isActive ? 'text-fg' : 'text-fg2 hover:text-fg')}>
                   {({ isActive }) => (<>
                     {isActive && <motion.span layoutId="nav-pill" transition={{ type: 'spring', stiffness: 380, damping: 32 }} className="absolute inset-0 -z-10 rounded-full bg-accent/10 ring-1 ring-accent/30" />}
-                    {l.label}
+                    {t(l.label)}
                   </>)}
                 </NavLink>
               </li>
@@ -72,13 +75,13 @@ export default function Navbar() {
           </ul>
 
           <div className="nav-actions flex shrink-0 items-center gap-2">
-            <button onClick={() => setSearching(true)} className={iconBtn} aria-label="Search the site" title="Search ( / )"><Search size={16} /></button>
+            <button onClick={() => setSearching(true)} className={iconBtn} aria-label={t('Search the site')} title={`${t('Search')} ( / )`}><Search size={16} /></button>
             <button onClick={() => setTheme(nextTheme)} className={iconBtn} aria-label={`${themeLabel}. Press to change`} title={`${themeLabel}. Press to change`}>
               {theme === 'dark' ? <Moon size={16} /> : theme === 'system' ? <Monitor size={16} /> : <Sun size={16} />}
             </button>
             <Link to="/app" className={cn(iconBtn, 'max-sm:hidden')} aria-label="Download the app" title="Download the app"><Download size={16} /></Link>
             <Link to="/admin" onMouseEnter={() => import("../admin/AdminApp")} className={cn(iconBtn, 'max-sm:hidden')} aria-label="Admin"><Shield size={16} /></Link>
-            <Link to="/join" className="btn-join"><span>Join us</span><i><ArrowRight size={14} /></i></Link>
+            <Link to="/join" className="btn-join"><span>{t('Join us')}</span><i><ArrowRight size={14} /></i></Link>
             <button onClick={() => setMobileOpen((o) => !o)} className={cn(iconBtn, 'lg:hidden')} aria-label="Menu">
               {mobileOpen ? <X size={18} /> : <Menu size={18} />}
             </button>
@@ -91,10 +94,10 @@ export default function Navbar() {
         {mobileOpen && (
           <motion.div initial={{ opacity: 0, clipPath: 'circle(0% at 90% 5%)' }} animate={{ opacity: 1, clipPath: 'circle(150% at 90% 5%)' }} exit={{ opacity: 0, clipPath: 'circle(0% at 90% 5%)' }}
             transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }} className="fixed inset-0 z-[99] flex flex-col justify-center gap-1 overflow-y-auto bg-bg px-8 py-24">
-            {[...LINKS, { to: '/join', label: 'Join the Club' }, { to: '/app', label: 'Download the App' }, { to: '/admin', label: 'Admin' }].map((l, i) => (
+            {[...LINKS, { to: '/join', label: 'Join the Club' }, { to: '/app', label: 'Download the app' }, { to: '/admin', label: 'Admin' }].map((l, i) => (
               <motion.div key={l.to} initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 + i * 0.045 }}>
                 <Link to={l.to} className="flex items-baseline gap-4 border-b border-line py-3 font-display text-3xl font-semibold text-fg">
-                  <span className="font-mono text-xs text-tech">{String(i + 1).padStart(2, '0')}</span>{l.label}
+                  <span className="font-mono text-xs text-tech">{String(i + 1).padStart(2, '0')}</span>{t(l.label)}
                 </Link>
               </motion.div>
             ))}

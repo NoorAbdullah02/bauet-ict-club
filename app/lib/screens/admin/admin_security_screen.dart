@@ -1,3 +1,4 @@
+import '../../core/i18n.dart';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -249,7 +250,7 @@ class _AdminSecurityScreenState extends State<AdminSecurityScreen> {
         AppField(controller: _code, label: '6-digit code', keyboard: TextInputType.number, icon: Icons.pin_rounded, maxLength: 6),
         const SizedBox(height: 12),
         GradientButton(label: 'Confirm and turn on', icon: Icons.check_rounded, loading: _busy, onPressed: _busy ? null : _enable),
-        TextButton(onPressed: () => setState(() => _setup = null), child: const Text('Cancel')),
+        TextButton(onPressed: () => setState(() => _setup = null), child: Text(tr('Cancel'))),
         _err(context),
       ]),
     );

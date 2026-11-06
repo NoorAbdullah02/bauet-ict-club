@@ -1,3 +1,4 @@
+import '../core/i18n.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -108,7 +109,7 @@ class _PaymentBoxState extends State<PaymentBox> {
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(borderRadius: BorderRadius.circular(14), border: Border.all(color: p.line), color: p.surface),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Row(children: [Icon(Icons.credit_card_rounded, size: 18, color: p.accent), const SizedBox(width: 8), Text('Pay online', style: bodyStyle(context, weight: FontWeight.w700))]),
+              Row(children: [Icon(Icons.credit_card_rounded, size: 18, color: p.accent), const SizedBox(width: 8), Text(tr('Pay online'), style: bodyStyle(context, weight: FontWeight.w700))]),
               const SizedBox(height: 6),
               Text('You go to a secure payment page and pay with bKash, Nagad, Rocket or a card. When it is done you come back here and your place is confirmed at once.', style: bodyStyle(context, size: 13, color: p.muted)),
               const SizedBox(height: 6),

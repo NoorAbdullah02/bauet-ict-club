@@ -3,6 +3,7 @@ import { formalDate, formalTime } from '../lib/format';
 import { motion } from 'framer-motion';
 import { ArrowUpRight, CalendarDays, MapPin, Pin, Crown, Users, Megaphone, Code, Trophy, Lightbulb, Cpu } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
+import { useT } from '../lib/i18n';
 import useStore from '../context/store';
 import Tilt from './Tilt';
 import CodeWindow from './CodeWindow';
@@ -21,18 +22,20 @@ const FEATURES = [
 ];
 
 function Head({ tag, title, to, cta }) {
+  const t = useT();
   return (
     <div className="mb-10 flex flex-wrap items-end justify-between gap-4">
       <div>
-        <div className="section-tag !mb-3">{tag}</div>
-        <h2 className="text-[clamp(2rem,4vw,3rem)] text-fg">{title}</h2>
+        <div className="section-tag !mb-3">{t(tag)}</div>
+        <h2 className="text-[clamp(2rem,4vw,3rem)] text-fg">{t(title)}</h2>
       </div>
-      {to && <Link to={to} className="group flex items-center gap-1.5 py-2 text-sm font-semibold text-accent">{cta} <ArrowUpRight size={16} className="transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5" /></Link>}
+      {to && <Link to={to} className="group flex items-center gap-1.5 py-2 text-sm font-semibold text-accent">{t(cta)} <ArrowUpRight size={16} className="transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5" /></Link>}
     </div>
   );
 }
 
 export default function HomeSections() {
+  const t = useT();
   const { events, notices, members } = useStore(useShallow((s) => ({ events: s.events, notices: s.notices, members: s.members })));
   const upcoming = [...events].sort((a, b) => new Date(a.date) - new Date(b.date)).slice(0, 3);
   const pinned = [...notices].sort((a, b) => Number(b.pinned) - Number(a.pinned)).slice(0, 3);
@@ -97,7 +100,7 @@ export default function HomeSections() {
           <div>
             <Head tag="Latest" title="Notices" to="/notices" cta="All" />
             <div className="space-y-3">
-              {pinned.length === 0 && <p className="text-sm text-muted">No notices right now.</p>}
+              {pinned.length === 0 && <p className="text-sm text-muted">{t('No notices right now.')}</p>}
               {pinned.map((n) => (
                 <Link key={n.id} to="/notices" className="spot block rounded-3xl border border-line bg-surface p-5 transition hover:border-tech/50">
                   <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-tech">{n.pinned && <Pin size={11} />}{n.priority}</div>
@@ -117,8 +120,8 @@ export default function HomeSections() {
             <div className="pointer-events-none absolute -bottom-24 left-10 size-80 rounded-full bg-tech/25 blur-[110px]" />
             <div className="relative grid items-center gap-10 lg:grid-cols-[1.2fr_1fr]">
               <div>
-                <div className="section-tag !mb-4 text-tech">Applications open</div>
-                <h2 className="text-[clamp(2.2rem,5vw,3.8rem)] leading-[1.02] text-white">Find your place in the club.</h2>
+                <div className="section-tag !mb-4 text-tech">{t('Applications open')}</div>
+                <h2 className="text-[clamp(2.2rem,5vw,3.8rem)] leading-[1.02] text-white">{t('Find your place in the club.')}</h2>
                 <p className="mt-4 max-w-md text-white/60">Lead as a committee member, or join the community as a general member — each has its own simple application.</p>
               </div>
               <div className="grid gap-3">

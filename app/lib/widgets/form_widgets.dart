@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
+import '../core/i18n.dart';
 import '../core/theme.dart';
 import '../core/utils.dart';
 import 'image_editor.dart';
@@ -66,8 +67,8 @@ class AppField extends StatelessWidget {
       style: bodyStyle(context),
       cursorColor: p.tech,
       decoration: InputDecoration(
-        labelText: label,
-        hintText: hint,
+        labelText: tr(label),
+        hintText: hint == null ? null : tr(hint!),
         errorText: error,
         counterText: '',
         prefixIcon: icon == null ? null : Icon(icon, size: 19, color: p.muted),

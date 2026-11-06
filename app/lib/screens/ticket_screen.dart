@@ -1,3 +1,4 @@
+import '../core/i18n.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -91,7 +92,7 @@ class _TicketScreenState extends State<TicketScreen> {
         content: const Text('Your seat goes to the next person and this ticket stops working.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Keep it')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Cancel registration')),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(tr('Cancel registration'))),
         ],
       ),
     );
@@ -232,7 +233,7 @@ class _TicketScreenState extends State<TicketScreen> {
                     context,
                     googleCalendarUri(EventItem.fromJson({'id': ev['id'], 'title': ev['title'], 'date': _day(ev['date']), 'time': ev['time'], 'location': ev['location']})).toString()),
                 icon: const Icon(Icons.event_available_rounded, size: 17),
-                label: const Text('Calendar'),
+                label: Text(tr('Calendar')),
               ),
             if (t['certificate'] == true)
               FilledButton.icon(
