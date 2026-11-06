@@ -115,13 +115,12 @@ class AppShell extends StatelessWidget {
           ),
         ),
       ),
-      bottomNavigationBar: NavigationBar(
-        backgroundColor: p.surface,
-        selectedIndex: tabIndex < 0 ? 0 : tabIndex,
-        onDestinationSelected: (i) => context.go(_tabs[i].path),
-        destinations: [
-          for (final t in _tabs) NavigationDestination(icon: Icon(t.icon), selectedIcon: Icon(t.activeIcon), label: t.label),
-        ],
+      bottomNavigationBar: _GlossNav(
+        selected: tabIndex < 0 ? 0 : tabIndex,
+        onTap: (i) {
+          HapticFeedback.selectionClick();
+          context.go(_tabs[i].path);
+        },
       ),
       ),
     );
@@ -187,6 +186,92 @@ class _AppDrawer extends StatelessWidget {
               },
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+
+/// Floating, rounded, glossy tab bar: a glass-like capsule with a soft highlight on top and a gradient pill under the open tab.
+class _GlossNav extends StatelessWidget {
+  const _GlossNav({required this.selected, required this.onTap});
+  final int selected;
+  final ValueChanged<int> onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.pal;
+    final dark = p.dark;
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(18, 0, 18, 12),
+        child: Container(
+          height: 70,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(32),
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: dark ? [const Color(0xFF1A2C5E), const Color(0xFF0E1D42)] : [Colors.white, const Color(0xFFEAF1FF)],
+            ),
+            border: Border.all(color: dark ? Colors.white.withValues(alpha: 0.14) : Colors.white, width: 1.2),
+            boxShadow: [
+              BoxShadow(color: (dark ? Colors.black : const Color(0xFF1F4FD8)).withValues(alpha: dark ? 0.5 : 0.22), blurRadius: 28, offset: const Offset(0, 12)),
+              if (dark) BoxShadow(color: p.accent.withValues(alpha: 0.16), blurRadius: 22, spreadRadius: -4),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(32),
+            child: Stack(children: [
+              // gloss: a bright band along the top edge that fades out
+              Positioned(
+                left: 0,
+                right: 0,
+                top: 0,
+                height: 34,
+                child: IgnorePointer(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.white.withValues(alpha: dark ? 0.16 : 0.85), Colors.white.withValues(alpha: 0)]),
+                    ),
+                  ),
+                ),
+              ),
+              Row(children: [
+                for (var i = 0; i < _tabs.length; i++)
+                  Expanded(
+                    child: Semantics(
+                      button: true,
+                      selected: i == selected,
+                      label: _tabs[i].label,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(28),
+                        onTap: () => onTap(i),
+                        child: Center(
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 260),
+                            curve: Curves.easeOutCubic,
+                            padding: EdgeInsets.symmetric(horizontal: i == selected ? 16 : 8, vertical: 8),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(24),
+                              gradient: i == selected ? p.brand : null,
+                              boxShadow: i == selected ? [BoxShadow(color: p.gradient.first.withValues(alpha: 0.45), blurRadius: 14, offset: const Offset(0, 5))] : null,
+                            ),
+                            child: Column(mainAxisSize: MainAxisSize.min, children: [
+                              Icon(i == selected ? _tabs[i].activeIcon : _tabs[i].icon, size: 22, color: i == selected ? Colors.white : p.muted),
+                              const SizedBox(height: 2),
+                              Text(_tabs[i].label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: i == selected ? Colors.white : p.muted)),
+                            ]),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ]),
+            ]),
+          ),
         ),
       ),
     );

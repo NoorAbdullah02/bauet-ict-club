@@ -1,7 +1,7 @@
 # Status and to-do (hand-over)
 
 A snapshot of what exists, what is missing and what should be improved next, so anyone (or any account) can continue from here.
-Last updated: 2026-11-06. Everything described as "done" was built and checked as noted; "not verified" means it was not tried in that setting.
+Last updated: 2026-11-06. **What only the owner can do (keys, accounts, Firebase, payments): [WHAT_YOU_NEED_TO_DO.md](WHAT_YOU_NEED_TO_DO.md).** Everything described as "done" was built and checked as noted; "not verified" means it was not tried in that setting.
 
 ## 1. What exists and works
 

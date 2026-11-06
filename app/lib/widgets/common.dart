@@ -33,7 +33,7 @@ class AuroraBackground extends StatelessWidget {
         Positioned.fill(
           child: RepaintBoundary(
             child: Stack(children: [
-              ColoredBox(color: p.bg),
+              Positioned.fill(child: ColoredBox(color: p.bg)),
               // faint grid that fades out toward the edges
               Positioned.fill(
                 child: IgnorePointer(
@@ -116,7 +116,7 @@ class GlassCard extends StatelessWidget {
     super.key,
     required this.child,
     this.padding = const EdgeInsets.all(18),
-    this.radius = 24,
+    this.radius = 26,
     this.onTap,
     this.gradient,
     this.blur = false,
@@ -137,12 +137,18 @@ class GlassCard extends StatelessWidget {
       padding: padding,
       decoration: BoxDecoration(
         borderRadius: r,
-        gradient: gradient,
-        color: gradient == null ? (p.dark ? p.surface.withValues(alpha: 0.62) : p.surface) : null,
-        border: Border.all(color: p.line),
+        gradient: gradient ??
+            LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: p.dark
+                  ? [Color.lerp(p.surface, Colors.white, 0.07)!.withValues(alpha: 0.78), p.surface.withValues(alpha: 0.6)]
+                  : [Colors.white, const Color(0xFFF1F6FF)],
+            ),
+        border: Border.all(color: p.dark ? Colors.white.withValues(alpha: 0.12) : Colors.white, width: 1.2),
         boxShadow: p.dark
-            ? null
-            : [BoxShadow(color: const Color(0xFF0B0B0F).withValues(alpha: 0.05), blurRadius: 24, offset: const Offset(0, 10))],
+            ? [BoxShadow(color: Colors.black.withValues(alpha: 0.28), blurRadius: 22, offset: const Offset(0, 10))]
+            : [BoxShadow(color: const Color(0xFF1F4FD8).withValues(alpha: 0.10), blurRadius: 26, offset: const Offset(0, 12))],
       ),
       child: child,
     );
@@ -238,10 +244,11 @@ class GhostButton extends StatelessWidget {
       onPressed: onPressed,
       style: OutlinedButton.styleFrom(
         foregroundColor: p.fg,
-        side: BorderSide(color: p.line.withValues(alpha: 0.5)),
+        backgroundColor: p.dark ? Colors.white.withValues(alpha: 0.06) : Colors.white.withValues(alpha: 0.8),
+        side: BorderSide(color: p.accent.withValues(alpha: p.dark ? 0.45 : 0.4), width: 1.2),
         padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 16),
         minimumSize: expand ? const Size.fromHeight(0) : null,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       ),
       child: Row(
         mainAxisSize: expand ? MainAxisSize.max : MainAxisSize.min,

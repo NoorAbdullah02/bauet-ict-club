@@ -104,12 +104,19 @@ class EventCard extends StatelessWidget {
           children: [
             Stack(children: [
               SizedBox(height: compact ? 130 : 170, width: double.infinity, child: NetImage(event.imageUrl, fallbackLabel: event.title)),
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.black.withValues(alpha: 0.18), Colors.transparent, p.surface.withValues(alpha: 0.9)], stops: const [0, 0.5, 1])),
+                  ),
+                ),
+              ),
               Positioned(
                 left: 14,
                 top: 14,
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(borderRadius: BorderRadius.circular(14), color: p.bg.withValues(alpha: 0.85)),
+                  decoration: BoxDecoration(borderRadius: BorderRadius.circular(16), color: p.bg.withValues(alpha: 0.88), border: Border.all(color: Colors.white.withValues(alpha: 0.25))),
                   child: Column(children: [
                     Text(d == null ? '--' : '${d.day}', style: displayStyle(context, 20, height: 1)),
                     Text(d == null ? '' : monthShort(d).toUpperCase(), style: monoStyle(context, size: 9.5, color: p.tech)),
