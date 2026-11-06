@@ -283,7 +283,12 @@ class _MyTicketsScreenState extends State<MyTicketsScreen> {
       return;
     }
     setState(() => _error = null);
-    final path = o.kind == 'ticket' ? '/ticket/${o.value}' : o.kind == 'form' ? '/f/${o.value}' : '/events/${o.value}';
+    final path = switch (o.kind) {
+      'ticket' => '/ticket/${o.value}',
+      'verify' => '/verify/${o.value}',
+      'form' => '/f/${o.value}',
+      _ => '/events/${o.value}',
+    };
     context.push(path);
   }
 
@@ -304,7 +309,7 @@ class _MyTicketsScreenState extends State<MyTicketsScreen> {
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text('Open a ticket or a link', style: displayStyle(context, 18)),
                   const SizedBox(height: 4),
-                  Text('Paste the ticket code from your email, or a link to an event or a form.', style: bodyStyle(context, size: 13, color: p.muted)),
+                  Text('Paste the ticket code from your email, or a link to an event, a form or a certificate.', style: bodyStyle(context, size: 13, color: p.muted)),
                   const SizedBox(height: 14),
                   AppField(controller: _input, label: 'Ticket code or link', error: _error, icon: Icons.qr_code_2_rounded, textInputAction: TextInputAction.go, onSubmitted: _open, onChanged: () => setState(() => _error = null)),
                   const SizedBox(height: 14),

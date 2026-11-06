@@ -7,7 +7,14 @@ import 'theme.dart';
 import '../screens/about_screen.dart';
 import '../screens/achievements_screen.dart';
 import '../screens/admin/admin_applications_screen.dart';
+import '../screens/admin/admin_activity_screen.dart';
 import '../screens/admin/admin_checkin_screen.dart';
+import '../screens/admin/admin_forms_screen.dart';
+import '../screens/admin/admin_inbox_screen.dart';
+import '../screens/admin/admin_links_screen.dart';
+import '../screens/admin/admin_newsletter_screen.dart';
+import '../screens/admin/admin_team_screen.dart';
+import '../screens/admin/admin_transfer_screen.dart';
 import '../screens/admin/admin_committees_screen.dart';
 import '../screens/admin/admin_security_screen.dart';
 import '../screens/admin/admin_signups_screen.dart';
@@ -24,6 +31,7 @@ import '../screens/event_detail_screen.dart';
 import '../screens/events_screen.dart';
 import '../screens/public_form_screen.dart';
 import '../screens/ticket_screen.dart';
+import '../screens/verify_screen.dart';
 import '../screens/not_found_screen.dart';
 import '../screens/gallery_screen.dart';
 import '../screens/home_screen.dart';
@@ -105,6 +113,7 @@ GoRouter buildRouter(AppState state) {
       ),
       GoRoute(path: '/tickets', pageBuilder: (c, s) => _slide(s, const MyTicketsScreen())),
       GoRoute(path: '/ticket/:code', pageBuilder: (c, s) => _slide(s, TicketScreen(code: s.pathParameters['code'] ?? ''))),
+      GoRoute(path: '/verify/:code', pageBuilder: (c, s) => _slide(s, VerifyScreen(code: s.pathParameters['code'] ?? ''))),
       GoRoute(path: '/f/:slug', pageBuilder: (c, s) => _slide(s, PublicFormScreen(slug: s.pathParameters['slug'] ?? ''))),
       GoRoute(path: '/chat', pageBuilder: (c, s) => _slide(s, const ChatScreen())),
       GoRoute(path: '/admin/login', pageBuilder: (c, s) => _slide(s, _admin(const AdminLoginScreen()))),
@@ -115,6 +124,21 @@ GoRouter buildRouter(AppState state) {
       GoRoute(path: '/admin/committees', pageBuilder: (c, s) => _slide(s, _admin(const AdminCommitteesScreen()))),
       GoRoute(path: '/admin/checkin', pageBuilder: (c, s) => _slide(s, _admin(const AdminCheckinScreen()))),
       GoRoute(path: '/admin/signups', pageBuilder: (c, s) => _slide(s, _admin(const AdminSignupsScreen()))),
+      GoRoute(path: '/admin/activity', pageBuilder: (c, s) => _slide(s, _admin(const AdminActivityScreen()))),
+      GoRoute(path: '/admin/team', pageBuilder: (c, s) => _slide(s, _admin(const AdminTeamScreen()))),
+      GoRoute(path: '/admin/newsletter', pageBuilder: (c, s) => _slide(s, _admin(const AdminNewsletterScreen()))),
+      GoRoute(path: '/admin/inbox', pageBuilder: (c, s) => _slide(s, _admin(const AdminInboxScreen()))),
+      GoRoute(path: '/admin/links', pageBuilder: (c, s) => _slide(s, _admin(const AdminLinksScreen()))),
+      GoRoute(path: '/admin/transfer', pageBuilder: (c, s) => _slide(s, _admin(const AdminTransferScreen()))),
+      GoRoute(path: '/admin/forms', pageBuilder: (c, s) => _slide(s, _admin(const AdminFormsScreen()))),
+      GoRoute(
+        path: '/admin/forms/:id',
+        pageBuilder: (c, s) => _slide(s, _admin(AdminFormEditScreen(formId: int.tryParse(s.pathParameters['id'] ?? '') ?? 0))),
+      ),
+      GoRoute(
+        path: '/admin/forms/:id/responses',
+        pageBuilder: (c, s) => _slide(s, _admin(AdminFormResponsesScreen(formId: int.tryParse(s.pathParameters['id'] ?? '') ?? 0))),
+      ),
       GoRoute(path: '/admin/security', pageBuilder: (c, s) => _slide(s, _admin(const AdminSecurityScreen()))),
       GoRoute(path: '/admin/settings', pageBuilder: (c, s) => _slide(s, _admin(const AdminSettingsScreen()))),
       GoRoute(
