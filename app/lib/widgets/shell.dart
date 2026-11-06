@@ -68,6 +68,7 @@ class AppShell extends StatelessWidget {
               ])
             : Text(_titleFor(location), style: displayStyle(context, 22)),
         actions: [
+          IconButton(tooltip: 'Search', onPressed: () => context.push('/search'), icon: const Icon(Icons.search_rounded)),
           IconButton(
             tooltip: 'Toggle theme',
             onPressed: () {

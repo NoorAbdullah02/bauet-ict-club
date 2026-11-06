@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../core/theme.dart';
@@ -91,7 +92,9 @@ class _LeaderCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = context.pal;
-    return Container(
+    return GestureDetector(
+      onTap: () => context.push('/card/${member.id}'),
+      child: Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(32),
         gradient: LinearGradient(
@@ -121,7 +124,7 @@ class _LeaderCard extends StatelessWidget {
           ]),
         ),
       ]),
-    );
+    ));
   }
 }
 
@@ -160,6 +163,7 @@ class _MemberCard extends StatelessWidget {
     final p = context.pal;
     return GlassCard(
       padding: const EdgeInsets.all(14),
+      onTap: () => context.push('/card/${member.id}'),
       child: Column(children: [
         Expanded(
           child: AspectRatio(

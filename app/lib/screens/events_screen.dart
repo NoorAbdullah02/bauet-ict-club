@@ -7,6 +7,7 @@ import '../core/utils.dart';
 import '../models/models.dart';
 import '../state/app_state.dart';
 import '../widgets/common.dart';
+import '../widgets/event_calendar.dart';
 
 class EventsScreen extends StatefulWidget {
   const EventsScreen({super.key});
@@ -17,6 +18,7 @@ class EventsScreen extends StatefulWidget {
 
 class _EventsScreenState extends State<EventsScreen> {
   String _filter = 'Upcoming';
+  bool _calendar = false;
 
   @override
   Widget build(BuildContext context) {
@@ -49,8 +51,14 @@ class _EventsScreenState extends State<EventsScreen> {
               label: const Text('My tickets'),
             ),
           ),
-          const SizedBox(height: 18),
-          SizedBox(
+          const SizedBox(height: 14),
+          Row(children: [
+            PillChip(label: 'List', selected: !_calendar, onTap: () => setState(() => _calendar = false)),
+            const SizedBox(width: 10),
+            PillChip(label: 'Calendar', selected: _calendar, onTap: () => setState(() => _calendar = true)),
+          ]),
+          const SizedBox(height: 14),
+          if (!_calendar) SizedBox(
             height: 42,
             child: ListView(
               scrollDirection: Axis.horizontal,
@@ -64,7 +72,9 @@ class _EventsScreenState extends State<EventsScreen> {
             ),
           ),
           const SizedBox(height: 18),
-          if (state.loading && !state.loadedOnce)
+          if (_calendar)
+            EventCalendarView(events: state.events)
+          else if (state.loading && !state.loadedOnce)
             const ShimmerList(count: 3, height: 250)
           else if (state.error != null && state.events.isEmpty)
             ErrorState(message: state.error!, onRetry: state.loadAll)

@@ -279,4 +279,15 @@ class Api {
       throw _wrap(e);
     }
   }
+
+  /// Site-wide search: [{type, id, title, sub, path}].
+  Future<List<Map<String, dynamic>>> search(String q) async {
+    final d = await _send(() => _dio.get('/search', queryParameters: {'q': q}));
+    if (d is! List) return [];
+    return d.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
+  }
+
+  /// A member's card: { member: {...}, code, verified }. Pass the scanned code [c] to check it.
+  Future<Map<String, dynamic>> memberCard(int id, {String? c}) async =>
+      _map(await _send(() => _dio.get('/card/$id', queryParameters: {if (c != null && c.isNotEmpty) 'c': c})));
 }
