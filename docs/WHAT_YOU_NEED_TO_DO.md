@@ -62,7 +62,7 @@ How it works today: the student sends money to **your** number, types the transa
 - [ ] Add team members who should help as **editors** (Admin → Team logins, in the app or website).
 
 ## D. The app (Android)
-- [ ] Every build is signed with a temporary key, so **installing a newer APK over an older one may need the old app removed first**. For a permanent key: make an upload keystore, store it as GitHub secrets, tell me, and I wire it into the build.
+- [x] Builds are now signed with a **permanent club key** (GitHub secrets `ANDROID_KEYSTORE_*`; a backup of the key is in `~/bauet-ict-club-signing/` on the machine that made it: copy that folder somewhere safe, it cannot be made again). The first APK signed this way needs the old app removed once; after that every new APK installs over the old one.
 - [ ] Putting the app on Google Play needs a developer account (one-time 25 USD) and a permanent signing key.
 - [ ] iPhone: an iOS app needs a Mac build and an Apple developer account (99 USD a year). Not set up.
 

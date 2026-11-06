@@ -20,8 +20,8 @@ class Api {
   Api()
       : _dio = Dio(BaseOptions(
           baseUrl: AppConfig.baseUrl,
-          connectTimeout: const Duration(seconds: 15),
-          receiveTimeout: const Duration(seconds: 45),
+          connectTimeout: const Duration(seconds: 45), // the free server can need up to a minute to wake up
+          receiveTimeout: const Duration(seconds: 60),
           sendTimeout: const Duration(seconds: 45),
           headers: {'Accept': 'application/json'},
         ));
@@ -49,7 +49,7 @@ class Api {
       case DioExceptionType.sendTimeout:
       case DioExceptionType.receiveTimeout:
       case DioExceptionType.connectionError:
-        return ApiException('Cannot reach the server. Check your connection.');
+        return ApiException('Cannot reach the server. Check your internet, then try again in a minute (the server may be waking up).');
       default:
         return ApiException(e.message ?? 'Something went wrong', status: e.response?.statusCode);
     }
@@ -134,8 +134,30 @@ class Api {
   Future<void> submitRegistration(Map<String, dynamic> body) => _send(() => _dio.post('/registrations', data: body));
 
   // ---- admin ----
+  /// Wakes the server up (the free plan sleeps after a quiet period) and says whether it answered. Never throws.
+  Future<bool> wake({Duration wait = const Duration(seconds: 75)}) async {
+    try {
+      final r = await _dio.get('/health', options: Options(receiveTimeout: wait, sendTimeout: wait, validateStatus: (s) => s != null && s < 500));
+      return r.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<Map<String, dynamic>> login(String username, String password, {String? code}) async {
-    final data = await _send(() => _dio.post('/auth/login', data: {'username': username, 'password': password, if (code != null && code.isNotEmpty) 'code': code}));
+    Future<dynamic> post() => _send(() => _dio.post('/auth/login', data: {'username': username, 'password': password, if (code != null && code.isNotEmpty) 'code': code}));
+    dynamic data;
+    try {
+      data = await post();
+    } on ApiException catch (e) {
+      // no answer at all: the server was probably asleep. Wake it up and try once more.
+      if (e.status == null && e.message.startsWith('Cannot reach')) {
+        await wake();
+        data = await post();
+      } else {
+        rethrow;
+      }
+    }
     return data is Map ? Map<String, dynamic>.from(data) : {};
   }
 
