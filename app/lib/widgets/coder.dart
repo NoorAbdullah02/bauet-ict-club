@@ -215,7 +215,7 @@ class _TerminalCardState extends State<TerminalCard> with SingleTickerProviderSt
     final total = segs.fold<int>(0, (a, s) => a + s.text.length);
     final base = monoStyle(context, color: Colors.white, size: 13.5).copyWith(height: 1.7, letterSpacing: 0.1);
 
-    return GestureDetector(
+    return RepaintBoundary(child: GestureDetector(
       onTap: _replay,
       child: Container(
         decoration: BoxDecoration(
@@ -258,7 +258,7 @@ class _TerminalCardState extends State<TerminalCard> with SingleTickerProviderSt
           ),
         ]),
       ),
-    );
+    ));
   }
 }
 
@@ -281,7 +281,7 @@ class LogoImage extends StatelessWidget {
       errorBuilder: (context, _, __) => BrandMark(size: height),
     );
     if (!dark) return img;
-    return Stack(alignment: Alignment.center, children: [
+    return RepaintBoundary(child: Stack(alignment: Alignment.center, children: [
       Opacity(
         opacity: 0.75,
         child: ImageFiltered(
@@ -290,7 +290,7 @@ class LogoImage extends StatelessWidget {
         ),
       ),
       img,
-    ]);
+    ]));
   }
 }
 

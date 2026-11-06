@@ -100,22 +100,23 @@ class AppShell extends StatelessWidget {
             HapticFeedback.lightImpact();
             context.push('/chat');
           },
-          child: Container(
-            width: 60,
-            height: 60,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: p.brand,
-              boxShadow: [BoxShadow(color: p.gradient.first.withValues(alpha: 0.45), blurRadius: 22, offset: const Offset(0, 8))],
-            ),
-            child: const ChatFace(size: 34),
-          )
-              .animate(onPlay: (c) => c.repeat(reverse: true))
-              .moveY(begin: 0, end: -4, duration: 1800.ms, curve: Curves.easeInOut),
+          child: RepaintBoundary(
+            child: Container(
+              width: 60,
+              height: 60,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: p.brand,
+                boxShadow: [BoxShadow(color: p.gradient.first.withValues(alpha: 0.45), blurRadius: 22, offset: const Offset(0, 8))],
+              ),
+              child: const ChatFace(size: 34),
+            ).animate(onPlay: (c) => c.repeat(reverse: true)).moveY(begin: 0, end: -4, duration: 1800.ms, curve: Curves.easeInOut),
+          ),
         ),
       ),
       bottomNavigationBar: NavigationBar(
+        backgroundColor: p.surface,
         selectedIndex: tabIndex < 0 ? 0 : tabIndex,
         onDestinationSelected: (i) => context.go(_tabs[i].path),
         destinations: [

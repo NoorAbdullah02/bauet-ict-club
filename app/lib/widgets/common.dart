@@ -27,35 +27,38 @@ class AuroraBackground extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = context.pal;
     final a = p.dark ? 0.36 : 0.24;
-    // the moving glows live in their own layer, so they never repaint the screen content on top
-    final backdrop = RepaintBoundary(
-      child: Stack(
+    // static parts (colour, grid, edge) are drawn once; each moving glow is its own cached layer, so nothing repaints per frame
+    final backdrop = Stack(
       children: [
-        Positioned.fill(child: ColoredBox(color: p.bg)),
+        Positioned.fill(
+          child: RepaintBoundary(
+            child: Stack(children: [
+              ColoredBox(color: p.bg),
+              // faint grid that fades out toward the edges
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: ShaderMask(
+                    blendMode: BlendMode.dstIn,
+                    shaderCallback: (r) => const RadialGradient(
+                      center: Alignment(0, -0.2),
+                      radius: 0.95,
+                      colors: [Colors.white, Colors.transparent],
+                      stops: [0.25, 1],
+                    ).createShader(r),
+                    child: CustomPaint(painter: _GridPainter(p.accent.withValues(alpha: p.dark ? 0.09 : 0.07))),
+                  ),
+                ),
+              ),
+            ]),
+          ),
+        ),
         Positioned(top: -150, left: -130, child: _Glow(color: p.accent.withValues(alpha: a), size: 440)),
         Positioned(top: 200, right: -170, child: _Glow(color: p.tech.withValues(alpha: a * 0.8), size: 380)),
         Positioned(bottom: -170, left: -70, child: _Glow(color: p.third.withValues(alpha: a * 0.7), size: 400)),
-        Positioned(top: 330, left: 60, child: _Glow(color: p.third.withValues(alpha: a * 0.35), size: 300)),
         Positioned(bottom: 120, right: -120, child: _Glow(color: const Color(0xFF8B5CF6).withValues(alpha: a * 0.6), size: 320)),
-        // faint grid that fades out toward the edges
-        Positioned.fill(
-          child: IgnorePointer(
-            child: ShaderMask(
-              blendMode: BlendMode.dstIn,
-              shaderCallback: (r) => const RadialGradient(
-                center: Alignment(0, -0.2),
-                radius: 0.95,
-                colors: [Colors.white, Colors.transparent],
-                stops: [0.25, 1],
-              ).createShader(r),
-              child: CustomPaint(painter: _GridPainter(p.accent.withValues(alpha: p.dark ? 0.09 : 0.07))),
-            ),
-          ),
-        ),
         // soft dark edge like the website
-        if (p.dark) const Positioned.fill(child: IgnorePointer(child: DecoratedBox(decoration: BoxDecoration(gradient: RadialGradient(center: Alignment(0, -0.2), radius: 1.15, colors: [Colors.transparent, Color(0x8C020616)], stops: [0.55, 1]))))),
+        if (p.dark) const Positioned.fill(child: IgnorePointer(child: RepaintBoundary(child: DecoratedBox(decoration: BoxDecoration(gradient: RadialGradient(center: Alignment(0, -0.2), radius: 1.15, colors: [Colors.transparent, Color(0x8C020616)], stops: [0.55, 1])))))),
       ],
-    ),
     );
     return Stack(children: [Positioned.fill(child: backdrop), Positioned.fill(child: child)]);
   }
@@ -91,12 +94,14 @@ class _Glow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return IgnorePointer(
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: RadialGradient(colors: [color, color.withValues(alpha: 0)]),
+      child: RepaintBoundary(
+        child: Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: RadialGradient(colors: [color, color.withValues(alpha: 0)]),
+          ),
         ),
       )
           .animate(onPlay: (c) => c.repeat(reverse: true))
@@ -114,7 +119,7 @@ class GlassCard extends StatelessWidget {
     this.radius = 24,
     this.onTap,
     this.gradient,
-    this.blur = true,
+    this.blur = false,
   });
 
   final Widget child;
@@ -370,7 +375,8 @@ class NetImage extends StatelessWidget {
             fit: fit,
             width: width,
             height: height,
-            fadeInDuration: 300.ms,
+            memCacheWidth: width != null ? (width! * 2).round().clamp(120, 1200) : 720,
+            fadeInDuration: 200.ms,
             placeholder: (context, _) => ShimmerBox(width: width, height: height),
             errorWidget: (context, _, __) => fallback(),
           );
