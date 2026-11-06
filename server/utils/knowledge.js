@@ -12,8 +12,8 @@ async function load() {
   if (cache.data && Date.now() - cache.at < CACHE_MS) return cache.data;
   const today = new Date().toISOString().slice(0, 10);
   const [site] = (await safe("SELECT value FROM settings WHERE key = 'site'")).map((r) => r.value || {});
-  const events = await safe('SELECT title, date, time, location, category, description FROM events WHERE deleted_at IS NULL AND date >= $1 ORDER BY date ASC LIMIT 6', [today]);
-  const notices = await safe('SELECT title, date, content FROM notices WHERE deleted_at IS NULL AND (expiry_date IS NULL OR expiry_date >= $1) ORDER BY pinned DESC, created_at DESC LIMIT 5', [today]);
+  const events = await safe('SELECT title, date, time, location, category, description FROM events WHERE deleted_at IS NULL AND (publish_at IS NULL OR publish_at <= NOW()) AND NOT COALESCE(is_draft, FALSE) AND date >= $1 ORDER BY date ASC LIMIT 6', [today]);
+  const notices = await safe('SELECT title, date, content FROM notices WHERE deleted_at IS NULL AND (publish_at IS NULL OR publish_at <= NOW()) AND NOT COALESCE(is_draft, FALSE) AND (expiry_date IS NULL OR expiry_date >= $1) ORDER BY pinned DESC, created_at DESC LIMIT 5', [today]);
   const faqs = await safe('SELECT question, answer FROM faqs WHERE deleted_at IS NULL ORDER BY sort_order ASC LIMIT 20');
   const projects = await safe('SELECT title, summary, status, tech FROM projects WHERE deleted_at IS NULL ORDER BY created_at DESC LIMIT 8');
   const sponsors = await safe('SELECT name, tier FROM sponsors WHERE deleted_at IS NULL ORDER BY sort_order ASC LIMIT 12');

@@ -52,7 +52,7 @@ export default function EventStudio() {
     }
     setSaving(true);
     try {
-      const body = Object.fromEntries(TYPES.events.fields.map((f) => [f.key, form[f.key] ?? (f.type === 'checkbox' ? false : '')]));
+      const body = Object.fromEntries(TYPES.events.fields.map((f) => [f.key, form[f.key] ?? (f.type === 'checkbox' || f.type === 'hidden' ? false : '')]));
       if (mode === 'club') body.reg_url = ''; else body.capacity = 0;
       const made = await addItem('events', body);
       if (withForm) { toast.success('Event created: now build its registration form'); setParams({ id: String(made.id) }, { replace: true }); window.scrollTo({ top: 0 }); }
@@ -113,6 +113,7 @@ export default function EventStudio() {
             </div>
             <div className="mt-4 space-y-4">
               <FormField field={FIELDS.reg_open} value={form.reg_open} onChange={set} upload={upload} />
+              <FormField field={FIELDS.publish_at} all={form} value={form.publish_at} onChange={set} upload={upload} />
               {mode === 'club'
                 ? <FormField field={FIELDS.capacity} value={form.capacity} onChange={set} upload={upload} />
                 : (

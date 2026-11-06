@@ -306,6 +306,30 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
       ok((await call('GET', '/api/event-registrations/analytics/99999999', undefined, T)).s === 404, 'analytics of an unknown event is 404');
     }
 
+    // drafts and scheduled posts
+    {
+      const future = new Date(Date.now() + 3 * 864e5).toISOString();
+      const past = new Date(Date.now() - 3600e3).toISOString();
+      const draft = await call('POST', '/api/notices', { title: 'Hidden Quokka Draft', content: 'x', is_draft: true }, T);
+      const later = await call('POST', '/api/notices', { title: 'Later Quokka Notice', content: 'x', publish_at: future }, T);
+      const due = await call('POST', '/api/notices', { title: 'Due Quokka Notice', content: 'x', publish_at: past }, T);
+      ok(draft.s === 201 && later.s === 201 && due.s === 201, 'drafts and scheduled notices can be saved', draft.j);
+      const pub = ((await call('GET', '/api/notices')).j || []).map((x) => x.title);
+      ok(!pub.includes('Hidden Quokka Draft') && !pub.includes('Later Quokka Notice') && pub.includes('Due Quokka Notice'), 'the public sees only posts that are live', pub);
+      const adm = ((await call('GET', '/api/notices', undefined, T)).j || []).map((x) => x.title);
+      ok(adm.includes('Hidden Quokka Draft') && adm.includes('Later Quokka Notice'), 'an admin sees drafts and scheduled posts');
+      ok((await call('GET', `/api/notices/${draft.j.id}`)).s === 404 && (await call('GET', `/api/notices/${draft.j.id}`, undefined, T)).s === 200, 'a draft is a 404 for the public and open for admins');
+      const boot = (await call('GET', '/api/bootstrap')).j;
+      ok(!(boot.notices || []).some((x) => /Quokka/.test(x.title) && !/Due/.test(x.title)), 'bootstrap hides drafts from the public');
+      ok(!((await call('GET', '/api/search?q=quokka')).j || []).some((x) => /Hidden|Later/.test(x.title || '')), 'search does not find hidden posts');
+      ok((await call('PUT', `/api/notices/${later.j.id}`, { publish_at: 'not a date' }, T)).s === 409, 'a bad publish date is refused');
+      const pubNow = await call('PUT', `/api/notices/${draft.j.id}`, { is_draft: false, publish_at: '' }, T);
+      ok(pubNow.s === 200 && ((await call('GET', '/api/notices')).j || []).some((x) => x.title === 'Hidden Quokka Draft'), 'publishing a draft makes it public');
+      const evDraft = await call('POST', '/api/events', { title: 'Quokka Draft Event', date: '2099-09-09', is_draft: true, reg_form: { fields: [{ id: 'name', type: 'text', label: 'Name', required: true }] } }, T);
+      ok(evDraft.s === 201, 'a draft event can be saved', evDraft.j);
+      ok((await call('POST', `/api/event-registrations/${evDraft.j.id}`, { answers: { name: 'Zed' } })).s === 404, 'nobody can sign up for a draft event');
+    }
+
     // resource library
     {
       ok((await call('POST', '/api/resources', { title: 'No login' })).s === 401, 'resources need an admin login to add');

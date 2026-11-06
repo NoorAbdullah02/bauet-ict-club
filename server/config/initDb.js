@@ -153,6 +153,12 @@ async function initDb() {
     for (const t of ['events', 'notices', 'members', 'gallery', 'achievements', 'posts', 'messages', 'registrations', ...features.map((f) => f.table)]) {
       await client.query(`ALTER TABLE ${t} ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ`);
     }
+    // drafts and scheduled posts
+    for (const t of ['events', 'notices']) {
+      await client.query(`ALTER TABLE ${t} ADD COLUMN IF NOT EXISTS publish_at TIMESTAMPTZ`);
+      await client.query(`ALTER TABLE ${t} ADD COLUMN IF NOT EXISTS is_draft BOOLEAN NOT NULL DEFAULT FALSE`);
+      await client.query(`ALTER TABLE ${t} ADD COLUMN IF NOT EXISTS pending_notify BOOLEAN NOT NULL DEFAULT FALSE`);
+    }
     // notices and achievements can carry a picture too
     for (const t of ['notices', 'achievements']) await client.query(`ALTER TABLE ${t} ADD COLUMN IF NOT EXISTS image_url TEXT`);
     for (const t of ['events', 'notices', 'members', 'achievements', 'registrations', 'gallery', 'posts', 'messages', ...features.map((f) => f.table)]) {

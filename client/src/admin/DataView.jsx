@@ -11,6 +11,7 @@ import CommitteeOverview from './CommitteeOverview';
 import EventRegistrations from './EventRegistrations';
 import { copyText, shortLink } from '../lib/share';
 import { sessionRank } from '../lib/sessions';
+import { postState, whenLabel } from '../lib/schedule';
 import { Panel, PageTitle, Drawer, FormField, inputCls, askConfirm, toastTrashed } from './ui';
 
 /** Which Cloudinary folder a picture goes to: a committee's own folder for people, otherwise the section and year. */
@@ -57,7 +58,7 @@ export default function DataView({ type }) {
     if (missing) return toast.error(`${missing.label} is required`);
     setSaving(true);
     try {
-      const body = Object.fromEntries(fields.map((f) => [f.key, form[f.key] ?? (f.type === 'checkbox' ? false : '')]));
+      const body = Object.fromEntries(fields.map((f) => [f.key, form[f.key] ?? (f.type === 'checkbox' || f.type === 'hidden' ? false : '')]));
       if (drawer.mode === 'add') await store.addItem(type, body); else await store.updateItem(type, drawer.id, body);
       toast.success(drawer.mode === 'add' ? 'Added' : 'Saved');
       setDrawer(null);
@@ -99,6 +100,7 @@ export default function DataView({ type }) {
                   <tr key={item.id} className="border-b border-line/60 transition last:border-0 hover:bg-accent/5">
                     {cfg.cols.map((c, ci) => (
                       <td key={c} className={`max-w-xs truncate px-5 py-3.5 ${ci === 0 && type === 'events' ? 'min-w-64 ' : ''}${ci === 0 ? 'font-medium text-fg' : 'text-fg2'}`}>
+                        {ci === 0 && postState(item) !== 'live' && <span className={`mr-2 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${postState(item) === 'draft' ? 'bg-amber-500/15 text-amber-600' : 'bg-sky-500/15 text-sky-600'}`}>{postState(item) === 'draft' ? 'Draft' : `Goes live ${whenLabel(item.publish_at)}`}</span>}
                         {ci === 0 && type === 'events' && (
                           <span className="mb-1 block whitespace-normal">{String(item[c] ?? '')}</span>
                         )}
@@ -134,7 +136,7 @@ export default function DataView({ type }) {
       <Drawer open={!!drawer} title={`${drawer?.mode === 'add' ? 'Add' : 'Edit'} ${cfg.name}`} onClose={() => setDrawer(null)}
         footer={<><button onClick={() => setDrawer(null)} className="btn-outline !px-5 !py-2.5 text-xs">Cancel</button>
           <button onClick={save} disabled={saving} className="btn-primary !px-5 !py-2.5 text-xs disabled:opacity-60">{saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} Save</button></>}>
-        {fields.map((f) => <FormField key={f.key} field={f} value={form[f.key]} upload={uploadWhere(type, form)} onChange={(k, v) => setForm((p) => ({ ...p, [k]: v }))} />)}
+        {fields.map((f) => <FormField key={f.key} field={f} all={form} value={form[f.key]} upload={uploadWhere(type, form)} onChange={(k, v) => setForm((p) => ({ ...p, [k]: v }))} />)}
       </Drawer>
     </div>
   );

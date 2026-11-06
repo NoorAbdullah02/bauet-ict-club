@@ -55,6 +55,18 @@ async function authMiddleware(req, res, next) {
   }
 }
 
+/** true when the request carries a valid admin login. Never answers the request; used by public lists that show drafts to admins only. */
+async function isAdminRequest(req) {
+  try {
+    const header = req.headers.authorization || '';
+    const token = header.startsWith('Bearer ') ? header.slice(7) : '';
+    if (!token) return false;
+    const decoded = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'], issuer: 'bauet-ict-club' });
+    const me = await currentAdmin(decoded.id);
+    return !!me && me.v === (decoded.tv ?? 0);
+  } catch { return false; }
+}
+
 function generateToken(user) {
   return jwt.sign({ id: user.id, username: user.username, role: user.role, tv: user.token_version ?? 0 }, JWT_SECRET, { algorithm: 'HS256', expiresIn: '12h', issuer: 'bauet-ict-club' });
 }
@@ -62,4 +74,4 @@ function generateToken(user) {
 /** Only the main admin (superadmin) passes. Use after authMiddleware. */
 const requireSuper = (req, res, next) => (req.user?.role === 'superadmin' ? next() : res.status(403).json({ error: 'Only the main admin can do this.' }));
 
-module.exports = { requireSuper, authMiddleware, generateToken, forgetSession, JWT_SECRET };
+module.exports = { requireSuper, isAdminRequest, authMiddleware, generateToken, forgetSession, JWT_SECRET };

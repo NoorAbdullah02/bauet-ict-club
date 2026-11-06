@@ -16,9 +16,9 @@ router.get('/', limiter, async (req, res) => {
   const run = async (sql, map) => { try { return (await pool.query(sql, [p])).rows.map(map); } catch { return []; } };
   const today = new Date().toISOString().slice(0, 10);
   const [events, notices, members, projects, faqs, resources] = await Promise.all([
-    run("SELECT id, title, date, location FROM events WHERE deleted_at IS NULL AND (LOWER(title) LIKE $1 OR LOWER(COALESCE(location, '')) LIKE $1 OR LOWER(COALESCE(description, '')) LIKE $1) ORDER BY date DESC LIMIT 6",
+    run("SELECT id, title, date, location FROM events WHERE deleted_at IS NULL AND (publish_at IS NULL OR publish_at <= NOW()) AND NOT COALESCE(is_draft, FALSE) AND (LOWER(title) LIKE $1 OR LOWER(COALESCE(location, '')) LIKE $1 OR LOWER(COALESCE(description, '')) LIKE $1) ORDER BY date DESC LIMIT 6",
       (r) => ({ type: 'event', id: r.id, title: r.title, sub: [day(r.date), r.location].filter(Boolean).join(' · '), path: `/events/${r.id}` })),
-    run("SELECT id, title, date, content, expiry_date FROM notices WHERE deleted_at IS NULL AND (LOWER(title) LIKE $1 OR LOWER(COALESCE(content, '')) LIKE $1) ORDER BY date DESC LIMIT 12",
+    run("SELECT id, title, date, content, expiry_date FROM notices WHERE deleted_at IS NULL AND (publish_at IS NULL OR publish_at <= NOW()) AND NOT COALESCE(is_draft, FALSE) AND (LOWER(title) LIKE $1 OR LOWER(COALESCE(content, '')) LIKE $1) ORDER BY date DESC LIMIT 12",
       (r) => ({ type: 'notice', id: r.id, title: r.title, sub: clip(r.content, 90), path: '/notices', expiry: day(r.expiry_date) })),
     run("SELECT id, name, position, committee_session FROM members WHERE deleted_at IS NULL AND (LOWER(name) LIKE $1 OR LOWER(COALESCE(position, '')) LIKE $1 OR LOWER(COALESCE(department, '')) LIKE $1) ORDER BY display_order LIMIT 6",
       (r) => ({ type: 'member', id: r.id, title: r.name, sub: [r.position, r.committee_session].filter(Boolean).join(' · '), path: `/card/${r.id}` })),

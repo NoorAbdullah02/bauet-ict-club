@@ -2,6 +2,8 @@ const express = require('express');
 const pool = require('../config/db');
 const { destroyImage } = require('../utils/cloud');
 const { isBadInput } = require('../utils/http');
+const { LIVE, maybeTick, isHidden } = require('../utils/schedule');
+const { isAdminRequest } = require('../middleware/auth');
 
 const IDENT = /^[a-z_][a-z0-9_]*$/;
 
@@ -21,6 +23,7 @@ function createCrudRouter(table, opts = {}) {
   const auth = opts.auth;
   const validate = opts.validate; // async (data, existingRow|null) => error string | null
   const onCreate = opts.onCreate; // (row) => void, runs after a successful create (e.g. email subscribers)
+  const scheduled = !!opts.scheduled; // events and notices can be drafts or scheduled
   const guard = auth ? [auth] : [];
   const readGuard = opts.readAuth && auth ? [auth] : []; // private lists (e.g. subscriber emails) need a login to read
 
@@ -29,13 +32,16 @@ function createCrudRouter(table, opts = {}) {
     columns.forEach((c) => {
       if (body[c] === undefined) return;
       out[c] = body[c] === '' ? null : body[c];
+      if (c === 'is_draft') out[c] = body[c] === true || body[c] === 'true'; // never NULL
     });
     return out;
   };
 
-  router.get('/', ...readGuard, async (_req, res) => {
+  router.get('/', ...readGuard, async (req, res) => {
     try {
-      const { rows } = await pool.query(`SELECT * FROM ${table} WHERE deleted_at IS NULL ORDER BY ${orderCol} ${orderDir}`);
+      let extra = '';
+      if (scheduled) { maybeTick(); if (!(await isAdminRequest(req))) extra = ` AND ${LIVE}`; }
+      const { rows } = await pool.query(`SELECT * FROM ${table} WHERE deleted_at IS NULL${extra} ORDER BY ${orderCol} ${orderDir}`);
       res.json(rows);
     } catch (e) {
       console.error(`${table} list failed:`, e.message);
@@ -47,6 +53,7 @@ function createCrudRouter(table, opts = {}) {
     try {
       const { rows } = await pool.query(`SELECT * FROM ${table} WHERE id = $1 AND deleted_at IS NULL`, [req.params.id]);
       if (!rows.length) return res.status(404).json({ error: 'Not found' });
+      if (scheduled && isHidden(rows[0]) && !(await isAdminRequest(req))) return res.status(404).json({ error: 'Not found' });
       res.json(rows[0]);
     } catch (e) {
       if (isBadInput(e)) return res.status(404).json({ error: 'Not found' });
@@ -65,8 +72,13 @@ function createCrudRouter(table, opts = {}) {
         `INSERT INTO ${table} (${keys.join(',')}) VALUES (${keys.map((_, i) => `$${i + 1}`).join(',')}) RETURNING *`,
         keys.map((k) => data[k])
       );
-      res.status(201).json(rows[0]);
-      if (onCreate) try { onCreate(rows[0]); } catch (e) { console.warn(`${table} onCreate failed:`, e.message); }
+      let created = rows[0];
+      if (scheduled && isHidden(created)) { // not public yet: the announcement waits until it goes live
+        await pool.query(`UPDATE ${table} SET pending_notify = TRUE WHERE id = $1`, [created.id]);
+        created = { ...created, pending_notify: true };
+      }
+      res.status(201).json(created);
+      if (onCreate && !(scheduled && isHidden(created))) try { onCreate(rows[0]); } catch (e) { console.warn(`${table} onCreate failed:`, e.message); }
     } catch (e) {
       console.error(`${table} insert failed:`, e.message);
       res.status(400).json({ error: 'Could not save — please check the fields' });
@@ -80,6 +92,7 @@ function createCrudRouter(table, opts = {}) {
       const old = (await pool.query(`SELECT * FROM ${table} WHERE id = $1 AND deleted_at IS NULL`, [req.params.id])).rows[0];
       if (!old) return res.status(404).json({ error: 'Not found' });
       const merged = { ...old, ...data };
+      if (scheduled && data.publish_at !== undefined && data.publish_at !== null && Number.isNaN(new Date(data.publish_at).getTime())) return res.status(409).json({ error: 'That publish date is not valid.' });
       const problem = validate && await validate(merged, old);
       if (problem) return res.status(409).json({ error: problem });
       Object.keys(data).forEach((k) => { data[k] = merged[k]; }); // keep what validate() cleaned or defaulted
