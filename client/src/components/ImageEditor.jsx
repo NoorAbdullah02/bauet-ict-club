@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
-import { X, RotateCw, ZoomIn, Check } from 'lucide-react';
+import { X, RotateCw, ZoomIn, Check, FlipHorizontal2, RotateCcw } from 'lucide-react';
 import { cn } from '../lib/cn';
 
 const SHAPES = [['1:1', 1], ['4:3', 4 / 3], ['16:9', 16 / 9], ['3:4', 3 / 4]];
 const SIZES = [['Small', 640], ['Medium', 1000], ['Large', 1600], ['HD', 2400]]; // HD keeps enough detail to print a poster
 const STAGE_W = 360;
+const LOOKS = [['Original', 100, 100, 100], ['Vivid', 102, 112, 145], ['Bright', 112, 105, 110], ['Soft', 105, 88, 90], ['Mono', 100, 110, 0], ['Punch', 98, 130, 125]]; // brightness, contrast, colour in %
 
 /**
  * Crop, zoom, rotate and resize a picture before it is uploaded.
@@ -21,6 +22,9 @@ export default function ImageEditor({ file, aspect = null, keepPng = false, onDo
   const [rot, setRot] = useState(0);
   const [pos, setPos] = useState({ x: 0, y: 0 });
   const [size, setSize] = useState(1600);
+  const [flip, setFlip] = useState(false);
+  const [look, setLook] = useState({ b: 100, c: 100, s: 100, name: 'Original' });
+  const filter = `brightness(${look.b}%) contrast(${look.c}%) saturate(${look.s}%)`;
   const drag = useRef(null);
 
   useEffect(() => {
@@ -66,6 +70,8 @@ export default function ImageEditor({ file, aspect = null, keepPng = false, onDo
     const k = w / STAGE_W; // stage pixels -> output pixels
     ctx.translate(w / 2 + at.x * k, h / 2 + at.y * k);
     ctx.rotate((rot * Math.PI) / 180);
+    if (flip) ctx.scale(-1, 1);
+    ctx.filter = filter;
     const dw = img.naturalWidth * scale * k, dh = img.naturalHeight * scale * k;
     ctx.drawImage(img, -dw / 2, -dh / 2, dw, dh);
     // WebP keeps transparency and is much smaller; old browsers that cannot make WebP fall back to PNG / JPEG
@@ -91,7 +97,7 @@ export default function ImageEditor({ file, aspect = null, keepPng = false, onDo
             {src && (
               <div onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} className="relative size-full cursor-grab touch-none select-none active:cursor-grabbing">
                 <img src={src} alt="" draggable={false} className="pointer-events-none absolute left-1/2 top-1/2 max-w-none"
-                  style={{ width: img.naturalWidth * scale, height: img.naturalHeight * scale, transform: `translate(-50%, -50%) translate(${at.x}px, ${at.y}px) rotate(${rot}deg)` }} />
+                  style={{ width: img.naturalWidth * scale, height: img.naturalHeight * scale, transform: `translate(-50%, -50%) translate(${at.x}px, ${at.y}px) rotate(${rot}deg) scaleX(${flip ? -1 : 1})`, filter }} />
                 <div className="pointer-events-none absolute inset-0 grid grid-cols-3 grid-rows-3 opacity-40">{Array.from({ length: 9 }).map((_, i) => <span key={i} className="border border-white/50" />)}</div>
               </div>
             )}
@@ -102,6 +108,25 @@ export default function ImageEditor({ file, aspect = null, keepPng = false, onDo
             <ZoomIn size={16} className="text-fg2" />
             <input type="range" min="1" max="4" step="0.01" value={zoom} onChange={(e) => setZoom(Number(e.target.value))} aria-label="Zoom" className="flex-1 accent-[#1F4FD8]" />
             <button type="button" onClick={() => { setRot((v) => (v + 90) % 360); setPos({ x: 0, y: 0 }); }} aria-label="Rotate" className="grid size-9 place-items-center rounded-full border border-line text-fg2 hover:border-accent hover:text-accent"><RotateCw size={16} /></button>
+          </div>
+
+          <div className="mt-3 flex items-center gap-2">
+            <button type="button" onClick={() => { setRot((v) => (v + 270) % 360); setPos({ x: 0, y: 0 }); }} className="inline-flex items-center gap-1.5 rounded-full border border-line px-3 py-1.5 text-xs text-fg2 hover:border-accent hover:text-accent"><RotateCcw size={13} /> Turn left</button>
+            <button type="button" onClick={() => setFlip((f) => !f)} aria-pressed={flip} className={cn('inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs transition', flip ? 'border-accent bg-accent text-white' : 'border-line text-fg2 hover:border-accent hover:text-accent')}><FlipHorizontal2 size={13} /> Flip</button>
+            <button type="button" onClick={() => { setZoom(1); setRot(0); setFlip(false); setPos({ x: 0, y: 0 }); setLook({ b: 100, c: 100, s: 100, name: 'Original' }); }} className="ml-auto text-xs font-semibold text-tech hover:underline">Reset</button>
+          </div>
+
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <span className="font-mono text-[10px] uppercase tracking-wider text-muted">Look</span>
+            {LOOKS.map(([name, b, c, s2]) => (
+              <button key={name} type="button" onClick={() => setLook({ b, c, s: s2, name })} className={cn('rounded-full border px-3 py-1 text-xs transition', look.name === name ? 'border-accent bg-accent text-white' : 'border-line text-fg2 hover:border-accent')}>{name}</button>
+            ))}
+          </div>
+          <div className="mt-3 grid gap-2 text-xs text-fg2">
+            {[['Brightness', 'b', 60, 150], ['Contrast', 'c', 60, 160], ['Colour', 's', 0, 200]].map(([label, k, lo, hi]) => (
+              <label key={k} className="flex items-center gap-3"><span className="w-20">{label}</span>
+                <input type="range" min={lo} max={hi} value={look[k]} onChange={(e) => setLook((l) => ({ ...l, [k]: Number(e.target.value), name: '' }))} aria-label={label} className="flex-1 accent-[#1F4FD8]" /></label>
+            ))}
           </div>
 
           <div className="mt-4 flex flex-wrap items-center gap-2">
