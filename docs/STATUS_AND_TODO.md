@@ -29,6 +29,8 @@ Last updated: 2026-11-06. **What only the owner can do (keys, accounts, Firebase
 
 ## 2. What is missing: features the website has and the app does not
 
+Added 2026-11-06 (website and app): site search, month calendar view (with Google Calendar), digital member card with a signed QR code (also checked in the check-in desk), feedback form e-mailed the day after an event (picker in the event form editor, "send now" button), and Google structured data (JSON-LD) on every event page.
+
 Updated 2026-11-06: event page, registration, payment, waiting list, tickets with QR, certificate check, stand-alone forms, check-in desk (scan or type), event sign-ups (verify / reject / give a seat), two-step sign-in setup, forms (create, edit questions, responses, copy, open / close), newsletter, inbox with reply, team logins, activity log, short links and transfer of people were added to the app. Still not in the app: Event Studio (event and form in one page), export downloads (PDF, Word, CSV, ZIP) and backup download (they need file saving on the phone), forms colour / payment / rules editor, push notifications. The new screens passed `flutter analyze`, widget tests and the CI APK build; the admin screens were not clicked through on a phone.
 
 | Feature | Website | App | Where to build it in the app |
