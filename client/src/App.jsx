@@ -28,6 +28,7 @@ const ResourcesPage = named('ResourcesPage');
 const LeaderboardPage = named('LeaderboardPage');
 const ContestsPage = named('ContestsPage');
 const JobsPage = named('JobsPage');
+const RemoteJobsPage = named('RemoteJobsPage');
 const ContestDetailPage = named('ContestDetailPage');
 const FaqPage = named('FaqPage');
 const JoinHubPage = named('JoinHubPage');
@@ -159,6 +160,7 @@ export default function App() {
           <Route path="leaderboard" element={<LeaderboardPage />} />
           <Route path="contests" element={<ContestsPage />} />
           <Route path="jobs" element={<JobsPage />} />
+          <Route path="jobs/remote" element={<RemoteJobsPage />} />
           <Route path="contests/:id" element={<ContestDetailPage />} />
           <Route path="faq" element={<FaqPage />} />
           <Route path="contact" element={<ContactPage />} />

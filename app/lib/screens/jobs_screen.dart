@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../core/theme.dart';
@@ -20,7 +21,10 @@ int? _daysLeft(dynamic deadline) {
 
 /// The job and internship board: open positions first, closed ones last.
 class JobsScreen extends StatefulWidget {
-  const JobsScreen({super.key});
+  const JobsScreen({super.key, this.remote = false});
+
+  /// true on /jobs/remote: the remote jobs from Remotive and Remote OK, a page of its own.
+  final bool remote;
 
   @override
   State<JobsScreen> createState() => _JobsScreenState();
@@ -34,7 +38,6 @@ class _JobsScreenState extends State<JobsScreen> {
   String? _error;
   String _kind = 'All';
   int? _open;
-  bool _remoteTab = false;
   bool _openOnly = true;
   String _tag = '';
   List<Map<String, dynamic>> _remote = [];
@@ -46,8 +49,14 @@ class _JobsScreenState extends State<JobsScreen> {
   @override
   void initState() {
     super.initState();
-    _load();
+    if (widget.remote) {
+      _loadRemote();
+    } else {
+      _load();
+    }
   }
+
+  bool get _remoteTab => widget.remote;
 
   Future<void> _loadRemote() async {
     setState(() {
@@ -150,15 +159,13 @@ class _JobsScreenState extends State<JobsScreen> {
   }
 
   Widget _tabs(BuildContext context) => Row(children: [
-        PillChip(label: 'Club openings', selected: !_remoteTab, onTap: () => setState(() => _remoteTab = false)),
+        PillChip(label: 'Club openings', selected: !_remoteTab, onTap: () {
+          if (_remoteTab) context.go('/jobs');
+        }),
         const SizedBox(width: 10),
-        PillChip(
-            label: 'Remote jobs',
-            selected: _remoteTab,
-            onTap: () {
-              setState(() => _remoteTab = true);
-              if (_remote.isEmpty && !_remoteLoading) _loadRemote();
-            }),
+        PillChip(label: 'Remote jobs', selected: _remoteTab, onTap: () {
+          if (!_remoteTab) context.go('/jobs/remote');
+        }),
       ]);
 
   /// Remote jobs from Remotive and Remote OK. Every card links back to the original page and names the source.
@@ -183,7 +190,7 @@ class _JobsScreenState extends State<JobsScreen> {
         padding: kPagePadding,
         physics: const AlwaysScrollableScrollPhysics(),
         children: [
-          const SectionHeader(eyebrow: 'Careers', title: 'Jobs and internships', subtitle: 'Remote jobs from around the world. Tap Apply to open the original page.'),
+          const SectionHeader(eyebrow: 'Careers', title: 'Remote jobs', subtitle: 'Remote jobs from around the world. Tap a job to open the original page.'),
           const SizedBox(height: 14),
           _tabs(context),
           const SizedBox(height: 14),
