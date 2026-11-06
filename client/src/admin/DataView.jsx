@@ -12,6 +12,7 @@ import EventRegistrations from './EventRegistrations';
 import { copyText, shortLink } from '../lib/share';
 import { sessionRank } from '../lib/sessions';
 import { postState, whenLabel } from '../lib/schedule';
+import ContestTeams from './ContestTeams';
 import { Panel, PageTitle, Drawer, FormField, inputCls, askConfirm, toastTrashed } from './ui';
 
 /** Which Cloudinary folder a picture goes to: a committee's own folder for people, otherwise the section and year. */
@@ -32,6 +33,7 @@ export default function DataView({ type }) {
   const [transferring, setTransferring] = useState(false);
   const [transferFrom, setTransferFrom] = useState('');
   const [regEvent, setRegEvent] = useState(null);
+  const [contestTeams, setContestTeams] = useState(null);
   const navigate = useNavigate();
   const sessions = useStore((s) => s.sessions);
   const fields = useMemo(() => cfg.fields.map((f) => (f.dynamic === 'sessions' ? { ...f, options: sessions.map((x) => x.label).sort((a, b) => sessionRank(b) - sessionRank(a)) } : f)), [cfg, sessions]);
@@ -118,6 +120,7 @@ export default function DataView({ type }) {
                       {type === 'events' && <button onClick={async () => toast[(await copyText(await shortLink(`/events/${item.id}`))) ? 'success' : 'error']('Short registration link copied')} aria-label="Copy registration link" title="Copy registration link" className="grid size-8 place-items-center rounded-lg text-fg2 hover:bg-tech/15 hover:text-tech"><Link2 size={14} /></button>}
                       {type === 'events' && <button onClick={() => navigate(`/admin/events/${item.id}/checkin`)} aria-label="Check-in desk" title="Check-in desk: scan tickets, certificates" className="grid size-8 place-items-center rounded-lg text-fg2 hover:bg-tech/15 hover:text-tech"><ScanLine size={14} /></button>}
                       {type === 'events' && !item.reg_url && <button onClick={() => navigate(`/admin/events/${item.id}/form`)} aria-label="Edit registration form" title="Build the registration form" className="grid size-8 place-items-center rounded-lg text-fg2 hover:bg-tech/15 hover:text-tech"><ClipboardList size={14} /></button>}
+                      {type === 'contests' && <button onClick={() => setContestTeams(item)} aria-label="Teams and results" title="Teams and results" className="grid size-8 place-items-center rounded-lg text-fg2 hover:bg-tech/15 hover:text-tech"><Users size={14} /></button>}
                       {type === 'events' && <button onClick={() => setRegEvent(item)} aria-label="See registrations" title="See who registered" className="grid size-8 place-items-center rounded-lg text-fg2 hover:bg-tech/15 hover:text-tech"><Users size={14} /></button>}
                       <button onClick={() => openEdit(item)} aria-label="Edit" className="grid size-8 place-items-center rounded-lg text-fg2 hover:bg-tech/15 hover:text-tech"><Pencil size={14} /></button>
                       <button onClick={() => remove(item)} aria-label="Delete" className="grid size-8 place-items-center rounded-lg text-fg2 hover:bg-red-500/15 hover:text-red-500"><Trash2 size={14} /></button>
@@ -131,6 +134,7 @@ export default function DataView({ type }) {
       </Panel>
 
       {type === 'events' && <EventRegistrations event={regEvent} onClose={() => setRegEvent(null)} />}
+      {type === 'contests' && <ContestTeams contest={contestTeams} onClose={() => setContestTeams(null)} />}
       {type === 'members' && <LaunchCommittee open={launching} onClose={() => setLaunching(false)} />}
       {type === 'members' && <TransferPeople open={transferring} initialFrom={transferFrom} onClose={() => { setTransferring(false); setTransferFrom(''); }} />}
       <Drawer open={!!drawer} title={`${drawer?.mode === 'add' ? 'Add' : 'Edit'} ${cfg.name}`} onClose={() => setDrawer(null)}

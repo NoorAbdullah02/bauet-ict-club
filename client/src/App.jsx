@@ -26,6 +26,8 @@ const ContactPage = named('ContactPage');
 const ProjectsPage = named('ProjectsPage');
 const ResourcesPage = named('ResourcesPage');
 const LeaderboardPage = named('LeaderboardPage');
+const ContestsPage = named('ContestsPage');
+const ContestDetailPage = named('ContestDetailPage');
 const FaqPage = named('FaqPage');
 const JoinHubPage = named('JoinHubPage');
 const JoinCommitteePage = named('JoinCommitteePage');
@@ -154,6 +156,8 @@ export default function App() {
           <Route path="projects" element={<ProjectsPage />} />
           <Route path="resources" element={<ResourcesPage />} />
           <Route path="leaderboard" element={<LeaderboardPage />} />
+          <Route path="contests" element={<ContestsPage />} />
+          <Route path="contests/:id" element={<ContestDetailPage />} />
           <Route path="faq" element={<FaqPage />} />
           <Route path="contact" element={<ContactPage />} />
           <Route path="join" element={<JoinHubPage />} />

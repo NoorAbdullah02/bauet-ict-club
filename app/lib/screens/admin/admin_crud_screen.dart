@@ -124,6 +124,25 @@ const Map<String, TableSpec> kTables = {
       FieldSpec('url', 'Link (https://…)', FieldKind.text, true),
     ],
   ),
+  'contests': TableSpec(
+    title: 'Contests',
+    titleKey: 'title',
+    subtitleKey: 'status',
+    icon: Icons.sports_esports_rounded,
+    fields: [
+      FieldSpec('title', 'Title', FieldKind.text, true),
+      FieldSpec('description', 'About the contest', FieldKind.multiline),
+      FieldSpec('rules', 'Rules (one per line)', FieldKind.multiline),
+      FieldSpec('prize', 'Prizes'),
+      FieldSpec('location', 'Where'),
+      FieldSpec('start_date', 'Starts on', FieldKind.date),
+      FieldSpec('deadline', 'Sign-up deadline', FieldKind.date),
+      FieldSpec('team_min', 'Smallest team (people)', FieldKind.number),
+      FieldSpec('team_max', 'Biggest team (people)', FieldKind.number),
+      FieldSpec('status', 'Status', FieldKind.choice, false, ['open', 'closed', 'finished']),
+      FieldSpec('image_url', 'Picture (optional)', FieldKind.image),
+    ],
+  ),
   'projects': TableSpec(
     title: 'Projects',
     titleKey: 'title',
@@ -366,7 +385,9 @@ class _AdminCrudScreenState extends State<AdminCrudScreen> {
                             onDelete: () => _delete(_rows[i]),
                             extra: widget.table == 'events'
                                 ? IconButton(tooltip: 'Sign-up form, payment, certificate', onPressed: () => context.push('/admin/event-form/${_rows[i]['id']}'), icon: Icon(Icons.edit_note_rounded, color: p.accent, size: 24))
-                                : null,
+                                : widget.table == 'contests'
+                                    ? IconButton(tooltip: 'Teams and results', onPressed: () => context.push('/admin/contest/${_rows[i]['id']}'), icon: Icon(Icons.groups_rounded, color: p.accent, size: 24))
+                                    : null,
                           ).stagger(i),
                         ),
                   ],

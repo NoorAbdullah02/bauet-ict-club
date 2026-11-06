@@ -325,6 +325,56 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
       ok((await call('GET', '/api/event-registrations/analytics/99999999', undefined, T)).s === 404, 'analytics of an unknown event is 404');
     }
 
+    // contests and hackathons
+    {
+      const soon = new Date(Date.now() + 5 * 864e5).toISOString().slice(0, 10);
+      const gone = new Date(Date.now() - 5 * 864e5).toISOString().slice(0, 10);
+      ok((await call('POST', '/api/contests', { title: 'No login' })).s === 401, 'only an admin creates a contest');
+      ok((await call('POST', '/api/contests', { title: 'Bad sizes', team_min: 5, team_max: 2 }, T)).s === 409, 'a contest with min bigger than max is refused');
+      const ct = await call('POST', '/api/contests', { title: 'CodeFest QA', description: 'd', team_min: 2, team_max: 3, deadline: soon, status: 'open', prize: 'Trophy' }, T);
+      ok(ct.s === 201, 'an admin can create a contest', ct.j);
+      const old = await call('POST', '/api/contests', { title: 'Old QA contest', deadline: gone, status: 'open' }, T);
+      const shut = await call('POST', '/api/contests', { title: 'Shut QA contest', status: 'closed' }, T);
+      ok(((await call('GET', '/api/contests')).j || []).some((x) => x.title === 'CodeFest QA'), 'contests are public to read');
+      const reg = (id, body) => call('POST', `/api/contest-teams/${id}`, body);
+      const leader = { team_name: 'Byte Me', leader_name: 'Rafi Hasan', email: 'rafi@example.com', phone: '01711111111' };
+      ok((await reg(ct.j.id, leader)).s === 400, 'a team smaller than the minimum is refused');
+      ok((await reg(ct.j.id, { ...leader, email: 'bad' })).s === 400, 'a team leader needs a valid e-mail');
+      ok((await reg(ct.j.id, { ...leader, members: [{ name: 'A', email: 'a@e.com' }, { name: 'B' }, { name: 'C' }] })).s === 400, 'a team bigger than the maximum is refused');
+      ok((await reg(ct.j.id, { ...leader, members: [{ name: 'Same', email: 'rafi@example.com' }] })).s === 400, 'the same e-mail twice in a team is refused');
+      const t1 = await reg(ct.j.id, { ...leader, members: [{ name: 'Mim Akter', email: 'mim@example.com', student_id: '2101' }] });
+      ok(t1.s === 201 && t1.j.size === 2, 'a team can sign up', t1.j);
+      ok((await reg(ct.j.id, { ...leader, email: 'other@example.com', members: [{ name: 'X', email: 'x@example.com' }] })).s === 409, 'a team name can only be used once');
+      ok((await reg(ct.j.id, { team_name: 'Second', leader_name: 'Mim', email: 'MIM@example.com', members: [{ name: 'Y' }] })).s === 409, 'a person cannot join two teams');
+      const t2 = await reg(ct.j.id, { team_name: 'Null Pointers', leader_name: 'Nila Roy', email: 'nila@example.com', members: [{ name: 'Sami', email: 'sami@example.com' }] });
+      ok(t2.s === 201, 'a second team can sign up');
+      ok((await reg(old.j.id, { ...leader, team_name: 'Late', members: [{ name: 'Z' }] })).s === 409, 'nobody can sign up after the deadline');
+      ok((await reg(shut.j.id, { ...leader, team_name: 'Shut', members: [{ name: 'Z' }] })).s === 409, 'nobody can sign up for a closed contest');
+      ok((await reg(999999, leader)).s === 404, 'an unknown contest is 404');
+      const pub = (await call('GET', `/api/contest-teams/public/${ct.j.id}`)).j;
+      ok(pub.teams === 2 && pub.open === true && pub.results === null && !JSON.stringify(pub).includes('@'), 'the public sees the team count only', pub);
+      ok((await call('GET', `/api/contest-teams/admin/${ct.j.id}`)).s === 401, 'the team list needs a login');
+      const adm = (await call('GET', `/api/contest-teams/admin/${ct.j.id}`, undefined, T)).j;
+      ok(adm.teams.length === 2 && adm.teams[0].email, 'the admin sees every team with contact details');
+      const idOf = (n) => adm.teams.find((x) => x.team_name === n).id;
+      ok((await call('POST', `/api/contest-teams/admin/${ct.j.id}/publish`, undefined, T)).s === 400, 'results need at least one place first');
+      ok((await call('PATCH', `/api/contest-teams/admin/team/${idOf('Byte Me')}`, { rank: 'first' }, T)).s === 400, 'a place must be a number');
+      ok((await call('PATCH', `/api/contest-teams/admin/team/${idOf('Byte Me')}`, { rank: 1, prize_note: 'Trophy and 5000 BDT', score: 92.5 }, T)).s === 200, 'the admin gives a place');
+      ok((await call('PATCH', `/api/contest-teams/admin/team/${idOf('Null Pointers')}`, { rank: 2 }, T)).s === 200, 'and a second place');
+      const csvR = await call('GET', `/api/contest-teams/admin/${ct.j.id}/export`, undefined, T);
+      ok(csvR.s === 200 && csvR.t.includes('Byte Me') && csvR.t.includes('Mim Akter'), 'the teams export as a spreadsheet');
+      const p1 = await call('POST', `/api/contest-teams/admin/${ct.j.id}/publish`, undefined, T);
+      ok(p1.s === 200 && p1.j.awards_given === 4, 'publishing the results gives points to every team member', p1.j);
+      const p2 = await call('POST', `/api/contest-teams/admin/${ct.j.id}/publish`, undefined, T);
+      ok(p2.s === 200 && p2.j.awards_given === 0, 'pressing publish again does not give the points twice', p2.j);
+      const res2 = (await call('GET', `/api/contest-teams/public/${ct.j.id}`)).j;
+      ok(res2.results?.[0]?.team_name === 'Byte Me' && res2.results[0].rank === 1 && res2.results[1].team_name === 'Null Pointers' && !JSON.stringify(res2).includes('@'), 'the public sees the results without e-mails', res2);
+      ok((await call('GET', `/api/contests`)).j.find((x) => x.id === ct.j.id)?.status === 'finished', 'a published contest becomes finished');
+      const lb = (await call('GET', '/api/points/leaderboard')).j.top.map((x) => `${x.name}:${x.points}`);
+      ok(lb.includes('Rafi H.:50') && lb.includes('Mim A.:50') && lb.includes('Nila R.:30') && lb.includes('Sami:30'), 'the winners got 50 and 30 points', lb);
+      ok((await call('DELETE', `/api/contest-teams/admin/team/${idOf('Null Pointers')}`, undefined, T)).s === 200 && (await call('GET', `/api/contest-teams/admin/${ct.j.id}`, undefined, T)).j.teams.length === 1, 'a team can be removed');
+    }
+
     // drafts and scheduled posts
     {
       const future = new Date(Date.now() + 3 * 864e5).toISOString();
