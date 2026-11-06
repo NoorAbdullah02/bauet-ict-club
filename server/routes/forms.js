@@ -6,6 +6,7 @@ const { authMiddleware } = require('../middleware/auth');
 const { fail } = require('../utils/http');
 const mail = require('../utils/mailer');
 const forms = require('../utils/forms');
+const ssl = require('../utils/sslcommerz');
 const { serial } = require('../utils/serial');
 const { formalDate } = require('../utils/format');
 const { tableToPdf, tableToDocx } = require('../utils/exporters');
@@ -47,7 +48,16 @@ async function respond(req, res) {
     if (forms.closedByTime(f.reg_form)) return res.status(409).json({ error: 'This form has closed.' });
     const fields = forms.fieldsOf(f.reg_form?.fields?.length ? f : { reg_form: STARTER });
     const { clean: ans, errors } = forms.validateAnswers(fields, req.body?.answers || req.body);
-    const pay = f.reg_form?.payment?.enabled ? forms.validatePayment(f.reg_form.payment, req.body?.payment) : null;
+    const payCfg = f.reg_form?.payment?.enabled ? f.reg_form.payment : null;
+    const online = !!payCfg && req.body?.pay_mode === 'online';
+    let pay = null;
+    if (payCfg && online) {
+      if (!payCfg.online || !ssl.configured()) return res.status(409).json({ error: 'Paying online is not available for this form.' });
+      pay = { payment: { method: 'Online', online: true, tran_id: ssl.newTranId(), amount: payCfg.amount, status: 'initiated' } };
+    } else if (payCfg) {
+      if (payCfg.manual === false) return res.status(409).json({ error: 'This form takes online payment only. Choose "Pay online".' });
+      pay = forms.validatePayment(payCfg, req.body?.payment);
+    }
     if (Object.keys(errors).length || pay?.errors) return res.status(400).json({ error: 'Please check the highlighted questions', fields: errors, payment: pay?.errors || null });
 
     const existing = (await pool.query("SELECT answers, payment FROM form_responses WHERE form_id = $1 AND deleted_at IS NULL AND COALESCE(pay_status, 'none') <> 'rejected'", [f.id])).rows;
@@ -56,12 +66,18 @@ async function respond(req, res) {
     if (u && ans[u] !== undefined && existing.some((r) => forms.show(r.answers?.[u]).toLowerCase() === forms.show(ans[u]).toLowerCase())) {
       return res.status(409).json({ error: 'You have already responded.', fields: { [u]: 'Already submitted' } });
     }
-    if (pay?.payment && existing.some((r) => r.payment?.trx_id === pay.payment.trx_id)) return res.status(409).json({ error: 'This transaction ID has already been used.', payment: { trx_id: 'Already used' } });
+    if (pay?.payment?.trx_id && existing.some((r) => r.payment?.trx_id === pay.payment.trx_id)) return res.status(409).json({ error: 'This transaction ID has already been used.', payment: { trx_id: 'Already used' } });
 
     const col = forms.columnsFrom(fields, ans);
     const to = col.email || forms.show(ans[(fields.find((q) => q.type === 'email') || {}).id]);
-    const { rows } = await pool.query('INSERT INTO form_responses (form_id, full_name, email, answers, payment, pay_status) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id',
-      [f.id, col.full_name, to || null, JSON.stringify(ans), pay?.payment ? JSON.stringify(pay.payment) : null, pay?.payment ? 'pending' : 'none']);
+    const { rows } = await pool.query('INSERT INTO form_responses (form_id, full_name, email, answers, payment, pay_status, pay_tran) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id',
+      [f.id, col.full_name, to || null, JSON.stringify(ans), pay?.payment ? JSON.stringify(pay.payment) : null, pay?.payment ? 'pending' : 'none', pay?.payment?.tran_id || null]);
+    if (online) {
+      const siteUrl = (process.env.PUBLIC_URL || process.env.RENDER_EXTERNAL_URL || `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');
+      const g = await ssl.start({ tranId: pay.payment.tran_id, amount: pay.payment.amount, name: col.full_name, email: to, phone: col.phone, product: f.title, siteUrl });
+      if (!g.url) { await pool.query('UPDATE form_responses SET deleted_at = NOW() WHERE id = $1', [rows[0].id]); return res.status(502).json({ error: g.error }); }
+      return res.status(201).json({ success: true, id: rows[0].id, pending_payment: true, pay_url: g.url, tran_id: pay.payment.tran_id });
+    }
     res.status(201).json({ success: true, id: rows[0].id, pending_payment: !!pay?.payment, message: f.reg_form?.confirmation || '' });
     if (to && pay?.payment && (process.env.FORM_CONFIRM_EMAIL || '').toLowerCase() !== 'false') mail.sendMail({ to, ...mail.templates.registrationPending({ full_name: col.full_name }, meta(f), pay.payment, formalDate) });
     if (to && !pay?.payment && (process.env.FORM_CONFIRM_EMAIL || '').toLowerCase() !== 'false') mail.sendMail({ to, ...mail.templates.formReceived({ full_name: col.full_name }, f) });

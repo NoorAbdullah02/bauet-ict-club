@@ -6,6 +6,7 @@ import { CheckCircle2, Loader2, Send, Share2, Facebook, MessageCircle, Link2, Us
 import { api } from '../context/store';
 import DynamicForm from './DynamicForm';
 import PaymentBox from './PaymentBox';
+import { useGateway, modeOf } from '../lib/pay';
 import { isVisible, isEmpty, themeStyle } from '../lib/forms';
 import { formalDate, formalTime } from '../lib/format';
 import { shareLinks, copyText, nativeShare } from '../lib/share';
@@ -21,6 +22,9 @@ export default function FormPage() {
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(null);
   const [menu, setMenu] = useState(false);
+  const gateway = useGateway();
+  const returned = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('paid') === '1' : false; // came back from the payment page, paid
+  const payFailed = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('pay') === 'failed';
 
   useEffect(() => {
     api.get(`/forms/public/${slug}`).then((r) => { setForm(r.data); document.title = `${r.data.title} | BAUET ICT Club`; })
@@ -48,7 +52,8 @@ export default function FormPage() {
     const err = {};
     fields.forEach((f) => { if (f.type !== 'section' && isVisible(f, values) && f.required && isEmpty(values[f.id])) err[f.id] = 'This question is required'; });
     const pe = {};
-    if (payCfg) {
+    const payMode = payCfg ? modeOf(payCfg, gateway, payment) : null;
+    if (payCfg && payMode === 'manual') {
       if (!/^(\+?88)?01[3-9]\d{8}$/.test(String(payment.sender || '').replace(/[\s-]/g, ''))) pe.sender = 'Enter the mobile number you paid from';
       if (!/^[A-Za-z0-9]{6,20}$/.test(String(payment.trx_id || '').trim())) pe.trx_id = 'Enter the transaction ID (6 to 20 letters and numbers)';
     }
@@ -57,7 +62,8 @@ export default function FormPage() {
     setBusy(true);
     try {
       const answers = Object.fromEntries(fields.filter((f) => isVisible(f, values)).map((f) => [f.id, values[f.id]]).filter(([, v]) => !isEmpty(v)));
-      const r = await api.post(`/forms/public/${slug}`, { _hp: document.querySelector('input[data-hp]')?.value || '', answers, ...(payCfg ? { payment: { method: payCfg.methods[0], ...payment } } : {}) });
+      const r = await api.post(`/forms/public/${slug}`, { _hp: document.querySelector('input[data-hp]')?.value || '', answers, ...(payCfg ? (payMode === 'online' ? { pay_mode: 'online' } : { payment: { method: payCfg.methods[0], ...payment } }) : {}) });
+      if (r.data.pay_url) { window.location.assign(r.data.pay_url); return; }
       setDone({ message: r.data.message, pending: r.data.pending_payment });
     } catch (ex) { const d = ex.response?.data; if (d?.fields) setErrors(d.fields); if (d?.payment) setPayErrors(d.payment); toast.error(d?.error || 'Could not submit. Please try again.'); }
     setBusy(false);
@@ -91,18 +97,19 @@ export default function FormPage() {
             </div>
 
             <div className="mt-7 border-t border-line pt-7">
-              {done ? (
+              {payFailed && !done && <p className="mb-5 rounded-xl bg-red-500/10 px-3.5 py-2.5 text-sm text-red-600">The payment was not completed, so your response was not saved. You can try again below.</p>}
+              {done || returned ? (
                 <div className="py-6 text-center">
                   <CheckCircle2 size={48} className="mx-auto text-emerald-500" />
-                  <h2 className="mt-3 text-2xl text-fg">{done.pending ? 'Response received' : 'Thank you!'}</h2>
-                  <p className="mx-auto mt-2 max-w-md whitespace-pre-line text-sm text-fg2">{done.message || (done.pending ? 'We will check your payment and confirm by email.' : 'Your response has been recorded.')}</p>
+                  <h2 className="mt-3 text-2xl text-fg">{done?.pending ? 'Response received' : 'Thank you!'}</h2>
+                  <p className="mx-auto mt-2 max-w-md whitespace-pre-line text-sm text-fg2">{done?.message || (returned ? 'Your payment was received and your response is saved.' : done?.pending ? 'We will check your payment and confirm by email.' : 'Your response has been recorded.')}</p>
                 </div>
               ) : closed ? (
                 <p className="rounded-2xl bg-alt p-5 text-center text-sm text-fg2">{full ? 'This form has reached its limit.' : timeUp ? 'This form has closed.' : 'This form is not accepting responses right now.'}</p>
               ) : (
                 <form onSubmit={submit} noValidate className="space-y-5" style={themeStyle(rf.theme)}>
                   <DynamicForm fields={fields} values={values} errors={errors} onPageError={setErrors} onChange={(id, v) => { setValues((s) => ({ ...s, [id]: v })); setErrors((x) => ({ ...x, [id]: undefined })); }}>
-                    {payCfg && <PaymentBox setting={payCfg} value={payment} errors={payErrors} onChange={(p) => { setPayment(p); setPayErrors({}); }} />}
+                    {payCfg && <PaymentBox gateway={gateway} setting={payCfg} value={payment} errors={payErrors} onChange={(p) => { setPayment(p); setPayErrors({}); }} />}
                     <button disabled={busy} className="btn-primary w-full justify-center disabled:opacity-60">{busy ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />} {busy ? 'Submitting…' : 'Submit'}</button>
                   </DynamicForm>
                 </form>

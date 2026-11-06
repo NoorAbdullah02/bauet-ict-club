@@ -83,15 +83,21 @@ function sanitizeForm(raw) {
   if (f.payment?.enabled) {
     const amount = Number(f.payment.amount);
     if (!Number.isFinite(amount) || amount <= 0 || amount > 100000) return { error: 'Enter the payment amount (1 to 100000 BDT)' };
-    const methods = PAY_METHODS.filter((m) => (f.payment.methods || []).includes(m));
-    if (!methods.length) return { error: 'Choose at least one payment method' };
-    const numbers = {};
-    for (const m of methods) {
-      const n = clip(f.payment.numbers?.[m], 20);
-      if (!BD_MOBILE.test(n.replace(/[\s-]/g, ''))) return { error: `Enter the ${m} number people should send money to` };
-      numbers[m] = n;
+    // two ways to pay, the admin chooses: send money by hand (checked by an admin) and / or pay online through the gateway (checked by the server)
+    const manual = f.payment.manual !== false; // older forms have no flag: manual
+    const online = !!f.payment.online;
+    if (!manual && !online) return { error: 'Choose at least one way to pay' };
+    let methods = []; const numbers = {};
+    if (manual) {
+      methods = PAY_METHODS.filter((m) => (f.payment.methods || []).includes(m));
+      if (!methods.length) return { error: 'Choose at least one payment method' };
+      for (const m of methods) {
+        const n = clip(f.payment.numbers?.[m], 20);
+        if (!BD_MOBILE.test(n.replace(/[\s-]/g, ''))) return { error: `Enter the ${m} number people should send money to` };
+        numbers[m] = n;
+      }
     }
-    form.payment = { enabled: true, amount, methods, numbers, kind: f.payment.kind === 'payment' ? 'payment' : 'send_money', note: clip(f.payment.note, 300) };
+    form.payment = { enabled: true, amount, manual, online, methods, numbers, kind: f.payment.kind === 'payment' ? 'payment' : 'send_money', note: clip(f.payment.note, 300) };
   }
   return { form };
 }

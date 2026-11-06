@@ -198,6 +198,7 @@ async function initDb() {
       ALTER TABLE event_registrations ADD COLUMN IF NOT EXISTS certificate_sent_at TIMESTAMPTZ;
       ALTER TABLE events ADD COLUMN IF NOT EXISTS reminded_at TIMESTAMPTZ;
       ALTER TABLE events ADD COLUMN IF NOT EXISTS feedback_sent_at TIMESTAMPTZ;
+      ALTER TABLE event_registrations ADD COLUMN IF NOT EXISTS pay_tran TEXT;
       CREATE INDEX IF NOT EXISTS idx_event_regs_event ON event_registrations (event_id, created_at);
       CREATE INDEX IF NOT EXISTS idx_event_regs_ticket ON event_registrations (ticket);
     `);
@@ -249,6 +250,9 @@ async function initDb() {
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
       CREATE INDEX IF NOT EXISTS idx_form_responses_form ON form_responses (form_id, created_at);
+      ALTER TABLE form_responses ADD COLUMN IF NOT EXISTS pay_tran TEXT;
+      CREATE INDEX IF NOT EXISTS idx_event_regs_tran ON event_registrations (pay_tran);
+      CREATE INDEX IF NOT EXISTS idx_form_responses_tran ON form_responses (pay_tran);
     `);
     // sign-ups made before tickets existed get a code now
     {

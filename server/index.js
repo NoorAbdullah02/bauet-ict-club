@@ -108,6 +108,7 @@ app.use('/api/analytics', require('./routes/analytics'));
 app.use('/api/event-registrations', require('./routes/eventRegs'));
 app.use('/api/forms', require('./routes/forms'));
 app.use('/api/search', require('./routes/search'));
+app.use('/api/pay', require('./routes/pay'));
 app.use('/api/card', require('./routes/card'));
 app.use('/api/email', require('./routes/email'));
 app.use('/api/registrations', require('./routes/registrations'));

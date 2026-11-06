@@ -9,6 +9,7 @@ const { tableToPdf, tableToDocx } = require('../utils/exporters');
 const forms = require('../utils/forms');
 const { serial } = require('../utils/serial');
 const tickets = require('../utils/tickets');
+const ssl = require('../utils/sslcommerz');
 const { sendZip, safe } = require('../utils/zipper');
 const { toCsv } = require('../utils/csv');
 // sign-ups saved before forms existed only have the standard columns
@@ -121,7 +122,17 @@ async function register(req, res) {
     const fields = forms.fieldsOf(ev);
     // older clients sent the answers as a flat body: keep them working
     const { clean, errors } = forms.validateAnswers(fields, req.body?.answers || req.body);
-    const pay = ev.reg_form?.payment?.enabled ? forms.validatePayment(ev.reg_form.payment, req.body?.payment) : null;
+    // how this person pays: by hand (bKash / Nagad / Rocket and a transaction ID that an admin checks) or online through the gateway
+    const payCfg = ev.reg_form?.payment?.enabled ? ev.reg_form.payment : null;
+    const online = !!payCfg && req.body?.pay_mode === 'online';
+    let pay = null;
+    if (payCfg && online) {
+      if (!payCfg.online || !ssl.configured()) return res.status(409).json({ error: 'Paying online is not available for this event.' });
+      pay = { payment: { method: 'Online', online: true, tran_id: ssl.newTranId(), amount: payCfg.amount, status: 'initiated' } };
+    } else if (payCfg) {
+      if (payCfg.manual === false) return res.status(409).json({ error: 'This event takes online payment only. Choose "Pay online".' });
+      pay = forms.validatePayment(payCfg, req.body?.payment);
+    }
     const allErrors = { ...errors, ...(pay?.errors ? { payment: pay.errors } : {}) };
     if (Object.keys(allErrors).length) return res.status(400).json({ error: 'Please check the highlighted questions', fields: errors, payment: pay?.errors || null });
 
@@ -139,15 +150,20 @@ async function register(req, res) {
       }
     }
     // one transaction ID can pay for one sign-up only
-    if (pay?.payment && existing.some((r) => r.payment?.trx_id === pay.payment.trx_id)) {
+    if (pay?.payment?.trx_id && existing.some((r) => r.payment?.trx_id === pay.payment.trx_id)) {
       return res.status(409).json({ error: 'This transaction ID has already been used.', payment: { trx_id: 'Already used' } });
     }
     const col = forms.columnsFrom(fields, clean);
     const ticket = tickets.newCode();
     const { rows } = await pool.query(
-      'INSERT INTO event_registrations (event_id, full_name, student_id, email, phone, department, batch, answers, payment, pay_status, ticket, waitlisted) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING id',
-      [ev.id, col.full_name, col.student_id, col.email, col.phone, col.department, col.batch, JSON.stringify(clean), pay?.payment ? JSON.stringify(pay.payment) : null, pay?.payment ? 'pending' : 'none', ticket, waitlisted]
+      'INSERT INTO event_registrations (event_id, full_name, student_id, email, phone, department, batch, answers, payment, pay_status, ticket, waitlisted, pay_tran) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING id',
+      [ev.id, col.full_name, col.student_id, col.email, col.phone, col.department, col.batch, JSON.stringify(clean), pay?.payment ? JSON.stringify(pay.payment) : null, pay?.payment ? 'pending' : 'none', ticket, waitlisted, pay?.payment?.tran_id || null]
     );
+    if (online) { // send the person to the payment page; the sign-up is confirmed when the gateway proves the payment
+      const g = await ssl.start({ tranId: pay.payment.tran_id, amount: pay.payment.amount, name: col.full_name, email: col.email, phone: col.phone, product: ev.title, siteUrl: site(req) });
+      if (!g.url) { await pool.query('UPDATE event_registrations SET deleted_at = NOW() WHERE id = $1', [rows[0].id]); return res.status(502).json({ error: g.error }); }
+      return res.status(201).json({ success: true, id: rows[0].id, ticket, pending_payment: true, pay_url: g.url, tran_id: pay.payment.tran_id });
+    }
     res.status(201).json({ success: true, id: rows[0].id, ticket, waitlisted, position, pending_payment: !!pay?.payment, message: ev.reg_form?.confirmation || '' });
     // a short confirmation to the person (switch off with EVENT_CONFIRM_EMAIL=false); needs an email question in the form
     const to = col.email || forms.show(clean[(fields.find((f) => f.type === 'email') || {}).id]);
@@ -360,3 +376,4 @@ router.delete('/:id', async (req, res) => {
 });
 
 module.exports = router;
+module.exports.promoteWaiting = promoteWaiting;
