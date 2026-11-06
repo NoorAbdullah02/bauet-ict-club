@@ -287,6 +287,10 @@ app.use((err, req, res, _next) => {
   res.status(500).json({ error: 'Internal server error' });
 });
 
+// one stray error (a dropped database connection, a rejected promise in a background job) must never take the whole server down
+process.on('unhandledRejection', (e) => console.error('Unhandled rejection (server keeps running):', e && e.stack ? e.stack : e));
+process.on('uncaughtException', (e) => console.error('Uncaught exception (server keeps running):', e && e.stack ? e.stack : e));
+
 async function start() {
   try {
     await pool.query('SELECT 1');
