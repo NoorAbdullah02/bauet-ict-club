@@ -22,7 +22,7 @@ const MAX_INTERESTS = 8;
 
 const submitLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
-  max: 20,
+  max: 200, // many students share one campus address
   message: { error: 'Too many submissions from this network. Please try again later.' },
 });
 

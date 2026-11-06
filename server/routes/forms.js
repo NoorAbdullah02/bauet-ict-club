@@ -17,7 +17,7 @@ const router = express.Router();
 const clean = (v, n) => String(v ?? '').trim().slice(0, n);
 const slugify = (s) => String(s || '').toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
 const answersOf = (r) => r.answers || {};
-const limiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 40, standardHeaders: true, legacyHeaders: false, message: { error: 'Too many submissions from this network. Please try again later.' } });
+const limiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 400, standardHeaders: true, legacyHeaders: false, message: { error: 'Too many submissions from this network. Please try again later.' } });
 /** A form by its link name. An old link name (before it was renamed) still finds the form. */
 async function findForm(slug) {
   const f = (await pool.query('SELECT * FROM forms WHERE slug = $1 AND deleted_at IS NULL', [slug])).rows[0];
