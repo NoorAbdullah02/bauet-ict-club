@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/config.dart';
+import '../../core/downloads.dart';
 import '../../core/theme.dart';
 import '../../core/utils.dart';
 import '../../data/api.dart';
@@ -247,6 +248,13 @@ class _AdminApplicationsScreenState extends State<AdminApplicationsScreen> {
                 IconButton(onPressed: () => context.canPop() ? context.pop() : context.go('/admin'), icon: const Icon(Icons.arrow_back_rounded)),
                 Expanded(child: Text('Applications', style: displayStyle(context, 24))),
                 const AdminThemeButton(),
+                ExportMenu(onPick: (f) {
+                  if (f == 'zip') {
+                    downloadAndShare(context, _state.api, '/registrations/zip', 'applications-everything.zip', query: {'type': _type, 'status': _status, 'format': 'original'});
+                  } else {
+                    downloadAndShare(context, _state.api, '/registrations/export', 'applications.$f', query: {'type': _type, 'status': _status, 'format': f});
+                  }
+                }),
                 PopupMenuButton<String>(
                   tooltip: 'Email export',
                   icon: const Icon(Icons.forward_to_inbox_rounded),

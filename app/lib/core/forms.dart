@@ -144,6 +144,8 @@ String prettyCode(String code) {
   if (t.isEmpty) return null;
   final ticket = RegExp(r'/ticket/([A-Za-z0-9\- ]+)').firstMatch(t);
   if (ticket != null) return (kind: 'ticket', value: ticket.group(1)!.replaceAll(RegExp(r'[^A-Za-z0-9]'), '').toUpperCase());
+  final short = RegExp(r'/s/([A-Za-z0-9\-]{3,40})(?:[/?#]|$)').firstMatch(t);
+  if (short != null) return (kind: 'short', value: short.group(1)!);
   final card = RegExp(r'/card/(\d+)(?:\?c=([A-Za-z0-9\-]+))?').firstMatch(t);
   if (card != null) return (kind: 'card', value: card.group(2) == null ? card.group(1)! : '${card.group(1)}|${card.group(2)}');
   final verify = RegExp(r'/(?:verify|certificate)/([A-Za-z0-9\- ]+)').firstMatch(t);
