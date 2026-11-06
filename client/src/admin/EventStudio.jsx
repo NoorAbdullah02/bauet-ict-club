@@ -19,7 +19,7 @@ function Steps({ step, onDetails }) {
       {items.map(([n, label, I], i) => {
         const done = step > n, on = step === n;
         return (
-          <li key={n} className="flex flex-1 items-center gap-2">
+          <li key={n} className="flex min-w-0 flex-1 items-center gap-2">
             <button type="button" disabled={!(done && n === 1)} onClick={onDetails} aria-current={on ? 'step' : undefined}
               className={cn('flex min-w-0 flex-1 items-center gap-2.5 rounded-2xl border px-3.5 py-2.5 text-left transition', on ? 'border-tech bg-tech/10' : done ? 'border-emerald-500/40 bg-emerald-500/8' : 'border-line bg-surface')}>
               <span className={cn('grid size-8 shrink-0 place-items-center rounded-full text-xs font-bold', on ? 'bg-tech text-white' : done ? 'bg-emerald-500 text-white' : 'bg-alt text-muted')}>{done ? <Check size={15} /> : <I size={15} />}</span>
