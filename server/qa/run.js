@@ -478,6 +478,7 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
     }
 
     // password change
+    ok((await call('POST', '/api/auth/login', { username: '  Admin ', password: 'Qa-Pass-12345' })).s === 200, 'the username can be typed with a capital letter or spaces (phone keyboards do that)');
     ok((await call('POST', '/api/auth/change-password', { current: 'wrong-pass', next: 'Another-Pass-99' }, T)).s === 401, 'change password needs current one');
     ok((await call('POST', '/api/auth/change-password', { current: 'Qa-Pass-12345', next: 'short' }, T)).s === 400, 'short new password refused');
     ok((await call('POST', '/api/auth/change-password', { current: 'Qa-Pass-12345', next: 'Another-Pass-99' }, T)).s === 200, 'password changed');
