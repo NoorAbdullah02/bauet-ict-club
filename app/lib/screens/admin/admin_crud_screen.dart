@@ -9,6 +9,7 @@ import '../../core/utils.dart';
 import '../../data/api.dart';
 import '../../state/app_state.dart';
 import '../../widgets/common.dart';
+import '../../widgets/publish_picker.dart';
 import '../../widgets/form_widgets.dart';
 import 'admin_widgets.dart';
 
@@ -342,7 +343,14 @@ class _AdminCrudScreenState extends State<AdminCrudScreen> {
       floatingActionButton: spec.readOnly
           ? null
           : FloatingActionButton.extended(
-              onPressed: () => _openForm(),
+              onPressed: () async {
+                if (widget.table == 'events') {
+                  await context.push('/admin/event-studio');
+                  if (mounted) await _afterChange();
+                } else {
+                  _openForm();
+                }
+              },
               backgroundColor: p.accent,
               foregroundColor: Colors.white,
               icon: const Icon(Icons.add_rounded),
@@ -484,13 +492,6 @@ class _RowFormState extends State<_RowForm> {
   void initState() {
     super.initState();
     if (widget.spec.fields.any((f) => f.kind == FieldKind.session)) _loadSessions();
-    final at = DateTime.tryParse('${widget.row?['publish_at'] ?? ''}');
-    if (widget.row?['is_draft'] == true) {
-      _pubMode = 'draft';
-    } else if (at != null) {
-      _pubMode = 'schedule';
-      _pubAt = at.toUtc().add(const Duration(hours: 6)); // wall clock in Bangladesh, kept in a UTC DateTime
-    }
     for (final f in widget.spec.fields) {
       final v = widget.row?[f.key];
       if (f.kind == FieldKind.boolean) {
@@ -503,58 +504,14 @@ class _RowFormState extends State<_RowForm> {
 
   @override
   void dispose() {
+    _pub.dispose();
     for (final c in _ctrl.values) {
       c.dispose();
     }
     super.dispose();
   }
 
-  /// 'now', 'schedule' or 'draft' for the "When to publish" field (events and notices).
-  String _pubMode = 'now';
-  DateTime? _pubAt;
-
-  Future<void> _pickPublishAt() async {
-    final base = _pubAt ?? DateTime.now().toUtc().add(const Duration(hours: 6 + 24));
-    final d = await showDatePicker(context: context, initialDate: DateTime(base.year, base.month, base.day), firstDate: DateTime.now().subtract(const Duration(days: 1)), lastDate: DateTime(2100));
-    if (d == null || !mounted) return;
-    final t = await showTimePicker(context: context, initialTime: TimeOfDay(hour: base.hour, minute: base.minute));
-    if (t == null) return;
-    setState(() => _pubAt = DateTime.utc(d.year, d.month, d.day, t.hour, t.minute));
-  }
-
-  String _pubLabel() {
-    final a = _pubAt;
-    if (a == null) return 'Pick date and time';
-    String two(int n) => n.toString().padLeft(2, '0');
-    return '${a.year}-${two(a.month)}-${two(a.day)}  ${two(a.hour)}:${two(a.minute)}  (Bangladesh time)';
-  }
-
-  Widget _publishField() {
-    final p = context.pal;
-    Widget chip(String mode, String label) => ChoiceChip(
-          label: Text(label),
-          selected: _pubMode == mode,
-          onSelected: (_) => setState(() {
-            _pubMode = mode;
-            if (mode == 'schedule' && _pubAt == null) _pubAt = DateTime.now().toUtc().add(const Duration(hours: 6 + 24));
-          }),
-        );
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text('When to publish', style: bodyStyle(context, weight: FontWeight.w600)),
-      const SizedBox(height: 8),
-      Wrap(spacing: 8, children: [chip('now', 'Publish now'), chip('schedule', 'Schedule'), chip('draft', 'Save as draft')]),
-      if (_pubMode == 'schedule') ...[
-        const SizedBox(height: 10),
-        GhostButton(label: _pubLabel(), icon: Icons.schedule_rounded, onPressed: _pickPublishAt),
-        const SizedBox(height: 6),
-        Text('It appears on the website and in the app by itself at that moment, and the subscribers get the e-mail then.', style: bodyStyle(context, size: 12, color: p.muted)),
-      ],
-      if (_pubMode == 'draft') ...[
-        const SizedBox(height: 6),
-        Text('Only admins can see a draft. Choose "Publish now" when it is ready.', style: bodyStyle(context, size: 12, color: p.muted)),
-      ],
-    ]);
-  }
+  late final PublishController _pub = PublishController(widget.row);
 
   Future<void> _pickDate(FieldSpec f) async {
     final c = _ctrl[f.key]!;
@@ -571,8 +528,7 @@ class _RowFormState extends State<_RowForm> {
     final body = <String, dynamic>{};
     for (final f in widget.spec.fields) {
       if (f.kind == FieldKind.publish) {
-        body['is_draft'] = _pubMode == 'draft';
-        body['publish_at'] = _pubMode == 'schedule' && _pubAt != null ? _pubAt!.subtract(const Duration(hours: 6)).toIso8601String() : null;
+        body.addAll(_pub.toBody());
         continue;
       }
       if (f.kind == FieldKind.boolean) {
@@ -624,7 +580,7 @@ class _RowFormState extends State<_RowForm> {
             Padding(
               padding: const EdgeInsets.only(bottom: 14),
               child: f.kind == FieldKind.publish
-                  ? _publishField()
+                  ? PublishPicker(controller: _pub)
                   : f.kind == FieldKind.boolean
                   ? SwitchListTile(
                       contentPadding: EdgeInsets.zero,

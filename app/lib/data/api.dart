@@ -139,6 +139,9 @@ class Api {
     return data is Map ? Map<String, dynamic>.from(data) : {};
   }
 
+  /// Same as create, but returns the new row (its id is needed to carry on, for example to its sign-up form).
+  Future<Map<String, dynamic>> createReturning(String table, Map<String, dynamic> body) async => _map(await _send(() => _dio.post('/$table', data: body, options: _auth)));
+
   Future<void> create(String table, Map<String, dynamic> body) => _send(() => _dio.post('/$table', data: body, options: _auth));
 
   Future<void> update(String table, int id, Map<String, dynamic> body) =>

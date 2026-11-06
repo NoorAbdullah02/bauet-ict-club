@@ -77,6 +77,40 @@ class _AdminPointsScreenState extends State<AdminPointsScreen> {
     }
   }
 
+  Future<void> _editAward(Map a) async {
+    final pts = TextEditingController(text: '${a['points']}');
+    final reason = TextEditingController(text: '${a['reason']}');
+    final ok = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.fromLTRB(20, 8, 20, MediaQuery.of(ctx).viewInsets.bottom + 20),
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('Edit award', style: displayStyle(ctx, 24)),
+          const SizedBox(height: 14),
+          AppField(controller: pts, label: 'Points', icon: Icons.add_circle_outline_rounded, keyboard: const TextInputType.numberWithOptions(signed: true)),
+          const SizedBox(height: 10),
+          AppField(controller: reason, label: 'Reason', icon: Icons.notes_rounded),
+          const SizedBox(height: 14),
+          GradientButton(label: 'Save', icon: Icons.save_rounded, onPressed: () => Navigator.pop(ctx, true)),
+        ]),
+      ),
+    );
+    if (ok == true) {
+      try {
+        await _state.api.adminCall('PUT', '/points/award/${a['id']}', data: {'points': int.tryParse(pts.text.trim()) ?? 0, 'reason': reason.text.trim()});
+        if (mounted) showSnack(context, 'Award corrected');
+        await _load();
+      } on ApiException catch (e) {
+        if (!mounted) return;
+        await _state.handleAuthError(e);
+        if (mounted) showSnack(context, e.message, error: true);
+      }
+    }
+    pts.dispose();
+    reason.dispose();
+  }
+
   Future<void> _undo(int id) async {
     try {
       await _state.api.adminCall('DELETE', '/points/award/$id');
@@ -165,7 +199,8 @@ class _AdminPointsScreenState extends State<AdminPointsScreen> {
                         Text('${a['name'] ?? a['email']}', maxLines: 1, overflow: TextOverflow.ellipsis, style: bodyStyle(context, size: 12, color: p.muted)),
                       ]),
                     ),
-                    IconButton(onPressed: () => _undo((a['id'] as num).toInt()), icon: const Icon(Icons.delete_outline_rounded, color: Color(0xFFEF4444))),
+                    IconButton(tooltip: 'Edit award', onPressed: () => _editAward(a), icon: Icon(Icons.edit_outlined, color: p.accent)),
+                    IconButton(tooltip: 'Remove award', onPressed: () => _undo((a['id'] as num).toInt()), icon: const Icon(Icons.delete_outline_rounded, color: Color(0xFFEF4444))),
                   ]),
                 ),
               ),

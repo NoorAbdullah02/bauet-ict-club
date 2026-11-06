@@ -50,6 +50,7 @@ import '../screens/leaderboard_screen.dart';
 import '../screens/contests_screen.dart';
 import '../screens/contest_detail_screen.dart';
 import '../screens/admin/admin_contest_teams_screen.dart';
+import '../screens/admin/admin_event_studio_screen.dart';
 import '../screens/admin/admin_points_screen.dart';
 import '../screens/splash_screen.dart';
 import '../screens/team_screen.dart';
@@ -143,6 +144,7 @@ GoRouter buildRouter(AppState state) {
       GoRoute(path: '/admin/checkin', pageBuilder: (c, s) => _slide(s, _admin(const AdminCheckinScreen()))),
       GoRoute(path: '/admin/signups', pageBuilder: (c, s) => _slide(s, _admin(const AdminSignupsScreen()))),
       GoRoute(path: '/admin/contest/:id', pageBuilder: (c, s) => _slide(s, _admin(AdminContestTeamsScreen(id: int.tryParse(s.pathParameters['id'] ?? '') ?? 0)))),
+      GoRoute(path: '/admin/event-studio', pageBuilder: (c, s) => _slide(s, _admin(const AdminEventStudioScreen()))),
       GoRoute(path: '/admin/points', pageBuilder: (c, s) => _slide(s, _admin(const AdminPointsScreen()))),
       GoRoute(path: '/admin/insights', pageBuilder: (c, s) => _slide(s, _admin(const AdminInsightsScreen()))),
       GoRoute(path: '/admin/activity', pageBuilder: (c, s) => _slide(s, _admin(const AdminActivityScreen()))),
