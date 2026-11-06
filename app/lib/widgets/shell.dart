@@ -32,6 +32,7 @@ const _more = [
   _NavItem('/achievements', 'Achievements', Icons.emoji_events_outlined, Icons.emoji_events_rounded),
   _NavItem('/projects', 'Projects', Icons.code_outlined, Icons.code_rounded),
   _NavItem('/resources', 'Resources', Icons.local_library_outlined, Icons.local_library_rounded),
+  _NavItem('/jobs/remote', 'Remote jobs', Icons.public_outlined, Icons.public_rounded),
   _NavItem('/jobs', 'Jobs', Icons.work_outline_rounded, Icons.work_rounded),
   _NavItem('/contests', 'Contests', Icons.sports_esports_outlined, Icons.sports_esports_rounded),
   _NavItem('/leaderboard', 'Leaderboard', Icons.emoji_events_outlined, Icons.emoji_events_rounded),
@@ -126,7 +127,8 @@ class _AppDrawer extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = context.pal;
     Widget tile(_NavItem t) {
-      final sel = location.startsWith(t.path);
+      // /jobs/remote must not also light up /jobs
+      final sel = location == t.path || (location.startsWith('${t.path}/') && !_more.any((o) => o.path != t.path && o.path.startsWith(t.path) && location.startsWith(o.path)));
       return ListTile(
         leading: Icon(sel ? t.activeIcon : t.icon, color: sel ? p.accent : p.muted),
         title: Text(tr(t.label), style: bodyStyle(context, weight: FontWeight.w600)),

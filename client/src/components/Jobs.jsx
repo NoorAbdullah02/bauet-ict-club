@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowUpRight, Briefcase, Building2, ChevronDown, Clock, Globe2, MapPin, Search, Wallet } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
@@ -67,9 +68,38 @@ function RemoteJobs() {
   );
 }
 
-/** The job and internship board: open positions first, closed ones last. */
+/** Two pages, one switcher: /jobs (club openings) and /jobs/remote. */
+function Switcher({ active }) {
+  return (
+    <div role="navigation" aria-label="Job lists" className="mx-auto mb-8 flex w-fit rounded-full border border-line bg-surface p-1">
+      {[['/jobs', 'Club openings', 'club'], ['/jobs/remote', 'Remote jobs', 'remote']].map(([to, l, k]) => (
+        <Link key={k} to={to} aria-current={active === k ? 'page' : undefined} className={cn('rounded-full px-5 py-2 text-sm font-semibold transition', active === k ? 'bg-fg text-bg' : 'text-fg2 hover:text-fg')}>{l}</Link>
+      ))}
+    </div>
+  );
+}
+
+/** /jobs/remote: remote jobs from Remotive and Remote OK. */
+export function RemoteJobsPage() {
+  const t = useT();
+  return (
+    <section className="section">
+      <div className="container max-w-4xl">
+        <div className="section-header">
+          <div className="section-tag">{t('Careers')}</div>
+          <h2 className="section-title">{t('Remote jobs')}</h2>
+          <p className="section-desc">Remote jobs from around the world, updated every few hours. Apply opens the original page.</p>
+          <div className="divider" />
+        </div>
+        <Switcher active="remote" />
+        <RemoteJobs />
+      </div>
+    </section>
+  );
+}
+
+/** /jobs: openings shared by the club, open positions first, closed ones last. */
 export default function Jobs() {
-  const [tab, setTab] = useState('club');
   const t = useT();
   const items = useStore(useShallow((s) => s.jobs)) || [];
   const [kind, setKind] = useState('All');
@@ -93,10 +123,8 @@ export default function Jobs() {
           <p className="section-desc">Openings shared by the club for BAUET students and alumni. Apply directly with the company.</p>
           <div className="divider" />
         </div>
-        <div role="tablist" aria-label="Job lists" className="mx-auto mb-8 flex w-fit rounded-full border border-line bg-surface p-1">
-          {[['club', 'Club openings'], ['remote', 'Remote jobs']].map(([k, l]) => <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)} className={cn('rounded-full px-5 py-2 text-sm font-semibold transition', tab === k ? 'bg-fg text-bg' : 'text-fg2 hover:text-fg')}>{l}</button>)}
-        </div>
-        {tab === 'remote' ? <RemoteJobs /> : (<>
+        <Switcher active="club" />
+        <>
         <div className="mb-8 flex flex-wrap items-center justify-center gap-3">
           <label className="relative"><Search size={15} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted" />
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search jobs" aria-label="Search jobs" className="w-64 rounded-full border border-line bg-surface py-2.5 pl-10 pr-4 text-sm text-fg outline-none transition focus:border-tech" /></label>
@@ -146,7 +174,7 @@ export default function Jobs() {
             })}
           </ul>
         )}
-        </>)}
+        </>
       </div>
     </section>
   );

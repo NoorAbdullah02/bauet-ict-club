@@ -113,6 +113,7 @@ GoRouter buildRouter(AppState state) {
           GoRoute(path: '/leaderboard', pageBuilder: (c, s) => _fade(s, const LeaderboardScreen())),
           GoRoute(path: '/contests', pageBuilder: (c, s) => _fade(s, const ContestsScreen())),
           GoRoute(path: '/jobs', pageBuilder: (c, s) => _fade(s, const JobsScreen())),
+          GoRoute(path: '/jobs/remote', pageBuilder: (c, s) => _fade(s, const JobsScreen(remote: true))),
           GoRoute(path: '/faq', pageBuilder: (c, s) => _fade(s, const FaqScreen())),
           GoRoute(path: '/about', pageBuilder: (c, s) => _fade(s, const AboutScreen())),
           GoRoute(path: '/contact', pageBuilder: (c, s) => _fade(s, const ContactScreen())),
