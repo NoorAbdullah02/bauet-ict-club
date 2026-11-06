@@ -37,9 +37,9 @@ function RemoteJobs() {
       <div className="mb-6 flex flex-wrap items-center justify-center gap-3">
         <label className="relative"><Search size={15} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted" />
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search remote jobs" aria-label="Search remote jobs" className="w-64 rounded-full border border-line bg-surface py-2.5 pl-10 pr-4 text-sm text-fg outline-none transition focus:border-tech" /></label>
-        <button type="button" onClick={() => setOpenOnly((v) => !v)} aria-pressed={openOnly} className={cn('inline-flex items-center gap-1.5 rounded-full border px-4 py-1.5 text-xs font-medium transition', openOnly ? 'border-emerald-500 bg-emerald-500/10 text-emerald-700' : 'border-line text-fg2 hover:border-muted')}><Globe2 size={13} /> Open to Bangladesh</button>
+        <button type="button" onClick={() => setOpenOnly((v) => !v)} aria-pressed={openOnly} className={cn('inline-flex min-h-9 items-center gap-1.5 rounded-full border px-4 py-2 text-xs font-medium transition', openOnly ? 'border-emerald-500 bg-emerald-500/10 text-emerald-700' : 'border-line text-fg2 hover:border-muted')}><Globe2 size={13} /> Open to Bangladesh</button>
       </div>
-      {tags.length > 0 && <div className="mb-6 flex flex-wrap justify-center gap-2">{['', ...tags].map((t) => <button key={t || 'all'} onClick={() => setTag(t)} aria-pressed={tag === t} className={cn('rounded-full border px-3 py-1 text-xs transition', tag === t ? 'border-fg bg-fg text-bg' : 'border-line text-fg2 hover:border-muted')}>{t || 'All topics'}</button>)}</div>}
+      {tags.length > 0 && <div className="mb-6 flex flex-wrap justify-center gap-2">{['', ...tags].map((t) => <button key={t || 'all'} onClick={() => setTag(t)} aria-pressed={tag === t} className={cn('min-h-9 rounded-full border px-3.5 py-1.5 text-xs transition', tag === t ? 'border-fg bg-fg text-bg' : 'border-line text-fg2 hover:border-muted')}>{t || 'All topics'}</button>)}</div>}
       {list.length === 0 ? (
         <div className="py-12 text-center text-fg2"><Globe2 size={40} className="mx-auto mb-3 text-muted" /><p>{all.length ? 'Nothing matches. Turn off "Open to Bangladesh" or try another word.' : 'No remote jobs loaded yet. Please check again in a minute.'}</p></div>
       ) : (
@@ -129,7 +129,7 @@ export default function Jobs() {
           <label className="relative"><Search size={15} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted" />
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search jobs" aria-label="Search jobs" className="w-64 rounded-full border border-line bg-surface py-2.5 pl-10 pr-4 text-sm text-fg outline-none transition focus:border-tech" /></label>
           {kinds.length > 2 && kinds.map((k) => (
-            <button key={k} onClick={() => setKind(k)} aria-pressed={kind === k} className={cn('rounded-full border px-4 py-1.5 text-xs font-medium transition', kind === k ? 'border-fg bg-fg text-bg' : 'border-line text-fg2 hover:border-muted')}>{k}</button>
+            <button key={k} onClick={() => setKind(k)} aria-pressed={kind === k} className={cn('min-h-9 rounded-full border px-4 py-2 text-xs font-medium transition', kind === k ? 'border-fg bg-fg text-bg' : 'border-line text-fg2 hover:border-muted')}>{k}</button>
           ))}
         </div>
         {list.length === 0 ? (
