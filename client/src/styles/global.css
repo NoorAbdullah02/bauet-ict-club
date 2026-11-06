@@ -59,8 +59,8 @@
   --radius: 20px;
   --radius-sm: 12px;
   --radius-xs: 8px;
-  --font-display: 'Fraunces', 'Times New Roman', serif;
-  --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-display: 'Fraunces', 'Noto Sans Bengali', 'Times New Roman', serif;
+  --font-body: 'Inter', 'Noto Sans Bengali', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
   --display-weight: 600;
   --display-tracking: -0.025em;
@@ -107,7 +107,7 @@
   --grad-btn: linear-gradient(120deg, #2A5DEB 0%, #0A7BAD 100%);
   --btn-fg: #fff;
   --btn-shadow: 0 0 0 1px rgba(255,255,255,0.14) inset, 0 10px 34px rgba(47,107,255,0.5);
-  --font-display: 'Space Grotesk', system-ui, sans-serif;
+  --font-display: 'Space Grotesk', 'Noto Sans Bengali', system-ui, sans-serif;
   --display-weight: 700;
   --display-tracking: -0.035em;
   color-scheme: dark;

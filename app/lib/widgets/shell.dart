@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../core/config.dart';
+import '../core/i18n.dart';
 import '../core/theme.dart';
 import '../state/app_state.dart';
 import 'coder.dart';
@@ -66,11 +67,11 @@ class AppShell extends StatelessWidget {
             ? Row(children: [
                 const LogoImage.club(height: 34),
               ])
-            : Text(_titleFor(location), style: displayStyle(context, 22)),
+            : Text(tr(_titleFor(location)), style: displayStyle(context, 22)),
         actions: [
-          IconButton(tooltip: 'Search', onPressed: () => context.push('/search'), icon: const Icon(Icons.search_rounded)),
+          IconButton(tooltip: tr('Search'), onPressed: () => context.push('/search'), icon: const Icon(Icons.search_rounded)),
           IconButton(
-            tooltip: 'Chat with us',
+            tooltip: tr('Chat with us'),
             onPressed: () {
               HapticFeedback.lightImpact();
               context.push('/chat');
@@ -125,7 +126,7 @@ class _AppDrawer extends StatelessWidget {
       final sel = location.startsWith(t.path);
       return ListTile(
         leading: Icon(sel ? t.activeIcon : t.icon, color: sel ? p.accent : p.muted),
-        title: Text(t.label, style: bodyStyle(context, weight: FontWeight.w600)),
+        title: Text(tr(t.label), style: bodyStyle(context, weight: FontWeight.w600)),
         selected: sel,
         onTap: () {
           Navigator.pop(context);
@@ -157,15 +158,24 @@ class _AppDrawer extends StatelessWidget {
             Divider(color: p.line, indent: 24, endIndent: 24),
             ListTile(
               leading: ChatFace(size: 24, bubble: p.third, face: p.bg),
-              title: Text('Chat assistant', style: bodyStyle(context, weight: FontWeight.w600)),
+              title: Text(tr('Chat assistant'), style: bodyStyle(context, weight: FontWeight.w600)),
               onTap: () {
                 Navigator.pop(context);
                 context.push('/chat');
               },
             ),
             ListTile(
+              leading: Icon(Icons.translate_rounded, color: p.muted),
+              title: Text(isBangla ? 'English' : 'বাংলা', style: bodyStyle(context, weight: FontWeight.w600)),
+              subtitle: Text(tr('Language'), style: bodyStyle(context, size: 12, color: p.muted)),
+              onTap: () {
+                Navigator.pop(context);
+                context.read<AppState>().setLang(isBangla ? 'en' : 'bn');
+              },
+            ),
+            ListTile(
               leading: Icon(Icons.admin_panel_settings_outlined, color: p.muted),
-              title: Text(isAdmin ? 'Admin dashboard' : 'Admin login', style: bodyStyle(context, weight: FontWeight.w600)),
+              title: Text(tr(isAdmin ? 'Admin dashboard' : 'Admin login'), style: bodyStyle(context, weight: FontWeight.w600)),
               onTap: () {
                 Navigator.pop(context);
                 context.push('/admin');
@@ -248,7 +258,7 @@ class _GlossNav extends StatelessWidget {
                             child: Column(mainAxisSize: MainAxisSize.min, children: [
                               Icon(i == selected ? _tabs[i].activeIcon : _tabs[i].icon, size: 22, color: i == selected ? Colors.white : p.muted),
                               const SizedBox(height: 2),
-                              Text(_tabs[i].label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: i == selected ? Colors.white : p.muted)),
+                              Text(tr(_tabs[i].label), style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: i == selected ? Colors.white : p.muted)),
                             ]),
                           ),
                         ),

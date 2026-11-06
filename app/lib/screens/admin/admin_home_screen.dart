@@ -1,3 +1,4 @@
+import '../../core/i18n.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -131,7 +132,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                 Row(children: [
                   const LogoImage.club(height: 44),
                   const SizedBox(width: 14),
-                  Text('Admin', style: displayStyle(context, 32)),
+                  Text(tr('Admin'), style: displayStyle(context, 32)),
                 ]).stagger(0),
                 const SizedBox(height: 22),
                 Row(children: [

@@ -1,3 +1,4 @@
+import '../core/i18n.dart';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -424,7 +425,7 @@ class _DynamicFormViewState extends State<DynamicFormView> {
         if (pages.length > 1 && page > 0)
           Padding(
             padding: const EdgeInsets.only(bottom: 12),
-            child: TextButton.icon(onPressed: () => setState(() => _page = page - 1), icon: const Icon(Icons.arrow_back_rounded, size: 16), label: const Text('Back')),
+            child: TextButton.icon(onPressed: () => setState(() => _page = page - 1), icon: const Icon(Icons.arrow_back_rounded, size: 16), label: Text(tr('Back'))),
           ),
         if (widget.footer != null) widget.footer!,
       ],

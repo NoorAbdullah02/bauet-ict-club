@@ -14,6 +14,9 @@ const media = typeof window !== 'undefined' && window.matchMedia ? window.matchM
 const resolveTheme = (t) => (t === 'system' ? (media && media.matches ? 'dark' : 'light') : t === 'dark' ? 'dark' : 'light');
 const savedTheme = (() => { try { const t = localStorage.getItem('bauet-theme'); return t === 'dark' || t === 'system' ? t : 'light'; } catch { return 'light'; } })();
 
+const savedLang = (() => { try { return localStorage.getItem('bauet-lang') === 'bn' ? 'bn' : 'en'; } catch { return 'en'; } })();
+if (typeof document !== 'undefined') document.documentElement.setAttribute('lang', savedLang);
+
 const useStore = create((set, get) => ({
   events: [],
   notices: [],
@@ -34,6 +37,13 @@ const useStore = create((set, get) => ({
   loading: true,
   theme: savedTheme,
   resolvedTheme: resolveTheme(savedTheme),
+  lang: savedLang,
+  setLang: (lang) => {
+    const l = lang === 'bn' ? 'bn' : 'en';
+    try { localStorage.setItem('bauet-lang', l); } catch { /* storage blocked */ }
+    document.documentElement.setAttribute('lang', l);
+    set({ lang: l });
+  },
   adminTheme: localStorage.getItem('bauet-admin-theme') || 'light',
   setAdminTheme: (adminTheme) => {
     localStorage.setItem('bauet-admin-theme', adminTheme);

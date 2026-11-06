@@ -8,6 +8,7 @@ import { ArrowDown, ArrowUpRight, GraduationCap } from 'lucide-react';
 import Backdrop3D from './Backdrop3D';
 import { useShallow } from 'zustand/react/shallow';
 import Logo from './Logo';
+import { useT } from '../lib/i18n';
 import useStore from '../context/store';
 
 
@@ -36,6 +37,7 @@ function Stat({ value, label }) {
 }
 
 export default function Hero() {
+  const t = useT();
   const { events, members } = useStore(useShallow((s) => ({ events: s.events, members: s.members })));
   const root = useRef(null);
 
@@ -95,8 +97,8 @@ export default function Hero() {
         </motion.p>
 
         <motion.div {...rise(0.8)} className="mt-10 flex flex-wrap justify-center gap-3">
-          <Link className="btn-primary" to="/events">Explore Events <ArrowUpRight size={16} /></Link>
-          <Link className="btn-outline" to="/join">Join the Club</Link>
+          <Link className="btn-primary" to="/events">{t('Explore Events')} <ArrowUpRight size={16} /></Link>
+          <Link className="btn-outline" to="/join">{t('Join the Club')}</Link>
         </motion.div>
 
         <motion.div {...rise(1)}

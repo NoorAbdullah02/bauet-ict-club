@@ -42,6 +42,7 @@ class _ClubAppState extends State<ClubApp> {
   @override
   Widget build(BuildContext context) {
     final mode = context.select<AppState, ThemeMode>((s) => s.themeMode);
+    final lang = context.select<AppState, String>((s) => s.lang);
     return MaterialApp.router(
       title: AppConfig.clubName,
       debugShowCheckedModeBanner: false,
@@ -56,7 +57,7 @@ class _ClubAppState extends State<ClubApp> {
             statusBarColor: Colors.transparent,
             systemNavigationBarColor: Colors.transparent,
           ),
-          child: child ?? const SizedBox.shrink(),
+          child: KeyedSubtree(key: ValueKey(lang), child: child ?? const SizedBox.shrink()),
         );
       },
     );

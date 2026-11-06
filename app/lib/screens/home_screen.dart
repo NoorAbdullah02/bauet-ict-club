@@ -1,3 +1,4 @@
+import '../core/i18n.dart';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -77,7 +78,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text('YOUR TICKET', style: monoStyle(context, size: 9.5, color: p.tech)),
+                      Text(tr('Your ticket').toUpperCase(), style: monoStyle(context, size: 9.5, color: p.tech)),
                       Text(_ticket!.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: bodyStyle(context, weight: FontWeight.w700, size: 15)),
                       Text(_ticket!.date, style: bodyStyle(context, size: 12.5, color: p.muted)),
                     ]),
@@ -103,7 +104,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             const SizedBox(height: 30),
             _AvatarStrip(
               eyebrow: 'The team',
-              title: 'Meet the ${state.latestSession} committee',
+              title: isBangla ? '${state.latestSession} কমিটির সাথে পরিচিত হোন' : 'Meet the ${state.latestSession} committee',
               members: state.featuredCommittee,
               showRole: true,
               onSeeAll: () => context.go('/team'),
@@ -125,7 +126,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             child: SectionHeader(
               eyebrow: 'Coming up',
               title: 'Next events',
-              trailing: TextButton(onPressed: () => context.go('/events'), child: const Text('See all')),
+              trailing: TextButton(onPressed: () => context.go('/events'), child: Text(tr('See all'))),
             ),
           ),
           const SizedBox(height: 14),
@@ -153,7 +154,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             child: SectionHeader(
               eyebrow: 'Pinned',
               title: 'Notice board',
-              trailing: TextButton(onPressed: () => context.go('/notices'), child: const Text('See all')),
+              trailing: TextButton(onPressed: () => context.go('/notices'), child: Text(tr('See all'))),
             ),
           ),
           const SizedBox(height: 14),
@@ -275,8 +276,8 @@ class _Hero extends StatelessWidget {
                 const SizedBox(height: 20),
                 const Row(children: [LogoImage.crest(height: 46), SizedBox(width: 14), LogoImage.club(height: 40)]),
                 const SizedBox(height: 40),
-                Text('Where code', style: displayStyle(context, 46)).animate().fadeIn(delay: 150.ms, duration: 600.ms).slideY(begin: 0.25, end: 0),
-                GradientText('meets community.', style: displayStyle(context, 46))
+                Text(tr('Where code'), style: displayStyle(context, 46)).animate().fadeIn(delay: 150.ms, duration: 600.ms).slideY(begin: 0.25, end: 0),
+                GradientText(tr('meets community.'), style: displayStyle(context, 46))
                     .animate()
                     .fadeIn(delay: 300.ms, duration: 600.ms)
                     .slideY(begin: 0.25, end: 0),
@@ -364,7 +365,7 @@ class _Stats extends StatelessWidget {
               const SizedBox(height: 6),
               CountUp(value: s.$2, style: displayStyle(context, 26)),
               const SizedBox(height: 2),
-              Text(s.$1.toUpperCase(), style: monoStyle(context, size: 9)),
+              Text(tr(s.$1).toUpperCase(), style: monoStyle(context, size: 9)),
             ]),
           ),
       ]),
@@ -434,9 +435,9 @@ class _JoinCta extends StatelessWidget {
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text('\$ git checkout -b you', style: monoStyle(context, color: Colors.white70, size: 11.5)),
         const SizedBox(height: 8),
-        Text('Be part of what we build next.', style: displayStyle(context, 24, color: Colors.white)),
+        Text(tr('Be part of what we build next.'), style: displayStyle(context, 24, color: Colors.white)),
         const SizedBox(height: 8),
-        Text('Apply for the executive committee or become a general member.', style: bodyStyle(context, color: Colors.white.withValues(alpha: 0.85))),
+        Text(tr('Apply for the executive committee or become a general member.'), style: bodyStyle(context, color: Colors.white.withValues(alpha: 0.85))),
         const SizedBox(height: 18),
         FilledButton.icon(
           onPressed: () => context.go('/join'),
@@ -447,7 +448,7 @@ class _JoinCta extends StatelessWidget {
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           ),
           icon: const Icon(Icons.arrow_forward_rounded),
-          label: const Text('Start application'),
+          label: Text(tr('Start application')),
         ),
       ]),
     );
@@ -469,7 +470,7 @@ class _AvatarStrip extends StatelessWidget {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20),
-        child: SectionHeader(eyebrow: eyebrow, title: title, trailing: TextButton(onPressed: onSeeAll, child: const Text('See all'))),
+        child: SectionHeader(eyebrow: eyebrow, title: title, trailing: TextButton(onPressed: onSeeAll, child: Text(tr('See all')))),
       ),
       const SizedBox(height: 14),
       SizedBox(

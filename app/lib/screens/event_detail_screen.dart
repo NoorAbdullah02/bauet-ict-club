@@ -1,3 +1,4 @@
+import '../core/i18n.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -297,7 +298,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
         const SizedBox(width: 12),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('Register', style: displayStyle(context, 21)),
+            Text(tr('Register'), style: displayStyle(context, 21)),
             Text(closed ? 'Registration is closed' : (pay.isNotEmpty ? 'Fee ${pay['amount']} BDT · takes a minute' : 'Free · takes a minute'), style: bodyStyle(context, size: 12.5, color: p.muted)),
           ]),
         ),

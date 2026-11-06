@@ -1,3 +1,4 @@
+import '../../core/i18n.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -35,7 +36,7 @@ Future<bool> confirmAction(BuildContext context, {required String title, String?
       title: Text(title),
       content: message == null ? null : Text(message),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+        TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(tr('Cancel'))),
         FilledButton(
           style: danger ? FilledButton.styleFrom(backgroundColor: const Color(0xFFE5484D)) : null,
           onPressed: () => Navigator.pop(ctx, true),

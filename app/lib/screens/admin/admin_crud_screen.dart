@@ -1,3 +1,4 @@
+import '../../core/i18n.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -264,8 +265,8 @@ class _AdminCrudScreenState extends State<AdminCrudScreen> {
         title: const Text('Delete this item?'),
         content: Text('"${row[_spec.titleKey] ?? ''}" will be removed permanently.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete', style: TextStyle(color: Color(0xFFEF4444)))),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(tr('Cancel'))),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(tr('Delete'), style: TextStyle(color: Color(0xFFEF4444)))),
         ],
       ),
     );

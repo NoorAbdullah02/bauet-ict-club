@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
+import '../core/i18n.dart';
 import '../core/theme.dart';
 import 'coder.dart';
 
@@ -215,7 +216,7 @@ class GradientButton extends StatelessWidget {
                   else ...[
                     if (icon != null) ...[Icon(icon, size: 19, color: Colors.white), const SizedBox(width: 10)],
                     Flexible(
-                      child: Text(label,
+                      child: Text(tr(label),
                           overflow: TextOverflow.ellipsis,
                           style: bodyStyle(context, color: Colors.white, weight: FontWeight.w700, size: 15)),
                     ),
@@ -255,7 +256,7 @@ class GhostButton extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           if (icon != null) ...[Icon(icon, size: 18), const SizedBox(width: 8)],
-          Text(label, style: bodyStyle(context, weight: FontWeight.w600, size: 14.5)),
+          Text(tr(label), style: bodyStyle(context, weight: FontWeight.w600, size: 14.5)),
         ],
       ),
     );
@@ -283,10 +284,10 @@ class SectionHeader extends StatelessWidget {
                 CodeLabel(eyebrow),
               ]),
               const SizedBox(height: 8),
-              Text(title, style: displayStyle(context, 28)),
+              Text(tr(title), style: displayStyle(context, 28)),
               if (subtitle != null) ...[
                 const SizedBox(height: 6),
-                Text(subtitle!, style: bodyStyle(context, color: p.muted, size: 13.5)),
+                Text(tr(subtitle!), style: bodyStyle(context, color: p.muted, size: 13.5)),
               ],
             ],
           ),
@@ -346,7 +347,7 @@ class PillChip extends StatelessWidget {
         ),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
           if (icon != null) ...[Icon(icon, size: 15, color: selected ? c : p.muted), const SizedBox(width: 6)],
-          Text(label, style: bodyStyle(context, size: 13, weight: FontWeight.w600, color: selected ? p.fg : p.muted)),
+          Text(tr(label), style: bodyStyle(context, size: 13, weight: FontWeight.w600, color: selected ? p.fg : p.muted)),
         ]),
       ),
     );
@@ -440,7 +441,7 @@ class EmptyState extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 24),
       child: TerminalState(
         command: r'$ ls --all',
-        lines: ['// ${title.toLowerCase()}', if (message != null) '# $message', '0 items found'],
+        lines: ['// ${tr(title).toLowerCase()}', if (message != null) '# ${tr(message!)}', '0 items found'],
       ),
     );
   }

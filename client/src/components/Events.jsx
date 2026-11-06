@@ -6,6 +6,7 @@ import { useInView } from 'react-intersection-observer';
 import { Calendar, MapPin, Clock, Share2, CalendarPlus, Facebook, MessageCircle, Link, List, CalendarDays, X as XIcon } from 'lucide-react';
 import EventCalendar from './EventCalendar';
 import { useShallow } from 'zustand/react/shallow';
+import { useT } from '../lib/i18n';
 import useStore from '../context/store';
 import { downloadIcs, eventStart } from '../lib/ics';
 import { eventLink, shareLinks, copyText, nativeShare } from '../lib/share';
@@ -36,6 +37,7 @@ function ShareMenu({ ev, onClose }) {
 }
 
 export default function Events() {
+  const t = useT();
   const { events } = useStore(useShallow((s) => ({ events: s.events })));
   const [filter, setFilter] = useState('all');
   const [when, setWhen] = useState('upcoming'); // upcoming | past | all
@@ -79,9 +81,9 @@ export default function Events() {
     <section id="events" className="section" ref={ref}>
       <div className="container">
         <motion.div className="section-header" initial="hidden" animate={inView ? 'visible' : 'hidden'} variants={fadeUp} custom={0}>
-          <div className="section-tag">Stay Updated</div>
-          <h2 className="section-title">Events</h2>
-          <p className="section-desc">Workshops, hackathons, seminars, and competitions</p>
+          <div className="section-tag">{t('Stay Updated')}</div>
+          <h2 className="section-title">{t('Events')}</h2>
+          <p className="section-desc">{t('Workshops, hackathons, seminars, and competitions')}</p>
           <div className="divider" />
         </motion.div>
 
@@ -97,7 +99,7 @@ export default function Events() {
               <button key={k} aria-pressed={view === k} onClick={() => setView(k)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 16px', borderRadius: 999, fontSize: 13, fontWeight: 600, background: view === k ? 'var(--accent)' : 'transparent', color: view === k ? 'var(--on-accent)' : 'var(--fg-secondary)', transition: 'all .2s' }}><I size={14} /> {l}</button>
             ))}
           </div>
-          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search events" aria-label="Search events"
+          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('Search events')} aria-label={t('Search events')}
             style={{ padding: '10px 18px', borderRadius: 999, border: '1px solid var(--border)', background: 'var(--bg-surface)', color: 'var(--fg)', fontSize: 14, minWidth: 200, outline: 'none' }} />
         </div>
         {view === 'list' && when !== 'upcoming' && semesters.length > 1 && (
@@ -186,7 +188,7 @@ export default function Events() {
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center', position: 'relative' }}>
                     {ev.category && <span className="badge badge-tech">{ev.category}</span>}
                     {eventStart(ev) && eventStart(ev) > new Date() && (
-                      <button onClick={() => downloadIcs(ev)} title="Add to calendar" aria-label="Add to calendar"
+                      <button onClick={() => downloadIcs(ev)} title={t('Add to calendar')} aria-label={t('Add to calendar')}
                         style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--accent-light)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <CalendarPlus size={14} />
                       </button>
