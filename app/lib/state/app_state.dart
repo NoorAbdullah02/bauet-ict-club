@@ -13,7 +13,7 @@ class AppState extends ChangeNotifier {
   final Api api;
   SharedPreferences? _prefs;
 
-  ThemeMode themeMode = ThemeMode.dark;
+  ThemeMode themeMode = ThemeMode.light;
 
   /// Admin screens are light by default and have their own toggle.
   bool adminDark = false;
@@ -42,7 +42,7 @@ class AppState extends ChangeNotifier {
     try {
       _prefs = await SharedPreferences.getInstance();
       final t = _prefs?.getString('theme');
-      themeMode = t == 'light' ? ThemeMode.light : ThemeMode.dark;
+      themeMode = t == 'dark' ? ThemeMode.dark : ThemeMode.light;
       api.token = _prefs?.getString('token');
       adminName = _prefs?.getString('admin');
       adminDark = _prefs?.getBool('admin_dark') ?? false;
