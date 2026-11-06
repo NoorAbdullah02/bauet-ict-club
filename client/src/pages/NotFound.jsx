@@ -6,6 +6,7 @@ export default function NotFound() {
   return (
     <PageShell variant="orbs">
       <section className="container grid min-h-[75vh] place-items-center py-24">
+        <h1 className="sr-only">Page not found</h1>
         <div className="code-window w-full max-w-xl">
           <div className="code-bar"><i style={{ background: '#FF5F57' }} /><i style={{ background: '#FEBC2E' }} /><i style={{ background: '#28C840' }} /><span>~/bauet-ict-club — zsh</span></div>
           <pre className="code-body">
