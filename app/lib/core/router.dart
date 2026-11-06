@@ -47,6 +47,9 @@ import '../screens/notices_screen.dart';
 import '../screens/projects_screen.dart';
 import '../screens/resources_screen.dart';
 import '../screens/leaderboard_screen.dart';
+import '../screens/contests_screen.dart';
+import '../screens/contest_detail_screen.dart';
+import '../screens/admin/admin_contest_teams_screen.dart';
 import '../screens/admin/admin_points_screen.dart';
 import '../screens/splash_screen.dart';
 import '../screens/team_screen.dart';
@@ -106,6 +109,7 @@ GoRouter buildRouter(AppState state) {
           GoRoute(path: '/projects', pageBuilder: (c, s) => _fade(s, const ProjectsScreen())),
           GoRoute(path: '/resources', pageBuilder: (c, s) => _fade(s, const ResourcesScreen())),
           GoRoute(path: '/leaderboard', pageBuilder: (c, s) => _fade(s, const LeaderboardScreen())),
+          GoRoute(path: '/contests', pageBuilder: (c, s) => _fade(s, const ContestsScreen())),
           GoRoute(path: '/faq', pageBuilder: (c, s) => _fade(s, const FaqScreen())),
           GoRoute(path: '/about', pageBuilder: (c, s) => _fade(s, const AboutScreen())),
           GoRoute(path: '/contact', pageBuilder: (c, s) => _fade(s, const ContactScreen())),
@@ -124,6 +128,7 @@ GoRouter buildRouter(AppState state) {
         path: '/card/:id',
         pageBuilder: (c, s) => _slide(s, MemberCardScreen(memberId: int.tryParse(s.pathParameters['id'] ?? '') ?? 0, code: s.uri.queryParameters['c'])),
       ),
+      GoRoute(path: '/contests/:id', pageBuilder: (c, s) => _slide(s, ContestDetailScreen(id: int.tryParse(s.pathParameters['id'] ?? '') ?? 0))),
       GoRoute(path: '/tickets', pageBuilder: (c, s) => _slide(s, const MyTicketsScreen())),
       GoRoute(path: '/ticket/:code', pageBuilder: (c, s) => _slide(s, TicketScreen(code: s.pathParameters['code'] ?? ''))),
       GoRoute(path: '/verify/:code', pageBuilder: (c, s) => _slide(s, VerifyScreen(code: s.pathParameters['code'] ?? ''))),
@@ -137,6 +142,7 @@ GoRouter buildRouter(AppState state) {
       GoRoute(path: '/admin/committees', pageBuilder: (c, s) => _slide(s, _admin(const AdminCommitteesScreen()))),
       GoRoute(path: '/admin/checkin', pageBuilder: (c, s) => _slide(s, _admin(const AdminCheckinScreen()))),
       GoRoute(path: '/admin/signups', pageBuilder: (c, s) => _slide(s, _admin(const AdminSignupsScreen()))),
+      GoRoute(path: '/admin/contest/:id', pageBuilder: (c, s) => _slide(s, _admin(AdminContestTeamsScreen(id: int.tryParse(s.pathParameters['id'] ?? '') ?? 0)))),
       GoRoute(path: '/admin/points', pageBuilder: (c, s) => _slide(s, _admin(const AdminPointsScreen()))),
       GoRoute(path: '/admin/insights', pageBuilder: (c, s) => _slide(s, _admin(const AdminInsightsScreen()))),
       GoRoute(path: '/admin/activity', pageBuilder: (c, s) => _slide(s, _admin(const AdminActivityScreen()))),

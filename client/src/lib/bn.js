@@ -173,6 +173,7 @@ export default {
  "Be part of what we build next.": "আমরা পরবর্তীতে যা গড়ব, তার অংশ হোন।",
  "Apply for the executive committee or become a general member.": "এক্সিকিউটিভ কমিটির জন্য আবেদন করুন অথবা সাধারণ সদস্য হোন।",
  "Start application": "আবেদন শুরু করুন",
+ "Compete": "প্রতিযোগিতা",
  "Today": "আজ",
  "Tomorrow": "আগামীকাল",
  "Scheduled": "নির্ধারিত",
