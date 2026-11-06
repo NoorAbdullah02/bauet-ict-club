@@ -71,6 +71,10 @@ How it works today: the student sends money to **your** number, types the transa
 - [ ] Upgrade the Render plan if the 50-second wake-up is a problem.
 - [ ] Back up once a month (main admin): website Admin → Settings → Backup, or in the app Admin → Sign-in security → Download backup.
 
+## Scheduled posts and contests: nothing to set up
+- A scheduled event or notice appears by itself at its time. The e-mail to subscribers is sent by the next visitor or by the cron call in B5, so keep that cron job running if you use scheduling.
+- Contest results: Admin, Contests, the people icon on a row, type each team's place, press **Publish results**. Points go to every team member who gave an e-mail.
+
 ---
 
 Where things live: [STATUS_AND_TODO.md](STATUS_AND_TODO.md) (what exists and what is missing), [AFTER_DEPLOY.md](AFTER_DEPLOY.md), [DEPLOY_RENDER.md](DEPLOY_RENDER.md), [SIGN_IN_SECURITY.md](SIGN_IN_SECURITY.md).
