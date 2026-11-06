@@ -286,6 +286,7 @@ class _MyTicketsScreenState extends State<MyTicketsScreen> {
     final path = switch (o.kind) {
       'ticket' => '/ticket/${o.value}',
       'verify' => '/verify/${o.value}',
+      'card' => '/card/${o.value.replaceAll('|', '?c=')}',
       'form' => '/f/${o.value}',
       _ => '/events/${o.value}',
     };

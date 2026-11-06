@@ -210,6 +210,9 @@ class _AdminFormEditScreenState extends State<AdminFormEditScreen> {
   final Set<String> _methods = {'bKash'};
   String _closes = '';
   String _unique = '';
+  String _feedback = ''; // slug of the form people get by e-mail after the event
+  List<Map<String, dynamic>> _allForms = [];
+  bool _sendingFb = false;
   bool _loading = true;
   bool _busy = false;
   String? _error;
@@ -263,6 +266,7 @@ class _AdminFormEditScreenState extends State<AdminFormEditScreen> {
         _notify = rf['notify_admin'] == true;
         _closes = s(rf['closes_at']);
         _unique = s(rf['unique']);
+        _feedback = s(rf['feedback_form']);
         _payOn = pay['enabled'] == true;
         _amount.text = s(pay['amount']);
         _payNote.text = s(pay['note']);
@@ -285,6 +289,26 @@ class _AdminFormEditScreenState extends State<AdminFormEditScreen> {
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+    if (_isEvent) {
+      try {
+        final f = await _state.api.adminList('/forms');
+        if (mounted) setState(() => _allForms = f);
+      } on ApiException {
+        // the picker just stays empty
+      }
+    }
+  }
+
+  Future<void> _sendFeedbackNow() async {
+    setState(() => _sendingFb = true);
+    try {
+      final r = await _state.api.adminCall('POST', '/event-registrations/event/${widget.eventId}/feedback/send');
+      if (mounted) showSnack(context, 'Feedback link sent to ${r is Map ? r['sent'] : 0} people');
+    } on ApiException catch (e) {
+      if (mounted) showSnack(context, e.message, error: true);
+    } finally {
+      if (mounted) setState(() => _sendingFb = false);
+    }
   }
 
   Map<String, dynamic> _buildRegForm() {
@@ -299,6 +323,11 @@ class _AdminFormEditScreenState extends State<AdminFormEditScreen> {
       'unique': _unique,
       'fields': _fields,
     };
+    if (_isEvent && _feedback.isNotEmpty) {
+      rf['feedback_form'] = _feedback;
+    } else {
+      rf.remove('feedback_form');
+    }
     if (_closes.isEmpty) {
       rf.remove('closes_at');
     } else {
@@ -444,6 +473,22 @@ class _AdminFormEditScreenState extends State<AdminFormEditScreen> {
             PickerTapField(label: 'Closes on (optional)', value: _closes.replaceAll('T', ' '), icon: Icons.event_busy_rounded, onTap: _pickClose),
             if (_closes.isNotEmpty) Align(alignment: Alignment.centerLeft, child: TextButton(onPressed: () => setState(() => _closes = ''), child: const Text('Remove the closing date'))),
             SwitchListTile(contentPadding: EdgeInsets.zero, title: const Text('Email me for every new response'), value: _notify, onChanged: (v) => setState(() => _notify = v)),
+            if (_isEvent) ...[
+              _gap(),
+              PickerField(
+                label: 'Ask for feedback after the event',
+                value: _allForms.where((f) => '${f['slug']}' == _feedback).map((f) => '${f['title']}').firstOrNull ?? 'No feedback email',
+                options: ['No feedback email', ..._allForms.map((f) => '${f['title']}')],
+                icon: Icons.rate_review_rounded,
+                onChanged: (v) => setState(() => _feedback = _allForms.where((f) => '${f['title']}' == v).map((f) => '${f['slug']}').firstOrNull ?? ''),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Text('The day after the event, everyone who came gets an email with this form. Make the form first under Forms.', style: bodyStyle(context, size: 12, color: p.muted)),
+              ),
+              if (_feedback.isNotEmpty) Align(alignment: Alignment.centerLeft, child: TextButton.icon(onPressed: _sendingFb ? null : _sendFeedbackNow, icon: const Icon(Icons.send_rounded, size: 16), label: Text(_sendingFb ? 'Sending…' : 'Send the link now'))),
+              _gap(),
+            ],
             PickerField(
               label: 'One answer per person (stops double sign-ups)',
               value: _fields.where((q) => qId(q) == _unique).map(qLabel).firstOrNull ?? 'No check',

@@ -42,11 +42,36 @@ class _AdminCheckinScreenState extends State<AdminCheckinScreen> {
     super.dispose();
   }
 
+  /// A member card QR (…/card/12?c=M12-AB34CD): say whether the card is genuine. It is not an event ticket, so nobody is checked in.
+  Future<bool> _memberCard(String raw) async {
+    final o = parseOpenable(raw);
+    if (o == null || o.kind != 'card') return false;
+    final parts = o.value.split('|');
+    final id = int.tryParse(parts.first);
+    if (id == null) return true;
+    setState(() => _busy = true);
+    try {
+      final r = await _state.api.memberCard(id, c: parts.length > 1 ? parts[1] : '');
+      final m = r['member'] is Map ? Map<String, dynamic>.from(r['member'] as Map) : <String, dynamic>{};
+      final ok = r['verified'] == true;
+      if (mounted) setState(() => _log.insert(0, _Entry('${m['name'] ?? 'Member'}', ok ? 'Genuine member card · ${m['position'] ?? ''} · ${m['session'] ?? ''}' : 'Card code does not match: do not trust it', ok, warn: !ok)));
+    } on ApiException catch (e) {
+      if (mounted) setState(() => _log.insert(0, _Entry('Member card', e.message, false)));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+    return true;
+  }
+
   Future<void> _run(String raw, {bool force = false}) async {
+    if (await _memberCard(raw)) {
+      if (mounted) _code.clear();
+      return;
+    }
     final o = parseOpenable(raw);
     final code = o != null && o.kind == 'ticket' ? o.value : raw.replaceAll(RegExp(r'[^A-Za-z0-9]'), '').toUpperCase();
     if (code.length < 8) {
-      showSnack(context, 'That does not look like a ticket code', error: true);
+      if (mounted) showSnack(context, 'That does not look like a ticket code', error: true);
       return;
     }
     setState(() => _busy = true);

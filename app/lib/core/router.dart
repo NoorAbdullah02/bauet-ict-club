@@ -29,7 +29,9 @@ import '../screens/chat_screen.dart';
 import '../screens/contact_screen.dart';
 import '../screens/event_detail_screen.dart';
 import '../screens/events_screen.dart';
+import '../screens/member_card_screen.dart';
 import '../screens/public_form_screen.dart';
+import '../screens/search_screen.dart';
 import '../screens/ticket_screen.dart';
 import '../screens/verify_screen.dart';
 import '../screens/not_found_screen.dart';
@@ -110,6 +112,11 @@ GoRouter buildRouter(AppState state) {
       GoRoute(
         path: '/events/:id',
         pageBuilder: (c, s) => _slide(s, EventDetailScreen(eventId: int.tryParse(s.pathParameters['id'] ?? '') ?? 0)),
+      ),
+      GoRoute(path: '/search', pageBuilder: (c, s) => _slide(s, const SearchScreen())),
+      GoRoute(
+        path: '/card/:id',
+        pageBuilder: (c, s) => _slide(s, MemberCardScreen(memberId: int.tryParse(s.pathParameters['id'] ?? '') ?? 0, code: s.uri.queryParameters['c'])),
       ),
       GoRoute(path: '/tickets', pageBuilder: (c, s) => _slide(s, const MyTicketsScreen())),
       GoRoute(path: '/ticket/:code', pageBuilder: (c, s) => _slide(s, TicketScreen(code: s.pathParameters['code'] ?? ''))),
