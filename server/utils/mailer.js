@@ -163,6 +163,11 @@ const templates = {
     html: layout({ title: 'Your certificate is ready', body: `<p>Hi ${esc(r.full_name || 'there')},</p><p>Thank you for joining <b>${esc(ev.title)}</b>. Your certificate is ready to download.</p>`, button: { href: `${siteUrl()}/certificate/${code}`, label: 'Download certificate' } }),
     text: `Your certificate for ${ev.title}: ${siteUrl()}/certificate/${code}`,
   }),
+  eventFeedback: (r, ev, url) => ({
+    subject: `How was ${ev.title}?`,
+    html: layout({ title: 'Tell us how it went', body: `<p>Hi ${esc(r.full_name || 'there')},</p><p>Thank you for joining <b>${esc(ev.title)}</b>. It takes one minute to tell us what you liked and what we can do better.</p>`, button: { href: url, label: 'Give feedback' } }),
+    text: `Thank you for joining ${ev.title}. Tell us how it went: ${url}`,
+  }),
   eventReminder: (r, ev, fDate, fTime) => ({
     subject: `Tomorrow: ${ev.title}`,
     html: layout({ title: 'See you tomorrow', body: `<p>Hi ${esc(r.full_name || 'there')},</p><p><b>${esc(ev.title)}</b> is tomorrow.</p><p>${esc(fDate(ev.date))}${ev.time ? ` · ${esc(fTime(ev.time))}` : ''}${ev.location ? `<br>${esc(ev.location)}` : ''}</p><p>Please bring your ticket (the QR code) and your student ID.</p>`, button: { href: `${siteUrl()}/ticket/${r.ticket}`, label: 'Open my ticket' } }),

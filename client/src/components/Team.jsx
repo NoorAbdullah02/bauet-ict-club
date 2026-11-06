@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react';
 import { thumb } from '../lib/img';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Users, Facebook, Github, Linkedin, Shield, Star, Crown, Award, ChevronRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Users, Facebook, Github, Linkedin, Shield, Star, Crown, Award, ChevronRight, IdCard } from 'lucide-react';
 import { useInView } from 'react-intersection-observer';
 import useStore from '../context/store';
 
@@ -124,6 +125,12 @@ function MemberCard({ member, index, compact }) {
           <span title={DEPT_FULL[member.dept]}>{member.dept}</span>
           {member.batch && <><span style={{ opacity: 0.3 }}>·</span><span>{member.batch} Batch</span></>}
         </div>
+
+        {member?.id && !compact && (
+          <div style={{ display: 'flex', justifyContent: 'center', marginTop: 10 }}>
+            <Link to={`/card/${member.id}`} title="Digital membership card" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 600, color: 'var(--tech)' }}><IdCard size={13} /> Member card</Link>
+          </div>
+        )}
 
         {member && (member.social_fb || member.social_gh || member.social_li) && (
           <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginTop: 12 }}>

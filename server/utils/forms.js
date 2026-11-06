@@ -74,7 +74,7 @@ function sanitizeForm(raw) {
     fields.push(out);
   }
   if (!fields.length) return { form: null };
-  const form = { theme: /^#[0-9a-f]{6}$/i.test(String(f.theme || '')) ? String(f.theme).toLowerCase() : '', title: clip(f.title, 120), intro: clip(f.intro, 1000), confirmation: clip(f.confirmation, 500), email_note: clip(f.email_note, 600), unique: seen.has(f.unique) ? f.unique : '', notify_admin: !!f.notify_admin, fields };
+  const form = { theme: /^#[0-9a-f]{6}$/i.test(String(f.theme || '')) ? String(f.theme).toLowerCase() : '', title: clip(f.title, 120), intro: clip(f.intro, 1000), confirmation: clip(f.confirmation, 500), email_note: clip(f.email_note, 600), unique: seen.has(f.unique) ? f.unique : '', notify_admin: !!f.notify_admin, feedback_form: /^[a-z0-9-]{2,80}$/.test(String(f.feedback_form || '')) ? String(f.feedback_form) : '', fields };
   // certificate for people who were checked in
   if (f.cert?.enabled) form.cert = { enabled: true, title: clip(f.cert.title, 60) || 'Certificate of Participation', signer: clip(f.cert.signer, 60), signer_title: clip(f.cert.signer_title, 80), note: clip(f.cert.note, 160) };
   // registration deadline: "YYYY-MM-DDTHH:mm" (Bangladesh time is entered by the admin; compared as a plain timestamp)

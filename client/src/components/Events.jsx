@@ -3,7 +3,8 @@ import { formalDate, formalTime } from '../lib/format';
 import { thumb } from '../lib/img';
 import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
-import { Calendar, MapPin, Clock, Share2, CalendarPlus, Facebook, MessageCircle, Link, X as XIcon } from 'lucide-react';
+import { Calendar, MapPin, Clock, Share2, CalendarPlus, Facebook, MessageCircle, Link, List, CalendarDays, X as XIcon } from 'lucide-react';
+import EventCalendar from './EventCalendar';
 import { useShallow } from 'zustand/react/shallow';
 import useStore from '../context/store';
 import { downloadIcs, eventStart } from '../lib/ics';
@@ -41,6 +42,7 @@ export default function Events() {
   const [sem, setSem] = useState('all');
   const [query, setQuery] = useState('');
   const [picked, setPicked] = useState(false);
+  const [view, setView] = useState('list'); // list | calendar
   const [shareOpen, setShareOpen] = useState(null);
   const [ref, inView] = useInView({ threshold: 0.05, triggerOnce: true });
 
@@ -70,6 +72,8 @@ export default function Events() {
     return [...by.entries()].sort((a, b) => semRank(b[0]) - semRank(a[0])).map(([label, list]) => ({ label, items: list }));
   }, [events, when, filter, sem, query, today]);
   const sorted = groups.flatMap((g) => g.items);
+  // the calendar shows every date, so the upcoming / past tabs and semesters do not apply; category and search still do
+  const calEvents = useMemo(() => events.filter((e) => (filter === 'all' || e.category === filter) && (!query || `${e.title} ${e.location} ${e.description} ${e.category}`.toLowerCase().includes(query.toLowerCase()))), [events, filter, query]);
 
   return (
     <section id="events" className="section" ref={ref}>
@@ -88,10 +92,15 @@ export default function Events() {
                 style={{ padding: '9px 20px', borderRadius: 999, fontSize: 13, fontWeight: 600, background: when === k ? 'var(--accent)' : 'transparent', color: when === k ? 'var(--on-accent)' : 'var(--fg-secondary)', transition: 'all .2s' }}>{l}</button>
             ))}
           </div>
+          <div role="group" aria-label="How to show events" style={{ display: 'inline-flex', padding: 4, borderRadius: 999, background: 'var(--bg-alt)', border: '1px solid var(--border)' }}>
+            {[['list', 'List', List], ['calendar', 'Calendar', CalendarDays]].map(([k, l, I]) => (
+              <button key={k} aria-pressed={view === k} onClick={() => setView(k)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 16px', borderRadius: 999, fontSize: 13, fontWeight: 600, background: view === k ? 'var(--accent)' : 'transparent', color: view === k ? 'var(--on-accent)' : 'var(--fg-secondary)', transition: 'all .2s' }}><I size={14} /> {l}</button>
+            ))}
+          </div>
           <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search events" aria-label="Search events"
             style={{ padding: '10px 18px', borderRadius: 999, border: '1px solid var(--border)', background: 'var(--bg-surface)', color: 'var(--fg)', fontSize: 14, minWidth: 200, outline: 'none' }} />
         </div>
-        {when !== 'upcoming' && semesters.length > 1 && (
+        {view === 'list' && when !== 'upcoming' && semesters.length > 1 && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center', marginBottom: 20 }}>
             {['all', ...semesters].map((l) => (
               <button key={l} onClick={() => setSem(l)} style={{ padding: '6px 14px', borderRadius: 999, fontSize: 12, fontWeight: 600, border: `1px solid ${sem === l ? 'var(--tech)' : 'var(--border)'}`, background: sem === l ? 'var(--tech)' : 'transparent', color: sem === l ? '#fff' : 'var(--fg-secondary)' }}>{l === 'all' ? 'Every semester' : l}</button>
@@ -116,6 +125,7 @@ export default function Events() {
           ))}
         </motion.div>
 
+        {view === 'calendar' ? <EventCalendar events={calEvents} /> : <>
         {sorted.length === 0 && (
           <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--fg-muted)' }}>
             <Calendar size={48} style={{ opacity: 0.3, marginBottom: 16 }} />
@@ -194,6 +204,7 @@ export default function Events() {
         </div>
         </div>
         ))}
+        </>}
       </div>
     </section>
   );
