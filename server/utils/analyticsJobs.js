@@ -36,7 +36,7 @@ async function reminders() {
   try {
     const { formalDate, formalTime } = require('./format');
     const tomorrow = iso(new Date(Date.now() + 6 * 3600e3 + 864e5)); // Bangladesh is UTC+6
-    const events = (await pool.query('SELECT * FROM events WHERE deleted_at IS NULL AND reminded_at IS NULL AND COALESCE(reg_open, true) = true')).rows
+    const events = (await pool.query('SELECT * FROM events WHERE deleted_at IS NULL AND reminded_at IS NULL AND COALESCE(reg_open, true) = true AND (publish_at IS NULL OR publish_at <= NOW()) AND NOT COALESCE(is_draft, FALSE)')).rows
       .filter((e) => String(e.date instanceof Date ? e.date.toISOString() : e.date).slice(0, 10) === tomorrow);
     for (const ev of events) {
       const regs = (await pool.query("SELECT * FROM event_registrations WHERE event_id = $1 AND deleted_at IS NULL AND email IS NOT NULL AND ticket IS NOT NULL AND COALESCE(pay_status, 'none') NOT IN ('rejected', 'pending') AND NOT COALESCE(waitlisted, FALSE)", [ev.id])).rows;
@@ -59,7 +59,7 @@ async function feedbackRequests() {
 }
 
 function start() {
-  const tick = () => { purge(); weeklyDigest(); reminders(); feedbackRequests(); require('../routes/pay').expireStale(); };
+  const tick = () => { purge(); weeklyDigest(); reminders(); feedbackRequests(); require('./schedule').publishDue(); require('../routes/pay').expireStale(); };
   setInterval(() => require('../routes/pay').expireStale(), 10 * 60 * 1000).unref?.(); // unfinished online payments free their seat after 30 minutes
   setTimeout(tick, 60 * 1000).unref?.();
   setInterval(tick, 6 * 60 * 60 * 1000).unref?.();

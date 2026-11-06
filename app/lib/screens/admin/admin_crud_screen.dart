@@ -12,7 +12,7 @@ import '../../widgets/common.dart';
 import '../../widgets/form_widgets.dart';
 import 'admin_widgets.dart';
 
-enum FieldKind { text, multiline, date, boolean, number, choice, session, image }
+enum FieldKind { text, multiline, date, boolean, number, choice, session, image, publish }
 
 class FieldSpec {
   const FieldSpec(this.key, this.label, [this.kind = FieldKind.text, this.required = false, this.options = const []]);
@@ -48,6 +48,7 @@ const Map<String, TableSpec> kTables = {
       FieldSpec('image_url', 'Image', FieldKind.image),
       FieldSpec('description', 'Description', FieldKind.multiline),
       FieldSpec('featured', 'Featured', FieldKind.boolean),
+      FieldSpec('publish_at', 'When to publish', FieldKind.publish),
     ],
   ),
   'notices': TableSpec(
@@ -63,6 +64,7 @@ const Map<String, TableSpec> kTables = {
       FieldSpec('content', 'Content', FieldKind.multiline),
       FieldSpec('pinned', 'Pinned', FieldKind.boolean),
       FieldSpec('image_url', 'Picture (optional)', FieldKind.image),
+      FieldSpec('publish_at', 'When to publish', FieldKind.publish),
     ],
   ),
   'members': TableSpec(
@@ -410,6 +412,7 @@ class _RowTile extends StatelessWidget {
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text((row[spec.titleKey] ?? '').toString(), maxLines: 1, overflow: TextOverflow.ellipsis, style: bodyStyle(context, weight: FontWeight.w700)),
             if (sub.isNotEmpty) Text(sub, maxLines: 1, overflow: TextOverflow.ellipsis, style: bodyStyle(context, size: 12.5, color: p.muted)),
+            if (_stateTag(row) != null) Padding(padding: const EdgeInsets.only(top: 4), child: Tag(_stateTag(row)!, color: row['is_draft'] == true ? const Color(0xFFF59E0B) : p.tech)),
           ]),
         ),
         if (extra != null) extra!,
@@ -417,6 +420,16 @@ class _RowTile extends StatelessWidget {
       ]),
     );
   }
+}
+
+/// 'Draft' or 'Goes live 2026-11-10 18:00' for events and notices that are not public yet.
+String? _stateTag(Map<String, dynamic> row) {
+  if (row['is_draft'] == true) return 'Draft';
+  final at = DateTime.tryParse('${row['publish_at'] ?? ''}');
+  if (at == null || !at.isAfter(DateTime.now())) return null;
+  final d = at.toUtc().add(const Duration(hours: 6));
+  String two(int n) => n.toString().padLeft(2, '0');
+  return 'Goes live ${d.year}-${two(d.month)}-${two(d.day)} ${two(d.hour)}:${two(d.minute)}';
 }
 
 class _RowForm extends StatefulWidget {
@@ -450,6 +463,13 @@ class _RowFormState extends State<_RowForm> {
   void initState() {
     super.initState();
     if (widget.spec.fields.any((f) => f.kind == FieldKind.session)) _loadSessions();
+    final at = DateTime.tryParse('${widget.row?['publish_at'] ?? ''}');
+    if (widget.row?['is_draft'] == true) {
+      _pubMode = 'draft';
+    } else if (at != null) {
+      _pubMode = 'schedule';
+      _pubAt = at.toUtc().add(const Duration(hours: 6)); // wall clock in Bangladesh, kept in a UTC DateTime
+    }
     for (final f in widget.spec.fields) {
       final v = widget.row?[f.key];
       if (f.kind == FieldKind.boolean) {
@@ -468,6 +488,53 @@ class _RowFormState extends State<_RowForm> {
     super.dispose();
   }
 
+  /// 'now', 'schedule' or 'draft' for the "When to publish" field (events and notices).
+  String _pubMode = 'now';
+  DateTime? _pubAt;
+
+  Future<void> _pickPublishAt() async {
+    final base = _pubAt ?? DateTime.now().toUtc().add(const Duration(hours: 6 + 24));
+    final d = await showDatePicker(context: context, initialDate: DateTime(base.year, base.month, base.day), firstDate: DateTime.now().subtract(const Duration(days: 1)), lastDate: DateTime(2100));
+    if (d == null || !mounted) return;
+    final t = await showTimePicker(context: context, initialTime: TimeOfDay(hour: base.hour, minute: base.minute));
+    if (t == null) return;
+    setState(() => _pubAt = DateTime.utc(d.year, d.month, d.day, t.hour, t.minute));
+  }
+
+  String _pubLabel() {
+    final a = _pubAt;
+    if (a == null) return 'Pick date and time';
+    String two(int n) => n.toString().padLeft(2, '0');
+    return '${a.year}-${two(a.month)}-${two(a.day)}  ${two(a.hour)}:${two(a.minute)}  (Bangladesh time)';
+  }
+
+  Widget _publishField() {
+    final p = context.pal;
+    Widget chip(String mode, String label) => ChoiceChip(
+          label: Text(label),
+          selected: _pubMode == mode,
+          onSelected: (_) => setState(() {
+            _pubMode = mode;
+            if (mode == 'schedule' && _pubAt == null) _pubAt = DateTime.now().toUtc().add(const Duration(hours: 6 + 24));
+          }),
+        );
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text('When to publish', style: bodyStyle(context, weight: FontWeight.w600)),
+      const SizedBox(height: 8),
+      Wrap(spacing: 8, children: [chip('now', 'Publish now'), chip('schedule', 'Schedule'), chip('draft', 'Save as draft')]),
+      if (_pubMode == 'schedule') ...[
+        const SizedBox(height: 10),
+        GhostButton(label: _pubLabel(), icon: Icons.schedule_rounded, onPressed: _pickPublishAt),
+        const SizedBox(height: 6),
+        Text('It appears on the website and in the app by itself at that moment, and the subscribers get the e-mail then.', style: bodyStyle(context, size: 12, color: p.muted)),
+      ],
+      if (_pubMode == 'draft') ...[
+        const SizedBox(height: 6),
+        Text('Only admins can see a draft. Choose "Publish now" when it is ready.', style: bodyStyle(context, size: 12, color: p.muted)),
+      ],
+    ]);
+  }
+
   Future<void> _pickDate(FieldSpec f) async {
     final c = _ctrl[f.key]!;
     final initial = DateTime.tryParse(c.text) ?? DateTime.now();
@@ -482,6 +549,11 @@ class _RowFormState extends State<_RowForm> {
     final errs = <String, String>{};
     final body = <String, dynamic>{};
     for (final f in widget.spec.fields) {
+      if (f.kind == FieldKind.publish) {
+        body['is_draft'] = _pubMode == 'draft';
+        body['publish_at'] = _pubMode == 'schedule' && _pubAt != null ? _pubAt!.subtract(const Duration(hours: 6)).toIso8601String() : null;
+        continue;
+      }
       if (f.kind == FieldKind.boolean) {
         body[f.key] = _bools[f.key] ?? false;
         continue;
@@ -530,7 +602,9 @@ class _RowFormState extends State<_RowForm> {
           for (final f in widget.spec.fields)
             Padding(
               padding: const EdgeInsets.only(bottom: 14),
-              child: f.kind == FieldKind.boolean
+              child: f.kind == FieldKind.publish
+                  ? _publishField()
+                  : f.kind == FieldKind.boolean
                   ? SwitchListTile(
                       contentPadding: EdgeInsets.zero,
                       title: Text(f.label, style: bodyStyle(context, weight: FontWeight.w600)),

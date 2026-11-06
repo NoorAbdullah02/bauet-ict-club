@@ -113,7 +113,7 @@ async function register(req, res) {
   if (req.body?._hp) return res.status(201).json({ success: true }); // a bot filled the hidden trap field: pretend it worked, save nothing
   try {
     const ev = (await pool.query('SELECT * FROM events WHERE id = $1 AND deleted_at IS NULL', [req.params.eventId])).rows[0];
-    if (!ev) return res.status(404).json({ error: 'Event not found' });
+    if (!ev || require('../utils/schedule').isHidden(ev)) return res.status(404).json({ error: 'Event not found' });
     if (ev.reg_open === false) return res.status(409).json({ error: 'Registration for this event is closed.' });
     if (ev.date && day(ev.date) < todayStr()) return res.status(409).json({ error: 'This event has already taken place.' });
 

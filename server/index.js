@@ -16,7 +16,8 @@ const createCrudRouter = require('./routes/crud');
 const { notifySubscribers } = require('./utils/notify');
 const { formalDate, formalTime } = require('./utils/format');
 const { sanitizeForm } = require('./utils/forms');
-const { authMiddleware } = require('./middleware/auth');
+const { authMiddleware, isAdminRequest } = require('./middleware/auth');
+const { LIVE, maybeTick, setNotifier } = require('./utils/schedule');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -74,7 +75,7 @@ app.all('/api/jobs/run', async (req, res) => {
   const given = String(req.get('x-cron-secret') || req.query.key || '');
   if (!secret || secret.length < 16 || given.length !== secret.length || !require('crypto').timingSafeEqual(Buffer.from(given), Buffer.from(secret))) return res.status(404).json({ error: 'Not found' });
   const jobs = require('./utils/analyticsJobs');
-  await Promise.allSettled([jobs.purge(), jobs.weeklyDigest(), jobs.reminders()]);
+  await Promise.allSettled([jobs.purge(), jobs.weeklyDigest(), jobs.reminders(), require('./utils/schedule').publishDue()]);
   res.set('Cache-Control', 'no-store').json({ ok: true });
 });
 
@@ -115,14 +116,14 @@ app.use('/api/registrations', require('./routes/registrations'));
 app.use('/api/settings', require('./routes/settings'));
 
 const COLS = {
-  events: ['title', 'date', 'time', 'location', 'description', 'image_url', 'featured', 'category', 'reg_url', 'capacity', 'reg_open', 'reg_form'],
-  notices: ['title', 'date', 'content', 'priority', 'pinned', 'expiry_date', 'image_url'],
+  events: ['title', 'date', 'time', 'location', 'description', 'image_url', 'featured', 'category', 'reg_url', 'capacity', 'reg_open', 'reg_form', 'publish_at', 'is_draft'],
+  notices: ['title', 'date', 'content', 'priority', 'pinned', 'expiry_date', 'image_url', 'publish_at', 'is_draft'],
   members: ['name', 'position', 'department', 'batch', 'committee_session', 'image_url', 'social_fb', 'social_gh', 'social_li', 'display_order', 'active'],
   gallery: ['title', 'image_url', 'category', 'date', 'description'],
   achievements: ['title', 'date', 'description', 'icon', 'image_url'],
   posts: ['title', 'content', 'image_url', 'author'],
 };
-app.use('/api/events', createCrudRouter('events', { orderBy: 'date', orderDir: 'DESC', columns: COLS.events, imageCols: ['image_url'], auth: authMiddleware,
+app.use('/api/events', createCrudRouter('events', { scheduled: true, orderBy: 'date', orderDir: 'DESC', columns: COLS.events, imageCols: ['image_url'], auth: authMiddleware,
   validate: async (d) => {
     if (typeof d.reg_url === 'string') { // a link to another form (Google Forms ...): only real web links, never javascript: or similar
       const u = d.reg_url.trim();
@@ -131,7 +132,7 @@ app.use('/api/events', createCrudRouter('events', { orderBy: 'date', orderDir: '
     }
     if (d.reg_form === undefined) return null; const r = sanitizeForm(d.reg_form); if (r.error) return r.error; d.reg_form = r.form ? JSON.stringify(r.form) : null; return null; },
   onCreate: (r) => notifySubscribers('event', { title: r.title, when: [formalDate(r.date), formalTime(r.time), r.location].filter(Boolean).join(' · '), summary: r.description, path: '/events' }) }));
-app.use('/api/notices', createCrudRouter('notices', { orderBy: 'pinned DESC, created_at', orderDir: 'DESC', columns: COLS.notices, imageCols: ['image_url'], auth: authMiddleware,
+app.use('/api/notices', createCrudRouter('notices', { scheduled: true, orderBy: 'pinned DESC, created_at', orderDir: 'DESC', columns: COLS.notices, imageCols: ['image_url'], auth: authMiddleware,
   onCreate: (r) => { if (!r.expiry_date || String(r.expiry_date).slice(0, 10) >= new Date().toISOString().slice(0, 10)) notifySubscribers('notice', { title: r.title, summary: r.content, path: '/notices' }); } }));
 app.use('/api/members', createCrudRouter('members', {
   orderBy: 'display_order', orderDir: 'ASC', columns: COLS.members, imageCols: ['image_url'], auth: authMiddleware,
@@ -177,13 +178,18 @@ features.forEach((f) => {
   app.use(`/api/${f.table}`, createCrudRouter(f.table, { orderBy: f.orderBy, orderDir: f.orderDir, columns: f.columns, imageCols: f.imageCols, validate: f.validate, readAuth: f.readAuth, auth: authMiddleware, onCreate: f.notify ? (r) => notifySubscribers(f.notify.kind, f.notify.item(r)) : undefined }));
   if (f.public) PUBLIC_LISTS.push(`/${f.table}`);
 });
+// the announcement e-mail of a draft or scheduled post is sent when it goes live
+setNotifier('events', (r) => notifySubscribers('event', { title: r.title, when: [formalDate(r.date), formalTime(r.time), r.location].filter(Boolean).join(' · '), summary: r.description, path: '/events' }));
+setNotifier('notices', (r) => { if (!r.expiry_date || String(r.expiry_date).slice(0, 10) >= new Date().toISOString().slice(0, 10)) notifySubscribers('notice', { title: r.title, summary: r.content, path: '/notices' }); });
 // One round trip for the whole public site (the website used to make nine separate requests on every first visit).
 PUBLIC_LISTS.push('/bootstrap');
-app.get('/api/bootstrap', async (_req, res) => {
+app.get('/api/bootstrap', async (req, res) => {
   const list = async (sql) => { try { return (await pool.query(sql)).rows; } catch { return []; } };
+  maybeTick();
+  const live = (await isAdminRequest(req)) ? '' : ` AND ${LIVE}`; // drafts and scheduled posts are for admins only
   const [events, notices, members, gallery, achievements] = await Promise.all([
-    list('SELECT * FROM events WHERE deleted_at IS NULL ORDER BY date DESC'),
-    list('SELECT * FROM notices WHERE deleted_at IS NULL ORDER BY pinned DESC, created_at DESC'),
+    list(`SELECT * FROM events WHERE deleted_at IS NULL${live} ORDER BY date DESC`),
+    list(`SELECT * FROM notices WHERE deleted_at IS NULL${live} ORDER BY pinned DESC, created_at DESC`),
     list('SELECT * FROM members WHERE deleted_at IS NULL ORDER BY display_order ASC'),
     list('SELECT * FROM gallery WHERE deleted_at IS NULL ORDER BY created_at DESC'),
     list('SELECT * FROM achievements WHERE deleted_at IS NULL ORDER BY date DESC'),
@@ -196,7 +202,7 @@ app.get('/api/bootstrap', async (_req, res) => {
 // every event has its own page and registration link: /events/ID
 app.get('/sitemap-events.xml', async (req, res) => {
   try {
-    const { rows } = await pool.query('SELECT id FROM events WHERE deleted_at IS NULL');
+    const { rows } = await pool.query(`SELECT id FROM events WHERE deleted_at IS NULL AND ${LIVE}`);
     res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${rows.map((r) => `  <url><loc>${origin(req)}/events/${r.id}</loc></url>`).join('\n')}\n</urlset>\n`);
   } catch { res.status(500).end(); }
 });
@@ -258,7 +264,7 @@ if (process.env.NODE_ENV === 'production') {
   });
   app.get('/events/:id', async (req, res, next) => {
     try {
-      const ev = (await pool.query('SELECT * FROM events WHERE id = $1 AND deleted_at IS NULL', [req.params.id])).rows[0];
+      const ev = (await pool.query(`SELECT * FROM events WHERE id = $1 AND deleted_at IS NULL AND ${LIVE}`, [req.params.id])).rows[0];
       if (!ev) return next();
       const when = [formalDate(ev.date), formalTime(ev.time), ev.location].filter(Boolean).join(' · ');
       const image = ev.image_url && /^(https?:\/\/|\/uploads\/)/.test(ev.image_url) ? ev.image_url.replace('/upload/', '/upload/c_fill,w_1200,h_630,f_jpg,q_auto/') : '/logos/ict-club.png';

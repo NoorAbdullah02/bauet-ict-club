@@ -9,6 +9,7 @@ import useStore from '../context/store';
 import { cn } from '../lib/cn';
 import ImageEditor from '../components/ImageEditor';
 import { downloadUrl } from '../lib/img';
+import { toDhakaInput, fromDhakaInput, postState } from '../lib/schedule';
 
 export const inputCls = 'w-full rounded-xl border border-line bg-bg/60 px-4 py-2.5 text-sm text-fg outline-none transition placeholder:text-muted focus:border-tech focus:ring-4 focus:ring-tech/15';
 
@@ -49,7 +50,36 @@ export function Drawer({ open, title, onClose, children, footer }) {
   );
 }
 
-export function FormField({ field, value, onChange, upload }) {
+/** Publish now, schedule for later, or keep as a draft. Writes two fields: publish_at and is_draft. */
+function PublishField({ field, value, all, onChange }) {
+  const mode = postState({ is_draft: all?.is_draft, publish_at: value }) === 'draft' ? 'draft' : value ? 'schedule' : 'now';
+  const choose = (m) => {
+    if (m === 'now') { onChange('is_draft', false); onChange('publish_at', ''); }
+    else if (m === 'draft') { onChange('is_draft', true); onChange('publish_at', ''); }
+    else { onChange('is_draft', false); onChange('publish_at', value || fromDhakaInput(toDhakaInput(new Date(Date.now() + 3600e3 * 24).toISOString()))); }
+  };
+  const opts = [['now', 'Publish now'], ['schedule', 'Schedule'], ['draft', 'Save as draft']];
+  return (
+    <div className="mb-4 rounded-xl border border-line p-3">
+      <span className="mb-2 block font-mono text-[11px] uppercase tracking-[0.14em] text-fg2">{field.label}</span>
+      <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={field.label}>
+        {opts.map(([k, l]) => (
+          <button key={k} type="button" role="radio" aria-checked={mode === k} onClick={() => choose(k)}
+            className={cn('rounded-full border px-3.5 py-1.5 text-xs font-semibold transition', mode === k ? 'border-tech bg-tech text-white' : 'border-line text-fg2 hover:border-tech hover:text-tech')}>{l}</button>
+        ))}
+      </div>
+      {mode === 'schedule' && (
+        <label className="mt-3 block">
+          <input type="datetime-local" className={inputCls} value={toDhakaInput(value)} min={toDhakaInput(new Date().toISOString())} onChange={(e) => onChange('publish_at', fromDhakaInput(e.target.value))} />
+          <span className="mt-1.5 block text-xs text-muted">Bangladesh time. It appears on the website and in the app by itself at that moment, and the subscribers get the e-mail then.</span>
+        </label>
+      )}
+      {mode === 'draft' && <span className="mt-2 block text-xs text-muted">Only admins can see a draft. Choose "Publish now" when it is ready.</span>}
+    </div>
+  );
+}
+
+export function FormField({ field, value, onChange, upload, all }) {
   const { uploadImage } = useStore(useShallow((s) => ({ uploadImage: s.uploadImage })));
   const [busy, setBusy] = useState(false);
   const [editing, setEditing] = useState(null); // picture waiting in the crop / resize editor
@@ -57,6 +87,8 @@ export function FormField({ field, value, onChange, upload }) {
   const custom = field.allowOther && (other || (!!value && !field.options?.includes(value)));
   const label = <span className="mb-1.5 block font-mono text-[11px] uppercase tracking-[0.14em] text-fg2">{field.label}{field.required && <span className="text-accent"> *</span>}</span>;
   const set = (v) => onChange(field.key, v);
+  if (field.type === 'hidden') return null;
+  if (field.type === 'publish') return <PublishField field={field} value={value} all={all} onChange={onChange} />;
 
   if (field.type === 'checkbox') return (
     <label className="mb-4 flex cursor-pointer items-center gap-3 rounded-xl border border-line px-4 py-3 text-sm text-fg">
