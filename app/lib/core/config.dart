@@ -20,6 +20,7 @@ class AppConfig {
   /// Turns server-relative paths (`/uploads/x.png`) into absolute URLs.
   static String resolve(String? url) {
     if (url == null || url.isEmpty) return '';
+    if (url.startsWith('data:')) return ''; // inline SVG sample pictures cannot be drawn: show the initials instead
     if (url.startsWith('http://') || url.startsWith('https://')) return url;
     return url.startsWith('/') ? '$origin$url' : '$origin/$url';
   }

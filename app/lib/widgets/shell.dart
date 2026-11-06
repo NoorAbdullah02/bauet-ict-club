@@ -117,7 +117,7 @@ class AppShell extends StatelessWidget {
         ),
       ),
       bottomNavigationBar: _GlossNav(
-        selected: tabIndex < 0 ? 0 : tabIndex,
+        selected: tabIndex,
         onTap: (i) {
           HapticFeedback.selectionClick();
           context.go(_tabs[i].path);
