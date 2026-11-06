@@ -36,11 +36,11 @@ if 'signingConfigs.getByName("release")' in src:
     print('Already patched.')
     sys.exit(0)
 
-props = '''val keystoreProperties = java.util.Properties().apply {
-    val f = rootProject.file("key.properties")
-    if (f.exists()) f.inputStream().use { load(it) }
+props = '''val keystoreProperties = Properties()
+val keystorePropertiesFile = rootProject.file("key.properties")
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 }
-
 '''
 signing = '''    signingConfigs {
         create("release") {
@@ -56,6 +56,7 @@ if '\nandroid {' not in src or 'signingConfig = signingConfigs.getByName("debug"
     print('The Gradle file looks different from what this script expects: leaving the signing as it is.')
     sys.exit(0)
 src = src.replace('\nandroid {', '\n' + props.rstrip('\n') + '\n\nandroid {', 1)
+src = 'import java.io.FileInputStream\nimport java.util.Properties\n\n' + src # imports must come first in a Gradle Kotlin file
 src = src.replace('    buildTypes {', signing + '    buildTypes {', 1)
 src = src.replace('signingConfig = signingConfigs.getByName("debug")', 'signingConfig = signingConfigs.getByName("release")', 1)
 open(gradle, 'w').write(src)
