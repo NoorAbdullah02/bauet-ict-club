@@ -48,7 +48,7 @@ export default function SearchBox({ onClose }) {
             className="min-w-0 flex-1 bg-transparent text-base text-fg outline-none placeholder:text-muted" />
           <button onClick={onClose} aria-label="Close search" className="grid size-8 place-items-center rounded-full text-fg2 hover:bg-accent/10 hover:text-accent"><X size={16} /></button>
         </div>
-        <div className="max-h-[56vh] overflow-y-auto p-2">
+        <div data-lenis-prevent className="max-h-[56vh] overflow-y-auto overscroll-contain p-2">
           {rows === null && <p className="px-4 py-8 text-center text-sm text-muted">Type at least two letters. Try a workshop name, a person or a question.</p>}
           {rows?.length === 0 && !busy && <p className="px-4 py-8 text-center text-sm text-muted">Nothing found for “{q.trim()}”.</p>}
           {rows?.map((r, i) => {

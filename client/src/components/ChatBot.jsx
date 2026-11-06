@@ -130,7 +130,7 @@ export default function ChatBot() {
               <button onClick={() => setOpen(false)} aria-label="Close" className="grid size-8 place-items-center rounded-full text-fg2 transition hover:bg-accent/10 hover:text-accent"><X size={16} /></button>
             </header>
 
-            <div className="relative flex-1 space-y-4 overflow-y-auto px-4 py-5">
+            <div data-lenis-prevent className="relative flex-1 space-y-4 overflow-y-auto overscroll-contain px-4 py-5">
               {messages.map((m, i) => {
                 const user = m.role === 'user';
                 return (
