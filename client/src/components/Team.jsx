@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { thumb } from '../lib/img';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { Users, Facebook, Github, Linkedin, Shield, Star, Crown, Award, ChevronRight, IdCard } from 'lucide-react';
+import { Users, Facebook, Github, Linkedin, Shield, Star, Crown, Award, ChevronRight, IdCard, GraduationCap, Mail } from 'lucide-react';
 import { useInView } from 'react-intersection-observer';
 import useStore from '../context/store';
 
@@ -49,6 +49,41 @@ function Avatar({ person, size = 48, ring }) {
     }}>
       {!person.image_url && getInitials(person.name)}
     </div>
+  );
+}
+
+/** The club's advisors (teachers who guide the club), shown above the committee. */
+function AdvisorsPanel({ advisors }) {
+  const list = (advisors || []).filter((a) => a.active !== false);
+  if (!list.length) return null;
+  return (
+    <section aria-label="Advisors" style={{ marginBottom: 40 }}>
+      <div style={{ textAlign: 'center', marginBottom: 20 }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 11, color: 'var(--tech)', textTransform: 'uppercase', letterSpacing: 3, fontWeight: 700 }}><GraduationCap size={15} /> Our advisors</span>
+        <h2 style={{ fontSize: 'clamp(1.5rem,3vw,2.1rem)', marginTop: 6, color: 'var(--fg)' }}>Guided by experience</h2>
+      </div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 18 }}>
+        {list.map((a, i) => (
+          <motion.article key={a.id} initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5, delay: Math.min(i * 0.06, 0.3) }}
+            style={{ position: 'relative', width: 'min(100%, 300px)', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 22, overflow: 'hidden', textAlign: 'center', boxShadow: 'var(--shadow-md)' }}>
+            <div style={{ height: 4, background: 'linear-gradient(90deg,#35D989,#38C8F0,#8B5CF6,#FF6B8A)' }} />
+            <div style={{ padding: '24px 18px 20px' }}>
+              <div style={{ padding: 3, width: 112, height: 112, margin: '0 auto', borderRadius: '50%', background: 'linear-gradient(135deg,#35D989,#38C8F0,#8B5CF6)' }}>
+                <Avatar person={a} size={106} />
+              </div>
+              <span className="badge badge-tech" style={{ display: 'inline-block', marginTop: 14 }}>{a.designation || 'Advisor'}</span>
+              <h3 style={{ fontSize: 19, marginTop: 8, color: 'var(--fg)', lineHeight: 1.2 }}>{a.name}</h3>
+              {a.rank_title && <p style={{ fontSize: 13, color: 'var(--fg2)', marginTop: 4 }}>{a.rank_title}</p>}
+              {a.department && <p style={{ fontSize: 12, color: 'var(--fg-muted)', marginTop: 2 }}>{a.department}</p>}
+              <div style={{ display: 'flex', justifyContent: 'center', gap: 14, marginTop: 14, flexWrap: 'wrap' }}>
+                {a.email && <a href={`mailto:${a.email}`} aria-label={`E-mail ${a.name}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: 'var(--fg2)' }}><Mail size={13} /> E-mail</a>}
+                <Link to={`/card/a${a.id}`} title="Digital membership card" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: 'var(--tech)' }}><IdCard size={13} /> Card</Link>
+              </div>
+            </div>
+          </motion.article>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -176,6 +211,7 @@ function useSessions(dbMembers) {
 }
 
 export default function Team() {
+  const advisors = useStore((s) => s.advisors);
   const dbMembersAll = useStore((s) => s.members);
   const sessions = useSessions(dbMembersAll);
   const [activeSession, setActiveSession] = useState(null);
@@ -276,6 +312,8 @@ export default function Team() {
               onClick={() => setFilterDept(d)}>{d}</button>
           ))}
         </motion.div>}
+
+        <AdvisorsPanel advisors={advisors} />
 
         <AnimatePresence mode="wait">
           <motion.div key={sessionKey + filterDept}

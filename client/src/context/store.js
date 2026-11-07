@@ -26,6 +26,7 @@ const useStore = create((set, get) => ({
   projects: [],
   faqs: [],
   sponsors: [],
+  advisors: [],
   subscribers: [],
   posts: [],
   messages: [],
@@ -63,10 +64,10 @@ const useStore = create((set, get) => ({
       let all = null;
       try { all = (await api.get('/bootstrap', q)).data; } catch { /* older server: use the separate requests below */ }
       if (all) {
-        set({ events: all.events || [], notices: all.notices || [], members: all.members || [], gallery: all.gallery || [], achievements: all.achievements || [], projects: all.projects || [], faqs: all.faqs || [], sponsors: all.sponsors || [], ...(all.settings ? { settings: all.settings } : {}), loading: false });
+        set({ events: all.events || [], notices: all.notices || [], members: all.members || [], gallery: all.gallery || [], achievements: all.achievements || [], projects: all.projects || [], faqs: all.faqs || [], sponsors: all.sponsors || [], advisors: all.advisors || [], ...(all.settings ? { settings: all.settings } : {}), loading: false });
         return;
       }
-      const [events, notices, members, gallery, achievements, settings, projects, faqs, sponsors] = await Promise.all([
+      const [events, notices, members, gallery, achievements, settings, projects, faqs, sponsors, advisors] = await Promise.all([
         api.get('/events', q).catch(() => ({ data: [] })),
         api.get('/notices', q).catch(() => ({ data: [] })),
         api.get('/members', q).catch(() => ({ data: [] })),
@@ -76,6 +77,7 @@ const useStore = create((set, get) => ({
         api.get('/projects', q).catch(() => ({ data: [] })),
         api.get('/faqs', q).catch(() => ({ data: [] })),
         api.get('/sponsors', q).catch(() => ({ data: [] })),
+        api.get('/advisors', q).catch(() => ({ data: [] })),
       ]);
       set({
         events: events.data,
@@ -86,6 +88,7 @@ const useStore = create((set, get) => ({
         projects: projects.data,
         faqs: faqs.data,
         sponsors: sponsors.data,
+        advisors: advisors.data,
         settings: settings.data || {
           heroTitle: 'BAUET ICT CLUB',
           heroSub: 'Where Technology Meets Innovation',
