@@ -118,7 +118,8 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
       await context.read<AppState>().login(_user.text.trim(), _pass.text, code: _needCode ? _code.text.trim() : null, onStage: (t) {
         if (mounted) setState(() => _stage = t);
       });
-      // the router sends the person to /admin as soon as the sign-in is accepted
+      // go there ourselves: the router's automatic redirect does not always fire when this page was opened with push()
+      if (mounted) context.go('/admin');
     } on ApiException catch (e) {
       if (mounted) {
         final first = e.needsCode && !_needCode;
