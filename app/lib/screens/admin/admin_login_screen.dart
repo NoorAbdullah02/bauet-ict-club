@@ -25,6 +25,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
   final _pass = TextEditingController();
   final _code = TextEditingController();
   bool _needCode = false;
+  final _codeFocus = FocusNode();
   bool _busy = false;
   bool _slow = false; // the server is taking long: probably waking up
   String? _error;
@@ -34,6 +35,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
     _user.dispose();
     _pass.dispose();
     _code.dispose();
+    _codeFocus.dispose();
     super.dispose();
   }
 
@@ -55,10 +57,17 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
       // Router redirect sends the user to /admin once isAdmin flips.
     } on ApiException catch (e) {
       if (mounted) {
+        final first = e.needsCode && !_needCode;
         setState(() {
           if (e.needsCode) _needCode = true;
-          _error = _needCode && _code.text.isEmpty ? null : e.message;
+          _error = e.message;
         });
+        // the code box appears under the password: put the cursor in it so it is not missed behind the keyboard
+        if (first) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) _codeFocus.requestFocus();
+          });
+        }
       }
     } catch (e) {
       if (mounted) setState(() => _error = e.toString());
@@ -108,7 +117,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                   AppField(controller: _pass, label: 'Password', icon: Icons.lock_outline_rounded, obscure: true, textInputAction: TextInputAction.done, onSubmitted: _login),
                   if (_needCode) ...[
                     const SizedBox(height: 14),
-                    AppField(controller: _code, label: '6-digit code or backup code', icon: Icons.shield_outlined, textInputAction: TextInputAction.done, onSubmitted: _login),
+                    AppField(controller: _code, label: '6-digit code or backup code', icon: Icons.shield_outlined, keyboard: TextInputType.number, focusNode: _codeFocus, textInputAction: TextInputAction.done, onSubmitted: _login),
                   ],
                   if (_error != null) ...[
                     const SizedBox(height: 12),
