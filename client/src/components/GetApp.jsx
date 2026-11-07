@@ -34,7 +34,17 @@ export default function GetApp() {
             ? <p className="mx-auto mt-7 max-w-sm rounded-2xl bg-alt p-4 text-sm text-fg2">The app file is not uploaded yet. Please check again soon.</p>
             : <a href={APK_URL} download className="btn-primary mt-7 inline-flex"><Download size={17} /> Download for Android{size ? ` (${size})` : ''}</a>}
           <p className="mt-3 text-xs text-muted">Free · Android 6 or newer · from the BAUET ICT Club website</p>
-          {!missing && <p className="mt-2 text-xs text-muted">Very old phone and the app will not install? <a href={OLD_URL} download className="font-semibold text-tech underline">Download the version for older phones</a></p>}
+          {!missing && (
+            <div className="mx-auto mt-5 max-w-lg rounded-2xl border border-line bg-surface p-4 text-left text-sm text-fg2">
+              <p className="font-semibold text-fg">Which file is for my phone?</p>
+              <ul className="mt-2 space-y-2">
+                <li><b className="text-fg">Download for Android (the button above):</b> for almost every phone, including all phones made in the last few years (64-bit). Use this one first.</li>
+                <li><b className="text-fg">Older phones:</b> for older or very basic Android phones (roughly made before 2018, or with 1 to 2 GB of memory) that run 32-bit Android. If the first file says <i>“App not installed”</i> or <i>“not compatible with your phone”</i>, download this one instead:
+                  <a href={OLD_URL} download className="ml-1 inline-flex items-center gap-1 font-semibold text-tech underline"><Download size={13} /> Version for older phones</a></li>
+              </ul>
+              <p className="mt-2 text-xs text-muted">Both are the same app with the same features. You need Android 6 or newer.</p>
+            </div>
+          )}
         </div>
 
         <ol className="mt-10 space-y-3">
