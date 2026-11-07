@@ -114,10 +114,10 @@ cd app && flutter pub get && flutter analyze && flutter test
 
 **Done in this review**
 - The app now loads the whole public site with **one request** (`/api/bootstrap`) instead of ten; if that fails it falls back to the old one-by-one loading and then to the saved copy (offline). Faster on a sleeping free server and on slow mobile data.
-- Every CI build gets a higher Android version number (`--build-number` = the GitHub run number), so each new APK is a real update.
 - Images were already sized for memory (`memCacheWidth`); lists already pull to refresh; there is an offline copy of the lists.
 
 **Worth adding next (not built)**
+0. **Higher version number on every build.** Add `--build-number=${{ github.run_number }}` to both `flutter build apk` lines in `.github/workflows/checks.yml` so each APK is a real update (pushing a workflow file needs the GitHub token to have the `workflow` permission: `gh auth refresh -h github.com -s workflow`).
 1. **Fonts inside the app.** The app downloads its fonts (Space Grotesk, Inter, JetBrains Mono, Barlow Condensed) from Google on first use; offline the first launch shows plain fonts. Bundling the font files (about 1 MB more) makes it instant and offline. Needs the font files added to `app/assets/fonts` and `google_fonts` set to not fetch.
 2. **Push notifications** for new events, notices and ticket reminders (Firebase Cloud Messaging). Needs a Firebase project made by the club's Google account and a server hook; the biggest feature members would feel.
 3. **"New version available" prompt.** The app compares its version number with a small file on the website and offers the download page. Useful now that the app is installed from the website and not from the Play Store.
