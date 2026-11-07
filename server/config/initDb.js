@@ -348,6 +348,13 @@ async function initDb() {
     // Demo content is opt-in (SEED_SAMPLES=true) — or load/remove it any time from Admin → Settings
     if (process.env.SEED_SAMPLES === 'true') await require('../utils/demo').loadDemo();
 
+    // Start again from nothing: RESET_ALL_ADMINS=true removes EVERY admin account (and unfinished sign-ups) once, so the first people can sign up again.
+    // Remove the variable afterwards, or the accounts are removed at every restart.
+    if (String(process.env.RESET_ALL_ADMINS).toLowerCase() === 'true') {
+      const gone = await client.query('DELETE FROM admins');
+      await client.query('DELETE FROM admin_signups');
+      console.log(`RESET_ALL_ADMINS: ${gone.rowCount} admin account(s) removed. Sign-up is open for 3 new accounts. Now remove RESET_ALL_ADMINS from the environment.${process.env.ADMIN_PASSWORD ? ' WARNING: ADMIN_PASSWORD is still set, so an account is created from it; remove ADMIN_PASSWORD too.' : ''}`);
+    }
     const bcrypt = require('bcryptjs');
     // Never ship a well-known password: use ADMIN_PASSWORD, or generate one and print it once.
     // a pasted value can carry spaces or quote marks around it (for example "Ice-2016"): remove them so it matches what is typed at sign-in
@@ -369,6 +376,8 @@ async function initDb() {
       WHERE NOT EXISTS (SELECT 1 FROM admins WHERE LOWER(username) = LOWER($1))
       RETURNING id
     `, [adminName, hash]) : { rows: [] };
+    // the main admin made before sign-up existed has no e-mail: give it ADMIN_NOTIFY_EMAIL, so its reset link also goes to its own address
+    if (process.env.ADMIN_NOTIFY_EMAIL) await client.query("UPDATE admins SET email = $1 WHERE role = 'superadmin' AND email IS NULL AND NOT EXISTS (SELECT 1 FROM admins WHERE LOWER(email) = LOWER($1))", [process.env.ADMIN_NOTIFY_EMAIL.trim().toLowerCase()]);
     // The admin account is created ONCE. Changing ADMIN_PASSWORD later does not change an existing account. To set a new password
     // (forgotten, or changed in Render after the first start), set RESET_ADMIN_PASSWORD=true together with a strong ADMIN_PASSWORD,
     // let the service restart, sign in, then REMOVE the RESET_ADMIN_PASSWORD line.

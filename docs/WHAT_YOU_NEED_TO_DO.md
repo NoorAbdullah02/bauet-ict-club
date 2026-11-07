@@ -98,3 +98,4 @@ The code is ready and tested with a pretend gateway. Until you add the keys the 
 - Every new account is announced by e-mail to `ADMIN_NOTIFY_EMAIL`. The main admin sees everyone (user name, e-mail, role) under Admin > Security, and can remove an admin or editor there.
 - Forgot the password: **Forgot password?** e-mails a one-time link to `ADMIN_NOTIFY_EMAIL`. E-mail sending (Brevo) must be set up for sign-up and reset.
 - An account created earlier (for example `ICT-Club`) stays and counts as one of the 3. Use **Forgot password?** for it.
+- **Start again with no accounts:** in Render add `RESET_ALL_ADMINS` = `true` (and make sure `ADMIN_PASSWORD` and `RESET_ADMIN_PASSWORD` are not set), deploy, then **delete `RESET_ALL_ADMINS`**. Every admin account is removed once; sign-up opens for 3 new ones. Website content is not touched.

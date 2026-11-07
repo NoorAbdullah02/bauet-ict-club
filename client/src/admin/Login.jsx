@@ -43,7 +43,7 @@ function ResetPanel({ mode, setMode, username, setUsername }) {
       <div className="mb-6 text-center">
         <div className="mx-auto mb-4 grid size-14 place-items-center rounded-2xl bg-tech/10 text-tech">{mode === 'reset' ? <KeyRound size={26} /> : <Mail size={26} />}</div>
         <h1 className="text-[1.6rem] leading-tight text-fg">{done ? 'Password changed' : mode === 'reset' ? 'Choose a new password' : 'Forgot your password?'}</h1>
-        <p className="mt-1.5 text-sm text-fg2">{done ? 'You can sign in with the new password now.' : mode === 'reset' ? '6 or more characters, with letters and numbers or symbols.' : 'We e-mail a one-time link to the club e-mail address. The link works for 30 minutes.'}</p>
+        <p className="mt-1.5 text-sm text-fg2">{done ? 'You can sign in with the new password now.' : mode === 'reset' ? '6 or more characters, with letters and numbers or symbols.' : 'We e-mail a one-time link to the e-mail address this account was made with. The link works for 30 minutes.'}</p>
       </div>
       {done ? (
         <button type="button" onClick={() => setMode('in')} className="btn-primary w-full !py-3.5"><Lock size={15} /> Go to sign in</button>
@@ -143,7 +143,7 @@ function SignupPanel({ setMode }) {
 
 export default function Login() {
   const login = useStore((s) => s.login);
-  const [f, setF] = useState({ username: localStorage.getItem('bauet-admin-name') || 'ICT-Club', password: '', code: '' });
+  const [f, setF] = useState({ username: localStorage.getItem('bauet-admin-name') || '', password: '', code: '' });
   const [needCode, setNeedCode] = useState(false);
   const [show, setShow] = useState(false);
   const [caps, setCaps] = useState(false);
@@ -198,7 +198,7 @@ export default function Login() {
           <label className="mb-4 block">
             <span className="mb-1.5 block font-mono text-[11px] uppercase tracking-[0.14em] text-fg2">Username</span>
             <span className="relative block">
-              <input className={field} value={f.username} onChange={(e) => setF({ ...f, username: e.target.value })} placeholder="ICT-Club" required autoComplete="username" autoCapitalize="none" spellCheck={false} />
+              <input className={field} value={f.username} onChange={(e) => setF({ ...f, username: e.target.value })} placeholder="Your user name" required autoComplete="username" autoCapitalize="none" spellCheck={false} />
               <User size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted transition peer-focus:text-tech" />
             </span>
           </label>
