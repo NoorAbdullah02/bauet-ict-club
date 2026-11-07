@@ -154,6 +154,13 @@ class Api {
 
   Future<void> submitRegistration(Map<String, dynamic> body) => _send(() => _dio.post('/registrations', data: body));
 
+  /// The newest published app build, from a small file on the website.
+  Future<Map<String, dynamic>> latestVersion() async {
+    final r = await _dio.get('${AppConfig.origin}/downloads/version.json', queryParameters: {'_': DateTime.now().millisecondsSinceEpoch});
+    final d = r.data;
+    return d is Map ? Map<String, dynamic>.from(d) : <String, dynamic>{};
+  }
+
   // ---- phone notifications ----
   Future<void> registerPush(String token, String lang) => _send(() => _dio.post('/push/register', data: {'token': token, 'platform': 'android', 'lang': lang}));
 

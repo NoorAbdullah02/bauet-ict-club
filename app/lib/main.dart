@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 
 import 'core/config.dart';
 import 'core/push.dart';
+import 'core/update_check.dart';
 import 'core/router.dart';
 import 'core/theme.dart';
 import 'data/api.dart';
@@ -36,12 +37,14 @@ class _AppScroll extends MaterialScrollBehavior {
 
 class _ClubAppState extends State<ClubApp> {
   late final GoRouter _router;
+  final GlobalKey<ScaffoldMessengerState> _messenger = GlobalKey<ScaffoldMessengerState>();
 
   @override
   void initState() {
     super.initState();
     _router = buildRouter(context.read<AppState>());
     Push.start(context.read<AppState>(), _router); // not awaited: the app never waits for notifications
+    UpdateCheck.run(context.read<AppState>().api, _messenger); // asks the website if a newer app exists
   }
 
   @override
@@ -61,6 +64,7 @@ class _ClubAppState extends State<ClubApp> {
       themeMode: mode,
       theme: buildTheme(Pal.lightPal),
       darkTheme: buildTheme(Pal.darkPal),
+      scaffoldMessengerKey: _messenger,
       routerConfig: _router,
       builder: (context, child) {
         final dark = Theme.of(context).brightness == Brightness.dark;

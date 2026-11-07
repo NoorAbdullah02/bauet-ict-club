@@ -35,6 +35,9 @@ BN = {
 "Required": "আবশ্যক", "Department": "বিভাগ", "Student ID": "স্টুডেন্ট আইডি", "Session": "সেশন", "Semester": "সেমিস্টার",
 "Loading…": "লোড হচ্ছে…", "Try again": "আবার চেষ্টা করুন", "Something went wrong": "কিছু ভুল হয়েছে", "No internet": "ইন্টারনেট নেই",
 "Your email for club news": "ক্লাবের খবরের জন্য আপনার ইমেইল", "Subscribe": "সাবস্ক্রাইব", "You are subscribed. Thank you!": "আপনি সাবস্ক্রাইব করেছেন। ধন্যবাদ!",
+# app update and notifications
+"A new version of the app is available.": "অ্যাপের নতুন সংস্করণ এসেছে।", "Please update the app to keep using it.": "অ্যাপ ব্যবহার চালিয়ে যেতে দয়া করে আপডেট করুন।",
+"Later": "পরে", "Update": "আপডেট", "Alerts on": "বার্তা চালু", "Alerts off": "বার্তা বন্ধ",
 # join
 "Join the club": "ক্লাবে যোগ দিন", "Committee": "কমিটি", "General member": "সাধারণ সদস্য", "Ambassador": "অ্যাম্বাসেডর",
 # footer
