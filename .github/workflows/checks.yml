@@ -4,6 +4,9 @@ name: Checks
 on:
   push:
     branches: [master]
+    # putting a finished APK on the website changes nothing to build, so it does not start another 15 minute build
+    paths-ignore:
+      - 'client/public/downloads/**'
   pull_request:
 
 jobs:

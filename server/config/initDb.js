@@ -336,22 +336,26 @@ async function initDb() {
     // Never ship a well-known password: use ADMIN_PASSWORD, or generate one and print it once.
     const adminPassword = process.env.ADMIN_PASSWORD || require('crypto').randomBytes(9).toString('base64url');
     const hash = await bcrypt.hash(adminPassword, 10);
+    // the first admin is called ICT-Club (ADMIN_USERNAME changes it). An older install called it "admin": rename that account once, nothing else changes.
+    const adminName = (process.env.ADMIN_USERNAME || 'ICT-Club').trim().slice(0, 60) || 'ICT-Club';
+    await client.query("UPDATE admins SET username = $1 WHERE username = 'admin' AND NOT EXISTS (SELECT 1 FROM admins WHERE LOWER(username) = LOWER($1))", [adminName]);
     const created = await client.query(`
-      INSERT INTO admins (username, password_hash, role) VALUES ('admin', $1, 'superadmin')
-      ON CONFLICT (username) DO NOTHING RETURNING id
-    `, [hash]);
+      INSERT INTO admins (username, password_hash, role) SELECT $1::text, $2::text, 'superadmin'
+      WHERE NOT EXISTS (SELECT 1 FROM admins WHERE LOWER(username) = LOWER($1))
+      RETURNING id
+    `, [adminName, hash]);
     // The admin account is created ONCE. Changing ADMIN_PASSWORD later does not change an existing account. To set a new password
     // (forgotten, or changed in Render after the first start), set RESET_ADMIN_PASSWORD=true together with a strong ADMIN_PASSWORD,
     // let the service restart, sign in, then REMOVE the RESET_ADMIN_PASSWORD line.
     if (String(process.env.RESET_ADMIN_PASSWORD).toLowerCase() === 'true') {
-      const problem = process.env.ADMIN_PASSWORD ? require('../utils/passwordPolicy').passwordProblem(process.env.ADMIN_PASSWORD, 'admin') : 'ADMIN_PASSWORD is not set';
+      const problem = process.env.ADMIN_PASSWORD ? require('../utils/passwordPolicy').passwordProblem(process.env.ADMIN_PASSWORD, adminName) : 'ADMIN_PASSWORD is not set';
       if (problem) console.warn(`RESET_ADMIN_PASSWORD is on but the password was not changed: ${problem}`);
       else {
-        await client.query("UPDATE admins SET password_hash = $1, failed_logins = 0, locked_until = NULL, token_version = COALESCE(token_version, 0) + 1 WHERE username = 'admin'", [hash]);
-        console.log('The admin password was reset from ADMIN_PASSWORD. Username: admin. Now remove RESET_ADMIN_PASSWORD from the environment.');
+        await client.query("UPDATE admins SET password_hash = $1, failed_logins = 0, locked_until = NULL, token_version = COALESCE(token_version, 0) + 1 WHERE LOWER(username) = LOWER($2)", [hash, adminName]);
+        console.log('The admin password was reset from ADMIN_PASSWORD. Username: ' + adminName + '. Now remove RESET_ADMIN_PASSWORD from the environment.');
       }
     }
-    if (created.rows.length && !process.env.ADMIN_PASSWORD) console.log(`\nAdmin account created. Username: admin  Password: ${adminPassword}\n(Save it now — it is not shown again. Set ADMIN_PASSWORD in .env to choose your own.)`);
+    if (created.rows.length && !process.env.ADMIN_PASSWORD) console.log(`\nAdmin account created. Username: ${adminName}  Password: ${adminPassword}\n(Save it now — it is not shown again. Set ADMIN_PASSWORD in .env to choose your own.)`);
 
     console.log('Database ready');
   } catch (e) {

@@ -11,14 +11,14 @@ const rateLimit = require('express-rate-limit');
 
 const router = express.Router();
 
-// brute-force guard 1: 40 wrong attempts per IP per 15 minutes (successful logins do not count). Campus Wi-Fi shares one address between many people, so this is wide; the per-account lock below is the real guard.
+// brute-force guard 1: 40 wrong attempts per IP per 5 minutes (successful logins do not count). Campus Wi-Fi shares one address between many people, so this is wide; the per-account lock below is the real guard.
 const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, max: 40, skipSuccessfulRequests: true, standardHeaders: true, legacyHeaders: false,
-  message: { error: 'Too many failed attempts. Try again in 15 minutes.' },
+  windowMs: 5 * 60 * 1000, max: 40, skipSuccessfulRequests: true, standardHeaders: true, legacyHeaders: false,
+  message: { error: 'Too many failed attempts. Try again in 5 minutes.' },
 });
-// brute-force guard 2 (per account): 5 wrong passwords or codes lock that account for 15 minutes, whatever IP the attempts come from
+// brute-force guard 2 (per account): 5 wrong passwords or codes lock that account for 5 minutes, whatever IP the attempts come from
 const MAX_FAILS = 5;
-const LOCK_MINUTES = 15;
+const LOCK_MINUTES = 5;
 // compared against when the username does not exist, so response time never reveals valid usernames
 const DUMMY_HASH = bcrypt.hashSync('not-a-real-password', 12);
 const tooMany = (res) => res.status(429).json({ error: `Too many failed attempts. Try again in ${LOCK_MINUTES} minutes.` });
