@@ -3,11 +3,14 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../core/config.dart';
 import '../core/offline_cache.dart';
 import '../core/theme.dart';
+import '../core/utils.dart';
 import '../data/api.dart';
 import '../state/app_state.dart';
 import '../widgets/common.dart';
@@ -100,6 +103,14 @@ class _MemberCardScreenState extends State<MemberCardScreen> {
           code: code,
           qrData: '${AppConfig.origin}/card/${m['id']}?c=$code',
         ),
+        const SizedBox(height: 16),
+        Center(
+          child: FilledButton.icon(
+            onPressed: () => _share(context, name: '${m['name']}', position: '${m['position'] ?? ''}', url: '${AppConfig.origin}/card/${m['id']}?c=$code'),
+            icon: const Icon(Icons.share_rounded, size: 18),
+            label: const Text('Share this card'),
+          ),
+        ),
         const SizedBox(height: 14),
         Center(child: Text('The QR code holds a signed code, so a fake card cannot pass the check.', textAlign: TextAlign.center, style: bodyStyle(context, size: 12, color: p.muted))),
       ]);
@@ -119,6 +130,70 @@ class _MemberCardScreenState extends State<MemberCardScreen> {
       ),
     );
   }
+}
+
+
+/// The share sheet: Facebook, WhatsApp, Telegram, X, LinkedIn, e-mail, the phone's own share menu, or copy the link.
+void _share(BuildContext context, {required String name, required String position, required String url}) {
+  final text = '$name, ${position.isEmpty ? 'Member' : position} at BAUET ICT Club';
+  const enc = Uri.encodeComponent;
+  final items = <(IconData, String, Color, String)>[
+    (Icons.facebook_rounded, 'Facebook', const Color(0xFF1877F2), 'https://www.facebook.com/sharer/sharer.php?u=${enc(url)}'),
+    (Icons.chat_rounded, 'WhatsApp', const Color(0xFF25D366), 'https://wa.me/?text=${enc('$text\n$url')}'),
+    (Icons.send_rounded, 'Telegram', const Color(0xFF229ED9), 'https://t.me/share/url?url=${enc(url)}&text=${enc(text)}'),
+    (Icons.alternate_email_rounded, 'X', const Color(0xFF111827), 'https://twitter.com/intent/tweet?text=${enc(text)}&url=${enc(url)}'),
+    (Icons.business_center_rounded, 'LinkedIn', const Color(0xFF0A66C2), 'https://www.linkedin.com/sharing/share-offsite/?url=${enc(url)}'),
+    (Icons.mail_rounded, 'E-mail', const Color(0xFFEA4335), 'mailto:?subject=${enc('$name | BAUET ICT Club')}&body=${enc('$text\n$url')}'),
+  ];
+  showModalBottomSheet<void>(
+    context: context,
+    showDragHandle: true,
+    useSafeArea: true,
+    builder: (ctx) {
+      final p = ctx.pal;
+      Widget tile(IconData icon, String label, Color color, VoidCallback onTap) => InkWell(
+            borderRadius: BorderRadius.circular(18),
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                Container(width: 52, height: 52, decoration: BoxDecoration(color: color, shape: BoxShape.circle), child: Icon(icon, color: Colors.white, size: 26)),
+                const SizedBox(height: 6),
+                Text(label, style: bodyStyle(ctx, size: 12, weight: FontWeight.w600)),
+              ]),
+            ),
+          );
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('Share this card', style: displayStyle(ctx, 22)),
+          const SizedBox(height: 12),
+          GridView.count(
+            crossAxisCount: 4,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            childAspectRatio: 0.85,
+            children: [
+              for (final it in items)
+                tile(it.$1, it.$2, it.$3, () {
+                  Navigator.pop(ctx);
+                  openUrl(context, it.$4);
+                }),
+              tile(Icons.ios_share_rounded, 'More apps', p.accent, () {
+                Navigator.pop(ctx);
+                Share.share('$text\n$url', subject: '$name | BAUET ICT Club');
+              }),
+              tile(Icons.link_rounded, 'Copy link', p.tech, () async {
+                await Clipboard.setData(ClipboardData(text: url));
+                if (ctx.mounted) Navigator.pop(ctx);
+                if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Card link copied')));
+              }),
+            ],
+          ),
+        ]),
+      );
+    },
+  );
 }
 
 
