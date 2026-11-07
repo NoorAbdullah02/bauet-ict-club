@@ -55,6 +55,14 @@ function localAnswer(question, k) {
   const q = words(question);
   const lower = String(question).toLowerCase();
   const contact = `You can reach the club at **${k.site?.socialLinks?.email || 'ictclubbauet@gmail.com'}** or **${k.site?.socialLinks?.phone || '01748-269350'}**.`;
+  // plain questions about the club itself, answered without any AI key
+  if (/(contact|phone|number|call|mail|e-mail|reach|যোগাযোগ|ফোন|নম্বর|ইমেইল)/.test(lower)) return contact;
+  if (/(join|member|apply|registration form|become|how.*(register|sign ?up)|সদস্য|যোগ দ|আবেদন)/.test(lower) && !/event|workshop/.test(lower)) return 'To join, open the **Join** page and choose General member, Committee or Department Ambassador. Fill in the form; we e-mail you when it is reviewed. Approved members get a member card under **My member card**.';
+  if (/(job|internship|career|hire|চাকরি|ইন্টার্ন)/.test(lower)) return 'See the **Jobs** page for internships and jobs, and **Remote jobs** for remote work from around the world.';
+  if (/(leaderboard|points|badge|rank|পয়েন্ট|ব্যাজ)/.test(lower)) return 'You earn points for joining events and contests. See the **Leaderboard** page for the top members and badges.';
+  if (/(app|apk|download|install|অ্যাপ|ডাউনলোড)/.test(lower)) return 'Get the Android app from the **App** page (/app). The website also works on phones.';
+  if (/(certificate|সার্টিফিকেট)/.test(lower)) return 'Certificates are given after events. Check one on the **Verify** page with its code.';
+  if (/(what is|who are|about|tell me|club|কী|কি\b|সম্পর্কে)/.test(lower) && /(club|bauet|ict|ক্লাব|about|সম্পর্কে)/.test(lower) && !/event|workshop|committee|president/.test(lower)) return k.site?.aboutText || 'BAUET ICT Club is the technology club of Bangladesh Army University of Engineering & Technology, Rajshahi. We run workshops, hackathons, tech talks and projects.';
   if (/event|workshop|hackathon|contest|seminar|ইভেন্ট|অনুষ্ঠান/.test(lower)) {
     return k.events.length ? `Upcoming events:\n${k.events.slice(0, 4).map((e) => `- **${e.title}**, ${d10(e.date)}${e.location ? `, ${e.location}` : ''}`).join('\n')}\nSee the Events page for details.` : 'No events are announced right now. Follow our notices or subscribe to the newsletter to hear first.';
   }
