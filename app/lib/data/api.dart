@@ -86,6 +86,19 @@ class Api {
     return data.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
   }
 
+  /// The whole public site in ONE request (events, notices, members, gallery, awards, projects, FAQs, sponsors, advisors, settings).
+  /// Ten separate requests were slow on a sleeping free server; the website already uses this endpoint.
+  Future<Map<String, dynamic>> bootstrap({bool fresh = false}) async {
+    final data = await _send(() => _dio.get(
+          '/bootstrap',
+          queryParameters: fresh ? {'_': DateTime.now().millisecondsSinceEpoch} : null,
+          options: fresh
+              ? Options(headers: {'Cache-Control': 'no-cache', 'Pragma': 'no-cache', if (token != null) 'Authorization': 'Bearer $token'})
+              : _auth,
+        ));
+    return data is Map ? Map<String, dynamic>.from(data) : <String, dynamic>{};
+  }
+
   Future<Map<String, dynamic>> settings({bool fresh = false}) async {
     final data = await _send(() => _dio.get(
           '/settings',

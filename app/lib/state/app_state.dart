@@ -133,6 +133,48 @@ class AppState extends ChangeNotifier {
       }
     }
 
+    // fast path: one request for everything; if it fails (older server, no network) the lists are fetched one by one, then from the saved copy
+    Map<String, dynamic>? all;
+    try {
+      all = await api.bootstrap(fresh: fresh);
+      if (all['events'] is! List || all['members'] is! List) all = null;
+    } catch (_) {
+      all = null;
+    }
+    if (all != null) {
+      final boot = all;
+      List<T> rows<T>(String key, T Function(Map<String, dynamic>) map) {
+        final v = boot[key];
+        final list = v is List ? v.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList() : <Map<String, dynamic>>[];
+        _prefs?.setString('cache_$key', jsonEncode(list));
+        return list.map(map).toList();
+      }
+
+      events = rows('events', EventItem.fromJson);
+      notices = rows('notices', NoticeItem.fromJson);
+      members = rows('members', Member.fromJson);
+      gallery = rows('gallery', GalleryItem.fromJson);
+      achievements = rows('achievements', Achievement.fromJson);
+      projects = rows('projects', ProjectItem.fromJson);
+      faqs = rows('faqs', FaqItem.fromJson)..sort((a, b) => a.order.compareTo(b.order));
+      sponsors = rows('sponsors', Sponsor.fromJson)..sort((a, b) => a.order.compareTo(b.order));
+      advisors = rows('advisors', Advisor.fromJson).where((a) => a.active).toList()..sort((a, b) => a.order.compareTo(b.order));
+      final st = boot['settings'];
+      if (st is Map) {
+        final map = Map<String, dynamic>.from(st);
+        _prefs?.setString('cache_settings', jsonEncode(map));
+        settings = SiteSettings.fromJson(map);
+      } else {
+        await guard(() async => settings = SiteSettings.fromJson(await _fetchSettings(fresh: fresh)));
+      }
+      error = firstError;
+      offline = false;
+      loading = false;
+      loadedOnce = true;
+      notifyListeners();
+      return;
+    }
+
     await Future.wait([
       guard(() async => events = await _fetch('events', EventItem.fromJson, fresh: fresh)),
       guard(() async => notices = await _fetch('notices', NoticeItem.fromJson, fresh: fresh)),

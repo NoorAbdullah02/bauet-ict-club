@@ -109,3 +109,19 @@ cd app && flutter pub get && flutter analyze && flutter test
 ## 5. Notes
 - `.env` is git-ignored and was never committed. The repository contains only `.env.example` files.
 - History was rewritten once on 2026-11-06 to remove co-author trailers from commit messages; if you have an older clone, clone again.
+
+## App review (2026-11-07): what was improved and what is worth adding next
+
+**Done in this review**
+- The app now loads the whole public site with **one request** (`/api/bootstrap`) instead of ten; if that fails it falls back to the old one-by-one loading and then to the saved copy (offline). Faster on a sleeping free server and on slow mobile data.
+- Every CI build gets a higher Android version number (`--build-number` = the GitHub run number), so each new APK is a real update.
+- Images were already sized for memory (`memCacheWidth`); lists already pull to refresh; there is an offline copy of the lists.
+
+**Worth adding next (not built)**
+1. **Fonts inside the app.** The app downloads its fonts (Space Grotesk, Inter, JetBrains Mono, Barlow Condensed) from Google on first use; offline the first launch shows plain fonts. Bundling the font files (about 1 MB more) makes it instant and offline. Needs the font files added to `app/assets/fonts` and `google_fonts` set to not fetch.
+2. **Push notifications** for new events, notices and ticket reminders (Firebase Cloud Messaging). Needs a Firebase project made by the club's Google account and a server hook; the biggest feature members would feel.
+3. **"New version available" prompt.** The app compares its version number with a small file on the website and offers the download page. Useful now that the app is installed from the website and not from the Play Store.
+4. **Accessibility:** only a few screen-reader labels exist (`Semantics`); add them to buttons, the card and the QR code, and check text sizes with the phone's large-font setting.
+5. **Smaller APK:** the barcode scanner library (admin check-in) adds several MB to everyone's download. Options: load the scanner model on demand or split admin tools out.
+6. **Admin sign-in with fingerprint** (after the first password sign-in) and two-step sign-in management inside the app.
+7. **Google Play release** (a $25 one-time fee, a store listing and a privacy policy page) for automatic updates and trust.
