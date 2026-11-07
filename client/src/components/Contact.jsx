@@ -21,7 +21,7 @@ export default function Contact() {
 
   const contacts = [
     { icon: Mail, label: 'Email', value: s.email || 'ictclubbauet@gmail.com', href: `mailto:${s.email || 'ictclubbauet@gmail.com'}` },
-    { icon: Phone, label: 'Phone', value: s.phone || '01707-533471', href: `tel:${s.phone || '01707-533471'}` },
+    { icon: Phone, label: 'Phone', value: s.phone || '01748-269350', href: `tel:${s.phone || '01748-269350'}` },
     { icon: MapPin, label: 'Location', value: 'BAUET, Qadirabad Cantonment, Natore, Rajshahi' },
     { icon: Globe, label: 'Website', value: s.website || 'bauet.ac.bd', href: `https://${s.website || 'bauet.ac.bd'}` },
   ];

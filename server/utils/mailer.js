@@ -118,7 +118,7 @@ function layout({ title, body, button, footerNote }) {
       <div style="font-size:22px;font-weight:700;margin-top:6px">${esc(title)}</div></td></tr>
     <tr><td style="padding:26px 28px;font-size:15px;line-height:1.7">${body}
       ${button ? `<p style="margin:26px 0 4px"><a href="${esc(button.href)}" style="background:#1F4FD8;color:#fff;text-decoration:none;padding:12px 26px;border-radius:999px;font-weight:600;display:inline-block">${esc(button.label)}</a></p>` : ''}</td></tr>
-    <tr><td style="padding:16px 28px;background:#F5F8FF;color:#7B8AAB;font-size:12px;line-height:1.6">${footerNote || 'BAUET ICT Club · Bangladesh Army University of Engineering &amp; Technology, Rajshahi'}<br>ictclubbauet@gmail.com · 01707-533471</td></tr>
+    <tr><td style="padding:16px 28px;background:#F5F8FF;color:#7B8AAB;font-size:12px;line-height:1.6">${footerNote || 'BAUET ICT Club · Bangladesh Army University of Engineering &amp; Technology, Rajshahi'}<br>ictclubbauet@gmail.com · 01748-269350</td></tr>
   </table></body></html>`;
 }
 
