@@ -6,6 +6,7 @@ import useStore, { api } from '../context/store';
 import { formalDate } from '../lib/format';
 import { cn } from '../lib/cn';
 import { statusLabel } from './Contests';
+import { ProblemPage } from '../pages/NotFound';
 
 const inp = 'w-full rounded-xl border border-line bg-surface px-4 py-2.5 text-sm text-fg outline-none transition focus:border-tech';
 const blank = () => ({ name: '', email: '', student_id: '' });
@@ -26,7 +27,7 @@ export default function ContestDetail() {
   }, [id]);
   useEffect(() => { useStore.getState().fetchList?.('contests'); }, []);
   if (c === null) return <section className="section"><div className="container max-w-3xl"><div className="h-72 animate-pulse rounded-3xl bg-alt" /></div></section>;
-  if (c === false) return <section className="section"><div className="container text-center"><h1 className="text-3xl text-fg">Contest not found</h1><Link to="/contests" className="btn-primary mt-5 inline-flex">See contests</Link></div></section>;
+  if (c === false) return <ProblemPage title="This contest does not exist" message="It may have been removed, or the link is wrong. See all contests instead." />;
 
   const st = statusLabel(c);
   const open = info ? info.open : st === 'open';
