@@ -128,6 +128,8 @@ class _MemberCardScreenState extends State<MemberCardScreen> {
           active: m['current'] != false,
           code: code,
           qrData: '${AppConfig.origin}/card/${m['id']}?c=$code',
+          site: Uri.tryParse(AppConfig.origin)?.host ?? '',
+          fb: _fbShort(_state.settings.fb),
         )),
         const SizedBox(height: 16),
         Row(mainAxisAlignment: MainAxisAlignment.center, children: [
@@ -231,9 +233,16 @@ void _share(BuildContext context, {required String name, required String positio
 
 /// The portrait lanyard badge: navy club strip, the post in big letters, an arched photo, and a grey panel with name, department, QR code and session.
 /// Everything is sized from the card width, so it looks the same on every phone.
+/// "https://www.facebook.com/bauetictclub" -> "fb.com/bauetictclub"
+String _fbShort(String u) {
+  final uri = Uri.tryParse(u);
+  if (uri == null || uri.path.replaceAll('/', '').isEmpty) return '';
+  return 'fb.com/${uri.path.replaceAll(RegExp(r'^/|/$'), '')}';
+}
+
 class _CardFace extends StatelessWidget {
-  const _CardFace({required this.name, required this.position, required this.department, required this.batch, required this.session, required this.imageUrl, required this.active, required this.code, required this.qrData});
-  final String name, position, department, batch, session, imageUrl, code, qrData;
+  const _CardFace({required this.name, required this.position, required this.department, required this.batch, required this.session, required this.imageUrl, required this.active, required this.code, required this.qrData, this.site = '', this.fb = ''});
+  final String name, position, department, batch, session, imageUrl, code, qrData, site, fb;
   final bool active;
 
   static const _navy = Color(0xFF0A1A3F);
@@ -361,7 +370,7 @@ class _CardFace extends StatelessWidget {
                 Positioned(
                   left: w * 0.07,
                   right: w * 0.09,
-                  bottom: w * 0.055,
+                  bottom: w * 0.115,
                   height: h * 0.33,
                   child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
                     Expanded(
@@ -413,7 +422,24 @@ class _CardFace extends StatelessWidget {
                   ]),
                 ),
                 // year / session, turned sideways like the printed design
-                Positioned(right: w * 0.026, bottom: w * 0.06, child: RotatedBox(quarterTurns: 3, child: Text(label.isEmpty ? 'BAUET ICT CLUB' : label.toUpperCase(), style: _cond(w * 0.04, weight: FontWeight.w600, spacing: w * 0.007)))),
+                Positioned(right: w * 0.026, bottom: w * 0.12, child: RotatedBox(quarterTurns: 3, child: Text(label.isEmpty ? 'BAUET ICT CLUB' : label.toUpperCase(), style: _cond(w * 0.04, weight: FontWeight.w600, spacing: w * 0.007)))),
+                // footer band: website and Facebook
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  height: w * 0.066,
+                  child: DecoratedBox(
+                    decoration: const BoxDecoration(gradient: LinearGradient(colors: [Color(0xFF061440), Color(0xFF0B2A78), Color(0xFF0A4D8F)])),
+                    child: Center(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text([site, fb].where((e) => e.isNotEmpty).join('   •   '), maxLines: 1, style: GoogleFonts.jetBrainsMono(fontSize: w * 0.0245, letterSpacing: w * 0.0007, color: Colors.white.withValues(alpha: 0.9))),
+                      ),
+                    ),
+                  ),
+                ),
+
               ]),
               ),
             ),

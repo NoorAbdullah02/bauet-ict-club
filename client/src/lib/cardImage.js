@@ -26,7 +26,7 @@ function wrap(ctx, text, maxW, maxLines) {
 }
 
 /** Returns a PNG data URL of the card. m = member, code = card code, qr = QR picture (data URL), width = pixels. */
-export async function cardToPng({ m, code, qr, width = 1080 }) {
+export async function cardToPng({ m, code, qr, width = 1080, site = '', fb = '' }) {
   try { await Promise.all([document.fonts.load(COND(700, 40)), document.fonts.load(COND(600, 40)), document.fonts.load(COND(700, 40, true)), document.fonts.load(MONO(20)), document.fonts.ready]); } catch { /* fall back to system fonts */ }
   const [photo, logo, qrImg] = await Promise.all([load(m.image_url), load('/logos/ict-club@3x.png', false).then((i) => i || load('/logos/ict-club.png', false)), load(qr, false)]);
 
@@ -122,7 +122,7 @@ export async function cardToPng({ m, code, qr, width = 1080 }) {
   const pg = ctx.createLinearGradient(0, 0, 0, ph); pg.addColorStop(0, '#EEF1F7'); pg.addColorStop(1, '#D3D9E6'); ctx.fillStyle = pg; ctx.fill(); ctx.restore();
 
   // QR box (right), then name block (left)
-  const qs = 26 * u, qx = iw - 9 * u - qs, qy = ih - 5.5 * u - qs;
+  const qs = 26 * u, qx = iw - 9 * u - qs, qy = ih - 11.5 * u - qs;
   rr(ctx, qx, qy, qs, qs, 5 * u); ctx.fillStyle = 'rgba(255,255,255,0.88)'; ctx.fill(); ctx.lineWidth = 0.8 * u; ctx.strokeStyle = '#0A1A3F'; ctx.stroke();
   if (qrImg) ctx.drawImage(qrImg, qx + 1.4 * u, qy + 1.4 * u, qs - 2.8 * u, qs - 2.8 * u);
   ctx.font = COND(800, 2.7 * u); if ('letterSpacing' in ctx) ctx.letterSpacing = `${0.38 * u}px`;
@@ -134,7 +134,7 @@ export async function cardToPng({ m, code, qr, width = 1080 }) {
   const nf = name.length > 26 ? 6.6 : name.length > 16 ? 8.6 : 11;
   ctx.font = COND(700, nf * u); ctx.fillStyle = '#3B4658';
   const nlines = wrap(ctx, name, nw, 2);
-  const codeY = ih - 5.5 * u;                       // baseline of the member id
+  const codeY = ih - 11.5 * u;                      // baseline of the member id
   const idY = codeY - 5 * u;                        // label baseline
   const deptY = idY - 5.6 * u;                      // department baseline
   const firstNameY = deptY - 8.4 * u - (nlines.length - 1) * nf * u * 0.92;
@@ -147,8 +147,18 @@ export async function cardToPng({ m, code, qr, width = 1080 }) {
 
   // session, turned sideways
   const session = (m.session || '').replace(/^Member since /, 'Since ') || 'BAUET ICT Club';
-  ctx.save(); ctx.translate(iw - 2.6 * u, ih - 6 * u); ctx.rotate(-Math.PI / 2); ctx.font = COND(600, 4 * u); ctx.fillStyle = '#0A1A3F'; ctx.textAlign = 'left';
+  ctx.save(); ctx.translate(iw - 2.6 * u, ih - 12 * u); ctx.rotate(-Math.PI / 2); ctx.font = COND(600, 4 * u); ctx.fillStyle = '#0A1A3F'; ctx.textAlign = 'left';
   if ('letterSpacing' in ctx) ctx.letterSpacing = `${0.72 * u}px`; ctx.fillText(session.toUpperCase(), 0, 0); ctx.restore();
+
+  // footer band: website and Facebook
+  const fh = 6.6 * u, fg = ctx.createLinearGradient(0, 0, iw, 0); fg.addColorStop(0, '#061440'); fg.addColorStop(0.6, '#0B2A78'); fg.addColorStop(1, '#0A4D8F');
+  ctx.fillStyle = fg; ctx.fillRect(0, ih - fh, iw, fh);
+  ctx.font = MONO(2.45 * u); ctx.fillStyle = 'rgba(255,255,255,0.9)'; if ('letterSpacing' in ctx) ctx.letterSpacing = `${0.07 * u}px`;
+  const parts = [site, fb].filter(Boolean); const gap = 3 * u;
+  const widths = parts.map((t) => ctx.measureText(t).width); const total = widths.reduce((a, b) => a + b, 0) + gap * Math.max(0, parts.length - 1) + (parts.length > 1 ? 0.9 * u + gap : 0);
+  let fx = (iw - total) / 2; const fy = ih - fh / 2 + 0.85 * u;
+  parts.forEach((t, i) => { ctx.fillText(t, fx, fy); fx += widths[i]; if (i < parts.length - 1) { fx += gap; ctx.fillStyle = '#7CF0B2'; ctx.beginPath(); ctx.arc(fx + 0.45 * u, ih - fh / 2, 0.45 * u, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = 'rgba(255,255,255,0.9)'; fx += 0.9 * u + gap; } });
+  if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
 
   ctx.restore();
   return cv.toDataURL('image/png');
