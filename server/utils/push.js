@@ -5,17 +5,54 @@ const crypto = require('crypto');
 const pool = require('../config/db');
 
 let cached; // undefined = not read yet, null = not configured
+let readProblem = '';
+
+/** Pulls the three needed fields out of whatever was pasted: proper JSON, JSON that lost its line breaks or got curly quotes, quoted or base64 text. */
+function parseAccount(raw) {
+  let text = String(raw || '').trim();
+  if (!text) return null;
+  if (!text.includes('{') && /^[A-Za-z0-9+/=\s]+$/.test(text)) { try { text = Buffer.from(text.replace(/\s+/g, ''), 'base64').toString('utf8'); } catch { /* not base64 */ } }
+  text = text.replace(/[\u201C\u201D]/g, '"').replace(/[\u2018\u2019]/g, "'").replace(/^\uFEFF/, '');
+  try { let j = JSON.parse(text); if (typeof j === 'string') j = JSON.parse(j); if (j && j.private_key && j.client_email && j.project_id) return j; } catch { /* not plain JSON yet */ }
+  if ((text.startsWith("'") && text.endsWith("'")) || (text.startsWith('"') && text.endsWith('"') && !text.startsWith('{'))) text = text.slice(1, -1);
+  try { let j = JSON.parse(text); if (typeof j === 'string') j = JSON.parse(j); /* the whole file pasted as one quoted string */ if (j && j.private_key && j.client_email && j.project_id) return j; } catch { /* fall through to the forgiving reader */ }
+  const field = (name) => { const m = new RegExp(`"${name}"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)"`, 's').exec(text); return m ? m[1] : ''; };
+  const key = (/-----BEGIN PRIVATE KEY-----[\s\S]*?-----END PRIVATE KEY-----/.exec(text.replace(/\\n/g, '\n')) || [''])[0];
+  const email = field('client_email') || ((/[A-Za-z0-9._-]+@[A-Za-z0-9.-]+\.iam\.gserviceaccount\.com/.exec(text) || [''])[0]);
+  const project = field('project_id');
+  if (key && email && project) return { project_id: project, client_email: email, private_key: key };
+  return null;
+}
+
+/** A private key whose line breaks were turned into spaces, \\n text or nothing at all is rebuilt as a proper PEM block. */
+function normalizePem(value) {
+  const t = String(value || '').replace(/\\n/g, '\n');
+  const m = /-----BEGIN PRIVATE KEY-----([\s\S]*?)-----END PRIVATE KEY-----/.exec(t);
+  if (!m) return t.trim();
+  const body = m[1].replace(/[^A-Za-z0-9+/=]/g, '');
+  return `-----BEGIN PRIVATE KEY-----\n${(body.match(/.{1,64}/g) || []).join('\n')}\n-----END PRIVATE KEY-----`;
+}
+
 function account() {
   if (cached !== undefined) return cached;
+  readProblem = '';
   try {
-    const raw = String(process.env.FIREBASE_SERVICE_ACCOUNT || '').trim();
-    if (!raw) { cached = null; return cached; }
-    const j = JSON.parse(raw.startsWith('{') ? raw : Buffer.from(raw, 'base64').toString('utf8'));
-    if (!j.private_key || !j.client_email || !j.project_id) throw new Error('missing private_key, client_email or project_id');
-    j.private_key = String(j.private_key).replace(/\\n/g, '\n');
+    let j = parseAccount(process.env.FIREBASE_SERVICE_ACCOUNT);
+    // the three-variable way is the most paste-proof: FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY
+    if (!j && process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_CLIENT_EMAIL && process.env.FIREBASE_PRIVATE_KEY) {
+      j = { project_id: process.env.FIREBASE_PROJECT_ID.trim(), client_email: process.env.FIREBASE_CLIENT_EMAIL.trim(), private_key: process.env.FIREBASE_PRIVATE_KEY };
+    }
+    if (!j) {
+      if (process.env.FIREBASE_SERVICE_ACCOUNT) readProblem = `FIREBASE_SERVICE_ACCOUNT is set (${String(process.env.FIREBASE_SERVICE_ACCOUNT).length} characters) but project_id, client_email and private_key could not be found in it.`;
+      cached = null; return cached;
+    }
+    j.private_key = normalizePem(j.private_key);
+    if (!/^-----BEGIN PRIVATE KEY-----[\s\S]+-----END PRIVATE KEY-----$/.test(j.private_key)) throw new Error('the private_key is not a complete key (it must start with -----BEGIN PRIVATE KEY----- and end with -----END PRIVATE KEY-----)');
+    crypto.createPrivateKey(j.private_key); // throws when the key text was damaged
     cached = j;
   } catch (e) {
-    console.warn('Push notifications are off: FIREBASE_SERVICE_ACCOUNT is not valid (' + e.message + ')');
+    readProblem = `The Firebase key could not be used: ${e.message}`;
+    console.warn(`Push notifications are off: ${readProblem}`);
     cached = null;
   }
   return cached;
@@ -89,7 +126,7 @@ async function broadcast({ title, body, path = '/' }) {
 async function status() {
   const out = { configured: !!account(), enabled: enabled(), project: account()?.project_id || null, phones: 0, problem: '' };
   try { out.phones = Number((await pool.query('SELECT COUNT(*)::int AS n FROM push_tokens')).rows[0].n) || 0; } catch { /* table may not exist yet */ }
-  if (!out.configured) out.problem = process.env.FIREBASE_SERVICE_ACCOUNT ? 'FIREBASE_SERVICE_ACCOUNT is set but could not be read as a service-account .json (it may have been cut when pasting).' : 'FIREBASE_SERVICE_ACCOUNT is not set in the server environment.';
+  if (!out.configured) out.problem = readProblem || 'FIREBASE_SERVICE_ACCOUNT is not set in the server environment.';
   else if (!out.enabled) out.problem = 'PUSH_ENABLED=false turns notifications off.';
   return out;
 }
@@ -106,4 +143,4 @@ const LABEL = { event: 'New event', notice: 'New notice', project: 'New project'
 /** Called when the club adds an event, notice or project (same moment the newsletter goes out). */
 const announce = (kind, item) => broadcast({ title: `${LABEL[kind] || 'News from BAUET ICT Club'}: ${item.title || ''}`.trim(), body: item.when || item.summary || 'Tap to read more.', path: item.path || '/' });
 
-module.exports = { enabled, signJwt, broadcast, announce, status, test };
+module.exports = { enabled, signJwt, broadcast, announce, status, test, parseAccount };
