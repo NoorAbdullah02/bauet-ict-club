@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -101,8 +102,13 @@ class PickerField extends StatelessWidget {
   final IconData? icon;
 
   Future<void> _open(BuildContext context) async {
+    // close the keyboard first: a sheet opened over an open keyboard can end up too tall or half hidden
+    FocusManager.instance.primaryFocus?.unfocus();
+    await Future<void>.delayed(const Duration(milliseconds: 80));
+    if (!context.mounted) return;
     final picked = await showModalBottomSheet<String>(
       context: context,
+      useRootNavigator: true, // above the bottom bar and everything else
       isScrollControlled: true,
       useSafeArea: true,
       showDragHandle: true,
@@ -144,16 +150,25 @@ class _PickerSheet extends StatefulWidget {
 
 class _PickerSheetState extends State<_PickerSheet> {
   String _q = '';
+  late final ScrollController _scroll = ScrollController(initialScrollOffset: ((widget.options.indexOf(widget.value) - 2).clamp(0, 100000)) * 56.0); // open on the chosen row
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final p = context.pal;
     final shown = widget.options.where((o) => o.toLowerCase().contains(_q.toLowerCase())).toList();
-    final height = MediaQuery.of(context).size.height;
+    final mq = MediaQuery.of(context);
+    // 70% of the screen, but never taller than what is left above the keyboard
+    final height = math.min(mq.size.height * 0.7, mq.size.height - mq.viewInsets.bottom - mq.padding.top - 56);
     return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      padding: EdgeInsets.only(bottom: mq.viewInsets.bottom),
       child: SizedBox(
-        height: height * 0.7,
+        height: height < 220 ? 220 : height,
         child: Column(children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
@@ -171,6 +186,8 @@ class _PickerSheetState extends State<_PickerSheet> {
             child: shown.isEmpty
                 ? Center(child: Text('Nothing found', style: bodyStyle(context, color: p.muted)))
                 : ListView.builder(
+                    controller: _scroll,
+                    itemExtent: 56,
                     padding: EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom + 8),
                     itemCount: shown.length,
                     itemBuilder: (_, i) {
@@ -180,7 +197,10 @@ class _PickerSheetState extends State<_PickerSheet> {
                         minVerticalPadding: 14,
                         title: Text(o, style: bodyStyle(context, weight: sel ? FontWeight.w700 : FontWeight.w500)),
                         trailing: sel ? Icon(Icons.check_circle_rounded, color: p.tech) : null,
-                        onTap: () => Navigator.pop(context, o),
+                        onTap: () {
+                          HapticFeedback.selectionClick();
+                          Navigator.pop(context, o);
+                        },
                       );
                     },
                   ),
