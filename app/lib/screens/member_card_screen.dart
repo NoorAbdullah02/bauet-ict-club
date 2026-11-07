@@ -139,26 +139,31 @@ class _CardFace extends StatelessWidget {
     final label = session.replaceFirst('Member since ', 'Since ');
     final post = position.isEmpty ? 'Member' : position;
     return LayoutBuilder(builder: (context, box) {
-      final w = math.min(box.maxWidth, 372.0);
+      final outer = math.min(box.maxWidth, 372.0);
+      final pad = outer * 0.017;
+      final w = outer - pad * 2;
       final h = w * 16 / 9;
       final postFs = w * (post.length > 22 ? 0.076 : post.length > 13 ? 0.105 : 0.14);
       final nameFs = w * (name.length > 26 ? 0.066 : name.length > 16 ? 0.086 : 0.11);
       return Center(
         child: SizedBox(
-          width: w,
-          height: h,
+          width: outer,
+          height: h + pad * 2,
           child: DecoratedBox(
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(w * 0.08),
+              borderRadius: BorderRadius.circular(outer * 0.08),
+              gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF35D989), Color(0xFF38C8F0), Color(0xFF8B5CF6), Color(0xFFFF6B8A)]),
               boxShadow: [BoxShadow(color: const Color(0xFF061440).withValues(alpha: 0.4), blurRadius: 40, offset: const Offset(0, 22))],
             ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(w * 0.08),
+            child: Padding(
+              padding: EdgeInsets.all(pad),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(outer * 0.064),
               child: Stack(children: [
                 // background wash and a faint wordmark
                 Positioned.fill(child: DecoratedBox(decoration: const BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.white, Color(0xFFF3F6FC)])))),
                 Positioned(top: h * 0.1, right: -w * 0.1, child: Container(width: w * 0.7, height: w * 0.7, decoration: BoxDecoration(shape: BoxShape.circle, gradient: RadialGradient(colors: [const Color(0xFF38C8F0).withValues(alpha: 0.28), Colors.transparent])))),
-                Positioned(top: w * 0.3, right: -w * 0.03, child: Text('ICT', style: _cond(w * 0.36, color: const Color(0xFF0B2A78).withValues(alpha: 0.07), height: 0.9))),
+                Positioned(top: w * 0.36, right: w * 0.05, child: Text('ICT', style: _cond(w * 0.3, color: const Color(0xFF0B2A78).withValues(alpha: 0.07), height: 0.9))),
 
                 // navy strip
                 Positioned(
@@ -170,6 +175,7 @@ class _CardFace extends StatelessWidget {
                     decoration: const BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFF061440), Color(0xFF0B2A78), Color(0xFF0A4D8F)])),
                     child: Stack(children: [
                       Positioned(top: w * 0.05, left: w * 0.03, right: w * 0.03, child: Container(padding: EdgeInsets.all(w * 0.016), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(w * 0.04)), child: SizedBox(height: w * 0.12, child: Image.asset('assets/logos/ict-club.png', fit: BoxFit.contain)))),
+                      Positioned(top: w * 0.235, left: w * 0.07, right: w * 0.07, child: Center(child: Container(width: w * 0.13, height: w * 0.13, padding: EdgeInsets.all(w * 0.014), decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle), child: Image.asset('assets/logos/bauet.png', fit: BoxFit.contain)))),
                       Positioned(
                         top: h * 0.25,
                         bottom: h * 0.38,
@@ -248,8 +254,8 @@ class _CardFace extends StatelessWidget {
                 // name, department, code, QR
                 Positioned(
                   left: w * 0.07,
-                  right: w * 0.085,
-                  bottom: w * 0.05,
+                  right: w * 0.09,
+                  bottom: w * 0.055,
                   height: h * 0.33,
                   child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
                     Expanded(
@@ -293,10 +299,9 @@ class _CardFace extends StatelessWidget {
                   ]),
                 ),
                 // year / session, turned sideways like the printed design
-                Positioned(right: w * 0.012, bottom: w * 0.06, child: RotatedBox(quarterTurns: 3, child: Text(label.isEmpty ? 'BAUET ICT CLUB' : label.toUpperCase(), style: _cond(w * 0.04, weight: FontWeight.w600, spacing: w * 0.007)))),
-                // colour stripe
-                Positioned(left: 0, right: 0, bottom: 0, height: w * 0.016, child: const DecoratedBox(decoration: BoxDecoration(gradient: LinearGradient(colors: [Color(0xFF35D989), Color(0xFF38C8F0), Color(0xFF8B5CF6), Color(0xFFFF6B8A), Color(0xFFFFD166)])))),
+                Positioned(right: w * 0.026, bottom: w * 0.06, child: RotatedBox(quarterTurns: 3, child: Text(label.isEmpty ? 'BAUET ICT CLUB' : label.toUpperCase(), style: _cond(w * 0.04, weight: FontWeight.w600, spacing: w * 0.007)))),
               ]),
+              ),
             ),
           ),
         ),
