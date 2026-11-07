@@ -95,6 +95,8 @@ router.get('/check/:tran', async (req, res) => {
 
 /** Online payments nobody finished within 30 minutes are cancelled, so the seat goes to someone else. */
 async function expireStale() {
+  // without online payment there is nothing to clean up: do not touch the database (a query every 10 minutes would keep Neon awake all day)
+  if (!require('../utils/sslcommerz').configured()) return;
   const cutoff = new Date(Date.now() - 30 * 60 * 1000).toISOString();
   for (const [kind, table] of Object.entries(TABLES)) {
     try {

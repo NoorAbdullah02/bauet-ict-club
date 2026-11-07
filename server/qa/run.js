@@ -98,6 +98,10 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
       ok(hidden.s === 200 && !/Membership card of BAUET/.test(hidden.t.split('og:description')[0] || ''), 'card link: an applicant card without its code shows nothing private');
       ok(!/og:title" content="[^"]*, (General member|Committee member)/.test(hidden.t), 'card link: no name or post for a card without its code');
     }
+    {
+      const al = await call('GET', '/.well-known/assetlinks.json');
+      ok(al.s === 200 && Array.isArray(al.j) && (!al.j.length || al.j[0].target.package_name === 'com.bauet.bauet_ict_club'), 'app links: assetlinks.json is served (empty until ANDROID_CERT_SHA256 is set)');
+    }
     // ---- phone notifications: the app registers its token; nothing is sent without Firebase set up ----
     {
       const tokenA = `qa-token-${'a'.repeat(40)}:APA91b_x-y`;

@@ -12,6 +12,8 @@ import sys
 android = sys.argv[1] if len(sys.argv) > 1 else 'app/android'
 VERSION = '4.4.4'
 PLUGIN = 'com.google.gms.google-services'
+CRASH = 'com.google.firebase.crashlytics'
+CRASH_VERSION = '3.0.6'
 
 if not os.path.exists(os.path.join(android, 'app', 'google-services.json')):
     print('No google-services.json: phone notifications are not set up in this build.')
@@ -31,7 +33,7 @@ if PLUGIN not in s:
         print('settings.gradle.kts looks different from what this script expects: leaving it as it is.')
         sys.exit(0)
     line_end = s.index('\n', line_start)
-    s = s[:line_end + 1] + f'    id("{PLUGIN}") version "{VERSION}" apply false\n' + s[line_end + 1:]
+    s = s[:line_end + 1] + f'    id("{PLUGIN}") version "{VERSION}" apply false\n    id("{CRASH}") version "{CRASH_VERSION}" apply false\n' + s[line_end + 1:]
     open(settings, 'w').write(s)
 
 a = open(app).read()
@@ -41,6 +43,6 @@ if PLUGIN not in a:
     if i < 0:
         print('app/build.gradle.kts looks different from what this script expects: leaving it as it is.')
         sys.exit(0)
-    a = a[:i + len(marker)] + f'\n    id("{PLUGIN}")' + a[i + len(marker):]
+    a = a[:i + len(marker)] + f'\n    id("{PLUGIN}")\n    id("{CRASH}")' + a[i + len(marker):]
     open(app, 'w').write(a)
 print('Firebase is added to the Android build (phone notifications).')

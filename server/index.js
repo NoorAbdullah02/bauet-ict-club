@@ -217,6 +217,12 @@ app.get('/sitemap.xml', (req, res) => {
   const base = origin(req);
   res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${SITE_PATHS.map((p) => `  <url><loc>${base}${p}</loc></url>`).join('\n')}\n</urlset>\n`);
 });
+// Android App Links: this file tells Android that the club app (signed with the club key) may open links of this website directly.
+// ANDROID_CERT_SHA256 = the SHA-256 fingerprint(s) of the app's signing certificate, comma separated (the CI build log prints it). Not set = no link is claimed.
+app.get('/.well-known/assetlinks.json', (_req, res) => {
+  const prints = (process.env.ANDROID_CERT_SHA256 || '').split(',').map((x) => x.trim()).filter(Boolean);
+  res.set('Cache-Control', 'public, max-age=3600').json(!prints.length ? [] : [{ relation: ['delegate_permission/common.handle_all_urls'], target: { namespace: 'android_app', package_name: 'com.bauet.bauet_ict_club', sha256_cert_fingerprints: prints } }]);
+});
 app.get('/robots.txt', (req, res) => res.type('text/plain').send(`User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /f/\nDisallow: /s/\nDisallow: /ticket/\nDisallow: /card/\nDisallow: /api/\nSitemap: ${origin(req)}/sitemap.xml\n`));
 app.use('/api/trash', require('./routes/trash'));
 app.use('/api/committees', require('./routes/committees'));
