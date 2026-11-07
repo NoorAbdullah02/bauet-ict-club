@@ -7,7 +7,12 @@ const router = express.Router();
 const chatLimiter = rateLimit({ windowMs: 10 * 60 * 1000, max: 40, standardHeaders: true, legacyHeaders: false, message: { error: 'You are chatting very fast. Please wait a few minutes.' } });
 
 const env = (k) => (process.env[k] || '').trim();
-const MODEL = () => env('GROQ_MODEL') || 'llama-3.3-70b-versatile';
+// Models change: Groq retires old ones (llama-3.3-70b-versatile is gone). Try GROQ_MODEL first, then these, and remember the one that works.
+const FALLBACK_MODELS = ['openai/gpt-oss-120b', 'openai/gpt-oss-20b', 'qwen/qwen3.8-27b'];
+let working = '';
+const MODEL = () => working || env('GROQ_MODEL') || FALLBACK_MODELS[0];
+const candidates = () => [...new Set([working, env('GROQ_MODEL'), ...FALLBACK_MODELS].filter(Boolean))];
+const extraFor = (m) => (/gpt-oss/.test(m) ? { reasoning_effort: 'low' } : {});
 
 let client = null; let clientKey = '';
 function groq() {
@@ -48,16 +53,24 @@ router.post('/', chatLimiter, async (req, res) => {
   if (!ai) return res.json({ reply: knowledge.localAnswer(message, k), mode: 'local' });
 
   try {
-    const completion = await ai.chat.completions.create({
-      model: MODEL(),
-      temperature: 0.4,
-      max_tokens: 450,
-      messages: [
-        { role: 'system', content: `${SYSTEM}\n\nCLUB FACTS (live from the website, ${new Date().toISOString().slice(0, 10)}):\n${knowledge.asPrompt(k)}` },
-        ...history,
-        { role: 'user', content: message.slice(0, 1200) },
-      ],
-    });
+    const messages = [
+      { role: 'system', content: `${SYSTEM}\n\nCLUB FACTS (live from the website, ${new Date().toISOString().slice(0, 10)}):\n${knowledge.asPrompt(k)}\n\nAnswer in the language the person wrote in (English or Bangla).` },
+      ...history,
+      { role: 'user', content: message.slice(0, 1200) },
+    ];
+    let completion = null; let lastErr = null;
+    for (const model of candidates()) {
+      try {
+        completion = await ai.chat.completions.create({ model, temperature: 0.4, max_tokens: 700, ...extraFor(model), messages });
+        working = model;
+        break;
+      } catch (e) {
+        lastErr = e;
+        if (!(e.status === 404 || e.status === 400 || /model/i.test(String(e.message || '')))) throw e; // not a "model is gone" problem: do not hop around
+        if (working === model) working = '';
+      }
+    }
+    if (!completion) throw lastErr || new Error('no model answered');
     state.ok += 1; state.lastAt = new Date().toISOString();
     res.json({ reply: completion.choices?.[0]?.message?.content?.trim() || knowledge.localAnswer(message, k), mode: 'ai' });
   } catch (e) {
