@@ -11,6 +11,98 @@ import Logo from './Logo';
 
 const initials = (n = '') => n.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
 
+
+const condensed = { fontFamily: "'Barlow Condensed', 'Space Grotesk', system-ui, sans-serif" };
+
+/** The portrait membership badge (lanyard card): navy side strip with the club, the post, the photo, then name, department, QR and session.
+ *  Every size is relative to the card width (cqw), so it looks the same on a 320 px phone and on a printed page. */
+function Badge({ m, code, qr, verified }) {
+  const [tilt, setTilt] = useState({ x: 0, y: 0 });
+  const move = (e) => {
+    if (e.pointerType === 'touch') return;
+    const r = e.currentTarget.getBoundingClientRect();
+    setTilt({ x: ((e.clientY - r.top) / r.height - 0.5) * -7, y: ((e.clientX - r.left) / r.width - 0.5) * 7 });
+  };
+  const session = (m.session || '').replace(/^Member since /, 'Since ') || 'BAUET ICT Club';
+  const post = String(m.position || 'Member');
+  const name = String(m.name || '');
+  const postFs = post.length > 22 ? 7.6 : post.length > 13 ? 10.5 : 14;
+  const nameFs = name.length > 26 ? 6.6 : name.length > 16 ? 8.6 : 11;
+  const c = (v) => `${v}cqw`;
+  return (
+    <motion.div initial={{ opacity: 0, y: 26, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }} style={{ perspective: 1200 }}>
+      <div onPointerMove={move} onPointerLeave={() => setTilt({ x: 0, y: 0 })}
+        className="member-badge relative mx-auto aspect-[9/16] w-full max-w-[372px] overflow-hidden bg-white text-[#0A1A3F] shadow-[0_40px_90px_rgba(6,20,64,0.45)] ring-1 ring-black/10 transition-transform duration-200 ease-out print:shadow-none"
+        style={{ containerType: 'inline-size', borderRadius: c(8), transform: `rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`, transformStyle: 'preserve-3d' }}>
+
+        <div aria-hidden="true" className="absolute inset-0" style={{ background: 'radial-gradient(70% 45% at 78% 40%, rgba(56,200,240,0.22), transparent 70%), radial-gradient(60% 40% at 90% 15%, rgba(53,217,137,0.18), transparent 70%), linear-gradient(180deg,#FFFFFF,#F3F6FC)' }} />
+        <div aria-hidden="true" className="absolute select-none leading-none" style={{ ...condensed, right: c(-4), top: c(34), fontWeight: 700, fontSize: c(36), letterSpacing: '-0.02em', color: 'rgba(11,42,120,0.07)' }}>ICT</div>
+
+        {/* left navy strip */}
+        <div className="absolute inset-y-0 left-0 overflow-hidden" style={{ width: c(27), background: 'linear-gradient(180deg,#061440 0%,#0B2A78 60%,#0A4D8F 100%)' }}>
+          <div aria-hidden="true" className="absolute inset-0 opacity-30" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,.10) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.10) 1px, transparent 1px)', backgroundSize: `${c(6)} ${c(6)}` }} />
+          <div aria-hidden="true" className="absolute rounded-full bg-[#2B63FF]/40 blur-3xl" style={{ left: c(-10), top: c(60), width: c(40), height: c(40) }} />
+          <div className="relative mx-auto bg-white shadow-lg" style={{ marginTop: c(5), width: c(21), padding: c(1.6), borderRadius: c(4) }}><Logo kind="club" height={36} className="mx-auto !h-auto w-full" /></div>
+          <div className="absolute inset-x-0 grid place-items-center" style={{ top: '25%', bottom: '38%' }}>
+            <span className="whitespace-nowrap font-semibold uppercase text-white" style={{ ...condensed, writingMode: 'vertical-rl', transform: 'rotate(180deg)', fontSize: c(6.4), letterSpacing: '0.2em' }}>BAUET ICT Club</span>
+          </div>
+          <span aria-hidden="true" className="absolute left-1/2 h-px -translate-x-1/2 bg-gradient-to-r from-transparent via-[#7CF0B2] to-transparent" style={{ top: '23%', width: c(9) }} />
+        </div>
+
+        {/* the post, big */}
+        <div className="absolute right-0 top-0 text-center" style={{ left: c(27), padding: `${c(6)} ${c(4)} 0` }}>
+          <h1 className="font-bold uppercase tracking-tight text-[#0A1A3F]" style={{ ...condensed, fontSize: c(postFs), lineHeight: 0.92 }}>{post}</h1>
+          <p className="inline-flex items-center rounded-full bg-[#0B2A78]/[0.07] font-mono uppercase text-[#0B2A78]" style={{ marginTop: c(2), gap: c(1.2), padding: `${c(0.9)} ${c(2.6)}`, fontSize: c(2.5), letterSpacing: '0.18em' }}>
+            <i className={`rounded-full ${m.current ? 'bg-[#16A34A]' : 'bg-slate-400'}`} style={{ width: c(1.6), height: c(1.6) }} /> {m.current ? 'Active member' : 'Former member'}
+          </p>
+        </div>
+
+        {/* photo, fading into the grey panel */}
+        <div className="absolute right-0" style={{ left: c(27), top: '20%', height: '49%' }}>
+          <div aria-hidden="true" className="absolute bottom-0" style={{ left: '8%', right: '8%', top: '12%', borderRadius: '44% 44% 0 0 / 38% 38% 0 0', background: 'linear-gradient(160deg,#35D989 0%,#38C8F0 55%,#8B5CF6 120%)' }} />
+          <div className="absolute bottom-0 overflow-hidden bg-[#0B2A78]/90" style={{ left: '10.5%', right: '10.5%', top: '13.5%', borderRadius: '42% 42% 0 0 / 36% 36% 0 0', WebkitMaskImage: 'linear-gradient(180deg,#000 82%,transparent)', maskImage: 'linear-gradient(180deg,#000 82%,transparent)' }}>
+            {m.image_url
+              ? <img src={thumb(m.image_url, 640)} alt={m.name} className="size-full object-cover object-top" />
+              : <div className="grid size-full place-items-center font-bold text-white/90" style={{ ...condensed, fontSize: c(20) }}>{initials(m.name)}</div>}
+          </div>
+        </div>
+
+        {/* grey bottom panel with the raised tab on the right */}
+        <svg aria-hidden="true" viewBox="0 0 100 40" preserveAspectRatio="none" className="absolute inset-x-0 bottom-0 w-full drop-shadow-[0_-8px_14px_rgba(6,20,64,0.12)]" style={{ height: '37%' }}>
+          <defs><linearGradient id="panel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#EEF1F7" /><stop offset="1" stopColor="#D3D9E6" /></linearGradient></defs>
+          <path d="M0 9 Q0 7 2.5 6 L8 3.5 Q10 2.5 13 2.5 L48 2.5 Q52 2.5 54 1.2 Q56 0 59 0 L100 0 L100 40 L0 40 Z" fill="url(#panel)" />
+        </svg>
+
+        <div className="absolute inset-x-0 bottom-0 flex items-stretch" style={{ height: '33%', padding: `0 ${c(8.5)} ${c(5)} ${c(7)}`, gap: c(3) }}>
+          <div className="flex min-w-0 flex-1 flex-col justify-end" style={{ gap: c(2.2) }}>
+            <div className="min-w-0">
+              <h2 className="line-clamp-2 font-bold uppercase tracking-tight text-[#3B4658]" style={{ ...condensed, fontSize: c(nameFs), lineHeight: 0.92 }}>{name}</h2>
+              <p className="flex flex-wrap items-center font-bold italic text-[#0A1A3F]" style={{ ...condensed, marginTop: c(1.6), gap: c(2), fontSize: c(6.6), lineHeight: 1 }}>
+                {m.department || 'BAUET'}
+                {m.batch ? <span className="rounded bg-[#0B2A78] not-italic text-white" style={{ fontSize: c(3.6), padding: `${c(0.5)} ${c(1.6)}`, letterSpacing: '0.04em' }}>Batch {m.batch}</span> : null}
+              </p>
+            </div>
+            <div>
+              <p className="font-mono uppercase text-[#64748B]" style={{ fontSize: c(2.3), letterSpacing: '0.2em' }}>Card code</p>
+              <p className="whitespace-nowrap font-mono text-[#0A1A3F]" style={{ fontSize: c(3.5), letterSpacing: '0.1em' }}>{code}</p>
+            </div>
+          </div>
+          <div className="relative flex shrink-0 items-center justify-center self-end border-[#0A1A3F] bg-white/80" style={{ width: c(26), height: c(26), borderWidth: c(0.8), borderStyle: 'solid', borderRadius: c(5), padding: c(1.4) }}>
+            <span className="absolute left-1/2 -translate-x-1/2 whitespace-nowrap bg-[#DDE2EC] font-extrabold uppercase text-[#0A1A3F]" style={{ top: c(-1.9), padding: `0 ${c(1.4)}`, fontSize: c(2.7), letterSpacing: '0.14em' }}>Scan me</span>
+            {qr ? <img src={qr} alt="QR code of this card" className="size-full rounded-md" /> : <Loader2 className="animate-spin text-slate-400" />}
+          </div>
+        </div>
+        {/* year / session, turned sideways like the printed design */}
+        <span className="absolute whitespace-nowrap font-semibold uppercase text-[#0A1A3F]" style={{ ...condensed, right: c(1.2), bottom: c(6), transformOrigin: 'bottom right', transform: 'rotate(-90deg) translate(100%, 0)', fontSize: c(4), letterSpacing: '0.18em' }}>{session}</span>
+
+        {verified && <span className="absolute z-10 inline-flex items-center rounded-full bg-emerald-500 font-bold text-white shadow-lg" style={{ left: c(30), top: '17%', gap: c(1), padding: `${c(1)} ${c(2.6)}`, fontSize: c(2.8) }}><BadgeCheck style={{ width: c(3.2), height: c(3.2) }} /> Verified</span>}
+        <div aria-hidden="true" className="badge-sheen pointer-events-none absolute inset-0" />
+        <div aria-hidden="true" className="absolute inset-x-0 bottom-0" style={{ height: c(1.6), background: 'linear-gradient(90deg,#35D989,#38C8F0,#8B5CF6,#FF6B8A,#FFD166)' }} />
+      </div>
+    </motion.div>
+  );
+}
+
 /** A member's digital card: photo, name, post, committee, and a QR code that proves the card is genuine. */
 export default function MemberCardPage() {
   const { id } = useParams();
@@ -42,47 +134,7 @@ export default function MemberCardPage() {
             {data.verified ? <><BadgeCheck size={18} /> Genuine card: this person is a member of BAUET ICT Club.</> : <><ShieldAlert size={18} /> This code does not match the card. Do not trust it.</>}
           </div>
         )}
-        <motion.div initial={{ opacity: 0, y: 24, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.6 }}
-          className="relative overflow-hidden rounded-[30px] text-white shadow-[0_34px_80px_rgba(10,26,74,0.5)] ring-1 ring-white/25"
-          style={{ background: 'radial-gradient(120% 80% at 0% 0%, #2B63FF 0%, rgba(43,99,255,0) 55%), radial-gradient(90% 70% at 100% 100%, #11B5A4 0%, rgba(17,181,164,0) 60%), linear-gradient(150deg,#06113A 0%,#0B2A78 55%,#0A4D8F 100%)' }}>
-          {/* fine grid that fades out, and a soft diagonal gloss */}
-          <div aria-hidden="true" className="pointer-events-none absolute inset-0 opacity-40" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,.08) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.08) 1px, transparent 1px)', backgroundSize: '26px 26px', WebkitMaskImage: 'linear-gradient(180deg,#000,transparent 80%)', maskImage: 'linear-gradient(180deg,#000,transparent 80%)' }} />
-          <div aria-hidden="true" className="pointer-events-none absolute -left-1/4 -top-1/3 h-[130%] w-1/2 rotate-[18deg] bg-gradient-to-r from-transparent via-white/[0.14] to-transparent" />
-
-          <div className="relative flex items-center justify-between px-6 pt-5">
-            <span className="rounded-2xl bg-white px-3 py-1.5 shadow-md"><Logo kind="club" height={24} /></span>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-[11px] font-semibold backdrop-blur"><i className={`size-2 rounded-full ${m.current ? 'bg-[#35D989] shadow-[0_0_8px_#35D989]' : 'bg-white/50'}`} /> {m.current ? 'Active member' : 'Former member'}</span>
-          </div>
-
-          <div className="relative flex items-center gap-4 px-6 pb-5 pt-6">
-            <div className="shrink-0 rounded-[26px] p-[3px]" style={{ background: 'linear-gradient(135deg,#35D989,#38C8F0,#8B5CF6)' }}>
-              <div className="grid size-24 place-items-center overflow-hidden rounded-[23px] bg-[#0B2A78] text-3xl font-bold">
-                {m.image_url ? <img src={thumb(m.image_url, 300)} alt={m.name} className="size-full object-cover" /> : initials(m.name)}
-              </div>
-            </div>
-            <div className="min-w-0">
-              <h1 className="break-words text-[1.55rem] font-bold leading-[1.1] tracking-tight text-white">{m.name}</h1>
-              <span className="mt-2 inline-block rounded-full bg-white/15 px-3 py-1 text-xs font-semibold text-white">{m.position}</span>
-            </div>
-          </div>
-
-          <div className="relative mx-6 grid grid-cols-3 gap-2 rounded-2xl border border-white/15 bg-white/[0.07] p-3 text-center backdrop-blur">
-            {[['Department', m.department || '-'], ['Batch', m.batch || '-'], [/^Member since/.test(m.session || '') ? 'Joined' : 'Committee', (m.session || 'BAUET ICT Club').replace(/^Member since /, '')]].map(([k, v]) => (
-              <div key={k} className="min-w-0"><div className="font-mono text-[9px] uppercase tracking-[0.18em] text-white/55">{k}</div><div className="mt-0.5 truncate text-[13px] font-semibold">{v}</div></div>
-            ))}
-          </div>
-
-          <div className="relative flex items-end justify-between gap-4 px-6 pb-6 pt-5">
-            <div className="min-w-0">
-              <span aria-hidden="true" className="mb-3 block h-7 w-10 rounded-md bg-gradient-to-br from-[#F7DC8A] via-[#E2B64E] to-[#B98A2B] shadow-inner" />
-              <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-white/55">Card code</p>
-              <p className="mt-0.5 font-mono text-[15px] tracking-[0.18em]">{data.code}</p>
-              <p className="mt-2 text-[11px] text-white/60">Scan the QR code to check this card</p>
-            </div>
-            <div className="grid size-[7.5rem] shrink-0 place-items-center rounded-2xl bg-white p-2 shadow-[0_10px_30px_rgba(0,0,0,0.35)]">{qr ? <img src={qr} alt="QR code of this card" className="size-full" /> : <Loader2 className="animate-spin text-slate-400" />}</div>
-          </div>
-          <div aria-hidden="true" className="h-1.5 w-full" style={{ background: 'linear-gradient(90deg,#35D989,#38C8F0,#8B5CF6,#FF6B8A,#FFD166)' }} />
-        </motion.div>
+        <Badge m={m} code={data.code} qr={qr} verified={checked && data.verified} />
         <div className="mt-5 flex flex-wrap justify-center gap-2 print:hidden">
           <button onClick={() => window.print()} className="btn-outline !px-4 !py-2.5 text-xs"><Printer size={14} /> Print</button>
           <button onClick={async () => { const ok = await copyText(`${window.location.origin}/card/${m.id}?c=${data.code}`); toast[ok ? 'success' : 'error'](ok ? 'Card link copied' : 'Could not copy'); }} className="btn-outline !px-4 !py-2.5 text-xs"><Link2 size={14} /> Copy link</button>
