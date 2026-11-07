@@ -237,7 +237,7 @@ void _share(BuildContext context, {required String name, required String positio
 String _fbShort(String u) {
   final uri = Uri.tryParse(u);
   if (uri == null || uri.path.replaceAll('/', '').isEmpty) return '';
-  return 'fb.com/${uri.path.replaceAll(RegExp(r'^/|/$'), '')}';
+  return uri.path.replaceAll(RegExp(r'^/|/$'), '');
 }
 
 class _CardFace extends StatelessWidget {
@@ -434,7 +434,19 @@ class _CardFace extends StatelessWidget {
                     child: Center(
                       child: FittedBox(
                         fit: BoxFit.scaleDown,
-                        child: Text([site, fb].where((e) => e.isNotEmpty).join('   •   '), maxLines: 1, style: GoogleFonts.jetBrainsMono(fontSize: w * 0.0245, letterSpacing: w * 0.0007, color: Colors.white.withValues(alpha: 0.9))),
+                        child: Row(mainAxisSize: MainAxisSize.min, children: [
+                          if (site.isNotEmpty) ...[
+                            Icon(Icons.language_rounded, size: w * 0.036, color: const Color(0xFF7CF0B2)),
+                            SizedBox(width: w * 0.012),
+                            Text(site, maxLines: 1, style: GoogleFonts.jetBrainsMono(fontSize: w * 0.0245, color: Colors.white.withValues(alpha: 0.92))),
+                          ],
+                          if (site.isNotEmpty && fb.isNotEmpty) SizedBox(width: w * 0.03),
+                          if (fb.isNotEmpty) ...[
+                            Container(width: w * 0.036, height: w * 0.036, decoration: const BoxDecoration(color: Color(0xFF1877F2), shape: BoxShape.circle), child: Icon(Icons.facebook_rounded, size: w * 0.04, color: Colors.white)),
+                            SizedBox(width: w * 0.012),
+                            Text(fb, maxLines: 1, style: GoogleFonts.jetBrainsMono(fontSize: w * 0.0245, color: Colors.white.withValues(alpha: 0.92))),
+                          ],
+                        ]),
                       ),
                     ),
                   ),

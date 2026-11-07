@@ -150,14 +150,30 @@ export async function cardToPng({ m, code, qr, width = 1080, site = '', fb = '' 
   ctx.save(); ctx.translate(iw - 2.6 * u, ih - 12 * u); ctx.rotate(-Math.PI / 2); ctx.font = COND(600, 4 * u); ctx.fillStyle = '#0A1A3F'; ctx.textAlign = 'left';
   if ('letterSpacing' in ctx) ctx.letterSpacing = `${0.72 * u}px`; ctx.fillText(session.toUpperCase(), 0, 0); ctx.restore();
 
-  // footer band: website and Facebook
+  // footer band: a globe with the website, the Facebook logo with the page
   const fh = 6.6 * u, fg = ctx.createLinearGradient(0, 0, iw, 0); fg.addColorStop(0, '#061440'); fg.addColorStop(0.6, '#0B2A78'); fg.addColorStop(1, '#0A4D8F');
   ctx.fillStyle = fg; ctx.fillRect(0, ih - fh, iw, fh);
-  ctx.font = MONO(2.45 * u); ctx.fillStyle = 'rgba(255,255,255,0.9)'; if ('letterSpacing' in ctx) ctx.letterSpacing = `${0.07 * u}px`;
-  const parts = [site, fb].filter(Boolean); const gap = 3 * u;
-  const widths = parts.map((t) => ctx.measureText(t).width); const total = widths.reduce((a, b) => a + b, 0) + gap * Math.max(0, parts.length - 1) + (parts.length > 1 ? 0.9 * u + gap : 0);
-  let fx = (iw - total) / 2; const fy = ih - fh / 2 + 0.85 * u;
-  parts.forEach((t, i) => { ctx.fillText(t, fx, fy); fx += widths[i]; if (i < parts.length - 1) { fx += gap; ctx.fillStyle = '#7CF0B2'; ctx.beginPath(); ctx.arc(fx + 0.45 * u, ih - fh / 2, 0.45 * u, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = 'rgba(255,255,255,0.9)'; fx += 0.9 * u + gap; } });
+  ctx.font = MONO(2.45 * u); if ('letterSpacing' in ctx) ctx.letterSpacing = `${0.05 * u}px`;
+  const icon = 3.6 * u, ig = 1.2 * u, gap = 3.4 * u;
+  const items = [site && { t: site, kind: 'globe' }, fb && { t: fb, kind: 'fb' }].filter(Boolean);
+  const wd = items.map((it) => icon + ig + ctx.measureText(it.t).width);
+  const total = wd.reduce((a, b) => a + b, 0) + gap * Math.max(0, items.length - 1) + (items.length > 1 ? 0.8 * u + gap : 0);
+  let fx = (iw - total) / 2; const cy = ih - fh / 2;
+  items.forEach((it, i) => {
+    const r = icon / 2, ix = fx + r;
+    if (it.kind === 'globe') {
+      ctx.strokeStyle = '#7CF0B2'; ctx.lineWidth = 0.34 * u; ctx.beginPath(); ctx.arc(ix, cy, r - 0.2 * u, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.ellipse(ix, cy, (r - 0.2 * u) * 0.42, r - 0.2 * u, 0, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(ix - r + 0.2 * u, cy); ctx.lineTo(ix + r - 0.2 * u, cy); ctx.stroke();
+    } else {
+      ctx.fillStyle = '#1877F2'; ctx.beginPath(); ctx.arc(ix, cy, r, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#fff'; ctx.font = `700 ${icon * 0.95}px Arial, Helvetica, sans-serif`; ctx.textAlign = 'center'; ctx.fillText('f', ix + r * 0.18, cy + r * 0.78); ctx.textAlign = 'left';
+      ctx.font = MONO(2.45 * u);
+    }
+    ctx.fillStyle = 'rgba(255,255,255,0.92)'; ctx.fillText(it.t, fx + icon + ig, cy + 0.85 * u);
+    fx += wd[i];
+    if (i < items.length - 1) { fx += gap; ctx.fillStyle = 'rgba(255,255,255,0.4)'; ctx.beginPath(); ctx.arc(fx + 0.4 * u, cy, 0.4 * u, 0, Math.PI * 2); ctx.fill(); fx += 0.8 * u + gap; }
+  });
   if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
 
   ctx.restore();
