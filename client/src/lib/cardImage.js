@@ -129,7 +129,7 @@ async function drawCard({ m, code, qr, width = 1080, site = '', fb = '' }) {
   const pg = ctx.createLinearGradient(0, 0, 0, ph); pg.addColorStop(0, '#EEF1F7'); pg.addColorStop(1, '#D3D9E6'); ctx.fillStyle = pg; ctx.fill(); ctx.restore();
 
   // QR box (right), then name block (left)
-  const qs = 26 * u, qx = iw - 9 * u - qs, qy = ih - 11.5 * u - qs;
+  const qs = 24.5 * u, qx = iw - 10.5 * u - qs, qy = ih - 11.5 * u - qs;
   rr(ctx, qx, qy, qs, qs, 5 * u); ctx.fillStyle = 'rgba(255,255,255,0.88)'; ctx.fill(); ctx.lineWidth = 0.8 * u; ctx.strokeStyle = '#0A1A3F'; ctx.stroke();
   if (qrImg) ctx.drawImage(qrImg, qx + 1.4 * u, qy + 1.4 * u, qs - 2.8 * u, qs - 2.8 * u);
   ctx.font = COND(800, 2.7 * u); if ('letterSpacing' in ctx) ctx.letterSpacing = `${0.38 * u}px`;

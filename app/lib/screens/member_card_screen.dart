@@ -278,7 +278,10 @@ class _CardFace extends StatelessWidget {
   Widget build(BuildContext context) {
     final label = session.replaceFirst('Member since ', 'Since ');
     final post = position.isEmpty ? 'Member' : position;
-    return LayoutBuilder(builder: (context, box) {
+    // a card is a picture: the phone's text-size setting must not make the text bigger than the boxes it is drawn in
+    return MediaQuery(
+        data: MediaQuery.of(context).copyWith(textScaler: TextScaler.noScaling),
+        child: LayoutBuilder(builder: (context, box) {
       final outer = math.min(box.maxWidth, 372.0);
       final pad = outer * 0.017;
       final w = outer - pad * 2;
@@ -393,7 +396,7 @@ class _CardFace extends StatelessWidget {
                 // name, department, code, QR
                 Positioned(
                   left: w * 0.07,
-                  right: w * 0.09,
+                  right: w * 0.105,
                   bottom: w * 0.115,
                   height: h * 0.33,
                   child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
@@ -425,8 +428,8 @@ class _CardFace extends StatelessWidget {
                     ),
                     SizedBox(width: w * 0.03),
                     SizedBox(
-                      width: w * 0.26,
-                      height: w * 0.26,
+                      width: w * 0.245,
+                      height: w * 0.245,
                       child: Stack(clipBehavior: Clip.none, children: [
                         Positioned.fill(
                           child: Container(
@@ -482,7 +485,7 @@ class _CardFace extends StatelessWidget {
           ),
         ),
       );
-    });
+    }));
   }
 
   static String _initials(String n) => n.split(RegExp(r'\s+')).where((x) => x.isNotEmpty).take(2).map((x) => x[0]).join().toUpperCase();
