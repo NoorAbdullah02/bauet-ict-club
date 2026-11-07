@@ -16,6 +16,15 @@ class AppState extends ChangeNotifier {
 
   ThemeMode themeMode = ThemeMode.light;
 
+  /// Phone notifications (new event, notice...). On by default; the person can switch them off in the side menu.
+  bool pushOn = true;
+
+  void setPush(bool v) {
+    pushOn = v;
+    _prefs?.setBool('push', v);
+    notifyListeners();
+  }
+
   /// 'en' or 'bn' (Bangla).
   String get lang => currentLang;
 
@@ -59,6 +68,7 @@ class AppState extends ChangeNotifier {
       api.token = _prefs?.getString('token');
       adminName = _prefs?.getString('admin');
       adminDark = _prefs?.getBool('admin_dark') ?? false;
+      pushOn = _prefs?.getBool('push') ?? true;
     } catch (_) {
       // Storage unavailable: continue with defaults.
     }

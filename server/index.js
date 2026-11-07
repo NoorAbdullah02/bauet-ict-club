@@ -103,6 +103,7 @@ app.use('/api/team', require('./routes/team'));
 app.use('/api/audit', require('./routes/audit'));
 app.use('/api/backup', require('./routes/backup'));
 app.use('/api/auth', require('./routes/auth'));
+app.use('/api/push', require('./routes/push'));
 app.use('/api/upload', authMiddleware, require('./routes/upload'));
 app.use('/api/chat', require('./routes/chat'));
 app.use('/api/analytics', require('./routes/analytics'));

@@ -136,6 +136,18 @@ async function initDb() {
       );
     `);
 
+    // phone notifications: one row per phone that has the app and allowed notifications
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS push_tokens (
+        id SERIAL PRIMARY KEY,
+        token TEXT UNIQUE NOT NULL,
+        platform VARCHAR(12) DEFAULT 'android',
+        lang VARCHAR(5) DEFAULT 'en',
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        last_seen TIMESTAMPTZ DEFAULT NOW()
+      );
+    `);
+
     // sign-in security: session version (changing the password or "sign out everywhere" ends old sessions), two-step sign-in, account lock
     await client.query(`
       ALTER TABLE admins ADD COLUMN IF NOT EXISTS token_version INTEGER NOT NULL DEFAULT 0;

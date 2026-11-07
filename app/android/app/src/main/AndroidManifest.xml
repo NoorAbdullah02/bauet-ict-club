@@ -1,5 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- news from the club (new event, notice) as phone notifications; Android 13+ asks the person once -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- admin check-in desk scans ticket QR codes -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
