@@ -38,6 +38,8 @@ BN = {
 # app update and notifications
 "A new version of the app is available.": "অ্যাপের নতুন সংস্করণ এসেছে।", "Please update the app to keep using it.": "অ্যাপ ব্যবহার চালিয়ে যেতে দয়া করে আপডেট করুন।",
 "Later": "পরে", "Update": "আপডেট", "Alerts on": "বার্তা চালু", "Alerts off": "বার্তা বন্ধ",
+"Notifications": "বার্তা", "Choose what you want to hear about": "কী নিয়ে বার্তা পেতে চান বেছে নিন", "Allow notifications": "বার্তা চালু রাখুন",
+"Jobs & internships": "চাকরি ও ইন্টার্নশিপ", "Contests": "প্রতিযোগিতা", "Urgent notices always reach everyone.": "জরুরি নোটিশ সবসময় সবার কাছে যায়।",
 # join
 "Join the club": "ক্লাবে যোগ দিন", "Committee": "কমিটি", "General member": "সাধারণ সদস্য", "Ambassador": "অ্যাম্বাসেডর",
 # footer

@@ -117,20 +117,32 @@ async function sendOne(token, { title, body, data }) {
 
 const clip = (s, n) => (String(s || '').length > n ? `${String(s).slice(0, n - 1).trim()}…` : String(s || ''));
 
-/** Sends the same message to every phone that has the app and allowed notifications. Never throws. Returns how many were sent. */
-async function broadcast({ title, body, path = '/' }) {
+/** What a person can switch on or off in the app (the notification topics). Urgent notices and messages written by an admin always go to everyone. */
+const TOPICS = ['events', 'notices', 'jobs', 'contests', 'projects'];
+
+/**
+ * Sends one message to every phone that has the app and allowed notifications. Never throws. Returns how many were sent.
+ *  - topic: only phones that kept this topic on (omit it, or use urgent, to reach everyone)
+ *  - bn: the same message in Bangla, used for phones whose app language is Bangla
+ */
+async function broadcast({ title, body, path = '/', topic = null, urgent = false, bn = null }) {
   if (!enabled()) return 0;
   try {
-    const { rows } = await pool.query('SELECT id, token FROM push_tokens');
+    const sql = (!topic || urgent)
+      ? 'SELECT id, token, lang FROM push_tokens'
+      : "SELECT id, token, lang FROM push_tokens WHERE topics IS NULL OR (',' || topics || ',') LIKE $1";
+    const { rows } = await pool.query(sql, (!topic || urgent) ? [] : [`%,${topic},%`]);
     let sent = 0; const gone = [];
-    const msg = { title: clip(title, 80), body: clip(body, 160), data: { path: String(path) } };
+    const en = { title: clip(title, 80), body: clip(body, 160) };
+    const bangla = bn ? { title: clip(bn.title, 80), body: clip(bn.body, 160) } : en;
     for (let i = 0; i < rows.length; i += 10) {
       await Promise.all(rows.slice(i, i + 10).map(async (r) => {
-        try { const s = await sendOne(r.token, msg); if (s === 'ok') sent += 1; else if (s === 'gone') gone.push(r.id); } catch (e) { console.warn('Push send failed:', e.message); }
+        const m = r.lang === 'bn' ? bangla : en;
+        try { const s = await sendOne(r.token, { ...m, data: { path: String(path) } }); if (s === 'ok') sent += 1; else if (s === 'gone') gone.push(r.id); } catch (e) { console.warn('Push send failed:', e.message); }
       }));
     }
     if (gone.length) await pool.query('DELETE FROM push_tokens WHERE id = ANY($1::int[])', [gone]);
-    if (rows.length) console.log(`Push "${msg.title}": ${sent} sent, ${gone.length} removed of ${rows.length}`);
+    if (rows.length) console.log(`Push "${en.title}": ${sent} sent, ${gone.length} removed of ${rows.length}`);
     return sent;
   } catch (e) {
     console.warn('Push broadcast failed:', e.message);
@@ -155,8 +167,53 @@ async function test() {
   return { ...out, sent, problem: sent === 0 && out.phones > 0 ? (lastProblem || 'No phone accepted the message.') : (out.phones === 0 ? 'No phone has registered yet: open the new app, allow notifications, then try again.' : '') };
 }
 
-const LABEL = { event: 'New event', notice: 'New notice', project: 'New project' };
-/** Called when the club adds an event, notice or project (same moment the newsletter goes out). */
-const announce = (kind, item) => broadcast({ title: `${LABEL[kind] || 'News from BAUET ICT Club'}: ${item.title || ''}`.trim(), body: item.when || item.summary || 'Tap to read more.', path: item.path || '/' });
 
-module.exports = { enabled, signJwt, broadcast, announce, status, test, parseAccount };
+const EN = { event: 'New event', notice: 'New notice', project: 'New project', job: 'New opening', contest: 'New contest' };
+const BN = { event: 'নতুন ইভেন্ট', notice: 'নতুন নোটিশ', project: 'নতুন প্রজেক্ট', job: 'নতুন সুযোগ', contest: 'নতুন প্রতিযোগিতা' };
+const TOPIC_OF = { event: 'events', notice: 'notices', project: 'projects', job: 'jobs', contest: 'contests' };
+
+/** Called when the club adds an event, notice, project, job or contest. An urgent notice reaches everyone, even those who switched notices off. */
+const announce = (kind, item) => {
+  const urgent = kind === 'notice' && String(item.priority || '').toLowerCase() === 'urgent';
+  const body = item.when || item.summary || 'Tap to read more.';
+  return broadcast({
+    title: `${urgent ? 'URGENT: ' : ''}${EN[kind] || 'News from BAUET ICT Club'}: ${item.title || ''}`.trim(), body,
+    bn: { title: `${urgent ? 'জরুরি: ' : ''}${BN[kind] || 'ক্লাবের খবর'}: ${item.title || ''}`.trim(), body },
+    path: item.path || '/', topic: TOPIC_OF[kind] || null, urgent,
+  });
+};
+
+// ---------------- reminders (sent once each; they need a visit or the cron call to /api/jobs/run to be noticed) ----------------
+const dayStr = (d) => d.toISOString().slice(0, 10);
+const bdNow = () => new Date(Date.now() + 6 * 3600e3); // Bangladesh is UTC+6
+let lastRemind = 0;
+
+/** Day-before and morning-of reminders for events, and "days left" for contest deadlines. */
+async function remindDue() {
+  if (!enabled()) return 0;
+  let n = 0;
+  const once = async (key) => (await pool.query('INSERT INTO push_log (key) VALUES ($1) ON CONFLICT DO NOTHING RETURNING key', [key])).rowCount > 0;
+  try {
+    const now = bdNow(); const today = dayStr(now); const tomorrow = dayStr(new Date(now.getTime() + 864e5)); const in2 = dayStr(new Date(now.getTime() + 2 * 864e5)); const hour = now.getUTCHours();
+    const { formalTime } = require('./format');
+    const events = (await pool.query("SELECT id, title, date, time, location FROM events WHERE deleted_at IS NULL AND COALESCE(is_draft, false) = false AND (publish_at IS NULL OR publish_at <= NOW())")).rows;
+    for (const e of events) {
+      const d = String(e.date instanceof Date ? e.date.toISOString() : e.date).slice(0, 10);
+      const where = [e.time ? formalTime(e.time) : '', e.location].filter(Boolean).join(' · ');
+      if (d === tomorrow && hour >= 17 && (await once(`ev-eve:${e.id}:${d}`))) { n += await broadcast({ title: `Tomorrow: ${e.title}`, body: where || 'Do not miss it.', bn: { title: `আগামীকাল: ${e.title}`, body: where || 'মিস করবেন না।' }, path: `/events/${e.id}`, topic: 'events' }); }
+      if (d === today && hour >= 8 && hour < 20 && (await once(`ev-day:${e.id}:${d}`))) { n += await broadcast({ title: `Today: ${e.title}`, body: where || 'It is today.', bn: { title: `আজ: ${e.title}`, body: where || 'আজই।' }, path: `/events/${e.id}`, topic: 'events' }); }
+    }
+    const contests = (await pool.query("SELECT id, title, deadline FROM contests WHERE deleted_at IS NULL AND status = 'open' AND deadline IS NOT NULL")).rows;
+    for (const c of contests) {
+      const d = String(c.deadline instanceof Date ? c.deadline.toISOString() : c.deadline).slice(0, 10);
+      if (d === in2 && hour >= 9 && (await once(`co-2:${c.id}:${d}`))) n += await broadcast({ title: `2 days left: ${c.title}`, body: 'Sign up before the deadline.', bn: { title: `আর ২ দিন: ${c.title}`, body: 'শেষ তারিখের আগে আবেদন করুন।' }, path: `/contests/${c.id}`, topic: 'contests' });
+      if (d === today && hour >= 9 && hour < 20 && (await once(`co-0:${c.id}:${d}`))) n += await broadcast({ title: `Last day: ${c.title}`, body: 'The deadline is today.', bn: { title: `আজ শেষ দিন: ${c.title}`, body: 'আজই শেষ তারিখ।' }, path: `/contests/${c.id}`, topic: 'contests' });
+    }
+    await pool.query("DELETE FROM push_log WHERE at < NOW() - INTERVAL '60 days'");
+  } catch (e) { console.warn('Push reminders failed:', e.message); }
+  return n;
+}
+/** Cheap to call often (every public request): runs the reminder check at most every 10 minutes. */
+function maybeRemind() { if (Date.now() - lastRemind > 10 * 60 * 1000) { lastRemind = Date.now(); remindDue().catch(() => {}); } }
+
+module.exports = { enabled, signJwt, broadcast, announce, status, test, parseAccount, remindDue, maybeRemind, TOPICS };

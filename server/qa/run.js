@@ -111,8 +111,16 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
       ok((await call('GET', '/api/push/status')).s === 401, 'push: status needs an admin login');
       const tst = await call('POST', '/api/push/test', {}, T);
       ok(tst.s === 200 && tst.j.sent === 0, 'push: the test message sends nothing when the key is not set');
+      ok((await call('POST', '/api/push/register', { token: tokenA, platform: 'android', lang: 'bn', topics: ['events', 'jobs', 'nonsense'] })).s === 200, 'push: topics are saved (unknown ones ignored)');
+      ok((await call('POST', '/api/push/register', { token: tokenA, topics: [] })).s === 200, 'push: switching every topic off is allowed');
+      ok((await call('POST', '/api/push/send', { title: 'Hello', body: 'Test message' })).s === 401, 'push: sending a message needs an admin login');
+      ok((await call('POST', '/api/push/send', { title: 'x', body: 'y' }, T)).s === 400, 'push: a too-short message is refused');
+      ok((await call('POST', '/api/push/send', { title: 'Class moved', body: 'Room 204 at 3 pm', page: '/events' }, T)).s === 409, 'push: sending says it is not set up when there is no Firebase key');
       const push = require('../utils/push');
       ok(push.enabled() === false, 'push: off when no Firebase key is set');
+      ok((await push.remindDue()) === 0, 'push: reminders do nothing without a key');
+      ok(Array.isArray(push.TOPICS) && push.TOPICS.includes('jobs') && push.TOPICS.includes('contests'), 'push: the topics exist');
+
       ok((await push.broadcast({ title: 'x', body: 'y' })) === 0, 'push: broadcast does nothing without a key');
       // the Firebase key may be pasted in many shapes: the reader must cope with them
       {

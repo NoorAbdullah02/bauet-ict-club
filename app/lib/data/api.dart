@@ -162,7 +162,7 @@ class Api {
   }
 
   // ---- phone notifications ----
-  Future<void> registerPush(String token, String lang) => _send(() => _dio.post('/push/register', data: {'token': token, 'platform': 'android', 'lang': lang}));
+  Future<void> registerPush(String token, String lang, [List<String>? topics]) => _send(() => _dio.post('/push/register', data: {'token': token, 'platform': 'android', 'lang': lang, if (topics != null) 'topics': topics}));
 
   Future<void> unregisterPush(String token) => _send(() => _dio.post('/push/unregister', data: {'token': token}));
 

@@ -146,6 +146,11 @@ async function initDb() {
         created_at TIMESTAMPTZ DEFAULT NOW(),
         last_seen TIMESTAMPTZ DEFAULT NOW()
       );
+      ALTER TABLE push_tokens ADD COLUMN IF NOT EXISTS topics TEXT;
+      CREATE TABLE IF NOT EXISTS push_log (
+        key TEXT PRIMARY KEY,
+        at TIMESTAMPTZ DEFAULT NOW()
+      );
     `);
 
     // sign-in security: session version (changing the password or "sign out everywhere" ends old sessions), two-step sign-in, account lock

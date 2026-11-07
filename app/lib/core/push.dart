@@ -21,7 +21,7 @@ class Push {
       // ignore: deprecated_member_use
       messaging.onTokenRefresh.listen((t) {
         _token = t;
-        if (state.pushOn) state.api.registerPush(t, state.lang).catchError((_) {});
+        if (state.pushOn) state.api.registerPush(t, state.lang, state.pushTopics.toList()).catchError((_) {});
       });
       // app open: just refresh the lists so the new event shows at once
       FirebaseMessaging.onMessage.listen((_) => state.loadAll(fresh: true));
@@ -48,6 +48,16 @@ class Push {
     }
   }
 
+  /// The person changed a topic or the language: tell the server (only when notifications are on).
+  static Future<void> refresh(AppState state) async {
+    if (!state.pushOn || _token == null) return;
+    try {
+      await state.api.registerPush(_token!, state.lang, state.pushTopics.toList());
+    } catch (e) {
+      debugPrint('Could not save the notification topics: $e');
+    }
+  }
+
   static Future<void> _register(AppState state) async {
     final messaging = FirebaseMessaging.instance;
     final permission = await messaging.requestPermission(); // Android 13+ asks the person once
@@ -56,7 +66,7 @@ class Push {
     final token = await messaging.getToken();
     if (token == null || token.isEmpty) return;
     _token = token;
-    await state.api.registerPush(token, state.lang);
+    await state.api.registerPush(token, state.lang, state.pushTopics.toList());
   }
 
   static void _open(GoRouter router, RemoteMessage m) {
