@@ -7,20 +7,31 @@ const pool = require('../config/db');
 let cached; // undefined = not read yet, null = not configured
 let readProblem = '';
 
-/** Pulls the three needed fields out of whatever was pasted: proper JSON, JSON that lost its line breaks or got curly quotes, quoted or base64 text. */
+let lastParts = null; // which of the three needed parts were found in the pasted text (never the secrets themselves)
+
+/** Pulls the three needed fields out of whatever was pasted: proper JSON, JSON that lost its line breaks, its quote marks or got curly quotes, quoted or base64 text. */
 function parseAccount(raw) {
   let text = String(raw || '').trim();
+  lastParts = null;
   if (!text) return null;
   if (!text.includes('{') && /^[A-Za-z0-9+/=\s]+$/.test(text)) { try { text = Buffer.from(text.replace(/\s+/g, ''), 'base64').toString('utf8'); } catch { /* not base64 */ } }
-  text = text.replace(/[\u201C\u201D]/g, '"').replace(/[\u2018\u2019]/g, "'").replace(/^\uFEFF/, '');
-  try { let j = JSON.parse(text); if (typeof j === 'string') j = JSON.parse(j); if (j && j.private_key && j.client_email && j.project_id) return j; } catch { /* not plain JSON yet */ }
+  text = text.replace(/[“”]/g, '"').replace(/[‘’]/g, "'").replace(/^﻿/, '');
+  const tryJson = (t) => { try { let j = JSON.parse(t); if (typeof j === 'string') j = JSON.parse(j); return j && j.private_key && j.client_email && j.project_id ? j : null; } catch { return null; } };
+  const direct = tryJson(text);
+  if (direct) return direct;
   if ((text.startsWith("'") && text.endsWith("'")) || (text.startsWith('"') && text.endsWith('"') && !text.startsWith('{'))) text = text.slice(1, -1);
-  try { let j = JSON.parse(text); if (typeof j === 'string') j = JSON.parse(j); /* the whole file pasted as one quoted string */ if (j && j.private_key && j.client_email && j.project_id) return j; } catch { /* fall through to the forgiving reader */ }
-  const field = (name) => { const m = new RegExp(`"${name}"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)"`, 's').exec(text); return m ? m[1] : ''; };
-  const key = (/-----BEGIN PRIVATE KEY-----[\s\S]*?-----END PRIVATE KEY-----/.exec(text.replace(/\\n/g, '\n')) || [''])[0];
-  const email = field('client_email') || ((/[A-Za-z0-9._-]+@[A-Za-z0-9.-]+\.iam\.gserviceaccount\.com/.exec(text) || [''])[0]);
-  const project = field('project_id');
+  const unquoted = tryJson(text);
+  if (unquoted) return unquoted;
+  // forgiving reader: find the three parts one by one, with or without quote marks
+  const quoted = (name) => { const m = new RegExp(`"${name}"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)"`, 's').exec(text); return m ? m[1] : ''; };
+  const bare = (name) => { const m = new RegExp(`${name}\\W{1,6}([A-Za-z0-9._@-]+)`).exec(text); return m ? m[1] : ''; };
+  const asText = text.replace(/\\n/g, '\n');
+  const key = (/-----BEGIN PRIVATE KEY-----[\s\S]*?-----END PRIVATE KEY-----/.exec(asText) || [''])[0];
+  const email = quoted('client_email') || (/[A-Za-z0-9._-]+@[A-Za-z0-9.-]+\.iam\.gserviceaccount\.com/.exec(text) || [''])[0];
+  // the project name is also the middle of the e-mail: name@PROJECT.iam.gserviceaccount.com
+  const project = quoted('project_id') || bare('project_id') || ((/@([a-z0-9-]+)\.iam\.gserviceaccount\.com/.exec(email) || [])[1] || '');
   if (key && email && project) return { project_id: project, client_email: email, private_key: key };
+  lastParts = { project_id: !!project, client_email: !!email, private_key: !!key };
   return null;
 }
 
@@ -43,7 +54,12 @@ function account() {
       j = { project_id: process.env.FIREBASE_PROJECT_ID.trim(), client_email: process.env.FIREBASE_CLIENT_EMAIL.trim(), private_key: process.env.FIREBASE_PRIVATE_KEY };
     }
     if (!j) {
-      if (process.env.FIREBASE_SERVICE_ACCOUNT) readProblem = `FIREBASE_SERVICE_ACCOUNT is set (${String(process.env.FIREBASE_SERVICE_ACCOUNT).length} characters) but project_id, client_email and private_key could not be found in it.`;
+      if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+        const t = String(process.env.FIREBASE_SERVICE_ACCOUNT);
+        const yn = (v) => (v ? 'found' : 'MISSING');
+        const shape = (x) => String(x).replace(/[^\x20-\x7E]/g, '?');
+        readProblem = `FIREBASE_SERVICE_ACCOUNT is set (${t.length} characters; the whole file is about 2400) but it cannot be read: project_id ${yn(lastParts?.project_id)}, client_email ${yn(lastParts?.client_email)}, private_key ${yn(lastParts?.private_key)}. The text starts with "${shape(t.slice(0, 10))}" and ends with "${shape(t.slice(-8))}"; it has ${(t.match(/"/g) || []).length} quote marks (a whole file has about 48) and ${(t.match(/\\n/g) || []).length} backslash-n marks (about 26).`;
+      }
       cached = null; return cached;
     }
     j.private_key = normalizePem(j.private_key);
