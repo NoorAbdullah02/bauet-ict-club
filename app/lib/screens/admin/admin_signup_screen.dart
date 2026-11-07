@@ -27,6 +27,8 @@ class _AdminSignupScreenState extends State<AdminSignupScreen> {
   String? _error;
   String? _note;
 
+  bool get _ready => RegExp(r'^[A-Za-z0-9._-]{3,30}$').hasMatch(_user.text.trim()) && RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]{2,}$').hasMatch(_email.text.trim()) && _PwScore(_pass.text, _user.text.trim()).ok;
+
   @override
   void dispose() {
     _user.dispose();
@@ -114,9 +116,9 @@ class _AdminSignupScreenState extends State<AdminSignupScreen> {
                 padding: const EdgeInsets.fromLTRB(20, 22, 20, 18),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
                   if (_step == 1) ...[
-                    AppField(controller: _user, label: 'User name', icon: Icons.person_outline_rounded, textInputAction: TextInputAction.next, hint: '3 to 30 letters or numbers'),
+                    AppField(controller: _user, label: 'User name', icon: Icons.person_outline_rounded, textInputAction: TextInputAction.next, hint: '3 to 30 letters or numbers', onChanged: () => setState(() {})),
                     const SizedBox(height: 14),
-                    AppField(controller: _email, label: 'E-mail', icon: Icons.mail_outline_rounded, keyboard: TextInputType.emailAddress, textInputAction: TextInputAction.next, hint: 'you@gmail.com'),
+                    AppField(controller: _email, label: 'E-mail', icon: Icons.mail_outline_rounded, keyboard: TextInputType.emailAddress, textInputAction: TextInputAction.next, hint: 'you@gmail.com', onChanged: () => setState(() {})),
                     const SizedBox(height: 14),
                     AppField(
                       controller: _pass,
@@ -126,8 +128,10 @@ class _AdminSignupScreenState extends State<AdminSignupScreen> {
                       textInputAction: TextInputAction.done,
                       onSubmitted: _start,
                       hint: '6+ characters, letters and numbers',
+                      onChanged: () => setState(() {}),
                       suffix: IconButton(onPressed: () => setState(() => _show = !_show), icon: Icon(_show ? Icons.visibility_off_rounded : Icons.visibility_rounded, size: 20, color: p.muted)),
                     ),
+                    _PwMeter(score: _PwScore(_pass.text, _user.text.trim())),
                   ] else
                     AppField(controller: _code, label: '6-digit code', icon: Icons.shield_outlined, keyboard: TextInputType.number, maxLength: 6, textInputAction: TextInputAction.done, onSubmitted: _verify),
                   if (_error != null) ...[
@@ -144,7 +148,7 @@ class _AdminSignupScreenState extends State<AdminSignupScreen> {
                   ],
                   const SizedBox(height: 18),
                   if (_step == 1)
-                    GradientButton(label: 'Send me the code', icon: Icons.mark_email_unread_rounded, loading: _busy, onPressed: _start)
+                    GradientButton(label: 'Send me the code', icon: Icons.mark_email_unread_rounded, loading: _busy, onPressed: _ready ? _start : null)
                   else ...[
                     GradientButton(label: 'Create my account', icon: Icons.check_circle_rounded, loading: _busy, onPressed: _verify),
                     TextButton(onPressed: () => setState(() {
@@ -158,6 +162,57 @@ class _AdminSignupScreenState extends State<AdminSignupScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// How strong a new password is. `ok` means it meets the club's rule; `level` is 1 weak, 2 medium, 3 strong.
+class _PwScore {
+  _PwScore(this.pw, this.user) {
+    long = pw.length >= 6;
+    mix = RegExp(r'[A-Za-z]').hasMatch(pw) && RegExp(r'[^A-Za-z]').hasMatch(pw);
+    named = user.length >= 3 && pw.toLowerCase().contains(user.toLowerCase());
+    easy = RegExp(r'^(.)\1+$').hasMatch(pw) || RegExp(r'^(123456|password|qwerty|abcdef)', caseSensitive: false).hasMatch(pw);
+    ok = long && mix && !named && !easy;
+    var pts = 0;
+    if (pw.length >= 6) pts++;
+    if (pw.length >= 10) pts++;
+    if (RegExp(r'[a-z]').hasMatch(pw) && RegExp(r'[A-Z]').hasMatch(pw)) pts++;
+    if (RegExp(r'\d').hasMatch(pw)) pts++;
+    if (RegExp(r'[^A-Za-z0-9]').hasMatch(pw)) pts++;
+    level = !ok ? 0 : (pts >= 5 ? 3 : (pts >= 4 ? 2 : 1));
+  }
+  final String pw;
+  final String user;
+  bool long = false, mix = false, named = false, easy = false, ok = false;
+  int level = 0;
+}
+
+class _PwMeter extends StatelessWidget {
+  const _PwMeter({required this.score});
+  final _PwScore score;
+
+  @override
+  Widget build(BuildContext context) {
+    if (score.pw.isEmpty) return const SizedBox.shrink();
+    final p = context.pal;
+    final color = !score.ok ? const Color(0xFFEF4444) : (score.level == 1 ? const Color(0xFFF59E0B) : (score.level == 2 ? const Color(0xFF84CC16) : const Color(0xFF16A34A)));
+    final label = !score.ok ? 'Not allowed yet' : ['', 'Weak', 'Medium', 'Strong'][score.level];
+    Widget tip(bool v, String t) => Text('${v ? '✓' : '•'} $t', style: bodyStyle(context, size: 12, color: v ? const Color(0xFF16A34A) : p.muted));
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          for (var i = 1; i <= 3; i++)
+            Expanded(child: Container(margin: EdgeInsets.only(right: i < 3 ? 6 : 0), height: 6, decoration: BoxDecoration(borderRadius: BorderRadius.circular(3), color: (score.ok && score.level >= i) || (!score.ok && i == 1) ? color : p.line))),
+        ]),
+        const SizedBox(height: 4),
+        Text(label, style: bodyStyle(context, size: 12, color: color, weight: FontWeight.w700)),
+        const SizedBox(height: 2),
+        tip(score.long, '6 or more characters'),
+        tip(score.mix, 'Letters together with numbers or symbols'),
+        tip(!score.named && !score.easy, 'Not your user name, not a common word'),
+      ]),
     );
   }
 }
