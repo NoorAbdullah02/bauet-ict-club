@@ -1,12 +1,15 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 
 import '../core/config.dart';
 import '../core/offline_cache.dart';
 import '../core/theme.dart';
 import '../data/api.dart';
 import '../state/app_state.dart';
-import '../widgets/coder.dart' show LogoImage;
 import '../widgets/common.dart';
 import 'event_detail_screen.dart';
 
@@ -119,96 +122,215 @@ class _MemberCardScreenState extends State<MemberCardScreen> {
 }
 
 
-/// The card itself: deep blue with a soft gloss, photo ring, details strip, a chip, the code and the QR code, and a colour stripe at the bottom.
+/// The portrait lanyard badge: navy club strip, the post in big letters, an arched photo, and a grey panel with name, department, QR code and session.
+/// Everything is sized from the card width, so it looks the same on every phone.
 class _CardFace extends StatelessWidget {
   const _CardFace({required this.name, required this.position, required this.department, required this.batch, required this.session, required this.imageUrl, required this.active, required this.code, required this.qrData});
   final String name, position, department, batch, session, imageUrl, code, qrData;
   final bool active;
 
+  static const _navy = Color(0xFF0A1A3F);
+
+  TextStyle _cond(double size, {Color color = _navy, FontWeight weight = FontWeight.w700, FontStyle style = FontStyle.normal, double spacing = 0, double height = 1}) =>
+      GoogleFonts.barlowCondensed(fontSize: size, color: color, fontWeight: weight, fontStyle: style, letterSpacing: spacing, height: height);
+
   @override
   Widget build(BuildContext context) {
-    final since = RegExp(r'^Member since ').hasMatch(session);
-    Widget cell(String k, String v) => Expanded(
-          child: Column(children: [
-            Text(k.toUpperCase(), style: monoStyle(context, size: 8.5, color: Colors.white54)),
-            const SizedBox(height: 2),
-            Text(v.isEmpty ? '-' : v, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontSize: 12.5, fontWeight: FontWeight.w700)),
-          ]),
-        );
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(30),
-        gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF06113A), Color(0xFF0B2A78), Color(0xFF0A4D8F)]),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.22)),
-        boxShadow: [BoxShadow(color: const Color(0xFF0B2A78).withValues(alpha: 0.45), blurRadius: 34, offset: const Offset(0, 18))],
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Stack(children: [
-        // soft colour glows and a diagonal gloss (cheap gradients, no blur)
-        Positioned(top: -60, left: -40, child: Container(width: 220, height: 220, decoration: BoxDecoration(shape: BoxShape.circle, gradient: RadialGradient(colors: [const Color(0xFF2B63FF).withValues(alpha: 0.55), Colors.transparent])))),
-        Positioned(bottom: -70, right: -50, child: Container(width: 240, height: 240, decoration: BoxDecoration(shape: BoxShape.circle, gradient: RadialGradient(colors: [const Color(0xFF11B5A4).withValues(alpha: 0.5), Colors.transparent])))),
-        Positioned.fill(child: IgnorePointer(child: DecoratedBox(decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.centerRight, stops: const [0.0, 0.35, 0.6], colors: [Colors.white.withValues(alpha: 0.16), Colors.white.withValues(alpha: 0.03), Colors.transparent]))))),
-        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 18, 18, 0),
-            child: Row(children: [
-              Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)), child: const LogoImage.club(height: 22)),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(borderRadius: BorderRadius.circular(99), color: Colors.white.withValues(alpha: 0.12), border: Border.all(color: Colors.white24)),
-                child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  Container(width: 8, height: 8, decoration: BoxDecoration(shape: BoxShape.circle, color: active ? const Color(0xFF35D989) : Colors.white54, boxShadow: active ? [const BoxShadow(color: Color(0xFF35D989), blurRadius: 6)] : null)),
-                  const SizedBox(width: 6),
-                  Text(active ? 'Active member' : 'Former member', style: const TextStyle(color: Colors.white, fontSize: 10.5, fontWeight: FontWeight.w700)),
-                ]),
-              ),
-            ]),
+    final label = session.replaceFirst('Member since ', 'Since ');
+    final post = position.isEmpty ? 'Member' : position;
+    return LayoutBuilder(builder: (context, box) {
+      final w = math.min(box.maxWidth, 372.0);
+      final h = w * 16 / 9;
+      final postFs = w * (post.length > 22 ? 0.076 : post.length > 13 ? 0.105 : 0.14);
+      final nameFs = w * (name.length > 26 ? 0.066 : name.length > 16 ? 0.086 : 0.11);
+      return Center(
+        child: SizedBox(
+          width: w,
+          height: h,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(w * 0.08),
+              boxShadow: [BoxShadow(color: const Color(0xFF061440).withValues(alpha: 0.4), blurRadius: 40, offset: const Offset(0, 22))],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(w * 0.08),
+              child: Stack(children: [
+                // background wash and a faint wordmark
+                Positioned.fill(child: DecoratedBox(decoration: const BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.white, Color(0xFFF3F6FC)])))),
+                Positioned(top: h * 0.1, right: -w * 0.1, child: Container(width: w * 0.7, height: w * 0.7, decoration: BoxDecoration(shape: BoxShape.circle, gradient: RadialGradient(colors: [const Color(0xFF38C8F0).withValues(alpha: 0.28), Colors.transparent])))),
+                Positioned(top: w * 0.3, right: -w * 0.03, child: Text('ICT', style: _cond(w * 0.36, color: const Color(0xFF0B2A78).withValues(alpha: 0.07), height: 0.9))),
+
+                // navy strip
+                Positioned(
+                  left: 0,
+                  top: 0,
+                  bottom: 0,
+                  width: w * 0.27,
+                  child: DecoratedBox(
+                    decoration: const BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFF061440), Color(0xFF0B2A78), Color(0xFF0A4D8F)])),
+                    child: Stack(children: [
+                      Positioned(top: w * 0.05, left: w * 0.03, right: w * 0.03, child: Container(padding: EdgeInsets.all(w * 0.016), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(w * 0.04)), child: SizedBox(height: w * 0.12, child: Image.asset('assets/logos/ict-club.png', fit: BoxFit.contain)))),
+                      Positioned(
+                        top: h * 0.25,
+                        bottom: h * 0.38,
+                        left: 0,
+                        right: 0,
+                        child: Center(child: FittedBox(fit: BoxFit.scaleDown, child: RotatedBox(quarterTurns: 3, child: Text('BAUET ICT CLUB', maxLines: 1, softWrap: false, style: _cond(w * 0.064, color: Colors.white, weight: FontWeight.w600, spacing: w * 0.0128))))),
+                      ),
+                      Positioned(top: h * 0.23, left: w * 0.09, right: w * 0.09, child: Container(height: 1, color: const Color(0xFF7CF0B2).withValues(alpha: 0.7))),
+                    ]),
+                  ),
+                ),
+
+                // the post and the active chip
+                Positioned(
+                  left: w * 0.27,
+                  right: 0,
+                  top: w * 0.06,
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: w * 0.04),
+                    child: Column(children: [
+                      post.length <= 13
+                          ? FittedBox(fit: BoxFit.scaleDown, child: Text(post.toUpperCase(), maxLines: 1, softWrap: false, style: _cond(postFs, height: 0.92)))
+                          : Text(post.toUpperCase(), textAlign: TextAlign.center, style: _cond(postFs, height: 0.92)),
+                      SizedBox(height: w * 0.02),
+                      Container(
+                        padding: EdgeInsets.symmetric(horizontal: w * 0.026, vertical: w * 0.009),
+                        decoration: BoxDecoration(borderRadius: BorderRadius.circular(99), color: const Color(0xFF0B2A78).withValues(alpha: 0.07)),
+                        child: Row(mainAxisSize: MainAxisSize.min, children: [
+                          Container(width: w * 0.016, height: w * 0.016, decoration: BoxDecoration(shape: BoxShape.circle, color: active ? const Color(0xFF16A34A) : Colors.blueGrey)),
+                          SizedBox(width: w * 0.012),
+                          Text(active ? 'ACTIVE MEMBER' : 'FORMER MEMBER', style: GoogleFonts.jetBrainsMono(fontSize: w * 0.025, letterSpacing: w * 0.0045, color: const Color(0xFF0B2A78))),
+                        ]),
+                      ),
+                    ]),
+                  ),
+                ),
+
+                // arched photo
+                Positioned(
+                  left: w * 0.27,
+                  right: 0,
+                  top: h * 0.2,
+                  height: h * 0.49,
+                  child: LayoutBuilder(builder: (context, b) {
+                    final pw = b.maxWidth, ph = b.maxHeight;
+                    final radius = Radius.elliptical(pw * 0.42, ph * 0.18);
+                    final arch = BorderRadius.only(topLeft: radius, topRight: radius);
+                    return Stack(children: [
+                      Positioned(left: pw * 0.08, right: pw * 0.08, top: ph * 0.12, bottom: 0, child: DecoratedBox(decoration: BoxDecoration(borderRadius: arch, gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF35D989), Color(0xFF38C8F0), Color(0xFF8B5CF6)])))),
+                      Positioned(
+                        left: pw * 0.105,
+                        right: pw * 0.105,
+                        top: ph * 0.135,
+                        bottom: 0,
+                        child: ShaderMask(
+                          blendMode: BlendMode.dstIn,
+                          shaderCallback: (r) => const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.black, Colors.black, Colors.transparent], stops: [0, 0.82, 1]).createShader(r),
+                          child: ClipRRect(
+                            borderRadius: arch,
+                            child: ColoredBox(
+                              color: const Color(0xFF0B2A78),
+                              child: imageUrl.isEmpty
+                                  ? Center(child: Text(_initials(name), style: _cond(w * 0.2, color: Colors.white)))
+                                  : NetImage(imageUrl, fit: BoxFit.cover),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ]);
+                  }),
+                ),
+
+                // grey panel with the raised tab on the right
+                Positioned(left: 0, right: 0, bottom: 0, height: h * 0.37, child: CustomPaint(painter: _PanelPainter())),
+
+                // name, department, code, QR
+                Positioned(
+                  left: w * 0.07,
+                  right: w * 0.085,
+                  bottom: w * 0.05,
+                  height: h * 0.33,
+                  child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                    Expanded(
+                      child: Column(mainAxisAlignment: MainAxisAlignment.end, crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Text(name.toUpperCase(), maxLines: 2, overflow: TextOverflow.ellipsis, style: _cond(nameFs, color: const Color(0xFF3B4658), height: 0.92)),
+                        SizedBox(height: w * 0.016),
+                        Wrap(crossAxisAlignment: WrapCrossAlignment.center, spacing: w * 0.02, children: [
+                          Text(department.isEmpty ? 'BAUET' : department, style: _cond(w * 0.066, style: FontStyle.italic)),
+                          if (batch.isNotEmpty)
+                            Container(
+                              padding: EdgeInsets.symmetric(horizontal: w * 0.016, vertical: w * 0.005),
+                              decoration: BoxDecoration(color: const Color(0xFF0B2A78), borderRadius: BorderRadius.circular(w * 0.012)),
+                              child: Text('Batch $batch', style: _cond(w * 0.036, color: Colors.white, spacing: w * 0.0015)),
+                            ),
+                        ]),
+                        SizedBox(height: w * 0.022),
+                        Text('CARD CODE', style: GoogleFonts.jetBrainsMono(fontSize: w * 0.023, letterSpacing: w * 0.0046, color: const Color(0xFF64748B))),
+                        Text(code, maxLines: 1, style: GoogleFonts.jetBrainsMono(fontSize: w * 0.035, letterSpacing: w * 0.0035, color: _navy)),
+                      ]),
+                    ),
+                    SizedBox(width: w * 0.03),
+                    SizedBox(
+                      width: w * 0.26,
+                      height: w * 0.26,
+                      child: Stack(clipBehavior: Clip.none, children: [
+                        Positioned.fill(
+                          child: Container(
+                            padding: EdgeInsets.all(w * 0.014),
+                            decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.85), border: Border.all(color: _navy, width: w * 0.008), borderRadius: BorderRadius.circular(w * 0.05)),
+                            child: QrImageView(data: qrData, padding: EdgeInsets.zero, backgroundColor: Colors.white, errorCorrectionLevel: QrErrorCorrectLevel.M),
+                          ),
+                        ),
+                        Positioned(
+                          top: -w * 0.02,
+                          left: 0,
+                          right: 0,
+                          child: Center(child: Container(color: const Color(0xFFDDE2EC), padding: EdgeInsets.symmetric(horizontal: w * 0.014), child: Text('SCAN ME', style: _cond(w * 0.03, weight: FontWeight.w800, spacing: w * 0.004)))),
+                        ),
+                      ]),
+                    ),
+                  ]),
+                ),
+                // year / session, turned sideways like the printed design
+                Positioned(right: w * 0.012, bottom: w * 0.06, child: RotatedBox(quarterTurns: 3, child: Text(label.isEmpty ? 'BAUET ICT CLUB' : label.toUpperCase(), style: _cond(w * 0.04, weight: FontWeight.w600, spacing: w * 0.007)))),
+                // colour stripe
+                Positioned(left: 0, right: 0, bottom: 0, height: w * 0.016, child: const DecoratedBox(decoration: BoxDecoration(gradient: LinearGradient(colors: [Color(0xFF35D989), Color(0xFF38C8F0), Color(0xFF8B5CF6), Color(0xFFFF6B8A), Color(0xFFFFD166)])))),
+              ]),
+            ),
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
-            child: Row(children: [
-              Container(
-                padding: const EdgeInsets.all(3),
-                decoration: BoxDecoration(borderRadius: BorderRadius.circular(26), gradient: const LinearGradient(colors: [Color(0xFF35D989), Color(0xFF38C8F0), Color(0xFF8B5CF6)])),
-                child: Container(width: 86, height: 86, clipBehavior: Clip.antiAlias, decoration: BoxDecoration(borderRadius: BorderRadius.circular(23), color: const Color(0xFF0B2A78)), child: NetImage(imageUrl, fallbackLabel: name)),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(name, maxLines: 2, overflow: TextOverflow.ellipsis, style: displayStyle(context, 22, color: Colors.white, height: 1.1)),
-                  const SizedBox(height: 8),
-                  Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), decoration: BoxDecoration(borderRadius: BorderRadius.circular(99), color: Colors.white.withValues(alpha: 0.16)), child: Text(position, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700))),
-                ]),
-              ),
-            ]),
-          ),
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: 20),
-            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-            decoration: BoxDecoration(borderRadius: BorderRadius.circular(18), color: Colors.white.withValues(alpha: 0.08), border: Border.all(color: Colors.white.withValues(alpha: 0.14))),
-            child: Row(children: [cell('Department', department), cell('Batch', batch), cell(since ? 'Joined' : 'Committee', since ? session.replaceFirst('Member since ', '') : (session.isEmpty ? 'BAUET ICT Club' : session))]),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 18),
-            child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
-              Expanded(
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Container(width: 38, height: 26, decoration: BoxDecoration(borderRadius: BorderRadius.circular(6), gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFFF7DC8A), Color(0xFFE2B64E), Color(0xFFB98A2B)]))),
-                  const SizedBox(height: 12),
-                  Text('CARD CODE', style: monoStyle(context, size: 9, color: Colors.white54)),
-                  const SizedBox(height: 2),
-                  Text(code, style: monoStyle(context, size: 14, color: Colors.white)),
-                  const SizedBox(height: 8),
-                  Text('Scan the QR code to check this card', style: bodyStyle(context, size: 11, color: Colors.white60)),
-                ]),
-              ),
-              Container(padding: const EdgeInsets.all(6), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)), child: TicketQr(code: qrData, size: 96)),
-            ]),
-          ),
-          Container(height: 6, decoration: const BoxDecoration(gradient: LinearGradient(colors: [Color(0xFF35D989), Color(0xFF38C8F0), Color(0xFF8B5CF6), Color(0xFFFF6B8A), Color(0xFFFFD166)]))),
-        ]),
-      ]),
+        ),
+      );
+    });
+  }
+
+  static String _initials(String n) => n.split(RegExp(r'\s+')).where((x) => x.isNotEmpty).take(2).map((x) => x[0]).join().toUpperCase();
+}
+
+/// The grey bottom panel: the same shape as the website badge (a lower left, a raised tab on the right).
+class _PanelPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final sx = size.width / 100, sy = size.height / 40;
+    final path = Path()
+      ..moveTo(0, 9 * sy)
+      ..quadraticBezierTo(0, 7 * sy, 2.5 * sx, 6 * sy)
+      ..lineTo(8 * sx, 3.5 * sy)
+      ..quadraticBezierTo(10 * sx, 2.5 * sy, 13 * sx, 2.5 * sy)
+      ..lineTo(48 * sx, 2.5 * sy)
+      ..quadraticBezierTo(52 * sx, 2.5 * sy, 54 * sx, 1.2 * sy)
+      ..quadraticBezierTo(56 * sx, 0, 59 * sx, 0)
+      ..lineTo(size.width, 0)
+      ..lineTo(size.width, size.height)
+      ..lineTo(0, size.height)
+      ..close();
+    canvas.drawShadow(path, const Color(0xFF061440), 6, false);
+    canvas.drawPath(
+      path,
+      Paint()..shader = const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFFEEF1F7), Color(0xFFD3D9E6)]).createShader(Offset.zero & size),
     );
   }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
