@@ -114,6 +114,13 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
       const push = require('../utils/push');
       ok(push.enabled() === false, 'push: off when no Firebase key is set');
       ok((await push.broadcast({ title: 'x', body: 'y' })) === 0, 'push: broadcast does nothing without a key');
+      // the Firebase key may be pasted in many shapes: the reader must cope with them
+      {
+        const cr = require('crypto'); const kp = cr.generateKeyPairSync('rsa', { modulusLength: 2048, privateKeyEncoding: { type: 'pkcs8', format: 'pem' }, publicKeyEncoding: { type: 'spki', format: 'pem' } });
+        const raw = JSON.stringify({ type: 'service_account', project_id: 'demo', private_key: kp.privateKey, client_email: 'sa@demo.iam.gserviceaccount.com' }, null, 2);
+        const shapes = { 'as downloaded': raw, 'one line': raw.replace(/\s*\n\s*/g, ' '), 'quoted': JSON.stringify(raw), 'base64': Buffer.from(raw).toString('base64'), 'key lines as spaces': raw.replace(/\\n/g, ' ') };
+        for (const [n, v] of Object.entries(shapes)) { const j = push.parseAccount(v); ok(!!j && j.project_id === 'demo' && j.client_email === 'sa@demo.iam.gserviceaccount.com', `push: the Firebase key pasted ${n} is understood`); }
+      }
       const crypto = require('crypto');
       const { privateKey, publicKey } = crypto.generateKeyPairSync('rsa', { modulusLength: 2048, privateKeyEncoding: { type: 'pkcs8', format: 'pem' }, publicKeyEncoding: { type: 'spki', format: 'pem' } });
       const jwt = push.signJwt({ client_email: 'svc@example.iam.gserviceaccount.com', private_key: privateKey }, 1700000000);
