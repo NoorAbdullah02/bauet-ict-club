@@ -159,7 +159,7 @@ function Badge({ m, code, qr, verified, site, fb }) {
           <path d="M0 9 Q0 7 2.5 6 L8 3.5 Q10 2.5 13 2.5 L48 2.5 Q52 2.5 54 1.2 Q56 0 59 0 L100 0 L100 40 L0 40 Z" fill="url(#panel)" />
         </svg>
 
-        <div className="absolute inset-x-0 bottom-0 flex items-stretch" style={{ height: '33%', padding: `0 ${c(9)} ${c(11.5)} ${c(7)}`, gap: c(3) }}>
+        <div className="absolute inset-x-0 bottom-0 flex items-stretch" style={{ height: '33%', padding: `0 ${c(10.5)} ${c(11.5)} ${c(7)}`, gap: c(3) }}>
           <div className="flex min-w-0 flex-1 flex-col justify-end" style={{ gap: c(2.2) }}>
             <div className="min-w-0">
               <h2 className="line-clamp-2 font-bold uppercase tracking-tight text-[#3B4658]" style={{ ...condensed, fontSize: c(nameFs), lineHeight: 0.92 }}>{name}</h2>
@@ -175,7 +175,7 @@ function Badge({ m, code, qr, verified, site, fb }) {
               </p>
             </div>
           </div>
-          <div className="relative flex shrink-0 items-center justify-center self-end border-[#0A1A3F] bg-white/80" style={{ width: c(26), height: c(26), borderWidth: c(0.8), borderStyle: 'solid', borderRadius: c(5), padding: c(1.4) }}>
+          <div className="relative flex shrink-0 items-center justify-center self-end border-[#0A1A3F] bg-white/80" style={{ width: c(24.5), height: c(24.5), borderWidth: c(0.8), borderStyle: 'solid', borderRadius: c(5), padding: c(1.4) }}>
             <span className="absolute left-1/2 -translate-x-1/2 whitespace-nowrap bg-[#DDE2EC] font-extrabold uppercase text-[#0A1A3F]" style={{ top: c(-1.9), padding: `0 ${c(1.4)}`, fontSize: c(2.7), letterSpacing: '0.14em' }}>Scan me</span>
             {qr ? <img src={qr} alt="QR code of this card" className="size-full rounded-md" /> : <Loader2 className="animate-spin text-slate-400" />}
           </div>
