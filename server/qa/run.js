@@ -87,6 +87,17 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
       const again = await call('POST', '/api/auth/login', { username: 'admin', password: 'Qa-Pass-12345' }); ok(again.s === 200, 'password-only login again'); T = again.j.token; // the earlier session was ended on purpose
       void crypto; XFF = '';
     }
+    // ---- a shared card link shows the person's name in the preview (Facebook / WhatsApp do not run JavaScript) ----
+    {
+      const mem = ((await call('GET', '/api/members')).j || []).find((m) => m.name && /^[A-Za-z. ]+$/.test(m.name));
+      if (mem) {
+        const page = await call('GET', `/card/${mem.id}`);
+        ok(page.s === 200 && page.t.includes(`<meta property="og:title" content="${mem.name}`), 'card link: the preview carries the member name', page.t.slice(0, 0));
+      }
+      const hidden = await call('GET', '/card/r1');
+      ok(hidden.s === 200 && !/Membership card of BAUET/.test(hidden.t.split('og:description')[0] || ''), 'card link: an applicant card without its code shows nothing private');
+      ok(!/og:title" content="[^"]*, (General member|Committee member)/.test(hidden.t), 'card link: no name or post for a card without its code');
+    }
     // ---- phone notifications: the app registers its token; nothing is sent without Firebase set up ----
     {
       const tokenA = `qa-token-${'a'.repeat(40)}:APA91b_x-y`;

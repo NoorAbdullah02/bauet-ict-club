@@ -275,6 +275,32 @@ if (process.env.NODE_ENV === 'production') {
       res.set('Cache-Control', 'no-cache').type('html').send(page(req, { title: `${ev.title} | BAUET ICT Club`, description: `${when}${ev.description ? `. ${String(ev.description).slice(0, 160)}` : ''}`, image, jsonld: eventJsonLd(ev, origin(req), image) }));
     } catch { next(); }
   });
+  // a shared card link: Facebook, WhatsApp and Telegram show the person's name, post and photo (they do not run JavaScript, so the server fills the page head).
+  // Committee members and advisors are public on the Team page anyway; an approved applicant's card needs its secret code in the link.
+  app.get('/card/:id', async (req, res, next) => {
+    try {
+      const raw = String(req.params.id);
+      let name = ''; let pos = ''; let img = '';
+      if (/^\d+$/.test(raw)) {
+        const m = (await pool.query('SELECT name, position, image_url FROM members WHERE id = $1 AND deleted_at IS NULL', [raw])).rows[0];
+        if (!m) return next();
+        ({ name, position: pos, image_url: img } = { name: m.name, position: m.position, image_url: m.image_url });
+      } else if (/^a\d+$/.test(raw)) {
+        const a = (await pool.query('SELECT name, designation, image_url FROM advisors WHERE id = $1 AND deleted_at IS NULL', [raw.slice(1)])).rows[0];
+        if (!a) return next();
+        name = a.name; pos = a.designation || 'Advisor'; img = a.image_url;
+      } else if (/^r\d+$/.test(raw)) {
+        const { cardCode } = require('./routes/card');
+        const want = Buffer.from(cardCode(raw)); const got = Buffer.from(String(req.query.c || ''));
+        if (want.length !== got.length || !require('crypto').timingSafeEqual(want, got)) return next();
+        const r = (await pool.query("SELECT full_name, post, type, photo_url FROM registrations WHERE id = $1 AND status = 'approved' AND deleted_at IS NULL", [raw.slice(1)])).rows[0];
+        if (!r) return next();
+        name = r.full_name; pos = r.type === 'committee' && r.post ? r.post : ({ general: 'General member', ambassador: 'Department ambassador', committee: 'Committee member' }[r.type] || 'Member'); img = r.photo_url;
+      } else return next();
+      const image = img && /^(https?:\/\/|\/uploads\/)/.test(img) ? img.replace('/upload/', '/upload/c_fill,w_1200,h_630,g_face,f_jpg,q_auto/') : '/logos/ict-club.png';
+      res.set('Cache-Control', 'no-cache').type('html').send(page(req, { title: `${name}${pos ? `, ${pos}` : ''} | BAUET ICT Club`, description: 'Membership card of BAUET ICT Club. Open it and scan the QR code to check that it is genuine.', image }));
+    } catch { next(); }
+  });
   app.get('*', (req, res) => {
     res.set('Cache-Control', 'no-cache').type('html').send(page(req));
   });

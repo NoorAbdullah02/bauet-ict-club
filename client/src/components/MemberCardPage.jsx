@@ -10,12 +10,34 @@ import { thumb } from '../lib/img';
 import { copyText, nativeShare, shareLinks } from '../lib/share';
 import Logo from './Logo';
 
-/** Saves the card as a sharp PNG picture (1080 x 1920) that can be printed or posted anywhere. */
+const fileName = (m) => `${String(m.name || 'member').replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '')}-BAUET-ICT-Club-card.png`;
+const touchPhone = () => typeof window !== 'undefined' && !!window.matchMedia?.('(pointer: coarse)').matches;
+
+/** The card as a picture file (1080 x 1920). */
+async function cardFile(m, code, qr, extra) {
+  const { cardToBlob } = await import('../lib/cardImage');
+  const blob = await cardToBlob({ m, code, qr, width: 1080, ...extra });
+  return new File([blob], fileName(m), { type: 'image/png' });
+}
+
+/** Download: a file on a computer; on a phone the system sheet (Save to gallery / Files / send) when the browser has one, else a normal download. */
 async function downloadCard(m, code, qr, extra) {
-  const { cardToPng } = await import('../lib/cardImage');
-  const url = await cardToPng({ m, code, qr, width: 1080, ...extra });
-  const a = Object.assign(document.createElement('a'), { href: url, download: `${String(m.name || 'member').replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '')}-BAUET-ICT-Club-card.png` });
+  const file = await cardFile(m, code, qr, extra);
+  if (touchPhone() && navigator.canShare?.({ files: [file] })) {
+    try { await navigator.share({ files: [file], title: 'My BAUET ICT Club card' }); return; } catch (e) { if (e?.name === 'AbortError') return; /* else fall back to a plain download */ }
+  }
+  const url = URL.createObjectURL(file);
+  const a = Object.assign(document.createElement('a'), { href: url, download: file.name, rel: 'noopener' });
   document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+
+/** Share the card as a picture together with its link (WhatsApp, Messenger, Telegram, Facebook app... all show it). Returns false when the browser cannot share files. */
+async function shareCardPicture(m, code, qr, extra, text, url) {
+  const file = await cardFile(m, code, qr, extra);
+  if (!navigator.canShare?.({ files: [file] })) return false;
+  try { await navigator.share({ files: [file], title: `${m.name} | BAUET ICT Club`, text: `${text}\n${url}` }); } catch (e) { if (e?.name !== 'AbortError') throw e; }
+  return true;
 }
 
 /** "https://www.facebook.com/bauetictclub" -> "fb.com/bauetictclub" (short enough to sit on the card). */
@@ -25,7 +47,7 @@ const initials = (n = '') => n.split(/\s+/).filter(Boolean).slice(0, 2).map((w) 
 
 
 /** Share this card: Facebook, WhatsApp, Telegram, X, LinkedIn, e-mail, the phone's own share sheet, or copy the link. */
-function ShareMenu({ url, title, text }) {
+function ShareMenu({ url, title, text, onPicture }) {
   const [open, setOpen] = useState(false);
   const links = shareLinks(url, text);
   const items = [
@@ -44,6 +66,7 @@ function ShareMenu({ url, title, text }) {
   }, [open]);
   const copy = async () => { const ok = await copyText(url); toast[ok ? 'success' : 'error'](ok ? 'Card link copied' : 'Could not copy'); setOpen(false); };
   const more = async () => { if (await nativeShare({ title, text, url })) setOpen(false); };
+  const picture = async () => { try { const ok = await onPicture(); if (ok) setOpen(false); else toast.error('Your browser cannot share pictures. Use Download, then share the saved picture.'); } catch { toast.error('Could not prepare the picture. Try again.'); } };
   return (
     <div className="relative">
       <button onClick={() => setOpen((o) => !o)} aria-haspopup="menu" aria-expanded={open} className="btn-primary !px-5 !py-2.5 text-xs"><Share2 size={14} /> Share</button>
@@ -61,6 +84,7 @@ function ShareMenu({ url, title, text }) {
             </div>
             <div className="mt-3 flex gap-2">
               <button role="menuitem" onClick={copy} className="btn-outline !flex-1 !justify-center !px-3 !py-2.5 text-xs"><Link2 size={14} /> Copy link</button>
+              {onPicture && <button role="menuitem" onClick={picture} className="btn-outline !flex-1 !justify-center !px-3 !py-2.5 text-xs"><Download size={14} /> Share picture</button>}
               {typeof navigator !== 'undefined' && navigator.share && <button role="menuitem" onClick={more} className="btn-outline !flex-1 !justify-center !px-3 !py-2.5 text-xs"><Share2 size={14} /> More apps</button>}
             </div>
             <p className="mt-2.5 break-all rounded-xl bg-alt px-3 py-2 font-mono text-[10.5px] text-muted">{url}</p>
@@ -210,7 +234,7 @@ export default function MemberCardPage() {
         <Badge m={m} code={data.code} qr={qr} verified={checked && data.verified} site={window.location.host} fb={fbShort(fbLink)} />
         <div className="mt-5 flex flex-wrap items-center justify-center gap-2 print:hidden">
           <button disabled={saving} onClick={async () => { setSaving(true); try { await downloadCard(m, data.code, qr, { site: window.location.host, fb: fbShort(fbLink) }); toast.success('Card saved as a picture'); } catch { toast.error('Could not save the card. Try again.'); } setSaving(false); }} className="btn-outline !px-4 !py-2.5 text-xs disabled:opacity-60">{saving ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />} Download</button>
-          <ShareMenu url={`${window.location.origin}/card/${m.id}?c=${data.code}`} title={`${m.name} | BAUET ICT Club`} text={`${m.name}, ${m.position || 'Member'} at BAUET ICT Club`} />
+          <ShareMenu url={`${window.location.origin}/card/${m.id}?c=${data.code}`} title={`${m.name} | BAUET ICT Club`} text={`${m.name}, ${m.position || 'Member'} at BAUET ICT Club`} onPicture={() => shareCardPicture(m, data.code, qr, { site: window.location.host, fb: fbShort(fbLink) }, `${m.name}, ${m.position || 'Member'} at BAUET ICT Club`, `${window.location.origin}/card/${m.id}?c=${data.code}`)} />
         </div>
       </div>
     </section>

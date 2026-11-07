@@ -70,24 +70,40 @@ class _MemberCardScreenState extends State<MemberCardScreen> {
     }
   }
 
-  /// Takes a sharp picture of the card and opens the phone's share sheet, where it can be saved to Files / Drive / the gallery or sent on.
+  /// A sharp picture of the card (PNG file in the temp folder), for the share sheet.
+  Future<XFile> _cardFile(String name) async {
+    final boundary = _cardKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+    if (boundary == null) throw StateError('card not ready');
+    final image = await boundary.toImage(pixelRatio: 3);
+    final bytes = (await image.toByteData(format: ui.ImageByteFormat.png))!.buffer.asUint8List();
+    final dir = await getTemporaryDirectory();
+    final safe = name.replaceAll(RegExp(r'[^A-Za-z0-9]+'), '-').replaceAll(RegExp(r'^-|-$'), '');
+    final file = File('${dir.path}${Platform.pathSeparator}${safe.isEmpty ? 'member' : safe}-BAUET-ICT-Club-card.png');
+    await file.writeAsBytes(bytes, flush: true);
+    return XFile(file.path, mimeType: 'image/png', name: file.uri.pathSegments.last);
+  }
+
+  /// Download: the picture goes to the phone's share sheet, where "Save to Files / Drive / gallery" is one tap.
   Future<void> _download(String name) async {
     if (_saving) return;
     setState(() => _saving = true);
     try {
-      final boundary = _cardKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
-      if (boundary == null) throw StateError('card not ready');
-      final image = await boundary.toImage(pixelRatio: 3);
-      final bytes = (await image.toByteData(format: ui.ImageByteFormat.png))!.buffer.asUint8List();
-      final dir = await getTemporaryDirectory();
-      final safe = name.replaceAll(RegExp(r'[^A-Za-z0-9]+'), '-').replaceAll(RegExp(r'^-|-$'), '');
-      final file = File('${dir.path}${Platform.pathSeparator}${safe.isEmpty ? 'member' : safe}-BAUET-ICT-Club-card.png');
-      await file.writeAsBytes(bytes);
-      await Share.shareXFiles([XFile(file.path)], subject: 'BAUET ICT Club membership card');
+      final f = await _cardFile(name);
+      await Share.shareXFiles([f], subject: 'BAUET ICT Club membership card', text: 'My BAUET ICT Club membership card');
     } catch (_) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not save the card')));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not save the card. Try again.')));
     }
     if (mounted) setState(() => _saving = false);
+  }
+
+  /// Share the card as a picture together with its link, to any app (WhatsApp, Messenger, Facebook, Telegram...).
+  Future<void> _sharePicture(String name, String text, String url) async {
+    try {
+      final f = await _cardFile(name);
+      await Share.shareXFiles([f], subject: '$name | BAUET ICT Club', text: '$text\n$url');
+    } catch (_) {
+      await Share.share('$text\n$url', subject: '$name | BAUET ICT Club'); // the picture failed: still share the link
+    }
   }
 
   @override
@@ -134,7 +150,7 @@ class _MemberCardScreenState extends State<MemberCardScreen> {
         const SizedBox(height: 16),
         Row(mainAxisAlignment: MainAxisAlignment.center, children: [
           FilledButton.icon(
-            onPressed: () => _share(context, name: '${m['name']}', position: '${m['position'] ?? ''}', url: '${AppConfig.origin}/card/${m['id']}?c=$code'),
+            onPressed: () => _share(context, name: '${m['name']}', position: '${m['position'] ?? ''}', url: '${AppConfig.origin}/card/${m['id']}?c=$code', sharePicture: () => _sharePicture('${m['name']}', '${m['name']}, ${m['position'] ?? 'Member'} at BAUET ICT Club', '${AppConfig.origin}/card/${m['id']}?c=$code')),
             icon: const Icon(Icons.share_rounded, size: 18),
             label: const Text('Share'),
           ),
@@ -168,7 +184,7 @@ class _MemberCardScreenState extends State<MemberCardScreen> {
 
 
 /// The share sheet: Facebook, WhatsApp, Telegram, X, LinkedIn, e-mail, the phone's own share menu, or copy the link.
-void _share(BuildContext context, {required String name, required String position, required String url}) {
+void _share(BuildContext context, {required String name, required String position, required String url, Future<void> Function()? sharePicture}) {
   final text = '$name, ${position.isEmpty ? 'Member' : position} at BAUET ICT Club';
   const enc = Uri.encodeComponent;
   final items = <(IconData, String, Color, String)>[
@@ -213,6 +229,14 @@ void _share(BuildContext context, {required String name, required String positio
                   Navigator.pop(ctx);
                   openUrl(context, it.$4);
                 }),
+              tile(Icons.image_rounded, 'Picture', p.accent, () {
+                Navigator.pop(ctx);
+                if (sharePicture != null) {
+                  sharePicture();
+                } else {
+                  Share.share('$text\n$url', subject: '$name | BAUET ICT Club');
+                }
+              }),
               tile(Icons.ios_share_rounded, 'More apps', p.accent, () {
                 Navigator.pop(ctx);
                 Share.share('$text\n$url', subject: '$name | BAUET ICT Club');

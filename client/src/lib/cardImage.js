@@ -9,7 +9,14 @@ const load = (src, cors = true) => new Promise((resolve) => {
   img.src = src;
 });
 
-const rr = (ctx, x, y, w, h, r) => { ctx.beginPath(); ctx.roundRect(x, y, w, h, r); };
+const rr = (ctx, x, y, w, h, r) => {
+  // ctx.roundRect is missing on older phones (Chrome before 99, Safari before 16): draw the rounded corners by hand
+  ctx.beginPath();
+  if (typeof ctx.roundRect === 'function') { ctx.roundRect(x, y, w, h, r); return; }
+  const k = Math.max(0, Math.min(r, w / 2, h / 2));
+  ctx.moveTo(x + k, y); ctx.lineTo(x + w - k, y); ctx.arcTo(x + w, y, x + w, y + k, k); ctx.lineTo(x + w, y + h - k); ctx.arcTo(x + w, y + h, x + w - k, y + h, k);
+  ctx.lineTo(x + k, y + h); ctx.arcTo(x, y + h, x, y + h - k, k); ctx.lineTo(x, y + k); ctx.arcTo(x, y, x + k, y, k); ctx.closePath();
+};
 const COND = (w, size, italic = false) => `${italic ? 'italic ' : ''}${w} ${size}px 'Barlow Condensed', 'Arial Narrow', sans-serif`;
 const MONO = (size, w = 500) => `${w} ${size}px 'JetBrains Mono', monospace`;
 
@@ -26,7 +33,7 @@ function wrap(ctx, text, maxW, maxLines) {
 }
 
 /** Returns a PNG data URL of the card. m = member, code = card code, qr = QR picture (data URL), width = pixels. */
-export async function cardToPng({ m, code, qr, width = 1080, site = '', fb = '' }) {
+async function drawCard({ m, code, qr, width = 1080, site = '', fb = '' }) {
   try { await Promise.all([document.fonts.load(COND(700, 40)), document.fonts.load(COND(600, 40)), document.fonts.load(COND(700, 40, true)), document.fonts.load(MONO(20)), document.fonts.ready]); } catch { /* fall back to system fonts */ }
   const [photo, logo, qrImg] = await Promise.all([load(m.image_url), load('/logos/ict-club@3x.png', false).then((i) => i || load('/logos/ict-club.png', false)), load(qr, false)]);
 
@@ -177,5 +184,14 @@ export async function cardToPng({ m, code, qr, width = 1080, site = '', fb = '' 
   if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
 
   ctx.restore();
-  return cv.toDataURL('image/png');
+  return cv;
+}
+
+/** The card as a PNG data URL. */
+export async function cardToPng(opts) { return (await drawCard(opts)).toDataURL('image/png'); }
+
+/** The card as a PNG file (a Blob): smaller to hand around than a data URL, and what the phone's share sheet needs. */
+export async function cardToBlob(opts) {
+  const cv = await drawCard(opts);
+  return new Promise((resolve, reject) => { try { cv.toBlob((b) => (b ? resolve(b) : reject(new Error('no picture'))), 'image/png'); } catch (e) { reject(e); } });
 }
