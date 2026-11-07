@@ -4,6 +4,7 @@ module.exports = {
   columns: ['title', 'description', 'rules', 'prize', 'location', 'start_date', 'deadline', 'team_min', 'team_max', 'status', 'image_url'],
   imageCols: ['image_url'], image: 'image_url',
   orderBy: 'created_at', orderDir: 'DESC', public: true,
+  push: { kind: 'contest', item: (r) => ({ title: r.title, summary: [r.prize ? `Prize: ${r.prize}` : '', r.deadline ? `deadline ${String(r.deadline instanceof Date ? r.deadline.toISOString() : r.deadline).slice(0, 10)}` : ''].filter(Boolean).join(' · ') || r.description, path: '/contests' }) },
   title: (r) => r.title,
   validate: async (data) => {
     if (data.status !== undefined && !['open', 'closed', 'finished'].includes(data.status)) return 'Status must be open, closed or finished.';

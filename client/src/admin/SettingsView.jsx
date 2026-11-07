@@ -119,6 +119,8 @@ function PushPanel() {
   const [st, setSt] = useState(null);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState(null);
+  const [msg, setMsg] = useState({ title: '', body: '', page: '/' });
+  const [sending, setSending] = useState(false);
   const load = () => api.get('/push/status').then((r) => setSt(r.data)).catch(() => setSt({ error: true }));
   useEffect(() => { load(); }, []);
   const test = async () => {
@@ -126,6 +128,14 @@ function PushPanel() {
     try { const r = await api.post('/push/test'); setResult(r.data); load(); }
     catch (e) { setResult({ problem: e.response?.data?.error || 'Could not reach the server' }); }
     setBusy(false);
+  };
+  const sendMsg = async (e) => {
+    e.preventDefault();
+    if (!(await askConfirm({ title: 'Send this to every phone?', message: `“${msg.title}”: ${msg.body}\n\nIt reaches everyone who has the app, even people who switched topics off. It cannot be taken back.`, confirmText: 'Send now' }))) return;
+    setSending(true);
+    try { const r = await api.post('/push/send', msg); toast.success(`Sent to ${r.data.sent} phone${r.data.sent === 1 ? '' : 's'}`); setMsg({ title: '', body: '', page: '/' }); }
+    catch (err) { toast.error(err.response?.data?.error || 'Could not send'); }
+    setSending(false);
   };
   const row = (ok, label, detail) => (
     <li className="flex items-start gap-2.5 text-sm"><span className={`mt-0.5 grid size-5 shrink-0 place-items-center rounded-full text-[11px] font-bold text-white ${ok ? 'bg-emerald-500' : 'bg-red-500'}`}>{ok ? '✓' : '!'}</span><span><b className="text-fg">{label}</b>{detail ? <span className="text-fg2"> {detail}</span> : null}</span></li>
@@ -147,7 +157,19 @@ function PushPanel() {
               {result.sent > 0 ? `Sent to ${result.sent} phone${result.sent === 1 ? '' : 's'}. Check the phone now.` : (result.problem || 'Nothing was sent.')}
             </p>
           )}
-          <p className="text-xs text-muted">The test goes to every phone that has the app and allowed notifications. Each person's phone must have the newest app (build 114 or newer).</p>
+          <form onSubmit={sendMsg} className="space-y-3 rounded-2xl border border-line bg-alt/50 p-4">
+            <h4 className="flex items-center gap-2 text-sm font-semibold text-fg"><Send size={14} /> Write a message to every phone</h4>
+            <input className={inputCls} maxLength={80} required placeholder="Title (for example: Class moved)" value={msg.title} onChange={(e) => setMsg({ ...msg, title: e.target.value })} />
+            <textarea className={`${inputCls} min-h-20`} maxLength={160} required placeholder="Message (160 characters at most)" value={msg.body} onChange={(e) => setMsg({ ...msg, body: e.target.value })} />
+            <label className="block text-xs text-fg2">Opens this page when tapped
+              <select className={`${inputCls} mt-1`} value={msg.page} onChange={(e) => setMsg({ ...msg, page: e.target.value })}>
+                {[['/', 'Home'], ['/events', 'Events'], ['/notices', 'Notices'], ['/jobs', 'Jobs'], ['/contests', 'Contests'], ['/projects', 'Projects'], ['/resources', 'Resources'], ['/team', 'Team'], ['/gallery', 'Gallery']].map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+              </select>
+            </label>
+            <div className="flex items-center justify-between gap-2"><span className="text-xs text-muted">{msg.body.length}/160</span>
+              <button disabled={sending || !st.enabled} className="btn-primary !px-5 !py-2.5 text-xs disabled:opacity-60">{sending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />} Send to all phones</button></div>
+          </form>
+          <p className="text-xs text-muted">New events, notices (urgent ones reach everyone), jobs, contests and projects are sent by themselves; so are "tomorrow" and "today" reminders for events and "2 days left" for contests. The test goes to every phone that has the app and allowed notifications. Each person's phone must have the newest app (build 114 or newer).</p>
         </>
       )}
     </Panel>

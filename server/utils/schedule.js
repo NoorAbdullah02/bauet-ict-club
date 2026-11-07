@@ -7,7 +7,7 @@ const pool = require('../config/db');
  *  - pending_notify = TRUE      -> the "new event / new notice" e-mail to subscribers is still to be sent once it is live
  */
 const LIVE = "(publish_at IS NULL OR publish_at <= NOW()) AND NOT COALESCE(is_draft, FALSE)";
-const TABLES = ['events', 'notices'];
+const TABLES = ['events', 'notices', 'jobs'];
 const notifiers = {};
 const setNotifier = (table, fn) => { notifiers[table] = fn; };
 
@@ -33,7 +33,7 @@ async function publishDue() {
   return n;
 }
 /** Called from public list requests: checks at most once a minute, in the background. */
-function maybeTick() { if (Date.now() - lastRun > 60 * 1000) publishDue(); }
+function maybeTick() { if (Date.now() - lastRun > 60 * 1000) publishDue(); try { require('./push').maybeRemind(); } catch { /* phone notifications are optional */ } }
 
 /** true when this item is not visible to the public yet */
 const isHidden = (row) => !!row && (!!row.is_draft || (row.publish_at && new Date(row.publish_at).getTime() > Date.now()));

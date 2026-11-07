@@ -75,7 +75,7 @@ app.all('/api/jobs/run', async (req, res) => {
   const given = String(req.get('x-cron-secret') || req.query.key || '');
   if (!secret || secret.length < 16 || given.length !== secret.length || !require('crypto').timingSafeEqual(Buffer.from(given), Buffer.from(secret))) return res.status(404).json({ error: 'Not found' });
   const jobs = require('./utils/analyticsJobs');
-  await Promise.allSettled([jobs.purge(), jobs.weeklyDigest(), jobs.reminders(), require('./utils/schedule').publishDue(), require('./utils/remoteJobs').maybeRefresh()]);
+  await Promise.allSettled([jobs.purge(), jobs.weeklyDigest(), jobs.reminders(), require('./utils/push').remindDue(), require('./utils/schedule').publishDue(), require('./utils/remoteJobs').maybeRefresh()]);
   res.set('Cache-Control', 'no-store').json({ ok: true });
 });
 
@@ -179,11 +179,12 @@ app.get('/api/subscribers/unsubscribe', async (req, res) => {
 });
 
 features.forEach((f) => {
-  app.use(`/api/${f.table}`, createCrudRouter(f.table, { scheduled: !!f.scheduled, orderBy: f.orderBy, orderDir: f.orderDir, columns: f.columns, imageCols: f.imageCols, validate: f.validate, readAuth: f.readAuth, auth: authMiddleware, onCreate: f.notify ? (r) => notifySubscribers(f.notify.kind, f.notify.item(r)) : undefined }));
+  app.use(`/api/${f.table}`, createCrudRouter(f.table, { scheduled: !!f.scheduled, orderBy: f.orderBy, orderDir: f.orderDir, columns: f.columns, imageCols: f.imageCols, validate: f.validate, readAuth: f.readAuth, auth: authMiddleware, onCreate: f.notify ? (r) => notifySubscribers(f.notify.kind, f.notify.item(r)) : (f.push ? (r) => require('./utils/push').announce(f.push.kind, f.push.item(r)).catch(() => {}) : undefined) }));
   if (f.public) PUBLIC_LISTS.push(`/${f.table}`);
 });
 // the announcement e-mail of a draft or scheduled post is sent when it goes live
 setNotifier('events', (r) => notifySubscribers('event', { title: r.title, when: [formalDate(r.date), formalTime(r.time), r.location].filter(Boolean).join(' · '), summary: r.description, path: '/events' }));
+setNotifier('jobs', (r) => require('./utils/push').announce('job', require('./features/jobs').push.item(r)).catch(() => {}));
 setNotifier('notices', (r) => { if (!r.expiry_date || String(r.expiry_date).slice(0, 10) >= new Date().toISOString().slice(0, 10)) notifySubscribers('notice', { title: r.title, summary: r.content, path: '/notices' }); });
 // One round trip for the whole public site (the website used to make nine separate requests on every first visit).
 PUBLIC_LISTS.push('/bootstrap');

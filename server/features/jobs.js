@@ -6,6 +6,7 @@ module.exports = {
   columns: ['title', 'company', 'kind', 'work_mode', 'location', 'salary', 'description', 'apply_url', 'apply_email', 'deadline', 'image_url', 'featured', 'publish_at', 'is_draft'],
   imageCols: ['image_url'], image: 'image_url',
   orderBy: 'created_at', orderDir: 'DESC', public: true, scheduled: true,
+  push: { kind: 'job', item: (r) => ({ title: `${r.title}${r.company ? ` at ${r.company}` : ''}`, summary: [r.kind, r.work_mode, r.deadline ? `apply by ${String(r.deadline instanceof Date ? r.deadline.toISOString() : r.deadline).slice(0, 10)}` : ''].filter(Boolean).join(' · '), path: '/jobs' }) },
   title: (r) => `${r.title}${r.company ? ` at ${r.company}` : ''}`,
   validate: async (data) => {
     if (data.kind && !KINDS.includes(data.kind)) return `Kind must be one of: ${KINDS.join(', ')}.`;

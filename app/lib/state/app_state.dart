@@ -19,6 +19,16 @@ class AppState extends ChangeNotifier {
   /// Phone notifications (new event, notice...). On by default; the person can switch them off in the side menu.
   bool pushOn = true;
 
+  /// What the person wants to hear about (the server also sends urgent news to everyone).
+  static const pushTopicNames = ['events', 'notices', 'jobs', 'contests', 'projects'];
+  Set<String> pushTopics = {...pushTopicNames};
+
+  void setPushTopic(String t, bool on) {
+    on ? pushTopics.add(t) : pushTopics.remove(t);
+    _prefs?.setStringList('push_topics', pushTopics.toList());
+    notifyListeners();
+  }
+
   void setPush(bool v) {
     pushOn = v;
     _prefs?.setBool('push', v);
@@ -69,6 +79,8 @@ class AppState extends ChangeNotifier {
       adminName = _prefs?.getString('admin');
       adminDark = _prefs?.getBool('admin_dark') ?? false;
       pushOn = _prefs?.getBool('push') ?? true;
+      final saved = _prefs?.getStringList('push_topics');
+      if (saved != null) pushTopics = saved.where(pushTopicNames.contains).toSet();
     } catch (_) {
       // Storage unavailable: continue with defaults.
     }

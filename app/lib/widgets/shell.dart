@@ -309,10 +309,15 @@ class _AppDrawer extends StatelessWidget {
             child: Row(children: [
               pinned(Icons.translate_rounded, isBangla ? 'English' : 'বাংলা', () {
                 Navigator.pop(context);
-                context.read<AppState>().setLang(isBangla ? 'en' : 'bn');
+                final st = context.read<AppState>();
+                st.setLang(isBangla ? 'en' : 'bn');
+                Push.refresh(st); // the server sends Bangla messages to Bangla apps
               }),
               pinned(themeIcon, tr(themeLabel), () => context.read<AppState>().toggleTheme()),
-              pinned(state.pushOn ? Icons.notifications_active_rounded : Icons.notifications_off_rounded, tr(state.pushOn ? 'Alerts on' : 'Alerts off'), () => Push.setEnabled(context.read<AppState>(), !state.pushOn)),
+              pinned(state.pushOn ? Icons.notifications_active_rounded : Icons.notifications_off_rounded, tr(state.pushOn ? 'Alerts on' : 'Alerts off'), () {
+                Navigator.pop(context);
+                showAlertsSheet(context);
+              }),
               pinned(Icons.admin_panel_settings_rounded, tr(isAdmin ? 'Admin' : 'Admin login'), () {
                 Navigator.pop(context);
                 context.push('/admin');
@@ -409,4 +414,56 @@ class _GlossNav extends StatelessWidget {
       ),
     );
   }
+}
+
+
+/// The notification settings: one switch for all, and a switch for each topic (urgent notices always reach everyone).
+void showAlertsSheet(BuildContext context) {
+  showModalBottomSheet<void>(
+    context: context,
+    showDragHandle: true,
+    useSafeArea: true,
+    builder: (ctx) => Consumer<AppState>(
+      builder: (ctx, state, _) {
+        final p = ctx.pal;
+        const labels = {
+          'events': 'Events',
+          'notices': 'Notices',
+          'jobs': 'Jobs & internships',
+          'contests': 'Contests',
+          'projects': 'Projects',
+        };
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(tr('Notifications'), style: displayStyle(ctx, 22)),
+            const SizedBox(height: 4),
+            Text(tr('Choose what you want to hear about'), style: bodyStyle(ctx, size: 13, color: p.muted)),
+            const SizedBox(height: 8),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(tr('Allow notifications'), style: bodyStyle(ctx, weight: FontWeight.w700)),
+              value: state.pushOn,
+              onChanged: (v) => Push.setEnabled(state, v),
+            ),
+            const Divider(height: 8),
+            for (final t in AppState.pushTopicNames)
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(tr(labels[t] ?? t), style: bodyStyle(ctx)),
+                value: state.pushTopics.contains(t),
+                onChanged: state.pushOn
+                    ? (v) {
+                        state.setPushTopic(t, v);
+                        Push.refresh(state);
+                      }
+                    : null,
+              ),
+            const SizedBox(height: 4),
+            Text(tr('Urgent notices always reach everyone.'), style: bodyStyle(ctx, size: 12, color: p.muted)),
+          ]),
+        );
+      },
+    ),
+  );
 }
