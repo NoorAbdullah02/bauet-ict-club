@@ -57,6 +57,16 @@ router.get('/:id', async (req, res) => {
         code, verified: true,
       });
     }
+    // an advisor (a + number): advisors are shown on the Team page anyway, so the card is public like a committee member's
+    if (/^a\d+$/.test(raw)) {
+      const a = (await pool.query('SELECT id, name, designation, rank_title, department, image_url, active FROM advisors WHERE id = $1 AND deleted_at IS NULL', [Number(raw.slice(1))])).rows[0];
+      if (!a) return res.status(404).json({ error: 'Member not found' });
+      const code = cardCode(raw);
+      return res.set('Cache-Control', 'no-store').json({
+        member: { id: raw, name: a.name, position: a.designation || 'Advisor', department: a.department, batch: '', session: a.rank_title || 'Club advisor', image_url: a.image_url, current: a.active !== false },
+        code, verified: same(given, code),
+      });
+    }
     const id = Number(raw);
     if (!Number.isInteger(id) || id < 1) return res.status(404).json({ error: 'Member not found' });
     const m = (await pool.query('SELECT id, name, position, department, batch, committee_session, image_url, active FROM members WHERE id = $1 AND deleted_at IS NULL', [id])).rows[0];
