@@ -195,8 +195,10 @@ class AppState extends ChangeNotifier {
   }
 
   // ---- auth ----
-  Future<void> login(String username, String password, {String? code}) async {
+  Future<void> login(String username, String password, {String? code, void Function(String)? onStage}) async {
+    onStage?.call('Asking the server…');
     final res = await api.login(username, password, code: code);
+    onStage?.call('Password accepted. Checking the session…');
     final token = (res['token'] ?? '').toString();
     if (token.isEmpty) throw ApiException('Login failed');
     api.token = token;
@@ -207,6 +209,7 @@ class AppState extends ChangeNotifier {
       api.token = null;
       throw ApiException('You typed the right details, but the server did not accept the session (${e.status ?? 'no answer'}): ${e.message}');
     }
+    onStage?.call('Signed in. Opening the admin area…');
     adminName = res['user'] is Map ? (res['user']['username'] ?? username).toString() : username;
     await _prefs?.setString('token', token);
     await _prefs?.setString('admin', adminName ?? '');
