@@ -82,6 +82,7 @@ class _AdminSignupScreenState extends State<AdminSignupScreen> {
       // the account exists: sign in with it at once (the router then opens the admin area)
       try {
         await st.login(_user.text.trim(), _pass.text);
+        if (mounted) context.go('/admin');
       } catch (_) {
         if (mounted) context.go('/admin/login');
       }
