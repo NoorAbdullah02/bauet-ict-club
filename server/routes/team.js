@@ -10,7 +10,7 @@ const router = express.Router();
 router.use(authMiddleware, requireSuper);
 
 router.get('/', async (_req, res) => {
-  try { res.json((await pool.query('SELECT id, username, role, created_at FROM admins ORDER BY id')).rows); } catch (e) { fail(res, e); }
+  try { res.json((await pool.query('SELECT id, username, email, role, created_at FROM admins ORDER BY id')).rows); } catch (e) { fail(res, e); }
 });
 
 router.post('/', async (req, res) => {
@@ -28,8 +28,9 @@ router.post('/', async (req, res) => {
 
 router.delete('/:id', async (req, res) => {
   try {
-    const r = await pool.query("DELETE FROM admins WHERE id = $1 AND role = 'editor'", [req.params.id]);
-    if (!r.rowCount) return res.status(404).json({ error: 'Only editor logins can be removed' });
+    // the main admin can remove editors and the admins who signed up; never the main admin account, and never itself
+    const r = await pool.query("DELETE FROM admins WHERE id = $1 AND role IN ('editor','admin') AND id <> $2", [req.params.id, req.user.id]);
+    if (!r.rowCount) return res.status(404).json({ error: 'Only editor and admin logins can be removed' });
     res.json({ success: true });
   } catch (e) { fail(res, e); }
 });

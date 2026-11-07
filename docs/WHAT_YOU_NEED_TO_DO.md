@@ -88,3 +88,13 @@ The code is ready and tested with a pretend gateway. Until you add the keys the 
 2. Try one event with "Pay online" on, pay with the test card shown on the SSLCommerz page.
 3. Real money: get a live merchant account (usually needs trade licence or organisation papers), put the live Store ID / Password in Render and set `SSLCOMMERZ_SANDBOX=false`.
 4. In the SSLCommerz merchant panel set the IPN address to `https://bauet-ict-club.onrender.com/api/pay/ssl/ipn`.
+
+
+## Admin accounts: sign-up (at most 3)
+
+- No ready-made user name or password is needed. Leave `ADMIN_PASSWORD` and `RESET_ADMIN_PASSWORD` out of Render.
+- On the sign-in page (website and app) press **Create an account**: user name, e-mail, password, then the 6-digit code that is e-mailed. The e-mail must be real; temporary addresses are refused.
+- The first account is the **main admin**; the next two are **admins**. After 3 accounts the button disappears by itself.
+- Every new account is announced by e-mail to `ADMIN_NOTIFY_EMAIL`. The main admin sees everyone (user name, e-mail, role) under Admin > Security, and can remove an admin or editor there.
+- Forgot the password: **Forgot password?** e-mails a one-time link to `ADMIN_NOTIFY_EMAIL`. E-mail sending (Brevo) must be set up for sign-up and reset.
+- An account created earlier (for example `ICT-Club`) stays and counts as one of the 3. Use **Forgot password?** for it.

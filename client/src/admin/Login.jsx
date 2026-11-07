@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Loader2, Lock, User, Eye, EyeOff, ShieldCheck, AlertCircle, ArrowRight, Mail, CheckCircle2, KeyRound } from 'lucide-react';
+import { ArrowLeft, Loader2, Lock, User, Eye, EyeOff, ShieldCheck, AlertCircle, ArrowRight, Mail, CheckCircle2, KeyRound, UserPlus } from 'lucide-react';
 import useStore, { api } from '../context/store';
 import Backdrop3D from '../components/Backdrop3D';
 import Logo from '../components/Logo';
@@ -74,6 +74,73 @@ function ResetPanel({ mode, setMode, username, setUsername }) {
   );
 }
 
+// sign-up (at most 3 admin accounts): user name, e-mail and password, then the 6-digit code that is e-mailed
+function SignupPanel({ setMode }) {
+  const login = useStore((s) => s.login);
+  const [step, setStep] = useState(1);
+  const [f, setF] = useState({ username: '', email: '', password: '' });
+  const [code, setCode] = useState('');
+  const [show, setShow] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState('');
+  const [err, setErr] = useState('');
+  const say = (ex) => setErr(ex?.response?.status === 429 ? 'Too many attempts. Wait a few minutes and try again.' : ex?.response?.data?.error || 'The server did not answer. It may be waking up. Wait a minute and try again.');
+
+  const start = async (e) => {
+    e.preventDefault(); setErr(''); setMsg('');
+    if (!f.username.trim() || !f.email.trim() || !f.password) { setErr('Fill in the user name, the e-mail and the password.'); return; }
+    setBusy(true);
+    try { const r = await api.post('/auth/signup/start', { username: f.username.trim(), email: f.email.trim(), password: f.password }); setMsg(r.data?.message || 'We sent a code to your e-mail.'); setStep(2); }
+    catch (ex) { say(ex); }
+    setBusy(false);
+  };
+  const verify = async (e) => {
+    e.preventDefault(); setErr('');
+    setBusy(true);
+    try {
+      await api.post('/auth/signup/verify', { email: f.email.trim(), code: code.trim() });
+      try { await login(f.username.trim(), f.password); } catch { setMode('in'); } // signed in at once; if that fails the sign-in page opens
+    } catch (ex) { say(ex); }
+    setBusy(false);
+  };
+
+  return (
+    <div className="relative rounded-[33px] border border-line bg-[var(--glass)] p-8 shadow-[var(--shadow-xl)] backdrop-blur-2xl sm:p-10">
+      <div className="mb-6 text-center">
+        <div className="mx-auto mb-4 grid size-14 place-items-center rounded-2xl bg-tech/10 text-tech"><UserPlus size={26} /></div>
+        <h1 className="text-[1.6rem] leading-tight text-fg">{step === 1 ? 'Create your account' : 'Check your e-mail'}</h1>
+        <p className="mt-1.5 text-sm text-fg2">{step === 1 ? 'Only 3 admin accounts can be made. Your e-mail is checked with a code.' : msg}</p>
+      </div>
+      {step === 1 ? (
+        <form onSubmit={start} noValidate>
+          <label className="mb-4 block"><span className="mb-1.5 block font-mono text-[11px] uppercase tracking-[0.14em] text-fg2">User name</span>
+            <span className="relative block"><input className={field} value={f.username} onChange={(e) => setF({ ...f, username: e.target.value })} autoCapitalize="none" spellCheck={false} autoComplete="username" placeholder="3 to 30 letters or numbers" />
+              <User size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted peer-focus:text-tech" /></span></label>
+          <label className="mb-4 block"><span className="mb-1.5 block font-mono text-[11px] uppercase tracking-[0.14em] text-fg2">E-mail</span>
+            <span className="relative block"><input className={field} type="email" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} autoCapitalize="none" spellCheck={false} autoComplete="email" placeholder="you@gmail.com" />
+              <Mail size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted peer-focus:text-tech" /></span></label>
+          <label className="mb-2 block"><span className="mb-1.5 block font-mono text-[11px] uppercase tracking-[0.14em] text-fg2">Password</span>
+            <span className="relative block"><input className={`${field} pr-12`} type={show ? 'text' : 'password'} value={f.password} onChange={(e) => setF({ ...f, password: e.target.value })} autoComplete="new-password" placeholder="6+ characters, letters and numbers" />
+              <Lock size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted peer-focus:text-tech" />
+              <button type="button" onClick={() => setShow((v) => !v)} aria-label={show ? 'Hide password' : 'Show password'} className="absolute right-2 top-1/2 grid size-9 -translate-y-1/2 place-items-center rounded-xl text-fg2 hover:text-accent">{show ? <EyeOff size={18} /> : <Eye size={18} />}</button></span></label>
+          {err && <p role="alert" className="mt-4 flex items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-3.5 py-2.5 text-sm text-red-500"><AlertCircle size={16} className="shrink-0" /> {err}</p>}
+          <button disabled={busy} className="btn-primary mt-6 w-full !py-3.5 disabled:opacity-60">{busy ? <Loader2 size={17} className="animate-spin" /> : <Mail size={15} />} {busy ? 'Sending…' : 'Send me the code'}</button>
+        </form>
+      ) : (
+        <form onSubmit={verify} noValidate>
+          <label className="mb-2 block"><span className="mb-1.5 block font-mono text-[11px] uppercase tracking-[0.14em] text-fg2">6-digit code</span>
+            <span className="relative block"><input className={`${field} tracking-[0.3em]`} value={code} onChange={(e) => setCode(e.target.value)} inputMode="numeric" autoComplete="one-time-code" maxLength={6} autoFocus placeholder="123456" />
+              <ShieldCheck size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted peer-focus:text-tech" /></span></label>
+          {err && <p role="alert" className="mt-4 flex items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-3.5 py-2.5 text-sm text-red-500"><AlertCircle size={16} className="shrink-0" /> {err}</p>}
+          <button disabled={busy || code.trim().length < 6} className="btn-primary mt-6 w-full !py-3.5 disabled:opacity-60">{busy ? <Loader2 size={17} className="animate-spin" /> : <CheckCircle2 size={15} />} {busy ? 'Checking…' : 'Create my account'}</button>
+          <button type="button" onClick={() => { setStep(1); setErr(''); }} className="mt-3 block w-full text-center text-xs text-muted hover:text-accent">Wrong e-mail? Go back</button>
+        </form>
+      )}
+      <button type="button" onClick={() => setMode('in')} className="mt-5 block w-full text-center text-sm font-semibold text-accent hover:underline">Back to sign in</button>
+    </div>
+  );
+}
+
 export default function Login() {
   const login = useStore((s) => s.login);
   const [f, setF] = useState({ username: localStorage.getItem('bauet-admin-name') || 'ICT-Club', password: '', code: '' });
@@ -84,6 +151,10 @@ export default function Login() {
   const [busy, setBusy] = useState(false);
   // a link from the reset e-mail (?reset=...) opens the new-password form straight away
   const [mode, setMode] = useState(() => (new URLSearchParams(window.location.search).get('reset') ? 'reset' : 'in'));
+
+  // sign-up is offered only while fewer than 3 admin accounts exist
+  const [slots, setSlots] = useState(0);
+  useEffect(() => { api.get('/auth/signup/status').then((r) => setSlots(r.data?.open ? r.data.left : 0)).catch(() => {}); }, []);
 
   const submit = async (e) => {
     e.preventDefault();
@@ -115,7 +186,7 @@ export default function Login() {
       <motion.div initial={{ opacity: 0, y: 30, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }} className="relative z-10 w-full max-w-[26rem]">
         {/* soft gradient frame */}
         <div className="absolute -inset-px rounded-[34px] opacity-70 blur-[1px]" style={{ background: 'linear-gradient(135deg, var(--accent), transparent 40%, var(--tech))' }} />
-        {mode !== 'in' ? <ResetPanel mode={mode} setMode={setMode} username={f.username} setUsername={(v) => setF({ ...f, username: v })} /> : (
+        {mode === 'signup' ? <SignupPanel setMode={setMode} /> : mode !== 'in' ? <ResetPanel mode={mode} setMode={setMode} username={f.username} setUsername={(v) => setF({ ...f, username: v })} /> : (
         <form onSubmit={submit} noValidate className="relative rounded-[33px] border border-line bg-[var(--glass)] p-8 shadow-[var(--shadow-xl)] backdrop-blur-2xl sm:p-10">
           <div className="mb-8 text-center">
             <div className="mb-5 flex justify-center"><Logo kind="club" height={92} priority /></div>
@@ -168,6 +239,8 @@ export default function Login() {
             {busy ? <Loader2 size={17} className="animate-spin" /> : <Lock size={15} />} {busy ? 'Signing in…' : 'Sign in'}
             {!busy && <ArrowRight size={16} className="transition group-hover:translate-x-1" />}
           </button>
+
+          {slots > 0 && <button type="button" onClick={() => setMode('signup')} className="btn-outline mt-3 w-full !py-3"><UserPlus size={15} /> Create an account ({slots} left)</button>}
 
           <p className="mt-6 text-center text-xs text-muted">Only club administrators can sign in. Repeated wrong passwords lock the account for a while.</p>
         </form>

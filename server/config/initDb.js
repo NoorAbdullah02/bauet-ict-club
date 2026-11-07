@@ -123,6 +123,19 @@ async function initDb() {
       );
     `);
 
+    // sign-up requests waiting for the e-mail code (the password is stored only as a bcrypt hash, the code only as a keyed hash)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS admin_signups (
+        email VARCHAR(255) PRIMARY KEY,
+        username VARCHAR(100) NOT NULL,
+        password_hash VARCHAR(255) NOT NULL,
+        code_hash TEXT NOT NULL,
+        expires_at TIMESTAMPTZ NOT NULL,
+        attempts INTEGER NOT NULL DEFAULT 0,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `);
+
     // sign-in security: session version (changing the password or "sign out everywhere" ends old sessions), two-step sign-in, account lock
     await client.query(`
       ALTER TABLE admins ADD COLUMN IF NOT EXISTS token_version INTEGER NOT NULL DEFAULT 0;
@@ -131,6 +144,7 @@ async function initDb() {
       ALTER TABLE admins ADD COLUMN IF NOT EXISTS backup_codes TEXT;
       ALTER TABLE admins ADD COLUMN IF NOT EXISTS failed_logins INTEGER NOT NULL DEFAULT 0;
       ALTER TABLE admins ADD COLUMN IF NOT EXISTS locked_until TIMESTAMPTZ;
+      ALTER TABLE admins ADD COLUMN IF NOT EXISTS email VARCHAR(255);
       ALTER TABLE admins ADD COLUMN IF NOT EXISTS reset_hash TEXT;
       ALTER TABLE admins ADD COLUMN IF NOT EXISTS reset_expires TIMESTAMPTZ;
     `);
@@ -349,11 +363,12 @@ async function initDb() {
     // the first admin is called ICT-Club (ADMIN_USERNAME changes it). An older install called it "admin": rename that account once, nothing else changes.
     const adminName = (process.env.ADMIN_USERNAME || 'ICT-Club').trim().slice(0, 60) || 'ICT-Club';
     await client.query("UPDATE admins SET username = $1 WHERE username = 'admin' AND NOT EXISTS (SELECT 1 FROM admins WHERE LOWER(username) = LOWER($1))", [adminName]);
-    const created = await client.query(`
+    // no ADMIN_PASSWORD means no ready-made account at all: the first people sign up themselves (see /api/auth/signup, at most 3 accounts)
+    const created = process.env.ADMIN_PASSWORD ? await client.query(`
       INSERT INTO admins (username, password_hash, role) SELECT $1::text, $2::text, 'superadmin'
       WHERE NOT EXISTS (SELECT 1 FROM admins WHERE LOWER(username) = LOWER($1))
       RETURNING id
-    `, [adminName, hash]);
+    `, [adminName, hash]) : { rows: [] };
     // The admin account is created ONCE. Changing ADMIN_PASSWORD later does not change an existing account. To set a new password
     // (forgotten, or changed in Render after the first start), set RESET_ADMIN_PASSWORD=true together with a strong ADMIN_PASSWORD,
     // let the service restart, sign in, then REMOVE the RESET_ADMIN_PASSWORD line.

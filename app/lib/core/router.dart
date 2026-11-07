@@ -22,6 +22,7 @@ import '../screens/admin/admin_signups_screen.dart';
 import '../screens/admin/admin_crud_screen.dart';
 import '../screens/admin/admin_home_screen.dart';
 import '../screens/admin/admin_login_screen.dart';
+import '../screens/admin/admin_signup_screen.dart';
 import '../screens/admin/admin_settings_screen.dart';
 import '../screens/admin/admin_trash_screen.dart';
 import '../screens/admin/admin_visitors_screen.dart';
@@ -93,9 +94,9 @@ GoRouter buildRouter(AppState state) {
     refreshListenable: state,
     redirect: (context, route) {
       final loc = route.matchedLocation;
-      final isAdminArea = loc.startsWith('/admin') && loc != '/admin/login';
+      final isAdminArea = loc.startsWith('/admin') && loc != '/admin/login' && loc != '/admin/signup';
       if (isAdminArea && !state.isAdmin) return '/admin/login';
-      if (loc == '/admin/login' && state.isAdmin) return '/admin';
+      if ((loc == '/admin/login' || loc == '/admin/signup') && state.isAdmin) return '/admin';
       return null;
     },
     routes: [
@@ -141,6 +142,7 @@ GoRouter buildRouter(AppState state) {
       GoRoute(path: '/verify/:code', pageBuilder: (c, s) => _slide(s, VerifyScreen(code: s.pathParameters['code'] ?? ''))),
       GoRoute(path: '/f/:slug', pageBuilder: (c, s) => _slide(s, PublicFormScreen(slug: s.pathParameters['slug'] ?? ''))),
       GoRoute(path: '/chat', pageBuilder: (c, s) => _slide(s, const ChatScreen())),
+      GoRoute(path: '/admin/signup', pageBuilder: (c, s) => _slide(s, _admin(const AdminSignupScreen()))),
       GoRoute(path: '/admin/login', pageBuilder: (c, s) => _slide(s, _admin(const AdminLoginScreen()))),
       GoRoute(path: '/admin', pageBuilder: (c, s) => _slide(s, _admin(const AdminHomeScreen()))),
       GoRoute(path: '/admin/applications', pageBuilder: (c, s) => _slide(s, _admin(const AdminApplicationsScreen()))),
