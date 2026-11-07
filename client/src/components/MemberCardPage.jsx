@@ -31,18 +31,22 @@ function Badge({ m, code, qr, verified }) {
   const c = (v) => `${v}cqw`;
   return (
     <motion.div initial={{ opacity: 0, y: 26, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }} style={{ perspective: 1200 }}>
+      {/* wrapper = the container whose width every size below is measured against (cqw) */}
+      <div className="mx-auto w-full max-w-[372px]" style={{ containerType: 'inline-size' }}>
       <div onPointerMove={move} onPointerLeave={() => setTilt({ x: 0, y: 0 })}
-        className="member-badge relative mx-auto aspect-[9/16] w-full max-w-[372px] overflow-hidden bg-white text-[#0A1A3F] shadow-[0_40px_90px_rgba(6,20,64,0.45)] ring-1 ring-black/10 transition-transform duration-200 ease-out print:shadow-none"
-        style={{ containerType: 'inline-size', borderRadius: c(8), transform: `rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`, transformStyle: 'preserve-3d' }}>
+        className="member-badge relative aspect-[9/16] w-full shadow-[0_40px_90px_rgba(6,20,64,0.45)] transition-transform duration-200 ease-out print:shadow-none"
+        style={{ padding: c(1.7), borderRadius: c(8), background: 'linear-gradient(145deg,#35D989 0%,#38C8F0 35%,#8B5CF6 70%,#FF6B8A 100%)', transform: `rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`, transformStyle: 'preserve-3d' }}>
+      <div className="relative size-full overflow-hidden bg-white text-[#0A1A3F]" style={{ containerType: 'inline-size', borderRadius: c(6.4) }}>
 
         <div aria-hidden="true" className="absolute inset-0" style={{ background: 'radial-gradient(70% 45% at 78% 40%, rgba(56,200,240,0.22), transparent 70%), radial-gradient(60% 40% at 90% 15%, rgba(53,217,137,0.18), transparent 70%), linear-gradient(180deg,#FFFFFF,#F3F6FC)' }} />
-        <div aria-hidden="true" className="absolute select-none leading-none" style={{ ...condensed, right: c(-4), top: c(34), fontWeight: 700, fontSize: c(36), letterSpacing: '-0.02em', color: 'rgba(11,42,120,0.07)' }}>ICT</div>
+        <div aria-hidden="true" className="absolute select-none leading-none" style={{ ...condensed, right: c(5), top: c(36), fontWeight: 700, fontSize: c(30), letterSpacing: '-0.02em', color: 'rgba(11,42,120,0.07)' }}>ICT</div>
 
         {/* left navy strip */}
         <div className="absolute inset-y-0 left-0 overflow-hidden" style={{ width: c(27), background: 'linear-gradient(180deg,#061440 0%,#0B2A78 60%,#0A4D8F 100%)' }}>
           <div aria-hidden="true" className="absolute inset-0 opacity-30" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,.10) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.10) 1px, transparent 1px)', backgroundSize: `${c(6)} ${c(6)}` }} />
           <div aria-hidden="true" className="absolute rounded-full bg-[#2B63FF]/40 blur-3xl" style={{ left: c(-10), top: c(60), width: c(40), height: c(40) }} />
           <div className="relative mx-auto bg-white shadow-lg" style={{ marginTop: c(5), width: c(21), padding: c(1.6), borderRadius: c(4) }}><Logo kind="club" height={36} className="mx-auto !h-auto w-full" /></div>
+          <div className="relative mx-auto grid place-items-center rounded-full bg-white shadow-md" style={{ marginTop: c(3), width: c(13), height: c(13) }}><Logo kind="crest" height={28} className="!h-[78%] w-auto" /></div>
           <div className="absolute inset-x-0 grid place-items-center" style={{ top: '25%', bottom: '38%' }}>
             <span className="whitespace-nowrap font-semibold uppercase text-white" style={{ ...condensed, writingMode: 'vertical-rl', transform: 'rotate(180deg)', fontSize: c(6.4), letterSpacing: '0.2em' }}>BAUET ICT Club</span>
           </div>
@@ -73,7 +77,7 @@ function Badge({ m, code, qr, verified }) {
           <path d="M0 9 Q0 7 2.5 6 L8 3.5 Q10 2.5 13 2.5 L48 2.5 Q52 2.5 54 1.2 Q56 0 59 0 L100 0 L100 40 L0 40 Z" fill="url(#panel)" />
         </svg>
 
-        <div className="absolute inset-x-0 bottom-0 flex items-stretch" style={{ height: '33%', padding: `0 ${c(8.5)} ${c(5)} ${c(7)}`, gap: c(3) }}>
+        <div className="absolute inset-x-0 bottom-0 flex items-stretch" style={{ height: '33%', padding: `0 ${c(9)} ${c(5.5)} ${c(7)}`, gap: c(3) }}>
           <div className="flex min-w-0 flex-1 flex-col justify-end" style={{ gap: c(2.2) }}>
             <div className="min-w-0">
               <h2 className="line-clamp-2 font-bold uppercase tracking-tight text-[#3B4658]" style={{ ...condensed, fontSize: c(nameFs), lineHeight: 0.92 }}>{name}</h2>
@@ -93,11 +97,12 @@ function Badge({ m, code, qr, verified }) {
           </div>
         </div>
         {/* year / session, turned sideways like the printed design */}
-        <span className="absolute whitespace-nowrap font-semibold uppercase text-[#0A1A3F]" style={{ ...condensed, right: c(1.2), bottom: c(6), transformOrigin: 'bottom right', transform: 'rotate(-90deg) translate(100%, 0)', fontSize: c(4), letterSpacing: '0.18em' }}>{session}</span>
+        <span className="absolute whitespace-nowrap font-semibold uppercase text-[#0A1A3F]" style={{ ...condensed, right: c(2.6), bottom: c(6), transformOrigin: 'bottom right', transform: 'rotate(-90deg) translate(100%, 0)', fontSize: c(4), letterSpacing: '0.18em' }}>{session}</span>
 
         {verified && <span className="absolute z-10 inline-flex items-center rounded-full bg-emerald-500 font-bold text-white shadow-lg" style={{ left: c(30), top: '17%', gap: c(1), padding: `${c(1)} ${c(2.6)}`, fontSize: c(2.8) }}><BadgeCheck style={{ width: c(3.2), height: c(3.2) }} /> Verified</span>}
         <div aria-hidden="true" className="badge-sheen pointer-events-none absolute inset-0" />
-        <div aria-hidden="true" className="absolute inset-x-0 bottom-0" style={{ height: c(1.6), background: 'linear-gradient(90deg,#35D989,#38C8F0,#8B5CF6,#FF6B8A,#FFD166)' }} />
+      </div>
+      </div>
       </div>
     </motion.div>
   );
