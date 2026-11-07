@@ -10,7 +10,7 @@ const field = 'peer w-full rounded-2xl border border-line bg-bg/70 py-3.5 pl-12 
 
 export default function Login() {
   const login = useStore((s) => s.login);
-  const [f, setF] = useState({ username: '', password: '', code: '' });
+  const [f, setF] = useState({ username: localStorage.getItem('bauet-admin-name') || 'ICT-Club', password: '', code: '' });
   const [needCode, setNeedCode] = useState(false);
   const [show, setShow] = useState(false);
   const [caps, setCaps] = useState(false);
@@ -48,10 +48,14 @@ export default function Login() {
             <p className="mt-1.5 text-sm text-fg2">Sign in to manage the club website, applications and committees.</p>
           </div>
 
+          <div className="mb-5 flex items-center gap-3 rounded-2xl border border-line bg-surface/70 p-3">
+            <span className="grid size-12 shrink-0 place-items-center rounded-full text-sm font-bold text-white shadow-md" style={{ background: 'linear-gradient(135deg,#1F4FD8,#17A2D8 60%,#35D989)' }} aria-hidden="true">IC</span>
+            <span className="min-w-0"><span className="block truncate text-base font-bold text-fg">ICT-Club</span><span className="flex items-center gap-1 text-xs text-fg2"><ShieldCheck size={13} className="text-emerald-500" /> Club admin account</span></span>
+          </div>
           <label className="mb-4 block">
             <span className="mb-1.5 block font-mono text-[11px] uppercase tracking-[0.14em] text-fg2">Username</span>
             <span className="relative block">
-              <input className={field} value={f.username} onChange={(e) => setF({ ...f, username: e.target.value })} placeholder="admin" autoFocus required autoComplete="username" autoCapitalize="none" spellCheck={false} />
+              <input className={field} value={f.username} onChange={(e) => setF({ ...f, username: e.target.value })} placeholder="ICT-Club" required autoComplete="username" autoCapitalize="none" spellCheck={false} />
               <User size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted transition peer-focus:text-tech" />
             </span>
           </label>

@@ -21,7 +21,7 @@ class AdminLoginScreen extends StatefulWidget {
 }
 
 class _AdminLoginScreenState extends State<AdminLoginScreen> {
-  final _user = TextEditingController();
+  final _user = TextEditingController(text: 'ICT-Club'); // the club's admin name is already there
   final _pass = TextEditingController();
   final _code = TextEditingController();
   final _codeFocus = FocusNode();
@@ -160,6 +160,16 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                 child: GlassCard(
                   padding: const EdgeInsets.fromLTRB(20, 22, 20, 16),
                   child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(borderRadius: BorderRadius.circular(18), color: p.alt.withValues(alpha: 0.6), border: Border.all(color: p.line)),
+                      child: Row(children: [
+                        Container(width: 46, height: 46, alignment: Alignment.center, decoration: const BoxDecoration(shape: BoxShape.circle, gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF1F4FD8), Color(0xFF17A2D8), Color(0xFF35D989)])), child: const Text('IC', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 15))),
+                        const SizedBox(width: 12),
+                        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('ICT-Club', style: bodyStyle(context, weight: FontWeight.w800, size: 16)), Row(children: [const Icon(Icons.verified_user_rounded, size: 14, color: Color(0xFF10B981)), const SizedBox(width: 4), Text('Club admin account', style: bodyStyle(context, size: 12, color: p.muted))])])),
+                      ]),
+                    ),
                     AppField(controller: _user, label: 'Username', icon: Icons.person_outline_rounded, textInputAction: TextInputAction.next),
                     const SizedBox(height: 14),
                     AppField(
