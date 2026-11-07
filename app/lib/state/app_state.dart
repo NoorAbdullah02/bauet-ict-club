@@ -200,6 +200,13 @@ class AppState extends ChangeNotifier {
     final token = (res['token'] ?? '').toString();
     if (token.isEmpty) throw ApiException('Login failed');
     api.token = token;
+    // the very next request must work too; if the server refuses the session, say so here instead of bouncing back to this screen
+    try {
+      await api.adminCall('GET', '/auth/me', query: {'_': DateTime.now().millisecondsSinceEpoch});
+    } on ApiException catch (e) {
+      api.token = null;
+      throw ApiException('You typed the right details, but the server did not accept the session (${e.status ?? 'no answer'}): ${e.message}');
+    }
     adminName = res['user'] is Map ? (res['user']['username'] ?? username).toString() : username;
     await _prefs?.setString('token', token);
     await _prefs?.setString('admin', adminName ?? '');
@@ -224,6 +231,12 @@ class AppState extends ChangeNotifier {
 
   /// Called when an admin request returns 401/403 (expired token).
   Future<void> handleAuthError(Object e) async {
-    if (e is ApiException && (e.status == 401 || e.status == 403)) await logout();
+    if (e is ApiException && (e.status == 401 || e.status == 403)) {
+      signOutNote = e.message; // shown once on the sign-in screen, so a sign-out is never silent
+      await logout();
+    }
   }
+
+  /// Why the last admin session ended by itself (an expired or refused token); the sign-in screen shows it once.
+  String? signOutNote;
 }
