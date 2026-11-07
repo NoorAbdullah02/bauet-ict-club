@@ -4,7 +4,13 @@ module.exports = {
   columns: ['name', 'designation', 'rank_title', 'department', 'email', 'phone', 'image_url', 'sort_order', 'active'],
   imageCols: ['image_url'], orderBy: 'sort_order', orderDir: 'ASC', public: true,
   title: (r) => r.name, image: 'image_url',
-  validate: async (data) => {
+  validate: async (data, oldRow) => {
+    // the club has one Chief Advisor; everyone else is an Assistant Advisor, Co-Advisor... (the admin writes the role)
+    if (/chief/i.test(String(data.designation || ''))) {
+      const pool = require('../config/db');
+      const { rows } = await pool.query("SELECT id FROM advisors WHERE deleted_at IS NULL AND designation ILIKE '%chief%' AND id <> $1 LIMIT 1", [oldRow?.id || 0]);
+      if (rows.length) return 'There can be only one Chief Advisor. Change the other advisor first.';
+    }
     if (data.email && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(data.email).trim())) return 'Enter a valid e-mail address';
     return null;
   },

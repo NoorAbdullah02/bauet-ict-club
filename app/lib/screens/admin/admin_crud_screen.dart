@@ -211,7 +211,7 @@ const Map<String, TableSpec> kTables = {
     icon: Icons.school_rounded,
     fields: [
       FieldSpec('name', 'Name', FieldKind.text, true),
-      FieldSpec('designation', 'Role in the club', FieldKind.choice, false, ['Chief Advisor', 'Advisor', 'Co-Advisor', 'Honorary Advisor']),
+      FieldSpec('designation', 'Role (write it: Chief Advisor, Assistant Advisor...)'),
       FieldSpec('rank_title', 'Title (for example Associate Professor)'),
       FieldSpec('department', 'Department'),
       FieldSpec('email', 'E-mail (optional)'),

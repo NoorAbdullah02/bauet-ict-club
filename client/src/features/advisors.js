@@ -4,7 +4,7 @@ export default {
   type: 'advisors', name: 'Advisor', icon: GraduationCap, nav: 'Content',
   fields: [
     { key: 'name', label: 'Name', type: 'text', required: true },
-    { key: 'designation', label: 'Role in the club', type: 'select', options: ['Chief Advisor', 'Advisor', 'Co-Advisor', 'Honorary Advisor'] },
+    { key: 'designation', label: 'Role in the club (write it: Chief Advisor, Assistant Advisor...)', type: 'text', placeholder: 'Assistant Advisor' },
     { key: 'rank_title', label: 'Title (for example Associate Professor)', type: 'text' },
     { key: 'department', label: 'Department', type: 'text' },
     { key: 'email', label: 'E-mail (optional)', type: 'text' },
