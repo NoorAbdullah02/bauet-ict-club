@@ -16,6 +16,11 @@ async function load() {
   const notices = await safe('SELECT title, date, content FROM notices WHERE deleted_at IS NULL AND (publish_at IS NULL OR publish_at <= NOW()) AND NOT COALESCE(is_draft, FALSE) AND (expiry_date IS NULL OR expiry_date >= $1) ORDER BY pinned DESC, created_at DESC LIMIT 5', [today]);
   const faqs = await safe('SELECT question, answer FROM faqs WHERE deleted_at IS NULL ORDER BY sort_order ASC LIMIT 20');
   const projects = await safe('SELECT title, summary, status, tech FROM projects WHERE deleted_at IS NULL ORDER BY created_at DESC LIMIT 8');
+  // more public lists the club keeps: advisors, open contests, open jobs, learning resources (private data such as applications and form answers is never read here)
+  const advisors = await safe("SELECT name, designation, rank_title, department FROM advisors WHERE deleted_at IS NULL AND COALESCE(active, true) ORDER BY sort_order ASC LIMIT 6");
+  const contests = await safe("SELECT title, prize, start_date, deadline, status FROM contests WHERE deleted_at IS NULL AND status = 'open' ORDER BY created_at DESC LIMIT 6");
+  const jobs = await safe("SELECT title, company, kind, work_mode, deadline FROM jobs WHERE deleted_at IS NULL AND (publish_at IS NULL OR publish_at <= NOW()) AND NOT COALESCE(is_draft, false) AND (deadline IS NULL OR deadline >= CURRENT_DATE) ORDER BY created_at DESC LIMIT 6");
+  const resources = await safe("SELECT title, category, kind FROM resources WHERE deleted_at IS NULL ORDER BY created_at DESC LIMIT 8");
   const sponsors = await safe('SELECT name, tier FROM sponsors WHERE deleted_at IS NULL ORDER BY sort_order ASC LIMIT 12');
   const members = await safe("SELECT name, position, department, committee_session FROM members WHERE deleted_at IS NULL AND committee_session IS NOT NULL AND position NOT ILIKE '%ambassador%'");
 
@@ -26,7 +31,7 @@ async function load() {
   const leaders = members.filter((m) => m.committee_session === current && positionRank(m.position) <= 10)
     .sort((a, b) => positionRank(a.position) - positionRank(b.position)).slice(0, 12);
 
-  cache = { at: Date.now(), data: { site: site || {}, events, notices, faqs, projects, sponsors, current, leaders } };
+  cache = { at: Date.now(), data: { site: site || {}, events, notices, faqs, projects, sponsors, advisors, contests, jobs, resources, current, leaders } };
   return cache.data;
 }
 
@@ -42,6 +47,10 @@ function asPrompt(k) {
   else lines.push('Upcoming events: none announced right now.');
   if (k.notices.length) lines.push(`Latest notices:\n${k.notices.map((n) => `- ${n.title} (${d10(n.date)})${n.content ? `: ${String(n.content).slice(0, 160)}` : ''}`).join('\n')}`);
   if (k.projects.length) lines.push(`Projects:\n${k.projects.map((p) => `- ${p.title} [${p.status || 'Active'}]${p.summary ? `: ${String(p.summary).slice(0, 120)}` : ''}`).join('\n')}`);
+  if (k.advisors?.length) lines.push(`Club advisors (teachers who guide the club): ${k.advisors.map((a) => `${a.name} (${[a.designation, a.rank_title, a.department].filter(Boolean).join(', ')})`).join('; ')}`);
+  if (k.contests?.length) lines.push(`Open contests:\n${k.contests.map((c) => `- ${c.title}${c.prize ? `, prize: ${c.prize}` : ''}${c.deadline ? `, deadline ${d10(c.deadline)}` : ''}`).join('\n')} (see the /contests page)`);
+  if (k.jobs?.length) lines.push(`Open jobs and internships:\n${k.jobs.map((j) => `- ${j.title}${j.company ? ` at ${j.company}` : ''} [${[j.kind, j.work_mode].filter(Boolean).join(', ')}]${j.deadline ? `, apply by ${d10(j.deadline)}` : ''}`).join('\n')} (see the /jobs page)`);
+  if (k.resources?.length) lines.push(`Learning resources (on the /resources page): ${k.resources.map((r) => r.title).join('; ')}`);
   if (k.sponsors.length) lines.push(`Collaborations and partners: ${k.sponsors.map((x) => x.name).join(', ')}`);
   if (k.faqs.length) lines.push(`FAQ:\n${k.faqs.map((f) => `Q: ${f.question}\nA: ${f.answer}`).join('\n')}`);
   return lines.join('\n\n');
