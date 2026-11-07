@@ -334,6 +334,8 @@ async function initDb() {
 
     const bcrypt = require('bcryptjs');
     // Never ship a well-known password: use ADMIN_PASSWORD, or generate one and print it once.
+    // a pasted value can carry spaces or quote marks around it (for example "Ice-2016"): remove them so it matches what is typed at sign-in
+    if (process.env.ADMIN_PASSWORD) process.env.ADMIN_PASSWORD = process.env.ADMIN_PASSWORD.trim().replace(/^(["'])(.*)\1$/, '$2');
     const adminPassword = process.env.ADMIN_PASSWORD || require('crypto').randomBytes(9).toString('base64url');
     const hash = await bcrypt.hash(adminPassword, 10);
     // the first admin is called ICT-Club (ADMIN_USERNAME changes it). An older install called it "admin": rename that account once, nothing else changes.
@@ -351,8 +353,9 @@ async function initDb() {
       const problem = process.env.ADMIN_PASSWORD ? require('../utils/passwordPolicy').passwordProblem(process.env.ADMIN_PASSWORD, adminName) : 'ADMIN_PASSWORD is not set';
       if (problem) console.warn(`RESET_ADMIN_PASSWORD is on but the password was not changed: ${problem}`);
       else {
-        await client.query("UPDATE admins SET password_hash = $1, failed_logins = 0, locked_until = NULL, token_version = COALESCE(token_version, 0) + 1 WHERE LOWER(username) = LOWER($2)", [hash, adminName]);
-        console.log('The admin password was reset from ADMIN_PASSWORD. Username: ' + adminName + '. Now remove RESET_ADMIN_PASSWORD from the environment.');
+        const r = await client.query("UPDATE admins SET password_hash = $1, failed_logins = 0, locked_until = NULL, token_version = COALESCE(token_version, 0) + 1 WHERE LOWER(username) = LOWER($2)", [hash, adminName]);
+        const names = (await client.query('SELECT username FROM admins ORDER BY id')).rows.map((x) => x.username).join(', ');
+        console.log(`The admin password was reset from ADMIN_PASSWORD (${adminPassword.length} characters). Username: ${adminName}. Accounts changed: ${r.rowCount}. All admin accounts: ${names}. Now remove RESET_ADMIN_PASSWORD from the environment.`);
       }
     }
     if (created.rows.length && !process.env.ADMIN_PASSWORD) console.log(`\nAdmin account created. Username: ${adminName}  Password: ${adminPassword}\n(Save it now — it is not shown again. Set ADMIN_PASSWORD in .env to choose your own.)`);
