@@ -25,7 +25,14 @@ export default function Login() {
     try { await login(f.username.trim(), f.password, needCode ? f.code.trim() : undefined); } catch (ex) {
       const d = ex?.response?.data;
       if (d?.twoFactor) { setNeedCode(true); setErr(needCode ? 'That code is not right. Try the newest code, or a backup code.' : ''); }
-      else setErr(ex?.response?.status === 429 ? 'Too many attempts. Please wait a few minutes and try again.' : 'Invalid username or password');
+      else {
+        const st = ex?.response?.status;
+        // say what really happened: a wrong password is a 401; a sleeping or restarting server is not a wrong password
+        setErr(st === 429 ? 'Too many attempts. Please wait a few minutes and try again.'
+          : st === 401 || st === 400 ? 'Invalid username or password'
+          : !st ? 'The server did not answer. It may be waking up (up to a minute). Wait and try again.'
+          : `The server had a problem (${st}). Wait a minute and try again.${d?.error ? ' ' + d.error : ''}`);
+      }
     }
     setBusy(false);
   };
