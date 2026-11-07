@@ -1,9 +1,13 @@
+import 'dart:io';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -29,6 +33,8 @@ class MemberCardScreen extends StatefulWidget {
 
 class _MemberCardScreenState extends State<MemberCardScreen> {
   late final AppState _state = context.read<AppState>();
+  final GlobalKey _cardKey = GlobalKey();
+  bool _saving = false;
   Map<String, dynamic>? _data;
   bool _missing = false;
   String? _error;
@@ -64,6 +70,26 @@ class _MemberCardScreenState extends State<MemberCardScreen> {
     }
   }
 
+  /// Takes a sharp picture of the card and opens the phone's share sheet, where it can be saved to Files / Drive / the gallery or sent on.
+  Future<void> _download(String name) async {
+    if (_saving) return;
+    setState(() => _saving = true);
+    try {
+      final boundary = _cardKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+      if (boundary == null) throw StateError('card not ready');
+      final image = await boundary.toImage(pixelRatio: 3);
+      final bytes = (await image.toByteData(format: ui.ImageByteFormat.png))!.buffer.asUint8List();
+      final dir = await getTemporaryDirectory();
+      final safe = name.replaceAll(RegExp(r'[^A-Za-z0-9]+'), '-').replaceAll(RegExp(r'^-|-$'), '');
+      final file = File('${dir.path}${Platform.pathSeparator}${safe.isEmpty ? 'member' : safe}-BAUET-ICT-Club-card.png');
+      await file.writeAsBytes(bytes);
+      await Share.shareXFiles([XFile(file.path)], subject: 'BAUET ICT Club membership card');
+    } catch (_) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not save the card')));
+    }
+    if (mounted) setState(() => _saving = false);
+  }
+
   @override
   Widget build(BuildContext context) {
     final p = context.pal;
@@ -92,7 +118,7 @@ class _MemberCardScreenState extends State<MemberCardScreen> {
               Expanded(child: Text(verified ? 'Genuine card: this person is a member of BAUET ICT Club.' : 'This code does not match the card. Do not trust it.', style: bodyStyle(context, weight: FontWeight.w700, size: 13.5))),
             ]),
           ),
-        _CardFace(
+        RepaintBoundary(key: _cardKey, child: _CardFace(
           name: '${m['name']}',
           position: '${m['position'] ?? ''}',
           department: '${m['department'] ?? ''}',
@@ -102,15 +128,21 @@ class _MemberCardScreenState extends State<MemberCardScreen> {
           active: m['current'] != false,
           code: code,
           qrData: '${AppConfig.origin}/card/${m['id']}?c=$code',
-        ),
+        )),
         const SizedBox(height: 16),
-        Center(
-          child: FilledButton.icon(
+        Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+          FilledButton.icon(
             onPressed: () => _share(context, name: '${m['name']}', position: '${m['position'] ?? ''}', url: '${AppConfig.origin}/card/${m['id']}?c=$code'),
             icon: const Icon(Icons.share_rounded, size: 18),
-            label: const Text('Share this card'),
+            label: const Text('Share'),
           ),
-        ),
+          const SizedBox(width: 12),
+          OutlinedButton.icon(
+            onPressed: _saving ? null : () => _download('${m['name']}'),
+            icon: _saving ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.download_rounded, size: 18),
+            label: const Text('Download'),
+          ),
+        ]),
         const SizedBox(height: 14),
         Center(child: Text('The QR code holds a signed code, so a fake card cannot pass the check.', textAlign: TextAlign.center, style: bodyStyle(context, size: 12, color: p.muted))),
       ]);
