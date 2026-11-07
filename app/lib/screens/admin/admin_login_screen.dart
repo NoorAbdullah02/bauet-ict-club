@@ -5,6 +5,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/config.dart';
 import '../../core/theme.dart';
 import '../../data/api.dart';
 import '../../state/app_state.dart';
@@ -28,6 +29,8 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
   final _codeFocus = FocusNode();
   bool _busy = false;
   bool _slow = false; // the server is taking long: probably waking up
+  bool _testing = false;
+  String? _diag;
   String? _error;
 
   @override
@@ -37,6 +40,20 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
     _code.dispose();
     _codeFocus.dispose();
     super.dispose();
+  }
+
+  Future<void> _test() async {
+    setState(() {
+      _testing = true;
+      _diag = null;
+    });
+    final r = await context.read<AppState>().api.diagnose();
+    if (mounted) {
+      setState(() {
+        _testing = false;
+        _diag = r;
+      });
+    }
   }
 
   Future<void> _login() async {
@@ -133,6 +150,15 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                   ],
                   const SizedBox(height: 18),
                   GradientButton(label: 'Sign in', icon: Icons.login_rounded, loading: _busy, onPressed: _login),
+                  const SizedBox(height: 6),
+                  TextButton.icon(
+                    onPressed: _testing ? null : _test,
+                    icon: _testing ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.network_check_rounded, size: 18),
+                    label: Text(_testing ? 'Testing…' : 'Test the connection'),
+                  ),
+                  if (_diag != null) Text(_diag!, textAlign: TextAlign.center, style: bodyStyle(context, size: 12.5, color: p.muted)),
+                  const SizedBox(height: 4),
+                  Text('Server: ${AppConfig.origin}', textAlign: TextAlign.center, style: monoStyle(context, size: 9.5, color: p.muted)),
                 ]),
               ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.1, end: 0),
             ],
