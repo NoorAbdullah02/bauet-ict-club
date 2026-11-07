@@ -142,6 +142,34 @@ class Api {
   Future<void> submitRegistration(Map<String, dynamic> body) => _send(() => _dio.post('/registrations', data: body));
 
   // ---- admin ----
+  /// For the "Test connection" button on the sign-in screen: asks /health and says what happened, in plain words. Never throws.
+  Future<String> diagnose() async {
+    final sw = Stopwatch()..start();
+    try {
+      final r = await _dio.get('/health', options: Options(receiveTimeout: const Duration(seconds: 75), sendTimeout: const Duration(seconds: 75), validateStatus: (s) => s != null));
+      final ms = sw.elapsedMilliseconds;
+      final d = r.data;
+      if (r.statusCode == 200 && d is Map && d['ok'] == true) {
+        return 'Server is working ($ms ms). Database: ${d['db'] == true ? 'ok' : 'not connected'}. ${ms > 8000 ? 'It was asleep and has just woken up, so try signing in now.' : 'Sign-in problems are then about the user name, the password or the two-step code.'}';
+      }
+      return 'The server answered with code ${r.statusCode} ($ms ms). It may be restarting: try again in a minute.';
+    } on DioException catch (e) {
+      final ms = sw.elapsedMilliseconds;
+      switch (e.type) {
+        case DioExceptionType.connectionTimeout:
+        case DioExceptionType.receiveTimeout:
+        case DioExceptionType.sendTimeout:
+          return 'No answer after ${ms ~/ 1000} seconds. The server may be waking up (free plan): wait a minute and test again.';
+        case DioExceptionType.connectionError:
+          return 'This phone cannot reach the server. Check mobile data or Wi-Fi, turn off any VPN or data saver, and try again. (${e.error ?? 'connection error'})';
+        default:
+          return 'Test failed: ${e.message ?? e.type.name}';
+      }
+    } catch (e) {
+      return 'Test failed: $e';
+    }
+  }
+
   /// Wakes the server up (the free plan sleeps after a quiet period) and says whether it answered. Never throws.
   Future<bool> wake({Duration wait = const Duration(seconds: 75)}) async {
     try {
