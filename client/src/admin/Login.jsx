@@ -48,10 +48,6 @@ export default function Login() {
             <p className="mt-1.5 text-sm text-fg2">Sign in to manage the club website, applications and committees.</p>
           </div>
 
-          <div className="mb-5 flex items-center gap-3 rounded-2xl border border-line bg-surface/70 p-3">
-            <span className="grid size-12 shrink-0 place-items-center rounded-full text-sm font-bold text-white shadow-md" style={{ background: 'linear-gradient(135deg,#1F4FD8,#17A2D8 60%,#35D989)' }} aria-hidden="true">IC</span>
-            <span className="min-w-0"><span className="block truncate text-base font-bold text-fg">ICT-Club</span><span className="flex items-center gap-1 text-xs text-fg2"><ShieldCheck size={13} className="text-emerald-500" /> Club admin account</span></span>
-          </div>
           <label className="mb-4 block">
             <span className="mb-1.5 block font-mono text-[11px] uppercase tracking-[0.14em] text-fg2">Username</span>
             <span className="relative block">
