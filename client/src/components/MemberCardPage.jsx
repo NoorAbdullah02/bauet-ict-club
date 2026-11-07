@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { BadgeCheck, Loader2, Download, Link2, ShieldAlert, Share2, Facebook, MessageCircle, Send, Mail, Linkedin, Twitter } from 'lucide-react';
+import { BadgeCheck, Loader2, Download, Link2, ShieldAlert, Share2, Facebook, Globe, MessageCircle, Send, Mail, Linkedin, Twitter } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { api } from '../context/store';
 import useStore from '../context/store';
@@ -19,7 +19,7 @@ async function downloadCard(m, code, qr, extra) {
 }
 
 /** "https://www.facebook.com/bauetictclub" -> "fb.com/bauetictclub" (short enough to sit on the card). */
-export const fbShort = (u = '') => { try { const x = new URL(u); return `fb.com/${x.pathname.replace(/^\/|\/$/g, '')}`; } catch { return ''; } };
+export const fbShort = (u = '') => { try { return new URL(u).pathname.replace(/^\/|\/$/g, ''); } catch { return ''; } };
 
 const initials = (n = '') => n.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
 
@@ -162,9 +162,9 @@ function Badge({ m, code, qr, verified, site, fb }) {
         {verified && <span className="absolute z-10 inline-flex items-center rounded-full bg-emerald-500 font-bold text-white shadow-lg" style={{ left: c(30), top: '17%', gap: c(1), padding: `${c(1)} ${c(2.6)}`, fontSize: c(2.8) }}><BadgeCheck style={{ width: c(3.2), height: c(3.2) }} /> Verified</span>}
         {/* website and Facebook, so a shared or printed card always points back to the club */}
         <div className="absolute inset-x-0 bottom-0 flex items-center justify-center whitespace-nowrap font-mono text-white/90" style={{ height: c(6.6), gap: c(3), fontSize: c(2.45), letterSpacing: '0.03em', background: 'linear-gradient(90deg,#061440,#0B2A78 60%,#0A4D8F)' }}>
-          {site && <span>{site}</span>}
-          {site && fb && <i aria-hidden="true" className="rounded-full bg-[#7CF0B2]" style={{ width: c(0.9), height: c(0.9) }} />}
-          {fb && <span>{fb}</span>}
+          {site && <span className="inline-flex items-center" style={{ gap: c(1.2) }}><Globe style={{ width: c(3.4), height: c(3.4) }} className="text-[#7CF0B2]" />{site}</span>}
+          {site && fb && <i aria-hidden="true" className="rounded-full bg-white/40" style={{ width: c(0.8), height: c(0.8) }} />}
+          {fb && <span className="inline-flex items-center" style={{ gap: c(1.2) }}><span className="grid place-items-center rounded-full bg-[#1877F2]" style={{ width: c(3.8), height: c(3.8) }}><Facebook className="text-white" style={{ width: c(2.4), height: c(2.4) }} /></span>{fb}</span>}
         </div>
         <div aria-hidden="true" className="badge-sheen pointer-events-none absolute inset-0" />
       </div>
