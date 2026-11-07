@@ -54,7 +54,7 @@ router.post('/login', loginLimiter, async (req, res) => {
     const admin = result.rows[0];
     if (admin?.locked_until && new Date(admin.locked_until) > new Date()) { await bcrypt.compare(password, DUMMY_HASH); return tooMany(res); }
     const valid = await bcrypt.compare(password, admin ? admin.password_hash : DUMMY_HASH);
-    if (!admin || !valid) { await recordFailure(admin); return res.status(401).json({ error: 'Invalid credentials' }); }
+    if (!admin || !valid) { console.warn(`Sign-in refused: ${admin ? 'wrong password' : 'no such user'} (typed user "${username.trim().slice(0, 40)}", password length ${password.length})`); await recordFailure(admin); return res.status(401).json({ error: 'Invalid credentials' }); }
     if (admin.totp_enabled) {
       if (!code) return res.status(401).json({ error: 'Enter the 6-digit code from your authenticator app', twoFactor: true });
       if (!(await secondStepOk(admin, code))) { await recordFailure(admin); return res.status(401).json({ error: 'That code is not right', twoFactor: true }); }
@@ -89,6 +89,58 @@ router.post('/change-password', authMiddleware, loginLimiter, async (req, res) =
     const { rows } = await pool.query('UPDATE admins SET password_hash = $1, token_version = token_version + 1 WHERE id = $2 RETURNING *', [await bcrypt.hash(next, 12), admin.id]);
     forgetSession(admin.id);
     res.json({ ok: true, token: generateToken(rows[0]) });
+  } catch (e) { fail(res, e); }
+});
+
+// ---------- forgotten password: a one-time link is e-mailed to ADMIN_NOTIFY_EMAIL ----------
+// The link holds a random 256-bit token. Only its keyed hash (HMAC-SHA256 with JWT_SECRET) is stored, so the database alone cannot be used to reset anything.
+// It works once, for 30 minutes. The answer is always the same whether the account exists or not.
+const crypto = require('crypto');
+const RESET_MINUTES = 30;
+const resetHash = (t) => crypto.createHmac('sha256', JWT_SECRET).update(`admin-reset:${t}`).digest('hex');
+const forgotLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 6, standardHeaders: true, legacyHeaders: false, message: { error: 'Too many requests. Try again in a few minutes.' } });
+const resetLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 20, standardHeaders: true, legacyHeaders: false, message: { error: 'Too many attempts. Try again in a few minutes.' } });
+
+router.post('/forgot', forgotLimiter, async (req, res) => {
+  const username = typeof req.body?.username === 'string' ? req.body.username.trim().slice(0, 100) : '';
+  const same = { ok: true, message: 'If this account exists, a reset link was sent to the club e-mail address. It works once, for 30 minutes.' };
+  try {
+    if (!username) return res.json(same);
+    const { rows } = await pool.query('SELECT id, reset_expires FROM admins WHERE LOWER(username) = LOWER($1) LIMIT 1', [username]);
+    const admin = rows[0];
+    // one e-mail per account every 2 minutes, so nobody can fill the inbox
+    const recent = admin?.reset_expires && new Date(admin.reset_expires).getTime() - RESET_MINUTES * 60000 > Date.now() - 2 * 60000;
+    if (admin && !recent) {
+      const token = crypto.randomBytes(32).toString('base64url');
+      await pool.query('UPDATE admins SET reset_hash = $1, reset_expires = $2 WHERE id = $3', [resetHash(token), new Date(Date.now() + RESET_MINUTES * 60000), admin.id]);
+      const mailer = require('../utils/mailer');
+      const link = `${mailer.siteUrl()}/admin?reset=${encodeURIComponent(token)}&u=${encodeURIComponent(username)}`;
+      const t = mailer.templates.adminReset(link, RESET_MINUTES);
+      mailer.sendMail({ to: mailer.adminAddress(), subject: t.subject, html: t.html, text: t.text });
+    }
+    res.json(same);
+  } catch (e) { fail(res, e); }
+});
+
+router.post('/reset', resetLimiter, async (req, res) => {
+  const { token, username, password } = req.body || {};
+  if (typeof token !== 'string' || typeof username !== 'string' || typeof password !== 'string' || !token || token.length > 200) return res.status(400).json({ error: 'This reset link is not valid.' });
+  const bad = { error: 'This reset link is not valid or has expired. Ask for a new one.' };
+  try {
+    const { rows } = await pool.query('SELECT id, username, reset_hash, reset_expires FROM admins WHERE LOWER(username) = LOWER($1) LIMIT 1', [username.trim()]);
+    const admin = rows[0];
+    let ok = false;
+    if (admin?.reset_hash && admin.reset_expires && new Date(admin.reset_expires) > new Date()) {
+      const a = Buffer.from(resetHash(token)); const b = Buffer.from(admin.reset_hash);
+      ok = a.length === b.length && crypto.timingSafeEqual(a, b);
+    }
+    if (!ok) return res.status(400).json(bad);
+    const problem = passwordProblem(password, admin.username);
+    if (problem) return res.status(400).json({ error: problem });
+    const hash = await bcrypt.hash(password, 10);
+    // the link is used up, the lock is cleared and every old session ends
+    await pool.query('UPDATE admins SET password_hash = $1, reset_hash = NULL, reset_expires = NULL, failed_logins = 0, locked_until = NULL, token_version = COALESCE(token_version, 0) + 1 WHERE id = $2', [hash, admin.id]);
+    res.json({ ok: true, message: 'Password changed. You can sign in now.' });
   } catch (e) { fail(res, e); }
 });
 

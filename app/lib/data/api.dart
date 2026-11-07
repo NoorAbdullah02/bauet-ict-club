@@ -180,6 +180,12 @@ class Api {
     }
   }
 
+  /// Asks the server to e-mail a one-time password-reset link to the club address. The answer is the same whether the account exists or not.
+  Future<String> forgotPassword(String username) async {
+    final data = await _send(() => _dio.post('/auth/forgot', data: {'username': username}));
+    return data is Map && data['message'] != null ? data['message'].toString() : 'A reset link was sent to the club e-mail address.';
+  }
+
   Future<Map<String, dynamic>> login(String username, String password, {String? code}) async {
     Future<dynamic> post() => _send(() => _dio.post('/auth/login', data: {'username': username, 'password': password, if (code != null && code.isNotEmpty) 'code': code}));
     dynamic data;

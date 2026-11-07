@@ -30,6 +30,8 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
   bool _slow = false; // the server is taking long: probably waking up
   bool _show = false; // show the password
   bool _testing = false;
+  bool _sendingReset = false;
+  String? _resetNote;
   String? _diag;
   String? _error;
 
@@ -63,6 +65,32 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
         _testing = false;
         _diag = r;
       });
+    }
+  }
+
+  Future<void> _forgot() async {
+    if (_user.text.trim().isEmpty) {
+      setState(() {
+        _resetNote = null;
+        _error = 'Type your username first, then press Forgot password.';
+      });
+      return;
+    }
+    FocusScope.of(context).unfocus();
+    setState(() {
+      _sendingReset = true;
+      _error = null;
+      _resetNote = null;
+    });
+    try {
+      final msg = await context.read<AppState>().api.forgotPassword(_user.text.trim());
+      if (mounted) setState(() => _resetNote = '$msg Open the link in that e-mail: it opens the website where you choose the new password.');
+    } on ApiException catch (e) {
+      if (mounted) setState(() => _error = e.message);
+    } catch (e) {
+      if (mounted) setState(() => _error = e.toString());
+    } finally {
+      if (mounted) setState(() => _sendingReset = false);
     }
   }
 
@@ -171,9 +199,25 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                       onSubmitted: _login,
                       suffix: IconButton(tooltip: _show ? 'Hide password' : 'Show password', onPressed: () => setState(() => _show = !_show), icon: Icon(_show ? Icons.visibility_off_rounded : Icons.visibility_rounded, size: 20, color: p.muted)),
                     ),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(onPressed: _sendingReset ? null : _forgot, child: Text(_sendingReset ? 'Sending…' : 'Forgot password?')),
+                    ),
                     if (_needCode) ...[
                       const SizedBox(height: 14),
                       AppField(controller: _code, label: '6-digit code or backup code', icon: Icons.shield_outlined, keyboard: TextInputType.number, focusNode: _codeFocus, textInputAction: TextInputAction.done, onSubmitted: _login),
+                    ],
+                    if (_resetNote != null) ...[
+                      const SizedBox(height: 14),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(borderRadius: BorderRadius.circular(14), color: const Color(0xFF16A34A).withValues(alpha: 0.1), border: Border.all(color: const Color(0xFF16A34A).withValues(alpha: 0.35))),
+                        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          const Icon(Icons.mark_email_read_rounded, size: 18, color: Color(0xFF16A34A)),
+                          const SizedBox(width: 10),
+                          Expanded(child: Text(_resetNote!, style: bodyStyle(context, size: 13, color: const Color(0xFF15803D), weight: FontWeight.w600))),
+                        ]),
+                      ),
                     ],
                     if (_error != null) ...[
                       const SizedBox(height: 14),

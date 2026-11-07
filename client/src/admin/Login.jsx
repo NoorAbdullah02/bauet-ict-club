@@ -1,12 +1,78 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Loader2, Lock, User, Eye, EyeOff, ShieldCheck, AlertCircle, ArrowRight } from 'lucide-react';
-import useStore from '../context/store';
+import { ArrowLeft, Loader2, Lock, User, Eye, EyeOff, ShieldCheck, AlertCircle, ArrowRight, Mail, CheckCircle2, KeyRound } from 'lucide-react';
+import useStore, { api } from '../context/store';
 import Backdrop3D from '../components/Backdrop3D';
 import Logo from '../components/Logo';
 
 const field = 'peer w-full rounded-2xl border border-line bg-bg/70 py-3.5 pl-12 pr-4 text-[15px] text-fg outline-none transition placeholder:text-muted focus:border-tech focus:bg-bg focus:ring-4 focus:ring-tech/15';
+
+// forgotten password: ask for a link (sent to the club e-mail), then choose a new password from that link
+function ResetPanel({ mode, setMode, username, setUsername }) {
+  const q = new URLSearchParams(window.location.search);
+  const token = q.get('reset') || '';
+  const [pw, setPw] = useState('');
+  const [pw2, setPw2] = useState('');
+  const [show, setShow] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState('');
+  const [err, setErr] = useState('');
+  const [done, setDone] = useState(false);
+  const back = () => { if (token) window.history.replaceState({}, '', '/admin'); setMode('in'); };
+
+  const ask = async (e) => {
+    e.preventDefault(); setErr(''); setMsg('');
+    if (!username.trim()) { setErr('Type your username first.'); return; }
+    setBusy(true);
+    try { const r = await api.post('/auth/forgot', { username: username.trim() }); setMsg(r.data?.message || 'A reset link was sent to the club e-mail address.'); }
+    catch (ex) { setErr(ex?.response?.status === 429 ? 'Too many requests. Wait a few minutes and try again.' : ex?.response?.data?.error || 'The server did not answer. It may be waking up. Wait a minute and try again.'); }
+    setBusy(false);
+  };
+  const change = async (e) => {
+    e.preventDefault(); setErr('');
+    if (pw !== pw2) { setErr('The two passwords are not the same.'); return; }
+    setBusy(true);
+    try { await api.post('/auth/reset', { token, username: q.get('u') || username, password: pw }); setDone(true); window.history.replaceState({}, '', '/admin'); }
+    catch (ex) { setErr(ex?.response?.data?.error || 'The server did not answer. Wait a minute and try again.'); }
+    setBusy(false);
+  };
+
+  return (
+    <div className="relative rounded-[33px] border border-line bg-[var(--glass)] p-8 shadow-[var(--shadow-xl)] backdrop-blur-2xl sm:p-10">
+      <div className="mb-6 text-center">
+        <div className="mx-auto mb-4 grid size-14 place-items-center rounded-2xl bg-tech/10 text-tech">{mode === 'reset' ? <KeyRound size={26} /> : <Mail size={26} />}</div>
+        <h1 className="text-[1.6rem] leading-tight text-fg">{done ? 'Password changed' : mode === 'reset' ? 'Choose a new password' : 'Forgot your password?'}</h1>
+        <p className="mt-1.5 text-sm text-fg2">{done ? 'You can sign in with the new password now.' : mode === 'reset' ? '6 or more characters, with letters and numbers or symbols.' : 'We e-mail a one-time link to the club e-mail address. The link works for 30 minutes.'}</p>
+      </div>
+      {done ? (
+        <button type="button" onClick={() => setMode('in')} className="btn-primary w-full !py-3.5"><Lock size={15} /> Go to sign in</button>
+      ) : mode === 'reset' ? (
+        <form onSubmit={change} noValidate>
+          <label className="mb-4 block"><span className="mb-1.5 block font-mono text-[11px] uppercase tracking-[0.14em] text-fg2">New password</span>
+            <span className="relative block"><input className={`${field} pr-12`} type={show ? 'text' : 'password'} value={pw} onChange={(e) => setPw(e.target.value)} autoComplete="new-password" placeholder="For example Ice-2016" />
+              <Lock size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted peer-focus:text-tech" />
+              <button type="button" onClick={() => setShow((v) => !v)} aria-label={show ? 'Hide password' : 'Show password'} className="absolute right-2 top-1/2 grid size-9 -translate-y-1/2 place-items-center rounded-xl text-fg2 hover:text-accent">{show ? <EyeOff size={18} /> : <Eye size={18} />}</button></span></label>
+          <label className="mb-2 block"><span className="mb-1.5 block font-mono text-[11px] uppercase tracking-[0.14em] text-fg2">Type it again</span>
+            <span className="relative block"><input className={field} type={show ? 'text' : 'password'} value={pw2} onChange={(e) => setPw2(e.target.value)} autoComplete="new-password" placeholder="Same password" />
+              <Lock size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted peer-focus:text-tech" /></span></label>
+          {err && <p role="alert" className="mt-4 flex items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-3.5 py-2.5 text-sm text-red-500"><AlertCircle size={16} className="shrink-0" /> {err}</p>}
+          <button disabled={busy || !pw || !pw2} className="btn-primary mt-6 w-full !py-3.5 disabled:opacity-60">{busy ? <Loader2 size={17} className="animate-spin" /> : <KeyRound size={15} />} {busy ? 'Saving…' : 'Save new password'}</button>
+        </form>
+      ) : (
+        <form onSubmit={ask} noValidate>
+          <label className="mb-2 block"><span className="mb-1.5 block font-mono text-[11px] uppercase tracking-[0.14em] text-fg2">Username</span>
+            <span className="relative block"><input className={field} value={username} onChange={(e) => setUsername(e.target.value)} autoCapitalize="none" spellCheck={false} />
+              <User size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted peer-focus:text-tech" /></span></label>
+          {msg && <p role="status" className="mt-4 flex items-start gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-2.5 text-sm text-emerald-600"><CheckCircle2 size={16} className="mt-0.5 shrink-0" /> {msg}</p>}
+          {err && <p role="alert" className="mt-4 flex items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-3.5 py-2.5 text-sm text-red-500"><AlertCircle size={16} className="shrink-0" /> {err}</p>}
+          <button disabled={busy} className="btn-primary mt-6 w-full !py-3.5 disabled:opacity-60">{busy ? <Loader2 size={17} className="animate-spin" /> : <Mail size={15} />} {busy ? 'Sending…' : 'E-mail me the reset link'}</button>
+        </form>
+      )}
+      {!done && <button type="button" onClick={back} className="mt-5 block w-full text-center text-sm font-semibold text-accent hover:underline">Back to sign in</button>}
+    </div>
+  );
+}
 
 export default function Login() {
   const login = useStore((s) => s.login);
@@ -16,6 +82,8 @@ export default function Login() {
   const [caps, setCaps] = useState(false);
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
+  // a link from the reset e-mail (?reset=...) opens the new-password form straight away
+  const [mode, setMode] = useState(() => (new URLSearchParams(window.location.search).get('reset') ? 'reset' : 'in'));
 
   const submit = async (e) => {
     e.preventDefault();
@@ -47,6 +115,7 @@ export default function Login() {
       <motion.div initial={{ opacity: 0, y: 30, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }} className="relative z-10 w-full max-w-[26rem]">
         {/* soft gradient frame */}
         <div className="absolute -inset-px rounded-[34px] opacity-70 blur-[1px]" style={{ background: 'linear-gradient(135deg, var(--accent), transparent 40%, var(--tech))' }} />
+        {mode !== 'in' ? <ResetPanel mode={mode} setMode={setMode} username={f.username} setUsername={(v) => setF({ ...f, username: v })} /> : (
         <form onSubmit={submit} noValidate className="relative rounded-[33px] border border-line bg-[var(--glass)] p-8 shadow-[var(--shadow-xl)] backdrop-blur-2xl sm:p-10">
           <div className="mb-8 text-center">
             <div className="mb-5 flex justify-center"><Logo kind="club" height={92} priority /></div>
@@ -76,6 +145,7 @@ export default function Login() {
               </button>
             </span>
           </label>
+          <div className="mb-1 text-right"><button type="button" onClick={() => setMode('forgot')} className="text-xs font-semibold text-accent hover:underline">Forgot password?</button></div>
           {needCode && (
             <label className="mb-2 mt-4 block">
               <span className="mb-1.5 block font-mono text-[11px] uppercase tracking-[0.14em] text-fg2">6-digit code (or a backup code)</span>
@@ -101,6 +171,7 @@ export default function Login() {
 
           <p className="mt-6 text-center text-xs text-muted">Only club administrators can sign in. Repeated wrong passwords lock the account for a while.</p>
         </form>
+        )}
       </motion.div>
     </div>
   );

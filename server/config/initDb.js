@@ -131,6 +131,8 @@ async function initDb() {
       ALTER TABLE admins ADD COLUMN IF NOT EXISTS backup_codes TEXT;
       ALTER TABLE admins ADD COLUMN IF NOT EXISTS failed_logins INTEGER NOT NULL DEFAULT 0;
       ALTER TABLE admins ADD COLUMN IF NOT EXISTS locked_until TIMESTAMPTZ;
+      ALTER TABLE admins ADD COLUMN IF NOT EXISTS reset_hash TEXT;
+      ALTER TABLE admins ADD COLUMN IF NOT EXISTS reset_expires TIMESTAMPTZ;
     `);
 
     // older databases only allowed committee/general — widen the check for ambassadors
@@ -336,6 +338,12 @@ async function initDb() {
     // Never ship a well-known password: use ADMIN_PASSWORD, or generate one and print it once.
     // a pasted value can carry spaces or quote marks around it (for example "Ice-2016"): remove them so it matches what is typed at sign-in
     if (process.env.ADMIN_PASSWORD) process.env.ADMIN_PASSWORD = process.env.ADMIN_PASSWORD.trim().replace(/^(["'])(.*)\1$/, '$2');
+    // a copied password can carry a look-alike dash (– — −) or an invisible character instead of the keyboard hyphen: turn the dashes into "-" and drop the invisible ones
+    if (process.env.ADMIN_PASSWORD) {
+      const clean = process.env.ADMIN_PASSWORD.replace(/[\u2010-\u2015\u2212]/g, '-').replace(/[\u200B-\u200D\u2060\uFEFF\u00A0]/g, '');
+      if (clean !== process.env.ADMIN_PASSWORD) console.warn('ADMIN_PASSWORD had look-alike or invisible characters; they were replaced with plain keyboard characters.');
+      process.env.ADMIN_PASSWORD = clean;
+    }
     const adminPassword = process.env.ADMIN_PASSWORD || require('crypto').randomBytes(9).toString('base64url');
     const hash = await bcrypt.hash(adminPassword, 10);
     // the first admin is called ICT-Club (ADMIN_USERNAME changes it). An older install called it "admin": rename that account once, nothing else changes.
