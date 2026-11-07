@@ -117,7 +117,7 @@ class _ContestDetailScreenState extends State<ContestDetailScreen> {
               if (_loading)
                 const ShimmerList(count: 3, height: 100)
               else if (_error != null || c == null)
-                ErrorState(message: _error ?? 'Contest not found', onRetry: _load)
+                ErrorState(message: _error ?? 'This contest does not exist. It may have been removed.', onRetry: _load)
               else ..._body(context, p, c),
             ],
           ),
