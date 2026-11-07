@@ -125,6 +125,11 @@ function layout({ title, body, button, footerNote }) {
 const typeLabel = (r) => (r.type === 'committee' ? `Committee application (${r.post})` : r.type === 'ambassador' ? 'Department Ambassador application' : 'General membership application');
 
 const templates = {
+  adminReset: (link, minutes) => ({
+    subject: 'Reset the admin password | BAUET ICT Club',
+    html: layout({ title: 'Reset the admin password', body: `<p>Someone asked to reset the admin password of the club website. If it was you, press the button below and choose a new password. The link works <b>once</b> and for <b>${minutes} minutes</b>.</p><p>If it was not you, ignore this e-mail: nothing changes and the current password keeps working.</p>`, button: { href: link, label: 'Choose a new password' } }),
+    text: `Reset the admin password (works once, ${minutes} minutes): ${link}\nIf it was not you, ignore this e-mail.`,
+  }),
   applicationReceived: (r) => ({
     subject: 'We received your application | BAUET ICT Club',
     html: layout({ title: `Thanks, ${r.full_name}!`, body: `<p>We have received your <b>${esc(typeLabel(r))}</b>.</p><p>Our team reviews every application. We will email you here as soon as there is news.</p>`, button: { href: `${siteUrl()}/events`, label: 'See upcoming events' } }),
@@ -241,4 +246,4 @@ const templates = {
   }),
 };
 
-module.exports = { sendMail, sendNow, status, verify, templates, adminAddress, esc, unsubscribeUrl, validUnsubscribe, layout, provider };
+module.exports = { siteUrl, sendMail, sendNow, status, verify, templates, adminAddress, esc, unsubscribeUrl, validUnsubscribe, layout, provider };
