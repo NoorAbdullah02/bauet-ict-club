@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
@@ -133,7 +134,7 @@ class _AdminSignupScreenState extends State<AdminSignupScreen> {
                     ),
                     _PwMeter(score: _PwScore(_pass.text, _user.text.trim())),
                   ] else
-                    AppField(controller: _code, label: '6-digit code', icon: Icons.shield_outlined, keyboard: TextInputType.number, maxLength: 6, textInputAction: TextInputAction.done, onSubmitted: _verify),
+                    _CodeBoxes(controller: _code, onChanged: () => setState(() {}), onDone: _verify),
                   if (_error != null) ...[
                     const SizedBox(height: 14),
                     Container(
@@ -212,6 +213,84 @@ class _PwMeter extends StatelessWidget {
         tip(score.long, '6 or more characters'),
         tip(score.mix, 'Letters together with numbers or symbols'),
         tip(!score.named && !score.easy, 'Not your user name, not a common word'),
+      ]),
+    );
+  }
+}
+
+/// Six boxes for the e-mailed code. One hidden text field takes the typing and pasting; the boxes only show it.
+class _CodeBoxes extends StatefulWidget {
+  const _CodeBoxes({required this.controller, required this.onChanged, required this.onDone});
+  final TextEditingController controller;
+  final VoidCallback onChanged;
+  final VoidCallback onDone;
+
+  @override
+  State<_CodeBoxes> createState() => _CodeBoxesState();
+}
+
+class _CodeBoxesState extends State<_CodeBoxes> {
+  final _focus = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    _focus.addListener(() => setState(() {}));
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _focus.requestFocus();
+    });
+  }
+
+  @override
+  void dispose() {
+    _focus.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.pal;
+    final text = widget.controller.text;
+    final current = text.length > 5 ? 5 : text.length;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => _focus.requestFocus(),
+      child: Stack(children: [
+        Row(children: [
+          for (var i = 0; i < 6; i++)
+            Expanded(
+              child: Container(
+                margin: EdgeInsets.only(right: i < 5 ? 8 : 0),
+                height: 58,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  color: p.surface,
+                  border: Border.all(color: _focus.hasFocus && i == current ? p.accent : (i < text.length ? p.accent.withValues(alpha: 0.5) : p.line), width: _focus.hasFocus && i == current ? 2 : 1),
+                ),
+                child: Text(i < text.length ? text[i] : '', style: monoStyle(context, size: 24, color: p.fg)),
+              ),
+            ),
+        ]),
+        // the real field sits on top, invisible
+        Positioned.fill(
+          child: Opacity(
+            opacity: 0,
+            child: TextField(
+              controller: widget.controller,
+              focusNode: _focus,
+              keyboardType: TextInputType.number,
+              autofillHints: const [AutofillHints.oneTimeCode],
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(6)],
+              enableInteractiveSelection: false,
+              showCursor: false,
+              onChanged: (v) {
+                widget.onChanged();
+                if (v.length == 6) widget.onDone();
+              },
+            ),
+          ),
+        ),
       ]),
     );
   }

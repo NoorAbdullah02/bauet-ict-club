@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Loader2, Lock, User, Eye, EyeOff, ShieldCheck, AlertCircle, ArrowRight, Mail, CheckCircle2, KeyRound, UserPlus } from 'lucide-react';
@@ -107,6 +107,23 @@ function PasswordMeter({ pw, username }) {
   );
 }
 
+// six boxes for the e-mailed code: type, paste or let the phone fill it in
+function OtpBoxes({ value, onChange }) {
+  const ref = useRef(null);
+  const digits = value.padEnd(6, ' ').split('');
+  return (
+    <div className="relative" onClick={() => ref.current?.focus()}>
+      <input ref={ref} value={value} onChange={(e) => onChange(e.target.value.replace(/\D/g, '').slice(0, 6))} inputMode="numeric" autoComplete="one-time-code" maxLength={6} autoFocus aria-label="6-digit code"
+        className="absolute inset-0 z-10 h-full w-full cursor-text opacity-0" />
+      <div className="flex justify-between gap-2" aria-hidden="true">
+        {digits.map((d, i) => (
+          <span key={i} className={`grid h-14 flex-1 place-items-center rounded-2xl border bg-bg/70 font-mono text-2xl font-bold text-fg transition ${i === Math.min(value.length, 5) ? 'border-tech ring-4 ring-tech/15' : d.trim() ? 'border-accent/60' : 'border-line'}`}>{d.trim()}</span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // sign-up (at most 3 admin accounts): user name, e-mail and password, then the 6-digit code that is e-mailed
 function SignupPanel({ setMode }) {
   const login = useStore((s) => s.login);
@@ -141,7 +158,7 @@ function SignupPanel({ setMode }) {
   return (
     <div className="relative rounded-[33px] border border-line bg-[var(--glass)] p-8 shadow-[var(--shadow-xl)] backdrop-blur-2xl sm:p-10">
       <div className="mb-6 text-center">
-        <div className="mx-auto mb-4 grid size-14 place-items-center rounded-2xl bg-tech/10 text-tech"><UserPlus size={26} /></div>
+        <div className="mx-auto mb-4 grid size-14 place-items-center rounded-2xl bg-tech/10 text-tech">{step === 1 ? <UserPlus size={26} /> : <Mail size={26} />}</div>
         <h1 className="text-[1.6rem] leading-tight text-fg">{step === 1 ? 'Create your account' : 'Check your e-mail'}</h1>
         <p className="mt-1.5 text-sm text-fg2">{step === 1 ? 'Only 3 admin accounts can be made. Your e-mail is checked with a code.' : msg}</p>
       </div>
@@ -163,12 +180,10 @@ function SignupPanel({ setMode }) {
         </form>
       ) : (
         <form onSubmit={verify} noValidate>
-          <label className="mb-2 block"><span className="mb-1.5 block font-mono text-[11px] uppercase tracking-[0.14em] text-fg2">6-digit code</span>
-            <span className="relative block"><input className={`${field} tracking-[0.3em]`} value={code} onChange={(e) => setCode(e.target.value)} inputMode="numeric" autoComplete="one-time-code" maxLength={6} autoFocus placeholder="123456" />
-              <ShieldCheck size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted peer-focus:text-tech" /></span></label>
+          <OtpBoxes value={code} onChange={setCode} />
           {err && <p role="alert" className="mt-4 flex items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-3.5 py-2.5 text-sm text-red-500"><AlertCircle size={16} className="shrink-0" /> {err}</p>}
           <button disabled={busy || code.trim().length < 6} className="btn-primary mt-6 w-full !py-3.5 disabled:opacity-60">{busy ? <Loader2 size={17} className="animate-spin" /> : <CheckCircle2 size={15} />} {busy ? 'Checking…' : 'Create my account'}</button>
-          <button type="button" onClick={() => { setStep(1); setErr(''); }} className="mt-3 block w-full text-center text-xs text-muted hover:text-accent">Wrong e-mail? Go back</button>
+          <div className="mt-4 flex items-center justify-between text-xs"><button type="button" onClick={() => { setStep(1); setErr(''); setCode(''); }} className="text-muted hover:text-accent">Wrong e-mail? Go back</button><button type="button" disabled={busy} onClick={start} className="font-semibold text-accent hover:underline disabled:opacity-50">Send the code again</button></div>
         </form>
       )}
       <button type="button" onClick={() => setMode('in')} className="mt-5 block w-full text-center text-sm font-semibold text-accent hover:underline">Back to sign in</button>
