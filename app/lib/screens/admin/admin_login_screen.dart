@@ -21,7 +21,7 @@ class AdminLoginScreen extends StatefulWidget {
 }
 
 class _AdminLoginScreenState extends State<AdminLoginScreen> {
-  final _user = TextEditingController(text: 'ICT-Club'); // the club's admin name is already there
+  final _user = TextEditingController();
   final _pass = TextEditingController();
   final _code = TextEditingController();
   final _codeFocus = FocusNode();

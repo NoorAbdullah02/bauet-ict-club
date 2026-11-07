@@ -103,10 +103,10 @@ const resetLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 20, standardHead
 
 router.post('/forgot', forgotLimiter, async (req, res) => {
   const username = typeof req.body?.username === 'string' ? req.body.username.trim().slice(0, 100) : '';
-  const same = { ok: true, message: 'If this account exists, a reset link was sent to the club e-mail address. It works once, for 30 minutes.' };
+  const same = { ok: true, message: 'If this account exists, a reset link was sent to the e-mail address of this account. It works once, for 30 minutes.' };
   try {
     if (!username) return res.json(same);
-    const { rows } = await pool.query('SELECT id, reset_expires FROM admins WHERE LOWER(username) = LOWER($1) LIMIT 1', [username]);
+    const { rows } = await pool.query('SELECT id, email, reset_expires FROM admins WHERE LOWER(username) = LOWER($1) LIMIT 1', [username]);
     const admin = rows[0];
     // one e-mail per account every 2 minutes, so nobody can fill the inbox
     const recent = admin?.reset_expires && new Date(admin.reset_expires).getTime() - RESET_MINUTES * 60000 > Date.now() - 2 * 60000;
@@ -116,7 +116,8 @@ router.post('/forgot', forgotLimiter, async (req, res) => {
       const mailer = require('../utils/mailer');
       const link = `${mailer.siteUrl()}/admin?reset=${encodeURIComponent(token)}&u=${encodeURIComponent(username)}`;
       const t = mailer.templates.adminReset(link, RESET_MINUTES);
-      mailer.sendMail({ to: mailer.adminAddress(), subject: t.subject, html: t.html, text: t.text });
+      // the link goes to the e-mail address this account signed up with; an older account without one uses ADMIN_NOTIFY_EMAIL
+      mailer.sendMail({ to: admin.email || mailer.adminAddress(), subject: t.subject, html: t.html, text: t.text });
     }
     res.json(same);
   } catch (e) { fail(res, e); }
