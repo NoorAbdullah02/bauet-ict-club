@@ -1,16 +1,63 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { BadgeCheck, Loader2, Printer, Link2, ShieldAlert } from 'lucide-react';
+import { BadgeCheck, Loader2, Printer, Link2, ShieldAlert, Share2, Facebook, MessageCircle, Send, Mail, Linkedin, Twitter } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { api } from '../context/store';
 import { qrDataUrl } from '../lib/qr';
 import { thumb } from '../lib/img';
-import { copyText } from '../lib/share';
+import { copyText, nativeShare, shareLinks } from '../lib/share';
 import Logo from './Logo';
 
 const initials = (n = '') => n.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
 
+
+/** Share this card: Facebook, WhatsApp, Telegram, X, LinkedIn, e-mail, the phone's own share sheet, or copy the link. */
+function ShareMenu({ url, title, text }) {
+  const [open, setOpen] = useState(false);
+  const links = shareLinks(url, text);
+  const items = [
+    [Facebook, 'Facebook', links.facebook, '#1877F2'],
+    [MessageCircle, 'WhatsApp', links.whatsapp, '#25D366'],
+    [Send, 'Telegram', links.telegram, '#229ED9'],
+    [Twitter, 'X', `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '#111827'],
+    [Linkedin, 'LinkedIn', `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`, '#0A66C2'],
+    [Mail, 'E-mail', `mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(`${text}\n${url}`)}`, '#EA4335'],
+  ];
+  useEffect(() => {
+    if (!open) return undefined;
+    const off = (e) => { if (e.key === 'Escape') setOpen(false); };
+    window.addEventListener('keydown', off);
+    return () => window.removeEventListener('keydown', off);
+  }, [open]);
+  const copy = async () => { const ok = await copyText(url); toast[ok ? 'success' : 'error'](ok ? 'Card link copied' : 'Could not copy'); setOpen(false); };
+  const more = async () => { if (await nativeShare({ title, text, url })) setOpen(false); };
+  return (
+    <div className="relative">
+      <button onClick={() => setOpen((o) => !o)} aria-haspopup="menu" aria-expanded={open} className="btn-primary !px-5 !py-2.5 text-xs"><Share2 size={14} /> Share</button>
+      {open && (
+        <>
+          <button aria-label="Close share menu" onClick={() => setOpen(false)} className="fixed inset-0 z-40 cursor-default bg-black/30 backdrop-blur-[2px]" />
+          <div role="menu" className="fixed inset-x-3 bottom-3 z-50 mx-auto w-auto max-w-sm rounded-3xl border border-line bg-surface p-4 shadow-[var(--shadow-xl)] sm:absolute sm:inset-auto sm:bottom-full sm:left-1/2 sm:mb-3 sm:w-80 sm:-translate-x-1/2">
+            <div className="mb-3 flex items-center justify-between"><h3 className="text-base font-semibold text-fg">Share this card</h3><button onClick={() => setOpen(false)} aria-label="Close" className="grid size-8 place-items-center rounded-full text-fg2 hover:bg-alt">&times;</button></div>
+            <div className="grid grid-cols-3 gap-2.5">
+              {items.map(([I, label, href, color]) => (
+                <a key={label} role="menuitem" href={href} target="_blank" rel="noopener noreferrer" onClick={() => setOpen(false)} className="flex flex-col items-center gap-1.5 rounded-2xl border border-line bg-bg px-2 py-3 text-[12px] font-medium text-fg2 transition hover:-translate-y-0.5 hover:border-transparent hover:shadow-[var(--shadow-md)]">
+                  <span className="grid size-10 place-items-center rounded-full text-white" style={{ background: color }}><I size={18} /></span>{label}
+                </a>
+              ))}
+            </div>
+            <div className="mt-3 flex gap-2">
+              <button role="menuitem" onClick={copy} className="btn-outline !flex-1 !justify-center !px-3 !py-2.5 text-xs"><Link2 size={14} /> Copy link</button>
+              {typeof navigator !== 'undefined' && navigator.share && <button role="menuitem" onClick={more} className="btn-outline !flex-1 !justify-center !px-3 !py-2.5 text-xs"><Share2 size={14} /> More apps</button>}
+            </div>
+            <p className="mt-2.5 break-all rounded-xl bg-alt px-3 py-2 font-mono text-[10.5px] text-muted">{url}</p>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
 
 const condensed = { fontFamily: "'Barlow Condensed', 'Space Grotesk', system-ui, sans-serif" };
 
@@ -140,9 +187,9 @@ export default function MemberCardPage() {
           </div>
         )}
         <Badge m={m} code={data.code} qr={qr} verified={checked && data.verified} />
-        <div className="mt-5 flex flex-wrap justify-center gap-2 print:hidden">
+        <div className="mt-5 flex flex-wrap items-center justify-center gap-2 print:hidden">
           <button onClick={() => window.print()} className="btn-outline !px-4 !py-2.5 text-xs"><Printer size={14} /> Print</button>
-          <button onClick={async () => { const ok = await copyText(`${window.location.origin}/card/${m.id}?c=${data.code}`); toast[ok ? 'success' : 'error'](ok ? 'Card link copied' : 'Could not copy'); }} className="btn-outline !px-4 !py-2.5 text-xs"><Link2 size={14} /> Copy link</button>
+          <ShareMenu url={`${window.location.origin}/card/${m.id}?c=${data.code}`} title={`${m.name} | BAUET ICT Club`} text={`${m.name}, ${m.position || 'Member'} at BAUET ICT Club`} />
         </div>
       </div>
     </section>
