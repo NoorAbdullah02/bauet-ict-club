@@ -19,7 +19,7 @@ const KINDS = {
   registrations: { label: 'Application', title: (r) => r.full_name, sub: (r) => r.type, image: 'photo_url' },
 };
 require('../features').forEach((f) => { KINDS[f.table] = { label: f.label, title: f.title, sub: f.sub, image: f.image }; });
-const RETENTION_DAYS = 30;
+const RETENTION_DAYS = 20; // deleted items stay in the Trash this long, then are removed for good
 
 const kind = (req, res) => {
   const k = KINDS[req.params.type];

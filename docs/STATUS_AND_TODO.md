@@ -8,7 +8,7 @@ Last updated: 2026-11-06. **What only the owner can do (keys, accounts, Firebase
 **Website (`client/`, React + Vite + Tailwind)** — live at https://bauet-ict-club.onrender.com
 - Public pages: Home, About, Events (+ one page per event with registration), Notices, Projects, Team (per committee session), Ambassadors, Gallery, Awards, FAQ, Contact, Join (Committee, General, Ambassador), Get the app.
 - Event registration with a form builder, payments (bKash / Nagad / Rocket with transaction ID), waiting list, tickets with QR codes, check-in, certificates, reminders.
-- Admin console (`/admin`): dashboard, applications (approve / reject / select / export PDF, Word, CSV), events and forms studio, inbox, newsletter, committees (launch, transfer people), gallery, notices, projects, FAQ, sponsors, visitors, activity log, trash (30 days), settings, team logins, backup.
+- Admin console (`/admin`): dashboard, applications (approve / reject / select / export PDF, Word, CSV), events and forms studio, inbox, newsletter, committees (launch, transfer people), gallery, notices, projects, FAQ, sponsors, visitors, activity log, trash (20 days), settings, team logins, backup.
 - Look and feel (this session): animated aurora background and fading grid, calmer see-through 3D globe in the hero, headline spotlight, new footer, committee page with role cards, navbar that fits phones from 320 px, native pickers (`<select>`) on touch devices.
 - Light and dark themes.
 

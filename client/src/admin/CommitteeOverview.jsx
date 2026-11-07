@@ -24,7 +24,7 @@ export default function CommitteeOverview({ onLaunch, onTransfer, onOpen }) {
   const current = list.find((s) => s.members > 0)?.label;
 
   const del = async (s) => {
-    if (!(await askConfirm({ title: `Delete the ${s.label} committee?`, message: `${s.members} ${s.members === 1 ? 'person goes' : 'people go'} to the Trash and can be restored for 30 days. Other committees and their pictures are not touched.`, confirmText: 'Move to Trash', danger: true }))) return;
+    if (!(await askConfirm({ title: `Delete the ${s.label} committee?`, message: `${s.members} ${s.members === 1 ? 'person goes' : 'people go'} to the Trash and can be restored for 20 days. Other committees and their pictures are not touched.`, confirmText: 'Move to Trash', danger: true }))) return;
     setBusy(s.label);
     try { const r = await remove(s.label); toast.success(`${s.label} moved to the Trash (${r.trashed} people)`); } catch (e) { toast.error(e.response?.data?.error || 'Could not delete'); }
     setBusy('');

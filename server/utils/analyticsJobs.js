@@ -6,7 +6,11 @@ const iso = (d) => d.toISOString().slice(0, 10);
 /** Old visits are deleted after ANALYTICS_RETENTION_DAYS (default 180) so IP addresses are not kept forever. */
 async function purge() {
   const days = Math.max(7, Number(process.env.ANALYTICS_RETENTION_DAYS) || 180);
-  try { await pool.query("DELETE FROM audit_log WHERE created_at < NOW() - INTERVAL '180 days'"); } catch { /* table may not exist yet */ }
+  // activity log: only the last AUDIT_RETENTION_DAYS (default 10) are kept
+  const auditDays = Math.max(1, Number(process.env.AUDIT_RETENTION_DAYS) || 10);
+  try { await pool.query(`DELETE FROM audit_log WHERE created_at < NOW() - INTERVAL '${auditDays} days'`); } catch { /* table may not exist yet */ }
+  // Trash: whatever has been there longer than its limit (20 days) is removed for good, also when the server did not restart
+  try { await require('../routes/trash').purgeExpired(); } catch { /* retry on the next round */ }
   try { await pool.query('DELETE FROM page_views WHERE day < $1', [iso(new Date(Date.now() - days * 864e5))]); } catch (e) { console.warn('Visit cleanup failed:', e.message); }
 }
 

@@ -70,7 +70,7 @@ export default function DataView({ type }) {
 
   const remove = async (item) => {
     const name = item.title || item.name || cfg.name.toLowerCase();
-    const ok = await askConfirm({ title: `Delete this ${cfg.name.toLowerCase()}?`, message: `“${String(name).slice(0, 60)}” will be moved to the Trash. You can restore it for 30 days.`, confirmText: 'Move to Trash', danger: true });
+    const ok = await askConfirm({ title: `Delete this ${cfg.name.toLowerCase()}?`, message: `“${String(name).slice(0, 60)}” will be moved to the Trash. You can restore it for 20 days.`, confirmText: 'Move to Trash', danger: true });
     if (!ok) return;
     try {
       await useStore.getState().deleteItem(type, item.id);

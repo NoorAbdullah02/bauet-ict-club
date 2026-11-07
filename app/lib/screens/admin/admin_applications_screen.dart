@@ -111,7 +111,7 @@ class _AdminApplicationsScreenState extends State<AdminApplicationsScreen> {
     final yes = await confirmAction(
       context,
       title: '${kind == 'approve' ? 'Approve' : kind == 'reject' ? 'Reject' : 'Move to Trash:'} $n application${n == 1 ? '' : 's'}?',
-      message: kind == 'reject' ? 'Each applicant gets a polite rejection email.' : kind == 'trash' ? 'You can restore them from the Trash for 30 days.' : 'They will be marked as approved.',
+      message: kind == 'reject' ? 'Each applicant gets a polite rejection email.' : kind == 'trash' ? 'You can restore them from the Trash for 20 days.' : 'They will be marked as approved.',
       confirmText: kind == 'approve' ? 'Yes, approve $n' : kind == 'reject' ? 'Yes, reject $n' : 'Trash $n',
       danger: kind != 'approve',
     );
@@ -181,7 +181,7 @@ class _AdminApplicationsScreenState extends State<AdminApplicationsScreen> {
   }
 
   Future<void> _delete(Registration r) async {
-    final yes = await confirmAction(context, title: 'Delete ${r.fullName}\'s application?', message: 'It will be moved to the Trash. You can restore it for 30 days.', confirmText: 'Move to Trash', danger: true);
+    final yes = await confirmAction(context, title: 'Delete ${r.fullName}\'s application?', message: 'It will be moved to the Trash. You can restore it for 20 days.', confirmText: 'Move to Trash', danger: true);
     if (!yes) return;
     try {
       await _state.api.deleteRegistration(r.id);
