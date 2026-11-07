@@ -7,6 +7,7 @@ const mail = require('./mailer');
  * Turn it off with NOTIFY_SUBSCRIBERS=false in .env.
  */
 async function notifySubscribers(kind, item) {
+  require('./push').announce(kind, item).catch(() => {}); // phone notifications (only when Firebase is set up); independent of e-mail
   if ((process.env.NOTIFY_SUBSCRIBERS || '').toLowerCase() === 'false' || !mail.provider()) return 0;
   try {
     if (item.summary && item.summary.length > 400) item = { ...item, summary: `${item.summary.slice(0, 400).trim()}…` };

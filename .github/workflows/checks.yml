@@ -56,6 +56,9 @@ jobs:
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: python3 ../tools/android_signing.py android
+      # phone notifications: the Firebase Gradle plugin (only when app/android/app/google-services.json is in the repository)
+      - name: Add Firebase to the Android build
+        run: python3 ../tools/android_firebase.py android
       - run: flutter pub get
       - name: Home-screen icon from the club logo
         run: dart run flutter_launcher_icons

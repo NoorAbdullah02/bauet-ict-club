@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 import '../core/config.dart';
 import '../core/i18n.dart';
+import '../core/push.dart';
 import '../core/theme.dart';
 import '../state/app_state.dart';
 import 'coder.dart';
@@ -311,6 +312,7 @@ class _AppDrawer extends StatelessWidget {
                 context.read<AppState>().setLang(isBangla ? 'en' : 'bn');
               }),
               pinned(themeIcon, tr(themeLabel), () => context.read<AppState>().toggleTheme()),
+              pinned(state.pushOn ? Icons.notifications_active_rounded : Icons.notifications_off_rounded, tr(state.pushOn ? 'Alerts on' : 'Alerts off'), () => Push.setEnabled(context.read<AppState>(), !state.pushOn)),
               pinned(Icons.admin_panel_settings_rounded, tr(isAdmin ? 'Admin' : 'Admin login'), () {
                 Navigator.pop(context);
                 context.push('/admin');

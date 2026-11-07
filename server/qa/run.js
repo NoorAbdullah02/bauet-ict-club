@@ -87,6 +87,26 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
       const again = await call('POST', '/api/auth/login', { username: 'admin', password: 'Qa-Pass-12345' }); ok(again.s === 200, 'password-only login again'); T = again.j.token; // the earlier session was ended on purpose
       void crypto; XFF = '';
     }
+    // ---- phone notifications: the app registers its token; nothing is sent without Firebase set up ----
+    {
+      const tokenA = `qa-token-${'a'.repeat(40)}:APA91b_x-y`;
+      ok((await call('POST', '/api/push/register', { token: 'short' })).s === 400, 'push: a bad token is refused');
+      ok((await call('POST', '/api/push/register', { token: tokenA, platform: 'android', lang: 'bn' })).s === 200, 'push: token saved');
+      ok((await call('POST', '/api/push/register', { token: tokenA })).s === 200, 'push: saving the same token again is fine');
+      ok((await call('POST', '/api/push/unregister', { token: tokenA })).s === 200, 'push: token removed');
+      ok((await call('POST', '/api/push/unregister', { token: '!!' })).s === 400, 'push: bad token on unregister refused');
+      const push = require('../utils/push');
+      ok(push.enabled() === false, 'push: off when no Firebase key is set');
+      ok((await push.broadcast({ title: 'x', body: 'y' })) === 0, 'push: broadcast does nothing without a key');
+      const crypto = require('crypto');
+      const { privateKey, publicKey } = crypto.generateKeyPairSync('rsa', { modulusLength: 2048, privateKeyEncoding: { type: 'pkcs8', format: 'pem' }, publicKeyEncoding: { type: 'spki', format: 'pem' } });
+      const jwt = push.signJwt({ client_email: 'svc@example.iam.gserviceaccount.com', private_key: privateKey }, 1700000000);
+      const [h, c, s2] = jwt.split('.');
+      const pad = (x) => Buffer.from(x.replace(/-/g, '+').replace(/_/g, '/'), 'base64');
+      ok(crypto.createVerify('RSA-SHA256').update(`${h}.${c}`).verify(publicKey, pad(s2)), 'push: the signed request verifies with the public key');
+      const claim = JSON.parse(pad(c).toString());
+      ok(claim.iss === 'svc@example.iam.gserviceaccount.com' && claim.aud === 'https://oauth2.googleapis.com/token' && claim.exp === 1700003600 && /firebase\.messaging/.test(claim.scope), 'push: the request carries the right sender, audience and scope');
+    }
     ok((await call('GET', '/api/jobs/run')).s === 404, 'job trigger hidden without key');
     ok((await call('GET', '/api/jobs/run?key=qa-cron-secret-123456')).s === 200, 'job trigger with key');
     ok((await call('GET', '/api/events/abc')).s < 500, 'bad id is not a 500');

@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'core/config.dart';
+import 'core/push.dart';
 import 'core/router.dart';
 import 'core/theme.dart';
 import 'data/api.dart';
@@ -40,6 +41,7 @@ class _ClubAppState extends State<ClubApp> {
   void initState() {
     super.initState();
     _router = buildRouter(context.read<AppState>());
+    Push.start(context.read<AppState>(), _router); // not awaited: the app never waits for notifications
   }
 
   @override

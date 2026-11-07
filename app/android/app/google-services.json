@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "131010427987",
+    "project_id": "bauet-ict-club",
+    "storage_bucket": "bauet-ict-club.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:131010427987:android:f7108bafb9570e797a9aa6",
+        "android_client_info": {
+          "package_name": "com.bauet.bauet_ict_club"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAPo0l-NRdY5_NlvYXjAxMfFuaoJoPcrVQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

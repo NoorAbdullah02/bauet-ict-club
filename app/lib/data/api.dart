@@ -154,6 +154,11 @@ class Api {
 
   Future<void> submitRegistration(Map<String, dynamic> body) => _send(() => _dio.post('/registrations', data: body));
 
+  // ---- phone notifications ----
+  Future<void> registerPush(String token, String lang) => _send(() => _dio.post('/push/register', data: {'token': token, 'platform': 'android', 'lang': lang}));
+
+  Future<void> unregisterPush(String token) => _send(() => _dio.post('/push/unregister', data: {'token': token}));
+
   // ---- admin ----
   /// For the "Test connection" button on the sign-in screen: asks /health and says what happened, in plain words. Never throws.
   Future<String> diagnose() async {
