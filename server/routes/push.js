@@ -3,6 +3,8 @@ const express = require('express');
 const rateLimit = require('express-rate-limit');
 const pool = require('../config/db');
 const { fail } = require('../utils/http');
+const { authMiddleware, requireSuper } = require('../middleware/auth');
+const push = require('../utils/push');
 
 const router = express.Router();
 const limiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 60, standardHeaders: true, legacyHeaders: false, message: { error: 'Too many requests. Try again later.' } });
@@ -26,5 +28,9 @@ router.post('/unregister', limiter, async (req, res) => {
   if (!TOKEN.test(token)) return res.status(400).json({ error: 'Invalid token' });
   try { await pool.query('DELETE FROM push_tokens WHERE token = $1', [token]); res.json({ ok: true }); } catch (e) { fail(res, e); }
 });
+
+// main admin only: is it set up, and a test message to every phone that has the app
+router.get('/status', authMiddleware, requireSuper, async (_req, res) => { try { res.json(await push.status()); } catch (e) { fail(res, e); } });
+router.post('/test', authMiddleware, requireSuper, limiter, async (_req, res) => { try { res.json(await push.test()); } catch (e) { fail(res, e); } });
 
 module.exports = router;

@@ -31,6 +31,7 @@ function signJwt(sa, now = Math.floor(Date.now() / 1000)) {
   return `${head}.${claim}.${b64u(sig)}`;
 }
 
+let lastProblem = '';
 let tok = { v: null, exp: 0 };
 async function accessToken() {
   if (tok.v && tok.exp > Date.now() + 60000) return tok.v;
@@ -39,7 +40,7 @@ async function accessToken() {
     body: new URLSearchParams({ grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer', assertion: signJwt(account()) }),
   });
   const j = await r.json().catch(() => ({}));
-  if (!r.ok || !j.access_token) throw new Error(`Google sign-in for push failed (${r.status})`);
+  if (!r.ok || !j.access_token) throw new Error(`Google sign-in for push failed (${r.status}${j.error_description ? ': ' + j.error_description : ''})`);
   tok = { v: j.access_token, exp: Date.now() + (Number(j.expires_in) || 3000) * 1000 };
   return tok.v;
 }
@@ -56,7 +57,8 @@ async function sendOne(token, { title, body, data }) {
   const j = await r.json().catch(() => ({}));
   const code = j?.error?.details?.find?.((d) => d.errorCode)?.errorCode || j?.error?.status || '';
   if (r.status === 404 || code === 'UNREGISTERED' || code === 'INVALID_ARGUMENT') return 'gone';
-  console.warn(`Push send failed (${r.status} ${code})`);
+  lastProblem = `Firebase answered ${r.status} ${code} ${j?.error?.message || ''}`.trim();
+  console.warn(`Push send failed (${lastProblem})`);
   return 'error';
 }
 
@@ -83,8 +85,25 @@ async function broadcast({ title, body, path = '/' }) {
   }
 }
 
+/** For the admin page: is the key read, how many phones, and (on request) a test message to all of them. */
+async function status() {
+  const out = { configured: !!account(), enabled: enabled(), project: account()?.project_id || null, phones: 0, problem: '' };
+  try { out.phones = Number((await pool.query('SELECT COUNT(*)::int AS n FROM push_tokens')).rows[0].n) || 0; } catch { /* table may not exist yet */ }
+  if (!out.configured) out.problem = process.env.FIREBASE_SERVICE_ACCOUNT ? 'FIREBASE_SERVICE_ACCOUNT is set but could not be read as a service-account .json (it may have been cut when pasting).' : 'FIREBASE_SERVICE_ACCOUNT is not set in the server environment.';
+  else if (!out.enabled) out.problem = 'PUSH_ENABLED=false turns notifications off.';
+  return out;
+}
+async function test() {
+  const out = await status();
+  if (!out.enabled) return { ...out, sent: 0 };
+  lastProblem = '';
+  try { await accessToken(); } catch (e) { return { ...out, sent: 0, problem: e.message }; }
+  const sent = await broadcast({ title: 'Test from BAUET ICT Club', body: 'If you can read this, phone notifications work.', path: '/' });
+  return { ...out, sent, problem: sent === 0 && out.phones > 0 ? (lastProblem || 'No phone accepted the message.') : (out.phones === 0 ? 'No phone has registered yet: open the new app, allow notifications, then try again.' : '') };
+}
+
 const LABEL = { event: 'New event', notice: 'New notice', project: 'New project' };
 /** Called when the club adds an event, notice or project (same moment the newsletter goes out). */
 const announce = (kind, item) => broadcast({ title: `${LABEL[kind] || 'News from BAUET ICT Club'}: ${item.title || ''}`.trim(), body: item.when || item.summary || 'Tap to read more.', path: item.path || '/' });
 
-module.exports = { enabled, signJwt, broadcast, announce };
+module.exports = { enabled, signJwt, broadcast, announce, status, test };
