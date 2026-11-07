@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../core/i18n.dart';
 import '../core/theme.dart';
 import '../widgets/common.dart';
+import '../widgets/lost_robot.dart';
 
 /// Shown when a link goes nowhere, or when a page cannot be found. Friendly words, the address, and ways to carry on.
 class NotFoundScreen extends StatelessWidget {
@@ -24,7 +25,8 @@ class NotFoundScreen extends StatelessWidget {
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(24),
               child: Column(mainAxisSize: MainAxisSize.min, children: [
-                GradientText(code, style: displayStyle(context, 96, letterSpacing: -4)),
+                const LostRobot(size: 200),
+                GradientText(code, style: displayStyle(context, 76, letterSpacing: -3)),
                 const SizedBox(height: 6),
                 Text(tr(title), textAlign: TextAlign.center, style: displayStyle(context, 24)),
                 const SizedBox(height: 10),
