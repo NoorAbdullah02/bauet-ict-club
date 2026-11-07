@@ -308,6 +308,7 @@ async function start() {
 
   app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
+    require('./utils/push').status().then((st) => console.log(`Phone notifications: ${st.enabled ? `ON (Firebase project ${st.project}, ${st.phones} phone${st.phones === 1 ? '' : 's'} registered)` : `OFF (${st.problem})`}`)).catch(() => {});
     require('./utils/analyticsJobs').start();
   });
 }
