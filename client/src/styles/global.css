@@ -539,3 +539,9 @@ body.admin-mode .cursor-glow { display: none; }
   .nav-actions .btn-join span { display: none; }
   .nav-actions .btn-join { padding: 4px; }
 }
+
+
+/* membership badge: a slow light sweep across the card (only transform/opacity; off for reduced motion and print) */
+.badge-sheen { background: linear-gradient(105deg, transparent 38%, rgba(255,255,255,0.35) 50%, transparent 62%); transform: translateX(-120%); animation: badgeSheen 5.5s ease-in-out 1.2s infinite; mix-blend-mode: soft-light; }
+@keyframes badgeSheen { 0%, 55% { transform: translateX(-120%); } 100% { transform: translateX(120%); } }
+@media (prefers-reduced-motion: reduce), print { .badge-sheen { display: none; } }
