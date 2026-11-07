@@ -2,7 +2,7 @@
 const COMMON = new Set(['password', 'passw0rd', '123456789012', 'qwertyuiop12', 'iloveyou1234', 'administrator', 'welcome12345', 'letmein12345', 'bauetictclub', 'bauet12345678', 'admin1234567', 'changeme1234']);
 function passwordProblem(pw, username = '') {
   if (typeof pw !== 'string') return 'Password required';
-  if (pw.length < 12) return 'Password must be at least 12 characters';
+  if (pw.length < 6) return 'Password must be at least 6 characters';
   if (pw.length > 200) return 'Password is too long';
   const low = pw.toLowerCase();
   if (COMMON.has(low) || /^(.)\1+$/.test(pw)) return 'This password is too easy to guess';

@@ -3,7 +3,7 @@
 What protects the admin console, and what to do when something goes wrong.
 
 ## What is in place
-- **Passwords** are stored with bcrypt (cost 12). New passwords need 12+ characters, a mix of letters and numbers or symbols, no common passwords, and must not contain the username.
+- **Passwords** are stored with bcrypt (cost 12). New passwords need 6+ characters, a mix of letters and numbers or symbols, no common passwords, and must not contain the username.
 - **Two-step sign-in (optional, recommended):** Admin → Settings → *Two-step sign-in*. Scan the QR code with Google Authenticator, Microsoft Authenticator or Authy, type the 6-digit code, and save the 8 one-time backup codes. The secret is stored encrypted (AES-256-GCM, key derived from `JWT_SECRET`), so **do not change `JWT_SECRET` after turning 2FA on** (everyone would need a backup code, or `npm run admin:reset` plus a database edit, to get back in).
 - **Lockout:** 5 wrong passwords or codes lock that account for 15 minutes (any IP). On top of that, 8 failed attempts per IP per 15 minutes are refused.
 - **Sessions:** a token lasts 12 hours and is checked against the database on every request. Deleting a login, changing its role, changing the password or pressing *Sign out other devices* ends old sessions immediately.

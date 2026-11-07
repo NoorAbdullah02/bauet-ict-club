@@ -14,7 +14,7 @@ Last updated: 2026-11-06. **What only the owner can do (keys, accounts, Firebase
 
 **Server (`server/`, Express + PostgreSQL on Neon)**
 - REST API, e-mail through Brevo, photos on Cloudinary, AI chat on Groq, scheduled jobs, rate limits, strict CSP and HSTS.
-- Sign-in security (this session): bcrypt passwords, new password rules (12+ characters, no common passwords), per-account lockout (5 wrong tries = 15 minutes), optional two-step sign-in with an authenticator app and 8 backup codes, sessions checked against the database on every request (changing the password, deleting a login or "sign out everywhere" ends old sessions at once). Details: [SIGN_IN_SECURITY.md](SIGN_IN_SECURITY.md).
+- Sign-in security (this session): bcrypt passwords, new password rules (6+ characters, letters and numbers, no common passwords), per-account lockout (5 wrong tries = 15 minutes), optional two-step sign-in with an authenticator app and 8 backup codes, sessions checked against the database on every request (changing the password, deleting a login or "sign out everywhere" ends old sessions at once). Details: [SIGN_IN_SECURITY.md](SIGN_IN_SECURITY.md).
 - `npm --prefix server run qa` runs 96 end-to-end checks on an in-memory database (all pass).
 
 **App (`app/`, Flutter)**
