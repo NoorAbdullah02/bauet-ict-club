@@ -114,7 +114,7 @@ function TwoFactorPanel() {
   );
 }
 
-/** Phone notifications: is the Firebase key read, how many phones have the app, and a test message (main admin only). */
+/** Phone notifications: is the Firebase key read, how many phones have the app, and a test message (admins). */
 function PushPanel() {
   const [st, setSt] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -207,7 +207,7 @@ export default function SettingsView() {
         <ServiceStatus />
         <PasswordPanel />
         <TwoFactorPanel />
-        {user?.role === 'superadmin' && <PushPanel />}
+        {['superadmin', 'admin'].includes(user?.role) && <PushPanel />}
         {user?.role === 'superadmin' && <Security />}
         <Panel className="self-start p-6 xl:col-start-2">
           <div className="flex items-start gap-4">
