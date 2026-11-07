@@ -3,13 +3,14 @@ import 'package:dio/dio.dart';
 import '../core/config.dart';
 
 class ApiException implements Exception {
-  ApiException(this.message, {this.status, this.fields = const {}});
+  ApiException(this.message, {this.status, this.fields = const {}, this.twoFactor = false});
   final String message;
   final int? status;
   final Map<String, String> fields;
+  final bool twoFactor; // the server said: this account uses two-step sign-in
 
   /// True when the server wants the 6-digit authenticator code (or a backup code) to finish signing in.
-  bool get needsCode => status == 401 && message.contains('code');
+  bool get needsCode => twoFactor || (status == 401 && message.toLowerCase().contains('code'));
 
   @override
   String toString() => message;
@@ -42,7 +43,14 @@ class Api {
         (data['error'] ?? data['message'] ?? 'Request failed').toString(),
         status: e.response?.statusCode,
         fields: fields,
+        twoFactor: data['twoFactor'] == true,
       );
+    }
+    // an answer that is not JSON (for example Render's page while the server restarts)
+    final code = e.response?.statusCode;
+    if (code != null) {
+      if (code == 429) return ApiException('Too many tries from this network. Please wait a few minutes and try again.', status: code);
+      if (code >= 500) return ApiException('The server is busy or restarting. Please try again in a minute.', status: code);
     }
     switch (e.type) {
       case DioExceptionType.connectionTimeout:

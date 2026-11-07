@@ -26,6 +26,7 @@ class AppField extends StatelessWidget {
     this.formatters,
     this.textInputAction,
     this.onSubmitted,
+    this.focusNode,
   });
 
   final TextEditingController controller;
@@ -41,6 +42,7 @@ class AppField extends StatelessWidget {
   final List<TextInputFormatter>? formatters;
   final TextInputAction? textInputAction;
   final VoidCallback? onSubmitted;
+  final FocusNode? focusNode;
 
   @override
   Widget build(BuildContext context) {
@@ -56,6 +58,7 @@ class AppField extends StatelessWidget {
     final plain = obscure || keyboard == TextInputType.emailAddress || keyboard == TextInputType.phone || keyboard == TextInputType.number || keyboard == TextInputType.url ||
         const ['Username', 'Student ID', 'Batch', 'Email', 'Mobile (01XXXXXXXXX)'].contains(label) || label.toLowerCase().contains('e-mail') || label.toLowerCase().contains('code');
     return TextField(
+      focusNode: focusNode,
       autocorrect: !plain,
       enableSuggestions: !plain,
       textCapitalization: plain ? TextCapitalization.none : TextCapitalization.sentences,
