@@ -66,7 +66,7 @@ jobs:
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
       - run: flutter test
       - name: Build a debug APK
-        run: flutter build apk --debug --build-number=${{ github.run_number }} --dart-define-from-file=env.production.json
+        run: flutter build apk --debug --build-number=${{ github.run_number }} --dart-define=APP_BUILD=${{ github.run_number }} --dart-define-from-file=env.production.json
       - uses: actions/upload-artifact@v4
         with:
           name: bauet-ict-club-debug-apk
@@ -74,7 +74,7 @@ jobs:
           if-no-files-found: error
       # the version to install on a phone: much smaller and faster than the debug one (arm64 = almost every phone made after 2017)
       - name: Build a release APK (small, fast)
-        run: flutter build apk --release --split-per-abi --build-number=${{ github.run_number }} --split-debug-info=build/symbols --dart-define-from-file=env.production.json
+        run: flutter build apk --release --split-per-abi --build-number=${{ github.run_number }} --dart-define=APP_BUILD=${{ github.run_number }} --split-debug-info=build/symbols --dart-define-from-file=env.production.json
       - name: Show who signed the APK (the same fingerprint on every build means updates install over the old app)
         run: keytool -printcert -jarfile build/app/outputs/flutter-apk/app-arm64-v8a-release.apk | grep -E "Owner|SHA256" || true
       - uses: actions/upload-artifact@v4
