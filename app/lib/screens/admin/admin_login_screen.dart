@@ -33,6 +33,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
   bool _sendingReset = false;
   int _slotsLeft = 0; // admin accounts that can still be made (at most 3 exist)
   String? _resetNote;
+  String? _stage; // what the sign-in is doing right now, so it never looks frozen
   String? _diag;
   String? _error;
 
@@ -107,13 +108,16 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
     setState(() {
       _busy = true;
       _slow = false;
+      _stage = null;
       _error = null;
     });
     final slowTimer = Timer(const Duration(seconds: 6), () {
       if (mounted && _busy) setState(() => _slow = true);
     });
     try {
-      await context.read<AppState>().login(_user.text.trim(), _pass.text, code: _needCode ? _code.text.trim() : null);
+      await context.read<AppState>().login(_user.text.trim(), _pass.text, code: _needCode ? _code.text.trim() : null, onStage: (t) {
+        if (mounted) setState(() => _stage = t);
+      });
       // the router sends the person to /admin as soon as the sign-in is accepted
     } on ApiException catch (e) {
       if (mounted) {
@@ -234,6 +238,10 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                           Expanded(child: Text(_error!, style: bodyStyle(context, size: 13, color: const Color(0xFFB91C1C), weight: FontWeight.w600))),
                         ]),
                       ),
+                    ],
+                    if (_stage != null && (_busy || _error == null)) ...[
+                      const SizedBox(height: 10),
+                      Text(_stage!, textAlign: TextAlign.center, style: bodyStyle(context, size: 12.5, color: p.muted)),
                     ],
                     if (_slow) ...[
                       const SizedBox(height: 12),
