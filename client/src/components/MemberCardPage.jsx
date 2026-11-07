@@ -1,13 +1,21 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { BadgeCheck, Loader2, Printer, Link2, ShieldAlert, Share2, Facebook, MessageCircle, Send, Mail, Linkedin, Twitter } from 'lucide-react';
+import { BadgeCheck, Loader2, Download, Link2, ShieldAlert, Share2, Facebook, MessageCircle, Send, Mail, Linkedin, Twitter } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { api } from '../context/store';
 import { qrDataUrl } from '../lib/qr';
 import { thumb } from '../lib/img';
 import { copyText, nativeShare, shareLinks } from '../lib/share';
 import Logo from './Logo';
+
+/** Saves the card as a sharp PNG picture (1080 x 1920) that can be printed or posted anywhere. */
+async function downloadCard(m, code, qr) {
+  const { cardToPng } = await import('../lib/cardImage');
+  const url = await cardToPng({ m, code, qr, width: 1080 });
+  const a = Object.assign(document.createElement('a'), { href: url, download: `${String(m.name || 'member').replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '')}-BAUET-ICT-Club-card.png` });
+  document.body.appendChild(a); a.click(); a.remove();
+}
 
 const initials = (n = '') => n.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
 
@@ -163,6 +171,7 @@ export default function MemberCardPage() {
   const c = params.get('c') || '';
   const [data, setData] = useState(null); // null = loading, false = not found
   const [qr, setQr] = useState('');
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     api.get(`/card/${id}`, { params: c ? { c } : {} }).then((r) => setData(r.data)).catch(() => setData(false));
@@ -189,7 +198,7 @@ export default function MemberCardPage() {
         )}
         <Badge m={m} code={data.code} qr={qr} verified={checked && data.verified} />
         <div className="mt-5 flex flex-wrap items-center justify-center gap-2 print:hidden">
-          <button onClick={() => window.print()} className="btn-outline !px-4 !py-2.5 text-xs"><Printer size={14} /> Print</button>
+          <button disabled={saving} onClick={async () => { setSaving(true); try { await downloadCard(m, data.code, qr); toast.success('Card saved as a picture'); } catch { toast.error('Could not save the card. Try again.'); } setSaving(false); }} className="btn-outline !px-4 !py-2.5 text-xs disabled:opacity-60">{saving ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />} Download</button>
           <ShareMenu url={`${window.location.origin}/card/${m.id}?c=${data.code}`} title={`${m.name} | BAUET ICT Club`} text={`${m.name}, ${m.position || 'Member'} at BAUET ICT Club`} />
         </div>
       </div>
