@@ -27,6 +27,7 @@ class AppField extends StatelessWidget {
     this.textInputAction,
     this.onSubmitted,
     this.focusNode,
+    this.suffix,
   });
 
   final TextEditingController controller;
@@ -43,6 +44,7 @@ class AppField extends StatelessWidget {
   final TextInputAction? textInputAction;
   final VoidCallback? onSubmitted;
   final FocusNode? focusNode;
+  final Widget? suffix;
 
   @override
   Widget build(BuildContext context) {
@@ -81,6 +83,7 @@ class AppField extends StatelessWidget {
         errorText: error,
         counterText: '',
         prefixIcon: icon == null ? null : Icon(icon, size: 19, color: p.muted),
+        suffixIcon: suffix,
         alignLabelWithHint: maxLines > 1,
       ),
     );
