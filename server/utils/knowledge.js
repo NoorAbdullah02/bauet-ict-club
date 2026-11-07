@@ -54,7 +54,7 @@ const words = (t) => String(t || '').toLowerCase().split(/[^\p{L}\p{N}]+/u).filt
 function localAnswer(question, k) {
   const q = words(question);
   const lower = String(question).toLowerCase();
-  const contact = `You can reach the club at **${k.site?.socialLinks?.email || 'ictclubbauet@gmail.com'}** or **${k.site?.socialLinks?.phone || '01707-533471'}**.`;
+  const contact = `You can reach the club at **${k.site?.socialLinks?.email || 'ictclubbauet@gmail.com'}** or **${k.site?.socialLinks?.phone || '01748-269350'}**.`;
   if (/event|workshop|hackathon|contest|seminar|ইভেন্ট|অনুষ্ঠান/.test(lower)) {
     return k.events.length ? `Upcoming events:\n${k.events.slice(0, 4).map((e) => `- **${e.title}**, ${d10(e.date)}${e.location ? `, ${e.location}` : ''}`).join('\n')}\nSee the Events page for details.` : 'No events are announced right now. Follow our notices or subscribe to the newsletter to hear first.';
   }

@@ -328,8 +328,13 @@ async function initDb() {
       mission: 'To foster a culture of innovation and technological excellence among BAUET students, preparing them for the challenges of the digital era.',
       vision: 'To become the leading university tech community in Bangladesh, producing industry-ready engineers and innovators.',
       goal: 'Bridge the gap between academic knowledge and real-world technology through practical learning, collaborative projects, and industry exposure.',
-      socialLinks: { fb: 'https://www.facebook.com/bauetictclub', email: 'ictclubbauet@gmail.com', phone: '01707-533471', website: 'bauet.ac.bd' },
+      socialLinks: { fb: 'https://www.facebook.com/bauetictclub', email: 'ictclubbauet@gmail.com', phone: '01748-269350', website: 'bauet.ac.bd' },
     })]);
+
+    // the club's contact number changed: update the saved site settings once, only when they still hold the old default number
+    try {
+      await client.query(`UPDATE settings SET value = jsonb_set(value, '{socialLinks,phone}', '"01748-269350"') WHERE key = 'site' AND value->'socialLinks'->>'phone' = '01707-533471'`);
+    } catch (e) { console.warn('Contact number update skipped:', e.message); }
 
     // Seed committee sessions (President, VPs and executives) once
     const seeded = await client.query('SELECT 1 FROM members WHERE committee_session IS NOT NULL LIMIT 1');

@@ -93,7 +93,7 @@ const useStore = create((set, get) => ({
           mission: 'To foster a culture of innovation and technological excellence among BAUET students.',
           vision: 'To become the leading university tech community in Bangladesh.',
           goal: 'Bridge the gap between academic knowledge and real-world technology.',
-          socialLinks: { fb: 'https://www.facebook.com/bauetictclub', email: 'ictclubbauet@gmail.com', phone: '01707-533471' },
+          socialLinks: { fb: 'https://www.facebook.com/bauetictclub', email: 'ictclubbauet@gmail.com', phone: '01748-269350' },
         },
         loading: false,
       });

@@ -43,7 +43,7 @@ export default function Footer() {
   const settings = useStore((s) => s.settings);
   const s = settings?.socialLinks || {};
   const email = s.email || 'ictclubbauet@gmail.com';
-  const phone = s.phone || '01707-533471';
+  const phone = s.phone || '01748-269350';
   const h3 = 'mb-3 flex items-center gap-2 whitespace-nowrap font-mono text-[10px] uppercase tracking-[0.22em] text-white/50 before:h-px before:w-4 before:bg-[#7CF0B2]/70';
   const contact = 'group flex items-start gap-3 text-white/80 transition hover:text-white';
   const chip = 'mt-0.5 grid size-7 shrink-0 place-items-center rounded-lg bg-white/10 text-[#7CF0B2] transition group-hover:bg-[#7CF0B2]/20';
