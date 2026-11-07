@@ -24,6 +24,7 @@ Every feature exists in three places. When you change one, change the others:
 | Applications review (details, confirm, bulk, export) | `routes/registrations.js`, `utils/exporters.js` | `components/AdminApplications.jsx` | `screens/admin/admin_applications_screen.dart` |
 | Picture upload and resize | `routes/upload.js`, `utils/images.js` | `components/ImageEditor.jsx`, `admin/ui.jsx` | `screens/admin/admin_widgets.dart` (`ImageUploadField`) |
 | Visitors | `routes/analytics.js`, `utils/analyticsJobs.js` | `admin/Visitors.jsx`, `lib/track.js` | `screens/admin/admin_visitors_screen.dart` |
+| Advisors (teachers who guide the club; shown above the committee; each has a card at `/card/a<ID>`) | `server/features/advisors.js`, `server/routes/card.js` | `client/src/features/advisors.js` (admin), `components/Team.jsx` | `screens/team_screen.dart`, `kTables['advisors']` in `admin_crud_screen.dart` |
 | Post names and order (President, VP Administration, VP Technical...) | `utils/positions.js` | `lib/sessions.js`, `admin/config.js` | `core/config.dart`, `screens/team_screen.dart` |
 
 Adding a new managed list (for example Partners or Blog): see [ADD_A_FEATURE.md](ADD_A_FEATURE.md). It needs one server file and one client file; then add the same table to `kTables` in the app.

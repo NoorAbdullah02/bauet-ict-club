@@ -36,6 +36,7 @@ class AppState extends ChangeNotifier {
   List<ProjectItem> projects = [];
   List<FaqItem> faqs = [];
   List<Sponsor> sponsors = [];
+  List<Advisor> advisors = [];
   SiteSettings settings = const SiteSettings();
 
   bool loading = true;
@@ -141,6 +142,7 @@ class AppState extends ChangeNotifier {
       guard(() async => projects = await _fetch('projects', ProjectItem.fromJson, fresh: fresh)),
       guard(() async => faqs = (await _fetch('faqs', FaqItem.fromJson, fresh: fresh))..sort((a, b) => a.order.compareTo(b.order))),
       guard(() async => sponsors = (await _fetch('sponsors', Sponsor.fromJson, fresh: fresh))..sort((a, b) => a.order.compareTo(b.order))),
+      guard(() async => advisors = (await _fetch('advisors', Advisor.fromJson, fresh: fresh)).where((a) => a.active).toList()..sort((a, b) => a.order.compareTo(b.order))),
       guard(() async => settings = SiteSettings.fromJson(await _fetchSettings(fresh: fresh))),
     ]);
     error = firstError;
