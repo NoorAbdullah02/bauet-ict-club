@@ -144,6 +144,18 @@ const Map<String, TableSpec> kTables = {
       FieldSpec('image_url', 'Picture (optional)', FieldKind.image),
     ],
   ),
+  'posts': TableSpec(
+    title: 'Posts',
+    titleKey: 'title',
+    subtitleKey: 'author',
+    icon: Icons.article_rounded,
+    fields: [
+      FieldSpec('title', 'Title', FieldKind.text, true),
+      FieldSpec('author', 'Author'),
+      FieldSpec('content', 'Content', FieldKind.multiline),
+      FieldSpec('image_url', 'Picture (optional)', FieldKind.image),
+    ],
+  ),
   'jobs': TableSpec(
     title: 'Jobs',
     titleKey: 'title',
