@@ -250,7 +250,6 @@ class _CardFace extends StatelessWidget {
                     decoration: const BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFF061440), Color(0xFF0B2A78), Color(0xFF0A4D8F)])),
                     child: Stack(children: [
                       Positioned(top: w * 0.05, left: w * 0.03, right: w * 0.03, child: Container(padding: EdgeInsets.all(w * 0.016), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(w * 0.04)), child: SizedBox(height: w * 0.12, child: Image.asset('assets/logos/ict-club.png', fit: BoxFit.contain)))),
-                      Positioned(top: w * 0.235, left: w * 0.07, right: w * 0.07, child: Center(child: Container(width: w * 0.13, height: w * 0.13, padding: EdgeInsets.all(w * 0.014), decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle), child: Image.asset('assets/logos/bauet.png', fit: BoxFit.contain)))),
                       Positioned(
                         top: h * 0.25,
                         bottom: h * 0.38,
@@ -347,8 +346,16 @@ class _CardFace extends StatelessWidget {
                             ),
                         ]),
                         SizedBox(height: w * 0.022),
-                        Text('CARD CODE', style: GoogleFonts.jetBrainsMono(fontSize: w * 0.023, letterSpacing: w * 0.0046, color: const Color(0xFF64748B))),
-                        Text(code, maxLines: 1, style: GoogleFonts.jetBrainsMono(fontSize: w * 0.035, letterSpacing: w * 0.0035, color: _navy)),
+                        Text('MEMBER ID', style: GoogleFonts.jetBrainsMono(fontSize: w * 0.023, letterSpacing: w * 0.0046, color: const Color(0xFF64748B))),
+                        Row(mainAxisSize: MainAxisSize.min, children: [
+                          Container(
+                            padding: EdgeInsets.symmetric(horizontal: w * 0.014, vertical: w * 0.004),
+                            decoration: BoxDecoration(color: _navy, borderRadius: BorderRadius.circular(w * 0.01)),
+                            child: Text('<ICT/>', style: GoogleFonts.jetBrainsMono(fontSize: w * 0.03, fontWeight: FontWeight.w700, color: const Color(0xFF7CF0B2))),
+                          ),
+                          SizedBox(width: w * 0.016),
+                          Flexible(child: Text(code, maxLines: 1, overflow: TextOverflow.ellipsis, style: GoogleFonts.jetBrainsMono(fontSize: w * 0.035, letterSpacing: w * 0.002, color: _navy))),
+                        ]),
                       ]),
                     ),
                     SizedBox(width: w * 0.03),

@@ -545,3 +545,18 @@ body.admin-mode .cursor-glow { display: none; }
 .badge-sheen { background: linear-gradient(105deg, transparent 38%, rgba(255,255,255,0.35) 50%, transparent 62%); transform: translateX(-120%); animation: badgeSheen 5.5s ease-in-out 1.2s infinite; mix-blend-mode: soft-light; }
 @keyframes badgeSheen { 0%, 55% { transform: translateX(-120%); } 100% { transform: translateX(120%); } }
 @media (prefers-reduced-motion: reduce), print { .badge-sheen { display: none; } }
+
+
+/* print the membership card on its own: just the badge, 62 mm wide (a lanyard-card size), colours kept, with a dashed cut line */
+@media print {
+  @page { margin: 8mm; }
+  body:has(.member-badge) { background: #fff !important; }
+  body:has(.member-badge)::before, body:has(.member-badge)::after { display: none !important; }
+  body:has(.member-badge) #root > :not(main) { display: none !important; }
+  body:has(.member-badge) main { padding: 0 !important; }
+  body:has(.member-badge) .section { padding: 0 !important; }
+  body:has(.member-badge) .container { max-width: none !important; padding: 0 !important; }
+  .member-wrap { max-width: 62mm !important; width: 62mm !important; margin: 6mm auto 0 !important; outline: 0.25mm dashed #94a3b8; outline-offset: 2.2mm; }
+  .member-badge { transform: none !important; box-shadow: none !important; }
+  .member-badge, .member-badge * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
