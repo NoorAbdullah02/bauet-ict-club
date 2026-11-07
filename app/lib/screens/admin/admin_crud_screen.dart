@@ -204,6 +204,22 @@ const Map<String, TableSpec> kTables = {
       FieldSpec('sort_order', 'Sort order', FieldKind.number),
     ],
   ),
+  'advisors': TableSpec(
+    title: 'Advisors',
+    titleKey: 'name',
+    subtitleKey: 'designation',
+    icon: Icons.school_rounded,
+    fields: [
+      FieldSpec('name', 'Name', FieldKind.text, true),
+      FieldSpec('designation', 'Role in the club', FieldKind.choice, false, ['Chief Advisor', 'Advisor', 'Co-Advisor', 'Honorary Advisor']),
+      FieldSpec('rank_title', 'Title (for example Associate Professor)'),
+      FieldSpec('department', 'Department'),
+      FieldSpec('email', 'E-mail (optional)'),
+      FieldSpec('phone', 'Phone (optional)'),
+      FieldSpec('image_url', 'Photo', FieldKind.image),
+      FieldSpec('sort_order', 'Order (1 shows first)', FieldKind.number),
+    ],
+  ),
   'sponsors': TableSpec(
     title: 'Sponsors',
     titleKey: 'name',

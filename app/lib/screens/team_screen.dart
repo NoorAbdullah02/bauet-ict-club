@@ -52,6 +52,10 @@ class _TeamScreenState extends State<TeamScreen> {
         children: [
           const SectionHeader(eyebrow: 'The people', title: 'Executive committee', subtitle: 'The team that runs BAUET ICT Club.').stagger(0),
           const SizedBox(height: 18),
+          if (state.advisors.isNotEmpty) ...[
+            _AdvisorsSection(advisors: state.advisors),
+            const SizedBox(height: 26),
+          ],
           if (sessions.isNotEmpty)
             SizedBox(
               height: 42,
@@ -210,5 +214,70 @@ class _Socials extends StatelessWidget {
           ),
       ],
     );
+  }
+}
+
+
+/// The club's advisors above the committee: photo ring, role, title and department; tap for the membership card.
+class _AdvisorsSection extends StatelessWidget {
+  const _AdvisorsSection({required this.advisors});
+  final List<Advisor> advisors;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.pal;
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
+        Icon(Icons.school_rounded, size: 16, color: p.tech),
+        const SizedBox(width: 8),
+        Text('OUR ADVISORS', style: monoStyle(context, size: 11, color: p.tech)),
+      ]),
+      const SizedBox(height: 4),
+      Text('Guided by experience', style: displayStyle(context, 24)),
+      const SizedBox(height: 14),
+      SizedBox(
+        height: 236,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          itemCount: advisors.length,
+          separatorBuilder: (_, __) => const SizedBox(width: 14),
+          itemBuilder: (context, i) {
+            final a = advisors[i];
+            return GestureDetector(
+              onTap: () => context.push('/card/a${a.id}'),
+              child: Container(
+                width: 210,
+                padding: const EdgeInsets.fromLTRB(14, 16, 14, 14),
+                decoration: BoxDecoration(
+                  color: p.surface,
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: p.line),
+                  boxShadow: p.dark ? null : [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 20, offset: const Offset(0, 8))],
+                ),
+                child: Column(children: [
+                  Container(
+                    width: 84,
+                    height: 84,
+                    padding: const EdgeInsets.all(3),
+                    decoration: const BoxDecoration(shape: BoxShape.circle, gradient: LinearGradient(colors: [Color(0xFF35D989), Color(0xFF38C8F0), Color(0xFF8B5CF6)])),
+                    child: ClipOval(
+                      child: a.imageUrl.isEmpty
+                          ? Container(color: const Color(0xFF0B2A78), alignment: Alignment.center, child: Text(a.name.trim().isEmpty ? '?' : a.name.trim()[0].toUpperCase(), style: displayStyle(context, 30, color: Colors.white)))
+                          : NetImage(a.imageUrl, fit: BoxFit.cover),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Tag(a.designation, color: p.tech),
+                  const SizedBox(height: 6),
+                  Text(a.name, maxLines: 2, textAlign: TextAlign.center, overflow: TextOverflow.ellipsis, style: displayStyle(context, 16, height: 1.15)),
+                  if (a.rankTitle.isNotEmpty) Text(a.rankTitle, maxLines: 1, overflow: TextOverflow.ellipsis, style: bodyStyle(context, size: 12, color: p.muted)),
+                  if (a.department.isNotEmpty) Text(a.department, maxLines: 1, overflow: TextOverflow.ellipsis, style: bodyStyle(context, size: 11.5, color: p.muted)),
+                ]),
+              ),
+            );
+          },
+        ),
+      ),
+    ]);
   }
 }

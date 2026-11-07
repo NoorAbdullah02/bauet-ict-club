@@ -188,6 +188,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                 nav('Projects', 'Showcase projects', Icons.code_rounded, '/admin/data/projects').stagger(9),
                 nav('Resources', 'Slides, notes and tutorials', Icons.local_library_rounded, '/admin/data/resources').stagger(9),
                 nav('FAQs', 'Questions and answers', Icons.help_outline_rounded, '/admin/data/faqs').stagger(9),
+                nav('Advisors', 'Teachers who guide the club', Icons.school_rounded, '/admin/data/advisors').stagger(9),
                 nav('Sponsors', 'Supporters and logos', Icons.handshake_rounded, '/admin/data/sponsors').stagger(9),
                 nav('Subscribers', 'Newsletter emails', Icons.mark_email_unread_rounded, '/admin/data/subscribers', p.tech).stagger(9),
                 nav('Committees', 'Launch a new semester committee', Icons.rocket_launch_rounded, '/admin/committees').stagger(10),

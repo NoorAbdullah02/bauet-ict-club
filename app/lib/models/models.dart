@@ -194,6 +194,30 @@ class Sponsor {
   final int order;
 }
 
+/// A club advisor (a teacher who guides the club), shown at the top of the Team screen.
+class Advisor {
+  Advisor.fromJson(Map<String, dynamic> j)
+      : id = _i(j['id']),
+        name = _s(j['name']),
+        designation = _s(j['designation']).isEmpty ? 'Advisor' : _s(j['designation']),
+        rankTitle = _s(j['rank_title']),
+        department = _s(j['department']),
+        email = _s(j['email']),
+        imageUrl = AppConfig.resolve(_s(j['image_url'])),
+        order = _i(j['sort_order']),
+        active = j['active'] != false;
+
+  final int id;
+  final String name;
+  final String designation;
+  final String rankTitle;
+  final String department;
+  final String email;
+  final String imageUrl;
+  final int order;
+  final bool active;
+}
+
 class SiteSettings {
   const SiteSettings({
     this.aboutText = '',
