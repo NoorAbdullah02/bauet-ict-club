@@ -32,9 +32,9 @@ export default function Security() {
         <p className="mt-1 text-xs leading-5 text-fg2">An <b>editor</b> can add and change events, forms and notices, but cannot delete anything, see payments, backups or this list.</p>
         <ul className="mt-3 divide-y divide-line text-sm">
           {team === null ? <li className="py-2"><Loader2 size={14} className="animate-spin text-muted" /></li> : team.map((u) => (
-            <li key={u.id} className="flex items-center gap-2 py-2"><span className="min-w-0 flex-1 truncate text-fg">{u.username}</span><span className="rounded-full bg-alt px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-wider text-fg2">{u.role === 'editor' ? 'Editor' : 'Main admin'}</span>
+            <li key={u.id} className="flex items-center gap-2 py-2"><span className="min-w-0 flex-1 truncate text-fg">{u.username}{u.email && <span className="block truncate text-xs text-muted">{u.email}</span>}</span><span className="rounded-full bg-alt px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-wider text-fg2">{u.role === 'editor' ? 'Editor' : u.role === 'admin' ? 'Admin' : 'Main admin'}</span>
               <span className="hidden text-xs text-muted sm:inline">{formalDate(u.created_at)}</span>
-              {u.role === 'editor' && <button onClick={() => remove(u)} aria-label={`Remove ${u.username}`} className="grid size-8 place-items-center rounded-lg text-fg2 hover:bg-red-500/10 hover:text-red-500"><Trash2 size={14} /></button>}</li>
+              {u.role !== 'superadmin' && <button onClick={() => remove(u)} aria-label={`Remove ${u.username}`} className="grid size-8 place-items-center rounded-lg text-fg2 hover:bg-red-500/10 hover:text-red-500"><Trash2 size={14} /></button>}</li>
           ))}
         </ul>
         <form onSubmit={add} className="mt-4 grid gap-2 sm:grid-cols-2">

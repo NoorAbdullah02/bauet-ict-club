@@ -180,6 +180,27 @@ class Api {
     }
   }
 
+  /// How many admin accounts can still be made (at most 3 exist). 0 means sign-up is closed.
+  Future<int> signupLeft() async {
+    try {
+      final d = await _send(() => _dio.get('/auth/signup/status'));
+      return d is Map && d['open'] == true ? (d['left'] as num).toInt() : 0;
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  /// Step 1 of sign-up: the server checks the details and e-mails a 6-digit code.
+  Future<String> signupStart(String username, String email, String password) async {
+    final d = await _send(() => _dio.post('/auth/signup/start', data: {'username': username, 'email': email, 'password': password}));
+    return d is Map && d['message'] != null ? d['message'].toString() : 'We sent a code to your e-mail.';
+  }
+
+  /// Step 2: the code from the e-mail creates the account.
+  Future<void> signupVerify(String email, String code) async {
+    await _send(() => _dio.post('/auth/signup/verify', data: {'email': email, 'code': code}));
+  }
+
   /// Asks the server to e-mail a one-time password-reset link to the club address. The answer is the same whether the account exists or not.
   Future<String> forgotPassword(String username) async {
     final data = await _send(() => _dio.post('/auth/forgot', data: {'username': username}));

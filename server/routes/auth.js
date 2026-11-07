@@ -144,6 +144,89 @@ router.post('/reset', resetLimiter, async (req, res) => {
   } catch (e) { fail(res, e); }
 });
 
+// ---------- sign-up: at most 3 admin accounts, each proved by a code sent to the person's own e-mail ----------
+// No ready-made user name or password exists. The first people sign up themselves: user name, e-mail, password, then the 6-digit code from the e-mail.
+// Once 3 accounts exist the sign-up closes by itself. The first account is the main admin (superadmin); the others are admins.
+const MAX_ADMINS = 3;
+const SIGNUP_MINUTES = 15;
+const dns = require('dns').promises;
+const codeHash = (email, code) => crypto.createHmac('sha256', JWT_SECRET).update(`signup:${email}:${code}`).digest('hex');
+const signupLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 12, standardHeaders: true, legacyHeaders: false, message: { error: 'Too many sign-up attempts. Try again in a few minutes.' } });
+const adminCount = async () => Number((await pool.query("SELECT COUNT(*)::int AS n FROM admins WHERE role IN ('superadmin','admin')")).rows[0].n);
+const DISPOSABLE = /@(mailinator|guerrillamail|10minutemail|tempmail|temp-mail|yopmail|trashmail|sharklasers|getnada|dispostable|throwawaymail|maildrop)\./i;
+
+// does the e-mail address look right, and does its domain really receive mail?
+async function emailProblem(email) {
+  if (!/^[^\s@]{1,64}@[^\s@]+\.[^\s@]{2,}$/.test(email) || email.length > 200) return 'Type a valid e-mail address.';
+  if (DISPOSABLE.test(email)) return 'Use your own permanent e-mail address, not a temporary one.';
+  try {
+    const mx = await dns.resolveMx(email.split('@')[1]);
+    if (!mx.length) return 'This e-mail domain cannot receive mail. Check the spelling.';
+  } catch (e) {
+    if (e.code === 'ENOTFOUND' || e.code === 'ENODATA') return 'This e-mail domain cannot receive mail. Check the spelling.';
+    // the lookup itself failed (no network): the code sent to the address is the real proof, so carry on
+  }
+  return '';
+}
+
+router.get('/signup/status', async (req, res) => {
+  try { const n = await adminCount(); res.json({ open: n < MAX_ADMINS, left: Math.max(0, MAX_ADMINS - n), max: MAX_ADMINS }); } catch (e) { fail(res, e); }
+});
+
+router.post('/signup/start', signupLimiter, async (req, res) => {
+  const b = req.body || {};
+  const username = typeof b.username === 'string' ? b.username.trim() : '';
+  const email = typeof b.email === 'string' ? b.email.trim().toLowerCase() : '';
+  const password = typeof b.password === 'string' ? b.password : '';
+  try {
+    if (!/^[A-Za-z0-9._-]{3,30}$/.test(username)) return res.status(400).json({ error: 'The user name needs 3 to 30 letters, numbers, dot, dash or underscore.' });
+    const bad = await emailProblem(email);
+    if (bad) return res.status(400).json({ error: bad });
+    const pw = passwordProblem(password, username);
+    if (pw) return res.status(400).json({ error: pw });
+    if ((await adminCount()) >= MAX_ADMINS) return res.status(403).json({ error: 'Sign-up is closed: the 3 admin accounts already exist.' });
+    if ((await pool.query('SELECT 1 FROM admins WHERE LOWER(username) = LOWER($1) OR LOWER(email) = $2', [username, email])).rows.length) return res.status(409).json({ error: 'This user name or e-mail is already used.' });
+    // another person waiting with the same user name (other e-mail) blocks it only while their code is still valid
+    const wait = await pool.query('SELECT email FROM admin_signups WHERE LOWER(username) = LOWER($1) AND email <> $2 AND expires_at > NOW()', [username, email]);
+    if (wait.rows.length) return res.status(409).json({ error: 'This user name is being used by someone else right now. Choose another.' });
+    const code = String(crypto.randomInt(0, 1000000)).padStart(6, '0');
+    await pool.query(`INSERT INTO admin_signups (email, username, password_hash, code_hash, expires_at, attempts) VALUES ($1,$2,$3,$4,$5,0)
+      ON CONFLICT (email) DO UPDATE SET username = EXCLUDED.username, password_hash = EXCLUDED.password_hash, code_hash = EXCLUDED.code_hash, expires_at = EXCLUDED.expires_at, attempts = 0`,
+    [email, username, await bcrypt.hash(password, 10), codeHash(email, code), new Date(Date.now() + SIGNUP_MINUTES * 60000)]);
+    const mailer = require('../utils/mailer');
+    const t = mailer.templates.signupCode(code, SIGNUP_MINUTES);
+    if (!mailer.sendMail({ to: email, subject: t.subject, html: t.html, text: t.text })) return res.status(503).json({ error: 'E-mail sending is not set up on the server yet, so the code cannot be sent.' });
+    res.json({ ok: true, message: `We sent a 6-digit code to ${email}. It works for ${SIGNUP_MINUTES} minutes.` });
+  } catch (e) { fail(res, e); }
+});
+
+router.post('/signup/verify', signupLimiter, async (req, res) => {
+  const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+  const code = typeof req.body?.code === 'string' ? req.body.code.replace(/\s/g, '') : '';
+  const bad = { error: 'That code is not right, or it expired. Check the e-mail, or start again.' };
+  try {
+    const { rows } = await pool.query('SELECT * FROM admin_signups WHERE email = $1', [email]);
+    const su = rows[0];
+    if (!su || new Date(su.expires_at) < new Date() || su.attempts >= 5 || !/^\d{6}$/.test(code)) {
+      if (su) await pool.query('UPDATE admin_signups SET attempts = attempts + 1 WHERE email = $1', [email]);
+      return res.status(400).json(bad);
+    }
+    const a = Buffer.from(codeHash(email, code)); const b = Buffer.from(su.code_hash);
+    if (!(a.length === b.length && crypto.timingSafeEqual(a, b))) { await pool.query('UPDATE admin_signups SET attempts = attempts + 1 WHERE email = $1', [email]); return res.status(400).json(bad); }
+    // the account is added, then the count is checked: if two people finished at the same moment and there are now too many, the new row is removed again
+    const role = (await pool.query("SELECT 1 FROM admins WHERE role = 'superadmin' LIMIT 1")).rows.length ? 'admin' : 'superadmin';
+    const dupe = (await pool.query('SELECT 1 FROM admins WHERE LOWER(username) = LOWER($1)', [su.username])).rows.length;
+    const made = dupe ? { rows: [] } : await pool.query('INSERT INTO admins (username, password_hash, role, email) VALUES ($1,$2,$3,$4) RETURNING id, username, role', [su.username, su.password_hash, role, email]);
+    if (made.rows.length && (await adminCount()) > MAX_ADMINS) { await pool.query('DELETE FROM admins WHERE id = $1', [made.rows[0].id]); made.rows.length = 0; }
+    await pool.query('DELETE FROM admin_signups WHERE email = $1', [email]);
+    if (!made.rows.length) return res.status(409).json({ error: 'The account could not be created: sign-up is closed or the user name was taken meanwhile.' });
+    const mailer = require('../utils/mailer');
+    const note = mailer.templates.signupNotice(su.username, email, role);
+    mailer.sendMail({ to: mailer.adminAddress(), subject: note.subject, html: note.html, text: note.text });
+    res.json({ ok: true, username: made.rows[0].username, message: 'Account created. You can sign in now.' });
+  } catch (e) { fail(res, e); }
+});
+
 // "Sign out everywhere": ends every other session of this account (stolen or forgotten devices)
 router.post('/logout-all', authMiddleware, async (req, res) => {
   try {

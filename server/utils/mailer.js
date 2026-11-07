@@ -125,6 +125,16 @@ function layout({ title, body, button, footerNote }) {
 const typeLabel = (r) => (r.type === 'committee' ? `Committee application (${r.post})` : r.type === 'ambassador' ? 'Department Ambassador application' : 'General membership application');
 
 const templates = {
+  signupCode: (code, minutes) => ({
+    subject: `Your sign-up code: ${code} | BAUET ICT Club`,
+    html: layout({ title: 'Confirm your e-mail', body: `<p>Type this code in the sign-up form to finish creating your admin account:</p><p style="font:700 34px monospace;letter-spacing:8px;margin:18px 0;color:#1F4FD8">${esc(code)}</p><p>It works for ${minutes} minutes. If you did not ask for it, ignore this e-mail: nothing is created.</p>` }),
+    text: `Your sign-up code is ${code}. It works for ${minutes} minutes. If you did not ask for it, ignore this e-mail.`,
+  }),
+  signupNotice: (username, email, role) => ({
+    subject: `New admin account: ${username} | BAUET ICT Club`,
+    html: layout({ title: 'A new admin account was created', body: `<p><b>${esc(username)}</b> (${esc(email)}) signed up as <b>${esc(role)}</b>.</p><p>If this was not expected, sign in and remove the account under Team.</p>` }),
+    text: `New admin account: ${username} (${email}) as ${role}.`,
+  }),
   adminReset: (link, minutes) => ({
     subject: 'Reset the admin password | BAUET ICT Club',
     html: layout({ title: 'Reset the admin password', body: `<p>Someone asked to reset the admin password of the club website. If it was you, press the button below and choose a new password. The link works <b>once</b> and for <b>${minutes} minutes</b>.</p><p>If it was not you, ignore this e-mail: nothing changes and the current password keeps working.</p>`, button: { href: link, label: 'Choose a new password' } }),

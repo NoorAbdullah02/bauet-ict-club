@@ -31,6 +31,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
   bool _show = false; // show the password
   bool _testing = false;
   bool _sendingReset = false;
+  int _slotsLeft = 0; // admin accounts that can still be made (at most 3 exist)
   String? _resetNote;
   String? _diag;
   String? _error;
@@ -39,6 +40,9 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
   void initState() {
     super.initState();
     final st = context.read<AppState>();
+    st.api.signupLeft().then((n) {
+      if (mounted) setState(() => _slotsLeft = n);
+    });
     if (st.signOutNote != null) {
       _error = 'You were signed out: ${st.signOutNote}';
       st.signOutNote = null;
@@ -237,6 +241,10 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                     ],
                     const SizedBox(height: 18),
                     GradientButton(label: 'Sign in', icon: Icons.login_rounded, loading: _busy, onPressed: _login),
+                    if (_slotsLeft > 0) ...[
+                      const SizedBox(height: 10),
+                      GhostButton(label: 'Create an account ($_slotsLeft left)', icon: Icons.person_add_alt_1_rounded, onPressed: () => context.push('/admin/signup')),
+                    ],
                     const SizedBox(height: 4),
                     TextButton.icon(
                       onPressed: _testing ? null : _test,
