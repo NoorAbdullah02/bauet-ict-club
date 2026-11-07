@@ -3,7 +3,7 @@ const express = require('express');
 const rateLimit = require('express-rate-limit');
 const pool = require('../config/db');
 const { fail } = require('../utils/http');
-const { authMiddleware, requireSuper } = require('../middleware/auth');
+const { authMiddleware } = require('../middleware/auth');
 const push = require('../utils/push');
 
 const router = express.Router();
@@ -29,8 +29,9 @@ router.post('/unregister', limiter, async (req, res) => {
   try { await pool.query('DELETE FROM push_tokens WHERE token = $1', [token]); res.json({ ok: true }); } catch (e) { fail(res, e); }
 });
 
-// main admin only: is it set up, and a test message to every phone that has the app
-router.get('/status', authMiddleware, requireSuper, async (_req, res) => { try { res.json(await push.status()); } catch (e) { fail(res, e); } });
-router.post('/test', authMiddleware, requireSuper, limiter, async (_req, res) => { try { res.json(await push.test()); } catch (e) { fail(res, e); } });
+// admins (the main admin and the other admin accounts, not the editors): is it set up, and a test message to every phone that has the app
+const requireAdmin = (req, res, next) => (['superadmin', 'admin'].includes(req.user?.role) ? next() : res.status(403).json({ error: 'Only an admin can do this.' }));
+router.get('/status', authMiddleware, requireAdmin, async (_req, res) => { try { res.json(await push.status()); } catch (e) { fail(res, e); } });
+router.post('/test', authMiddleware, requireAdmin, limiter, async (_req, res) => { try { res.json(await push.test()); } catch (e) { fail(res, e); } });
 
 module.exports = router;
