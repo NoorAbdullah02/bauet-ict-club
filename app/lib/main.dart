@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'core/config.dart';
+import 'core/crash.dart';
 import 'core/push.dart';
 import 'core/update_check.dart';
 import 'core/router.dart';
@@ -15,6 +16,7 @@ import 'state/app_state.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  Crash.start(); // crash reports; never blocks or breaks the start
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
   final state = AppState(api: Api());
   await state.init();

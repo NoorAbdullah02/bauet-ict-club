@@ -1,9 +1,9 @@
-import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 
 import '../state/app_state.dart';
+import 'crash.dart';
 
 /// Phone notifications through Firebase Cloud Messaging (free): "New event: ...", "New notice: ...".
 /// The phone sends its notification address (token) to the club server; the server sends the news to it.
@@ -14,7 +14,7 @@ class Push {
   static Future<void> start(AppState state, GoRouter router) async {
     if (kIsWeb) return; // notifications are for the phone app
     try {
-      await Firebase.initializeApp();
+      await ensureFirebase();
       final messaging = FirebaseMessaging.instance;
       if (state.pushOn) await _register(state);
       // the classic registration token is what the server's FCM HTTP v1 call expects

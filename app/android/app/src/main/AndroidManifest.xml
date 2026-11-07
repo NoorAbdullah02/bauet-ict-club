@@ -40,6 +40,33 @@
             <meta-data
                 android:name="io.flutter.embedding.android.NormalTheme"
                 android:resource="@style/NormalTheme" />
+            <!-- links to the website (bauet-ict-club.onrender.com) open in the app when it is installed; without the app they open in the browser as before -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="bauet-ict-club.onrender.com" android:pathPrefix="/events" />
+                <data android:scheme="https" android:host="bauet-ict-club.onrender.com" android:pathPrefix="/card" />
+                <data android:scheme="https" android:host="bauet-ict-club.onrender.com" android:pathPrefix="/ticket" />
+                <data android:scheme="https" android:host="bauet-ict-club.onrender.com" android:pathPrefix="/verify" />
+                <data android:scheme="https" android:host="bauet-ict-club.onrender.com" android:pathPrefix="/f" />
+                <data android:scheme="https" android:host="bauet-ict-club.onrender.com" android:pathPrefix="/contests" />
+                <data android:scheme="https" android:host="bauet-ict-club.onrender.com" android:pathPrefix="/jobs" />
+                <data android:scheme="https" android:host="bauet-ict-club.onrender.com" android:pathPrefix="/notices" />
+                <data android:scheme="https" android:host="bauet-ict-club.onrender.com" android:pathPrefix="/team" />
+                <data android:scheme="https" android:host="bauet-ict-club.onrender.com" android:pathPrefix="/projects" />
+                <data android:scheme="https" android:host="bauet-ict-club.onrender.com" android:pathPrefix="/resources" />
+                <data android:scheme="https" android:host="bauet-ict-club.onrender.com" android:pathPrefix="/leaderboard" />
+                <data android:scheme="https" android:host="bauet-ict-club.onrender.com" android:pathPrefix="/my-card" />
+                <data android:scheme="https" android:host="bauet-ict-club.onrender.com" android:pathPrefix="/tickets" />
+                <data android:scheme="https" android:host="bauet-ict-club.onrender.com" android:pathPrefix="/join" />
+                <data android:scheme="https" android:host="bauet-ict-club.onrender.com" android:pathPrefix="/gallery" />
+                <data android:scheme="https" android:host="bauet-ict-club.onrender.com" android:pathPrefix="/achievements" />
+                <data android:scheme="https" android:host="bauet-ict-club.onrender.com" android:pathPrefix="/faq" />
+                <data android:scheme="https" android:host="bauet-ict-club.onrender.com" android:pathPrefix="/about" />
+                <data android:scheme="https" android:host="bauet-ict-club.onrender.com" android:pathPrefix="/contact" />
+                <data android:scheme="https" android:host="bauet-ict-club.onrender.com" android:pathPrefix="/ambassadors" />
+            </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
