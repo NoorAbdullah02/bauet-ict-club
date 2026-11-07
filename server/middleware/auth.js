@@ -44,7 +44,7 @@ async function authMiddleware(req, res, next) {
     const url = String(req.originalUrl || '').split('?')[0];
     if (decoded.role === 'editor' && (req.method === 'DELETE' || EDITOR_BLOCKED.test(url))) return res.status(403).json({ error: 'Your login can edit but cannot do this. Ask the main admin.' });
     if (MUTATING.has(req.method) && !QUIET.test(url)) {
-      res.on('finish', () => { // who did what, kept for 180 days
+      res.on('finish', () => { // who did what, kept for 10 days
         if (res.statusCode >= 400) return;
         require('../config/db').query('INSERT INTO audit_log (admin_id, username, method, path, status) VALUES ($1,$2,$3,$4,$5)', [decoded.id, decoded.username, req.method, url.slice(0, 200), res.statusCode]).catch(() => {});
       });

@@ -45,7 +45,7 @@ The club has two committees a year: **Summer** and **Winter**. To start the next
 
 - One President and at most two Vice Presidents per committee session: Vice President (Administration) first, then Vice President (Technical). Other posts can have several people.
 - Every department can apply and hold posts.
-- Deleted items go to the Trash for 30 days; permanent delete also removes the picture from Cloudinary.
+- Deleted items go to the Trash for 20 days; permanent delete also removes the picture from Cloudinary.
 
 ## Emails (Brevo API)
 

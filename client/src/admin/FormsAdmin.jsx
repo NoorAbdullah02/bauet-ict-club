@@ -36,8 +36,8 @@ export default function FormsAdmin() {
     setBusy('');
   };
   const remove = async (f) => {
-    if (!(await askConfirm({ title: `Delete “${f.title}”?`, message: `Its link stops working. ${f.responses} ${f.responses === 1 ? 'response is' : 'responses are'} kept in the Trash for 30 days in case you need them back.`, confirmText: 'Delete form', danger: true }))) return;
-    try { await api.delete(`/forms/${f.id}`); setForms((l) => l.filter((x) => x.id !== f.id)); toast.success('Moved to the Trash. You can restore it for 30 days.'); } catch { toast.error('Could not delete'); }
+    if (!(await askConfirm({ title: `Delete “${f.title}”?`, message: `Its link stops working. ${f.responses} ${f.responses === 1 ? 'response is' : 'responses are'} kept in the Trash for 20 days in case you need them back.`, confirmText: 'Delete form', danger: true }))) return;
+    try { await api.delete(`/forms/${f.id}`); setForms((l) => l.filter((x) => x.id !== f.id)); toast.success('Moved to the Trash. You can restore it for 20 days.'); } catch { toast.error('Could not delete'); }
   };
   const link = (f) => `${window.location.origin}/f/${f.slug}`;
   const shown = useMemo(() => (forms || []).filter((f) => !q || f.title.toLowerCase().includes(q.toLowerCase())), [forms, q]);

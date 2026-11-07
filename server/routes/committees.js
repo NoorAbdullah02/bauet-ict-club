@@ -152,7 +152,7 @@ router.get('/:session/zip', authMiddleware, async (req, res) => {
 });
 
 /**
- * Delete a whole committee. Everyone in it goes to the Trash (restorable for 30 days); nothing else is touched.
+ * Delete a whole committee. Everyone in it goes to the Trash (restorable for 20 days); nothing else is touched.
  * Each committee keeps its own pictures in its own folder, so permanently deleting this one never affects another committee.
  */
 router.delete('/:session', authMiddleware, async (req, res) => {

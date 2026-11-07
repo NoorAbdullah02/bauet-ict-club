@@ -8,7 +8,7 @@ What protects the admin console, and what to do when something goes wrong.
 - **Lockout:** 5 wrong passwords or codes lock that account for 5 minutes (any IP). On top of that, 40 failed attempts per IP per 5 minutes are refused. The first admin is called `ICT-Club` (set `ADMIN_USERNAME` to use another name).
 - **Sessions:** a token lasts 12 hours and is checked against the database on every request. Deleting a login, changing its role, changing the password or pressing *Sign out other devices* ends old sessions immediately.
 - **Headers and transport:** strict Content-Security-Policy, HSTS, `frame-ancestors 'none'`, CORS limited to your own origin, rate limits on the API, request-size limits.
-- **Activity log:** every change made while signed in is recorded for 180 days (Admin → Activity).
+- **Activity log:** every change made while signed in is recorded for 10 days (Admin → Activity).
 
 ## If someone loses their phone
 Use a backup code on the sign-in page (each works once). If the backup codes are gone too, the main admin can reset the password with `npm run admin:reset`, then turn two-step off in the database:

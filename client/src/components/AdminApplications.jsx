@@ -159,7 +159,7 @@ function Card({ r, selected, onToggle }) {
     run(() => setRegistrationStatus(r.id, 'rejected'), 'Rejected');
   };
   const trash = async () => {
-    if (!(await askConfirm({ title: `Delete ${r.full_name}'s application?`, message: 'It will be moved to the Trash. You can restore it for 30 days.', confirmText: 'Move to Trash', danger: true }))) return;
+    if (!(await askConfirm({ title: `Delete ${r.full_name}'s application?`, message: 'It will be moved to the Trash. You can restore it for 20 days.', confirmText: 'Move to Trash', danger: true }))) return;
     setBusy(true);
     try { await deleteRegistration(r.id); setView(false); toastTrashed('Application', () => useStore.getState().restoreTrash('registrations', r.id)); } catch (e) { toast.error(e.response?.data?.error || 'Could not delete'); }
     setBusy(false);
@@ -335,7 +335,7 @@ export default function AdminApplications() {
     const copy = {
       approve: { title: `Approve ${n} application${n === 1 ? '' : 's'}?`, message: 'They will be marked as approved.', confirmText: `Yes, approve ${n}` },
       reject: { title: `Reject ${n} application${n === 1 ? '' : 's'}?`, message: 'Each applicant gets a polite rejection email.', confirmText: `Yes, reject ${n}`, danger: true },
-      trash: { title: `Move ${n} application${n === 1 ? '' : 's'} to Trash?`, message: 'You can restore them from the Trash for 30 days.', confirmText: `Move ${n} to Trash`, danger: true },
+      trash: { title: `Move ${n} application${n === 1 ? '' : 's'} to Trash?`, message: 'You can restore them from the Trash for 20 days.', confirmText: `Move ${n} to Trash`, danger: true },
     }[kind];
     if (!(await askConfirm(copy))) return;
     setBulkBusy(true);
