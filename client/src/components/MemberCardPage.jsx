@@ -4,18 +4,22 @@ import { motion } from 'framer-motion';
 import { BadgeCheck, Loader2, Download, Link2, ShieldAlert, Share2, Facebook, MessageCircle, Send, Mail, Linkedin, Twitter } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { api } from '../context/store';
+import useStore from '../context/store';
 import { qrDataUrl } from '../lib/qr';
 import { thumb } from '../lib/img';
 import { copyText, nativeShare, shareLinks } from '../lib/share';
 import Logo from './Logo';
 
 /** Saves the card as a sharp PNG picture (1080 x 1920) that can be printed or posted anywhere. */
-async function downloadCard(m, code, qr) {
+async function downloadCard(m, code, qr, extra) {
   const { cardToPng } = await import('../lib/cardImage');
-  const url = await cardToPng({ m, code, qr, width: 1080 });
+  const url = await cardToPng({ m, code, qr, width: 1080, ...extra });
   const a = Object.assign(document.createElement('a'), { href: url, download: `${String(m.name || 'member').replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '')}-BAUET-ICT-Club-card.png` });
   document.body.appendChild(a); a.click(); a.remove();
 }
+
+/** "https://www.facebook.com/bauetictclub" -> "fb.com/bauetictclub" (short enough to sit on the card). */
+export const fbShort = (u = '') => { try { const x = new URL(u); return `fb.com/${x.pathname.replace(/^\/|\/$/g, '')}`; } catch { return ''; } };
 
 const initials = (n = '') => n.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
 
@@ -71,7 +75,7 @@ const condensed = { fontFamily: "'Barlow Condensed', 'Space Grotesk', system-ui,
 
 /** The portrait membership badge (lanyard card): navy side strip with the club, the post, the photo, then name, department, QR and session.
  *  Every size is relative to the card width (cqw), so it looks the same on a 320 px phone and on a printed page. */
-function Badge({ m, code, qr, verified }) {
+function Badge({ m, code, qr, verified, site, fb }) {
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
   const move = (e) => {
     if (e.pointerType === 'touch') return;
@@ -131,7 +135,7 @@ function Badge({ m, code, qr, verified }) {
           <path d="M0 9 Q0 7 2.5 6 L8 3.5 Q10 2.5 13 2.5 L48 2.5 Q52 2.5 54 1.2 Q56 0 59 0 L100 0 L100 40 L0 40 Z" fill="url(#panel)" />
         </svg>
 
-        <div className="absolute inset-x-0 bottom-0 flex items-stretch" style={{ height: '33%', padding: `0 ${c(9)} ${c(5.5)} ${c(7)}`, gap: c(3) }}>
+        <div className="absolute inset-x-0 bottom-0 flex items-stretch" style={{ height: '33%', padding: `0 ${c(9)} ${c(11.5)} ${c(7)}`, gap: c(3) }}>
           <div className="flex min-w-0 flex-1 flex-col justify-end" style={{ gap: c(2.2) }}>
             <div className="min-w-0">
               <h2 className="line-clamp-2 font-bold uppercase tracking-tight text-[#3B4658]" style={{ ...condensed, fontSize: c(nameFs), lineHeight: 0.92 }}>{name}</h2>
@@ -153,9 +157,15 @@ function Badge({ m, code, qr, verified }) {
           </div>
         </div>
         {/* year / session, turned sideways like the printed design */}
-        <span className="absolute whitespace-nowrap font-semibold uppercase text-[#0A1A3F]" style={{ ...condensed, right: c(2.6), bottom: c(6), transformOrigin: 'bottom right', transform: 'rotate(-90deg) translate(100%, 0)', fontSize: c(4), letterSpacing: '0.18em' }}>{session}</span>
+        <span className="absolute whitespace-nowrap font-semibold uppercase text-[#0A1A3F]" style={{ ...condensed, right: c(2.6), bottom: c(12), transformOrigin: 'bottom right', transform: 'rotate(-90deg) translate(100%, 0)', fontSize: c(4), letterSpacing: '0.18em' }}>{session}</span>
 
         {verified && <span className="absolute z-10 inline-flex items-center rounded-full bg-emerald-500 font-bold text-white shadow-lg" style={{ left: c(30), top: '17%', gap: c(1), padding: `${c(1)} ${c(2.6)}`, fontSize: c(2.8) }}><BadgeCheck style={{ width: c(3.2), height: c(3.2) }} /> Verified</span>}
+        {/* website and Facebook, so a shared or printed card always points back to the club */}
+        <div className="absolute inset-x-0 bottom-0 flex items-center justify-center whitespace-nowrap font-mono text-white/90" style={{ height: c(6.6), gap: c(3), fontSize: c(2.45), letterSpacing: '0.03em', background: 'linear-gradient(90deg,#061440,#0B2A78 60%,#0A4D8F)' }}>
+          {site && <span>{site}</span>}
+          {site && fb && <i aria-hidden="true" className="rounded-full bg-[#7CF0B2]" style={{ width: c(0.9), height: c(0.9) }} />}
+          {fb && <span>{fb}</span>}
+        </div>
         <div aria-hidden="true" className="badge-sheen pointer-events-none absolute inset-0" />
       </div>
       </div>
@@ -172,6 +182,7 @@ export default function MemberCardPage() {
   const [data, setData] = useState(null); // null = loading, false = not found
   const [qr, setQr] = useState('');
   const [saving, setSaving] = useState(false);
+  const fbLink = useStore((st) => st.settings?.socialLinks?.fb) || 'https://www.facebook.com/bauetictclub';
 
   useEffect(() => {
     api.get(`/card/${id}`, { params: c ? { c } : {} }).then((r) => setData(r.data)).catch(() => setData(false));
@@ -196,9 +207,9 @@ export default function MemberCardPage() {
             {data.verified ? <><BadgeCheck size={18} /> Genuine card: this person is a member of BAUET ICT Club.</> : <><ShieldAlert size={18} /> This code does not match the card. Do not trust it.</>}
           </div>
         )}
-        <Badge m={m} code={data.code} qr={qr} verified={checked && data.verified} />
+        <Badge m={m} code={data.code} qr={qr} verified={checked && data.verified} site={window.location.host} fb={fbShort(fbLink)} />
         <div className="mt-5 flex flex-wrap items-center justify-center gap-2 print:hidden">
-          <button disabled={saving} onClick={async () => { setSaving(true); try { await downloadCard(m, data.code, qr); toast.success('Card saved as a picture'); } catch { toast.error('Could not save the card. Try again.'); } setSaving(false); }} className="btn-outline !px-4 !py-2.5 text-xs disabled:opacity-60">{saving ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />} Download</button>
+          <button disabled={saving} onClick={async () => { setSaving(true); try { await downloadCard(m, data.code, qr, { site: window.location.host, fb: fbShort(fbLink) }); toast.success('Card saved as a picture'); } catch { toast.error('Could not save the card. Try again.'); } setSaving(false); }} className="btn-outline !px-4 !py-2.5 text-xs disabled:opacity-60">{saving ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />} Download</button>
           <ShareMenu url={`${window.location.origin}/card/${m.id}?c=${data.code}`} title={`${m.name} | BAUET ICT Club`} text={`${m.name}, ${m.position || 'Member'} at BAUET ICT Club`} />
         </div>
       </div>
