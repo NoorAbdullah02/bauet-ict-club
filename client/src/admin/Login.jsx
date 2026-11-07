@@ -53,11 +53,12 @@ function ResetPanel({ mode, setMode, username, setUsername }) {
             <span className="relative block"><input className={`${field} pr-12`} type={show ? 'text' : 'password'} value={pw} onChange={(e) => setPw(e.target.value)} autoComplete="new-password" placeholder="For example Ice-2016" />
               <Lock size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted peer-focus:text-tech" />
               <button type="button" onClick={() => setShow((v) => !v)} aria-label={show ? 'Hide password' : 'Show password'} className="absolute right-2 top-1/2 grid size-9 -translate-y-1/2 place-items-center rounded-xl text-fg2 hover:text-accent">{show ? <EyeOff size={18} /> : <Eye size={18} />}</button></span></label>
-          <label className="mb-2 block"><span className="mb-1.5 block font-mono text-[11px] uppercase tracking-[0.14em] text-fg2">Type it again</span>
+          <PasswordMeter pw={pw} username={q.get('u') || username} />
+          <label className="mb-2 mt-4 block"><span className="mb-1.5 block font-mono text-[11px] uppercase tracking-[0.14em] text-fg2">Type it again</span>
             <span className="relative block"><input className={field} type={show ? 'text' : 'password'} value={pw2} onChange={(e) => setPw2(e.target.value)} autoComplete="new-password" placeholder="Same password" />
               <Lock size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted peer-focus:text-tech" /></span></label>
           {err && <p role="alert" className="mt-4 flex items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-3.5 py-2.5 text-sm text-red-500"><AlertCircle size={16} className="shrink-0" /> {err}</p>}
-          <button disabled={busy || !pw || !pw2} className="btn-primary mt-6 w-full !py-3.5 disabled:opacity-60">{busy ? <Loader2 size={17} className="animate-spin" /> : <KeyRound size={15} />} {busy ? 'Saving…' : 'Save new password'}</button>
+          <button disabled={busy || !passwordScore(pw, q.get('u') || username).ok || pw !== pw2} className="btn-primary mt-6 w-full !py-3.5 disabled:opacity-60">{busy ? <Loader2 size={17} className="animate-spin" /> : <KeyRound size={15} />} {busy ? 'Saving…' : 'Save new password'}</button>
         </form>
       ) : (
         <form onSubmit={ask} noValidate>
@@ -74,6 +75,38 @@ function ResetPanel({ mode, setMode, username, setUsername }) {
   );
 }
 
+// how strong a new password is: weak / medium / strong, and whether it meets the club's rule (6+ characters, letters with numbers or symbols)
+function passwordScore(pw, username = '') {
+  const long = pw.length >= 6, mix = /[a-z]/i.test(pw) && /[^a-z]/i.test(pw);
+  const lower = /[a-z]/.test(pw), upper = /[A-Z]/.test(pw), digit = /\d/.test(pw), sym = /[^A-Za-z0-9]/.test(pw);
+  const named = username.length >= 3 && pw.toLowerCase().includes(username.toLowerCase());
+  const easy = /^(.)\1+$/.test(pw) || /^(123456|password|qwerty|abcdef)/i.test(pw);
+  const ok = long && mix && !named && !easy;
+  let pts = 0;
+  if (pw.length >= 6) pts++; if (pw.length >= 10) pts++; if (lower && upper) pts++; if (digit) pts++; if (sym) pts++;
+  const level = !ok ? 0 : pts >= 5 ? 3 : pts >= 4 ? 2 : 1; // 0 refused, 1 weak but allowed, 2 medium, 3 strong
+  return { ok, level, long, mix, named, easy };
+}
+function PasswordMeter({ pw, username }) {
+  if (!pw) return null;
+  const r = passwordScore(pw, username);
+  const label = !r.ok ? 'Not allowed yet' : ['', 'Weak', 'Medium', 'Strong'][r.level];
+  const color = !r.ok ? 'bg-red-500' : r.level === 1 ? 'bg-amber-500' : r.level === 2 ? 'bg-lime-500' : 'bg-emerald-500';
+  const tip = (v, t) => <li className={v ? 'text-emerald-600' : 'text-muted'}>{v ? '✓' : '•'} {t}</li>;
+  return (
+    <div className="mt-2" aria-live="polite">
+      <div className="flex gap-1.5">{[1, 2, 3].map((i) => <span key={i} className={`h-1.5 flex-1 rounded-full ${r.ok && r.level >= i ? color : !r.ok && i === 1 ? color : 'bg-line'}`} />)}</div>
+      <p className="mt-1 text-xs font-semibold text-fg2">{label}</p>
+      <ul className="mt-1 space-y-0.5 text-xs">
+        {tip(r.long, '6 or more characters')}
+        {tip(r.mix, 'Letters together with numbers or symbols')}
+        {tip(!r.named && !r.easy, 'Not your user name, not a common word')}
+      </ul>
+      {r.ok && r.level < 3 && <p className="mt-1 text-xs text-muted">Tip: add a capital letter, a symbol and 10+ characters to make it strong.</p>}
+    </div>
+  );
+}
+
 // sign-up (at most 3 admin accounts): user name, e-mail and password, then the 6-digit code that is e-mailed
 function SignupPanel({ setMode }) {
   const login = useStore((s) => s.login);
@@ -84,6 +117,7 @@ function SignupPanel({ setMode }) {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
   const [err, setErr] = useState('');
+  const signupReady = /^[A-Za-z0-9._-]{3,30}$/.test(f.username.trim()) && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(f.email.trim()) && passwordScore(f.password, f.username.trim()).ok;
   const say = (ex) => setErr(ex?.response?.status === 429 ? 'Too many attempts. Wait a few minutes and try again.' : ex?.response?.data?.error || 'The server did not answer. It may be waking up. Wait a minute and try again.');
 
   const start = async (e) => {
@@ -123,8 +157,9 @@ function SignupPanel({ setMode }) {
             <span className="relative block"><input className={`${field} pr-12`} type={show ? 'text' : 'password'} value={f.password} onChange={(e) => setF({ ...f, password: e.target.value })} autoComplete="new-password" placeholder="6+ characters, letters and numbers" />
               <Lock size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted peer-focus:text-tech" />
               <button type="button" onClick={() => setShow((v) => !v)} aria-label={show ? 'Hide password' : 'Show password'} className="absolute right-2 top-1/2 grid size-9 -translate-y-1/2 place-items-center rounded-xl text-fg2 hover:text-accent">{show ? <EyeOff size={18} /> : <Eye size={18} />}</button></span></label>
+          <PasswordMeter pw={f.password} username={f.username.trim()} />
           {err && <p role="alert" className="mt-4 flex items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-3.5 py-2.5 text-sm text-red-500"><AlertCircle size={16} className="shrink-0" /> {err}</p>}
-          <button disabled={busy} className="btn-primary mt-6 w-full !py-3.5 disabled:opacity-60">{busy ? <Loader2 size={17} className="animate-spin" /> : <Mail size={15} />} {busy ? 'Sending…' : 'Send me the code'}</button>
+          <button disabled={busy || !signupReady} className="btn-primary mt-6 w-full !py-3.5 disabled:opacity-60">{busy ? <Loader2 size={17} className="animate-spin" /> : <Mail size={15} />} {busy ? 'Sending…' : 'Send me the code'}</button>
         </form>
       ) : (
         <form onSubmit={verify} noValidate>
