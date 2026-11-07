@@ -26,7 +26,7 @@ The Express server serves the built website, so you deploy **one** web service. 
 | `TRUST_PROXY` | `1` |
 | `JWT_SECRET` | long random text (32+ characters) |
 | `DATABASE_URL` | your Neon connection string |
-| `ADMIN_PASSWORD` | admin password (12+ characters). Username is `admin` |
+| `ADMIN_PASSWORD` | admin password (6+ characters with letters and numbers). Username is `admin` |
 | `PUBLIC_URL` | leave empty (Render's own `RENDER_EXTERNAL_URL` is used); set it only for your own domain |
 | `BREVO_API_KEY`, `MAIL_FROM`, `ADMIN_NOTIFY_EMAIL` | email |
 | `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | pictures |

@@ -104,7 +104,7 @@ class _AdminTeamScreenState extends State<AdminTeamScreen> {
               const SizedBox(height: 14),
               AppField(controller: _user, label: 'Username', icon: Icons.person_outline_rounded),
               const SizedBox(height: 12),
-              AppField(controller: _pass, label: 'Password (12+ characters)', obscure: true, icon: Icons.lock_outline_rounded),
+              AppField(controller: _pass, label: 'Password (6+ characters, letters and numbers)', obscure: true, icon: Icons.lock_outline_rounded),
               if (_formError != null) Padding(padding: const EdgeInsets.only(top: 10), child: Text(_formError!, style: bodyStyle(context, size: 13, color: const Color(0xFFEF4444)))),
               const SizedBox(height: 14),
               GradientButton(label: 'Create login', icon: Icons.person_add_alt_1_rounded, loading: _busy, onPressed: _busy ? null : _add),

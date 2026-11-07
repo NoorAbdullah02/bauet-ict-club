@@ -28,7 +28,7 @@ function PasswordPanel() {
       <form onSubmit={submit} className="space-y-4">
         <h3 className="flex items-center gap-2 text-xl text-fg"><KeyRound size={18} /> Change password</h3>
         {field('current', 'Current password', 'current-password')}
-        {field('next', 'New password (min 12 characters)', 'new-password')}
+        {field('next', 'New password (min 6 characters, letters and numbers)', 'new-password')}
         {field('again', 'Repeat new password', 'new-password')}
         <button disabled={busy} className="btn-primary !px-5 !py-2.5 text-xs disabled:opacity-60">{busy ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} Change password</button>
       </form>
