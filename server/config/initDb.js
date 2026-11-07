@@ -340,6 +340,17 @@ async function initDb() {
       INSERT INTO admins (username, password_hash, role) VALUES ('admin', $1, 'superadmin')
       ON CONFLICT (username) DO NOTHING RETURNING id
     `, [hash]);
+    // The admin account is created ONCE. Changing ADMIN_PASSWORD later does not change an existing account. To set a new password
+    // (forgotten, or changed in Render after the first start), set RESET_ADMIN_PASSWORD=true together with a strong ADMIN_PASSWORD,
+    // let the service restart, sign in, then REMOVE the RESET_ADMIN_PASSWORD line.
+    if (String(process.env.RESET_ADMIN_PASSWORD).toLowerCase() === 'true') {
+      const problem = process.env.ADMIN_PASSWORD ? require('../utils/passwordPolicy').passwordProblem(process.env.ADMIN_PASSWORD, 'admin') : 'ADMIN_PASSWORD is not set';
+      if (problem) console.warn(`RESET_ADMIN_PASSWORD is on but the password was not changed: ${problem}`);
+      else {
+        await client.query("UPDATE admins SET password_hash = $1, failed_logins = 0, locked_until = NULL, token_version = COALESCE(token_version, 0) + 1 WHERE username = 'admin'", [hash]);
+        console.log('The admin password was reset from ADMIN_PASSWORD. Username: admin. Now remove RESET_ADMIN_PASSWORD from the environment.');
+      }
+    }
     if (created.rows.length && !process.env.ADMIN_PASSWORD) console.log(`\nAdmin account created. Username: admin  Password: ${adminPassword}\n(Save it now — it is not shown again. Set ADMIN_PASSWORD in .env to choose your own.)`);
 
     console.log('Database ready');
