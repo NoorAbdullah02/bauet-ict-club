@@ -95,6 +95,11 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
       ok((await call('POST', '/api/push/register', { token: tokenA })).s === 200, 'push: saving the same token again is fine');
       ok((await call('POST', '/api/push/unregister', { token: tokenA })).s === 200, 'push: token removed');
       ok((await call('POST', '/api/push/unregister', { token: '!!' })).s === 400, 'push: bad token on unregister refused');
+      const st = await call('GET', '/api/push/status', undefined, T);
+      ok(st.s === 200 && st.j.configured === false && st.j.phones === 0 && /not set/.test(st.j.problem), 'push: status page tells the key is not set');
+      ok((await call('GET', '/api/push/status')).s === 401, 'push: status needs an admin login');
+      const tst = await call('POST', '/api/push/test', {}, T);
+      ok(tst.s === 200 && tst.j.sent === 0, 'push: the test message sends nothing when the key is not set');
       const push = require('../utils/push');
       ok(push.enabled() === false, 'push: off when no Firebase key is set');
       ok((await push.broadcast({ title: 'x', body: 'y' })) === 0, 'push: broadcast does nothing without a key');

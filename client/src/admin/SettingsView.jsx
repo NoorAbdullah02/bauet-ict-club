@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
-import { Save, Loader2, FlaskConical, Trash2, KeyRound, ShieldCheck, LogOut } from 'lucide-react';
+import { Save, Loader2, FlaskConical, Trash2, KeyRound, ShieldCheck, LogOut, Bell, Send } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import useStore from '../context/store';
 import { Panel, PageTitle, inputCls, askConfirm } from './ui';
@@ -114,6 +114,46 @@ function TwoFactorPanel() {
   );
 }
 
+/** Phone notifications: is the Firebase key read, how many phones have the app, and a test message (main admin only). */
+function PushPanel() {
+  const [st, setSt] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState(null);
+  const load = () => api.get('/push/status').then((r) => setSt(r.data)).catch(() => setSt({ error: true }));
+  useEffect(() => { load(); }, []);
+  const test = async () => {
+    setBusy(true); setResult(null);
+    try { const r = await api.post('/push/test'); setResult(r.data); load(); }
+    catch (e) { setResult({ problem: e.response?.data?.error || 'Could not reach the server' }); }
+    setBusy(false);
+  };
+  const row = (ok, label, detail) => (
+    <li className="flex items-start gap-2.5 text-sm"><span className={`mt-0.5 grid size-5 shrink-0 place-items-center rounded-full text-[11px] font-bold text-white ${ok ? 'bg-emerald-500' : 'bg-red-500'}`}>{ok ? '✓' : '!'}</span><span><b className="text-fg">{label}</b>{detail ? <span className="text-fg2"> {detail}</span> : null}</span></li>
+  );
+  return (
+    <Panel className="self-start space-y-4 p-6 xl:col-start-2">
+      <h3 className="flex items-center gap-2 text-xl text-fg"><Bell size={18} /> Phone notifications</h3>
+      {!st ? <Loader2 className="animate-spin" size={16} /> : st.error ? <p className="text-sm text-red-500">Could not load the status.</p> : (
+        <>
+          <ul className="space-y-2">
+            {row(st.configured, 'Firebase key', st.configured ? `read (project ${st.project})` : 'not read')}
+            {row(st.enabled, 'Sending', st.enabled ? 'on' : 'off')}
+            {row(st.phones > 0, 'Phones with the app', `${st.phones} registered`)}
+          </ul>
+          {st.problem && <p className="rounded-xl bg-amber-500/10 px-3.5 py-2.5 text-sm text-amber-700">{st.problem}</p>}
+          <button onClick={test} disabled={busy || !st.enabled} className="btn-primary !px-5 !py-2.5 text-xs disabled:opacity-60">{busy ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />} Send a test notification</button>
+          {result && (
+            <p className={`rounded-xl px-3.5 py-2.5 text-sm ${result.sent > 0 ? 'bg-emerald-500/10 text-emerald-700' : 'bg-red-500/10 text-red-600'}`}>
+              {result.sent > 0 ? `Sent to ${result.sent} phone${result.sent === 1 ? '' : 's'}. Check the phone now.` : (result.problem || 'Nothing was sent.')}
+            </p>
+          )}
+          <p className="text-xs text-muted">The test goes to every phone that has the app and allowed notifications. Each person's phone must have the newest app (build 114 or newer).</p>
+        </>
+      )}
+    </Panel>
+  );
+}
+
 const FIELDS = [['heroTitle', 'Hero title', 'text'], ['heroSub', 'Hero subtitle', 'text'], ['aboutText', 'About text', 'textarea'], ['mission', 'Mission', 'textarea'], ['vision', 'Vision', 'textarea'], ['goal', 'Goal', 'textarea']];
 
 export default function SettingsView() {
@@ -167,6 +207,7 @@ export default function SettingsView() {
         <ServiceStatus />
         <PasswordPanel />
         <TwoFactorPanel />
+        {user?.role === 'superadmin' && <PushPanel />}
         {user?.role === 'superadmin' && <Security />}
         <Panel className="self-start p-6 xl:col-start-2">
           <div className="flex items-start gap-4">
