@@ -45,7 +45,7 @@ export default function Footer() {
   const email = s.email || 'ictclubbauet@gmail.com';
   const phone = s.phone || '01748-269350';
   const h3 = 'mb-3 flex items-center gap-2 whitespace-nowrap font-mono text-[10px] uppercase tracking-[0.22em] text-white/50 before:h-px before:w-4 before:bg-[#7CF0B2]/70';
-  const contact = 'group flex items-start gap-3 text-white/80 transition hover:text-white';
+  const contact = 'group !flex items-start gap-3 text-white/80 transition hover:text-white';
   const chip = 'mt-0.5 grid size-7 shrink-0 place-items-center rounded-lg bg-white/10 text-[#7CF0B2] transition group-hover:bg-[#7CF0B2]/20';
 
   return (
@@ -60,7 +60,7 @@ export default function Footer() {
         <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-[#7CF0B2] to-transparent opacity-80" />
 
         {/* call to action */}
-        <div className="flex flex-col items-start justify-between gap-5 border-b border-white/12 px-6 py-8 sm:px-10 md:flex-row md:items-center">
+        <div className="flex flex-col items-start justify-between gap-5 border-b border-white/12 px-6 py-7 sm:px-10 md:flex-row md:items-center md:py-8">
           <div>
             <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-[#7CF0B2]">Build with us</p>
             <h2 className="mt-2 max-w-xl text-2xl font-semibold leading-tight sm:text-[1.9rem]">Ready to turn ideas into <span className="bg-gradient-to-r from-[#8DB2FF] via-[#38C8F0] to-[#7CF0B2] bg-clip-text text-transparent">real projects?</span></h2>
@@ -80,8 +80,8 @@ export default function Footer() {
           <FooterSubscribe />
         </div>
 
-        <div className="grid gap-10 px-6 py-10 sm:px-10 md:grid-cols-12">
-          <div className="md:col-span-4">
+        <div className="grid grid-cols-2 gap-x-6 gap-y-8 px-6 py-8 sm:px-10 md:grid-cols-12 md:gap-10 md:py-10">
+          <div className="col-span-2 md:col-span-4">
             <div className="inline-flex items-center gap-3 rounded-2xl bg-white px-3.5 py-2.5 shadow-lg">
               <Logo kind="crest" height={40} className="!filter-none" />
               <span className="h-7 w-px bg-slate-200" />
@@ -98,17 +98,17 @@ export default function Footer() {
             </div>
           </div>
 
-          <nav aria-label="Explore" className="md:col-span-2">
+          <nav aria-label="Explore" className="col-span-2 md:col-span-2">
             <h3 className={h3}>Explore</h3>
-            <ul className="space-y-0.5">{EXPLORE.map(([l, to]) => <li key={to}><Link to={to} className={link}>{t(l)}</Link></li>)}</ul>
+            <ul className="grid grid-cols-2 gap-x-4 md:block md:space-y-0.5">{EXPLORE.map(([l, to]) => <li key={to}><Link to={to} className={link}>{t(l)}</Link></li>)}</ul>
           </nav>
 
-          <nav aria-label="Get involved" className="md:col-span-2">
+          <nav aria-label="Get involved" className="col-span-2 md:col-span-2">
             <h3 className={h3}>Get involved</h3>
-            <ul className="space-y-0.5">{INVOLVED.map(([l, to]) => <li key={to}><Link to={to} className={link}>{t(l)}</Link></li>)}</ul>
+            <ul className="grid grid-cols-2 gap-x-4 md:block md:space-y-0.5">{INVOLVED.map(([l, to]) => <li key={to}><Link to={to} className={link}>{t(l)}</Link></li>)}</ul>
           </nav>
 
-          <div className="md:col-span-4">
+          <div className="col-span-2 md:col-span-4">
             <h3 className={h3}>Contact</h3>
             <ul className="space-y-3 text-[13px]">
               <li><a href={`mailto:${email}`} className={contact}><span className={chip}><Mail size={14} /></span><span className="min-w-0 break-words pt-0.5 [overflow-wrap:anywhere]">{email}</span></a></li>
@@ -124,7 +124,7 @@ export default function Footer() {
           BAUET ICT CLUB
         </div>
 
-        <div className="relative flex flex-wrap items-center justify-between gap-2 border-t border-white/12 bg-black/10 px-6 py-3.5 text-[12px] text-white/65 backdrop-blur-sm sm:px-10">
+        <div className="relative flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t border-white/12 bg-black/10 px-6 py-3.5 pb-[max(0.875rem,env(safe-area-inset-bottom))] text-[12px] text-white/65 backdrop-blur-sm max-sm:justify-center max-sm:text-center sm:px-10">
           <span>© {new Date().getFullYear()} BAUET ICT Club</span>
           <span className="inline-flex items-center gap-1.5 max-sm:hidden">Made with <Heart size={12} className="fill-[#FF6B8A] text-[#FF6B8A]" /> by the ICT Club</span>
           <span className="inline-flex items-center gap-1" role="group" aria-label={t('Language')}>
