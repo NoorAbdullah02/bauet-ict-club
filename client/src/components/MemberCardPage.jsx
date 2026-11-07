@@ -79,7 +79,7 @@ function Badge({ m, code, qr, verified }) {
   return (
     <motion.div initial={{ opacity: 0, y: 26, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }} style={{ perspective: 1200 }}>
       {/* wrapper = the container whose width every size below is measured against (cqw) */}
-      <div className="mx-auto w-full max-w-[372px]" style={{ containerType: 'inline-size' }}>
+      <div className="member-wrap mx-auto w-full max-w-[372px]" style={{ containerType: 'inline-size' }}>
       <div onPointerMove={move} onPointerLeave={() => setTilt({ x: 0, y: 0 })}
         className="member-badge relative aspect-[9/16] w-full shadow-[0_40px_90px_rgba(6,20,64,0.45)] transition-transform duration-200 ease-out print:shadow-none"
         style={{ padding: c(1.7), borderRadius: c(8), background: 'linear-gradient(145deg,#35D989 0%,#38C8F0 35%,#8B5CF6 70%,#FF6B8A 100%)', transform: `rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`, transformStyle: 'preserve-3d' }}>
@@ -93,7 +93,6 @@ function Badge({ m, code, qr, verified }) {
           <div aria-hidden="true" className="absolute inset-0 opacity-30" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,.10) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.10) 1px, transparent 1px)', backgroundSize: `${c(6)} ${c(6)}` }} />
           <div aria-hidden="true" className="absolute rounded-full bg-[#2B63FF]/40 blur-3xl" style={{ left: c(-10), top: c(60), width: c(40), height: c(40) }} />
           <div className="relative mx-auto bg-white shadow-lg" style={{ marginTop: c(5), width: c(21), padding: c(1.6), borderRadius: c(4) }}><Logo kind="club" height={36} className="mx-auto !h-auto w-full" /></div>
-          <div className="relative mx-auto grid place-items-center rounded-full bg-white shadow-md" style={{ marginTop: c(3), width: c(13), height: c(13) }}><Logo kind="crest" height={28} className="!h-[78%] w-auto" /></div>
           <div className="absolute inset-x-0 grid place-items-center" style={{ top: '25%', bottom: '38%' }}>
             <span className="whitespace-nowrap font-semibold uppercase text-white" style={{ ...condensed, writingMode: 'vertical-rl', transform: 'rotate(180deg)', fontSize: c(6.4), letterSpacing: '0.2em' }}>BAUET ICT Club</span>
           </div>
@@ -134,8 +133,10 @@ function Badge({ m, code, qr, verified }) {
               </p>
             </div>
             <div>
-              <p className="font-mono uppercase text-[#64748B]" style={{ fontSize: c(2.3), letterSpacing: '0.2em' }}>Card code</p>
-              <p className="whitespace-nowrap font-mono text-[#0A1A3F]" style={{ fontSize: c(3.5), letterSpacing: '0.1em' }}>{code}</p>
+              <p className="font-mono uppercase text-[#64748B]" style={{ fontSize: c(2.3), letterSpacing: '0.2em' }}>Member ID</p>
+              <p className="flex items-center whitespace-nowrap font-mono text-[#0A1A3F]" style={{ gap: c(1.6), fontSize: c(3.5), letterSpacing: '0.08em' }}>
+                <span className="rounded bg-[#0A1A3F] font-bold text-[#7CF0B2]" style={{ padding: `${c(0.4)} ${c(1.4)}`, fontSize: c(3), letterSpacing: '0.02em' }}>&lt;ICT/&gt;</span>{code}
+              </p>
             </div>
           </div>
           <div className="relative flex shrink-0 items-center justify-center self-end border-[#0A1A3F] bg-white/80" style={{ width: c(26), height: c(26), borderWidth: c(0.8), borderStyle: 'solid', borderRadius: c(5), padding: c(1.4) }}>
