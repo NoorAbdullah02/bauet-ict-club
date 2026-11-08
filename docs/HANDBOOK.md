@@ -175,6 +175,8 @@ People who were checked in at the entrance can always download their own certifi
 3. **Publish:** when it says "Everything looks right", press *Publish*. Each chosen person gets an email with the **certificate attached as a PDF**.
 4. Mistake after publishing? Open the final check again, fix the name, press *Send again* on that person.
 
+**Sending is reliable.** *Publish* puts every certificate in a queue stored in the database. The server sends them one by one (the PDF is drawn just before each mail), tries a failed mail 3 times, then marks it **failed** with the reason (for example a wrong address). A person is marked "emailed" only after the mail service really accepted the mail. If the mail service says its daily limit is reached (Brevo free: 300 mails a day), sending stops and the rest **waits and continues by itself** at the next run (cron job, next visit or restart); nothing is lost. In the final check you see how many are sent, on the way and failed, with the reason next to each name, and a button **Try the failed ones again**. The page refreshes by itself while mails are on the way.
+
 The PDF is drawn by the server (`server/utils/tickets.js`, fonts in `server/assets/fonts/`). Signature pictures must be uploaded through the admin (they live on Cloudinary).
 
 ---

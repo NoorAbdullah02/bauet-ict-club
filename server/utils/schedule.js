@@ -33,7 +33,7 @@ async function publishDue() {
   return n;
 }
 /** Called from public list requests: checks at most once a minute, in the background. */
-function maybeTick() { if (Date.now() - lastRun > 60 * 1000) publishDue(); try { require('./push').maybeRemind(); } catch { /* phone notifications are optional */ } }
+function maybeTick() { if (Date.now() - lastRun > 60 * 1000) { publishDue(); try { require('../routes/eventRegs').processCertQueue(); } catch { /* optional */ } } try { require('./push').maybeRemind(); } catch { /* phone notifications are optional */ } }
 
 /** true when this item is not visible to the public yet */
 const isHidden = (row) => !!row && (!!row.is_draft || (row.publish_at && new Date(row.publish_at).getTime() > Date.now()));

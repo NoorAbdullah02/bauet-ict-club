@@ -17,6 +17,7 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
 (async () => {
   // a pretend payment company: opens sessions, and answers "is this payment real?" from the val_id the test sends ("val-<tran>-<amount>")
   const http = require('http');
+  const mails = []; let mailLimit = true;
   const gw = http.createServer((req, res) => {
     let raw = ''; req.on('data', (c) => { raw += c; });
     req.on('end', () => {
@@ -26,6 +27,16 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
         if (f.get('store_id') !== 'qa_store' || f.get('store_passwd') !== 'qa_pass' || f.get('currency') !== 'BDT') return res.end(JSON.stringify({ status: 'FAILED', failedreason: 'bad store' }));
         return res.end(JSON.stringify({ status: 'SUCCESS', GatewayPageURL: `http://pay.example/${f.get('tran_id')}`, amount: f.get('total_amount') }));
       }
+      if (url.pathname === '/v3/smtp/email' && req.method === 'POST') { // a pretend mail service (Brevo): records every mail, and fails on purpose for some addresses
+        let b = {}; try { b = JSON.parse(raw); } catch { /* not json */ }
+        const to = b.to?.[0]?.email || '';
+        const att = (b.attachment || [])[0];
+        mails.push({ to, subject: b.subject, file: att?.name || '', bytes: att ? Buffer.from(att.content, 'base64').length : 0, pdf: att ? Buffer.from(att.content, 'base64').subarray(0, 5).toString() : '' });
+        if (to === 'e1@example.com') { res.statusCode = 400; return res.end(JSON.stringify({ message: 'invalid recipient' })); }
+        if (to === 'e2@example.com' && mailLimit) { res.statusCode = 429; return res.end(JSON.stringify({ message: 'Daily sending limit reached' })); }
+        res.statusCode = 201; return res.end(JSON.stringify({ messageId: `<${mails.length}@qa>` }));
+      }
+      if (url.pathname === '/v3/account') return res.end(JSON.stringify({ email: 'qa@brevo.test' }));
       if (url.pathname === '/remotive') {
         feedHits.remotive += 1;
         return res.end(JSON.stringify({ jobs: [
@@ -48,7 +59,7 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
   });
   await new Promise((r) => gw.listen(0, '127.0.0.1', r));
   const GW = `http://127.0.0.1:${gw.address().port}`;
-  const srv = spawn(process.execPath, [path.join(__dirname, 'harness.js')], { env: { ...process.env, GROQ_API_KEY: '', QA_PORT: PORT, SSLCOMMERZ_STORE_ID: 'qa_store', SSLCOMMERZ_STORE_PASSWD: 'qa_pass', SSLCOMMERZ_BASE: GW, REMOTIVE_URL: `${GW}/remotive`, REMOTEOK_URL: `${GW}/remoteok` }, stdio: 'ignore' });
+  const srv = spawn(process.execPath, [path.join(__dirname, 'harness.js')], { env: { ...process.env, GROQ_API_KEY: '', QA_BREVO_KEY: 'qa-brevo-key', MAIL_FROM: 'club@example.org', ADMIN_NOTIFY_EMAIL: '', BREVO_API_BASE: GW, QA_PORT: PORT, SSLCOMMERZ_STORE_ID: 'qa_store', SSLCOMMERZ_STORE_PASSWD: 'qa_pass', SSLCOMMERZ_BASE: GW, REMOTIVE_URL: `${GW}/remotive`, REMOTEOK_URL: `${GW}/remoteok` }, stdio: 'ignore' });
   try {
     for (let i = 0; i < 60; i++) { try { if ((await fetch(`${B}/api/health`)).ok) break; } catch { /* booting */ } await new Promise((r) => setTimeout(r, 1000)); }
 
@@ -272,9 +283,33 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
       ok(rev.people.length === 1 && rev.people[0].email === 'e0@example.com' && rev.problems.some((x) => /signature picture/.test(x.text)), 'the final check lists the chosen person and what is missing', rev.problems);
       ok(rev.cert.signer2 === 'Sheikh Noor Abdullah' && rev.cert.signature2_source === 'a designed signature' && rev.cert.theme === 'gold', 'the final check shows the president default and the colour theme', rev.cert);
       ok((await call('POST', certUrl('/stage'), { stage: 'review' }, T)).j?.stage === 'review', 'the admin moves to the final check');
-      ok((await call('POST', certUrl('/send'), {}, T)).s === 400, 'publishing without a mail service is refused with a clear message');
       await call('PATCH', certUrl('/pick'), { ids: [reg0.id], picked: false }, T);
       ok((await call('GET', certUrl(''), undefined, T)).j.stage === 'draft', 'changing the choice sends the admin back to editing');
+      // publish for real against the pretend mail service: one mail goes through, one address is refused, one hits the daily limit
+      const all = (await call('GET', `/api/event-registrations/by-event/${ev.id}`, undefined, T)).j;
+      const byMail = (m) => all.find((x) => x.email === m);
+      for (const m of ['e1@example.com', 'e2@example.com']) await call('POST', '/api/event-registrations/checkin', { code: byMail(m).ticket }, T);
+      ok((await call('PATCH', certUrl('/pick'), { all: true }, T)).j?.changed === 3, 'tick everyone who is checked in');
+      ok((await call('POST', certUrl('/stage'), { stage: 'review' }, T)).j?.stage === 'review', 'final check again');
+      const pub = await call('POST', certUrl('/send'), {}, T);
+      ok(pub.s === 200 && pub.j.queued === 3 && pub.j.stage === 'published', 'publishing puts the certificates in the queue', pub.j);
+      const waitFor = async (fn, ms = 30000) => { const t0 = Date.now(); let v; while (Date.now() - t0 < ms) { v = await fn(); if (v) return v; await new Promise((r) => setTimeout(r, 400)); } return v; };
+      // the first run sends one, then the mail service says "daily limit": the run stops and the rest waits
+      const settled = await waitFor(async () => { const j = (await call('GET', certUrl(''), undefined, T)).j; return j.counts.sent === 1 && j.people.find((x) => x.email === 'e2@example.com')?.error ? j : null; });
+      const nowRev = (await call('GET', certUrl(''), undefined, T)).j;
+      ok(!!settled && settled.counts.queued === 2, 'at the daily limit the sending stops and the rest waits in the queue', { counts: nowRev.counts, people: nowRev.people, mails });
+      ok(/Waiting: .*limit/i.test(settled?.people.find((x) => x.email === 'e2@example.com')?.error || ''), 'the waiting person shows why', settled?.people);
+      const m0 = mails.find((x) => x.to === 'e0@example.com');
+      ok(m0 && m0.pdf === '%PDF-' && m0.bytes > 20000 && /^Certificate - .+\.pdf$/.test(m0.file), 'the mail carries the certificate as a PDF', m0);
+      mailLimit = false; // the daily limit is over: the next run of the cron job goes on
+      ok((await fetch(`${B}/api/jobs/run?key=qa-cron-secret-123456`)).status === 200, 'the cron job runs');
+      const done = await waitFor(async () => { const j = (await call('GET', certUrl(''), undefined, T)).j; return j.counts.queued === 0 ? j : null; });
+      ok(done?.counts.sent === 2 && done.counts.failed === 1, 'the waiting certificate goes out at the next run; the refused address ends as failed', done?.counts);
+      const pe = (m) => done?.people.find((x) => x.email === m);
+      ok(pe('e1@example.com')?.status === 'failed' && /invalid recipient/.test(pe('e1@example.com')?.error || '') && pe('e2@example.com')?.status === 'sent', 'each person shows the right status and the reason when it failed', done?.people);
+      ok(mails.filter((x) => x.to === 'e1@example.com').length === 3, 'a failing mail is tried 3 times, then marked failed');
+      ok(!(await call('GET', `/api/event-registrations/by-event/${ev.id}`, undefined, T)).j.find((x) => x.email === 'e1@example.com').certificate_sent_at, 'a person whose mail failed is not marked as emailed');
+      ok((await call('POST', certUrl('/retry'), {}, T)).j?.queued === 1, 'failed certificates can be tried again');
       ok((await call('GET', certUrl(''))).s === 401, 'the certificate review needs an admin login');
     }
 

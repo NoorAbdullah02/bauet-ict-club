@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -32,6 +34,7 @@ class _AdminSignupsScreenState extends State<AdminSignupsScreen> {
   String _filter = 'All';
   Map<String, dynamic>? _review; // certificates: the saved choice, the final-check data and the stage (draft | review | published)
   bool _sending = false;
+  Timer? _poll; // while certificates are being sent, look again every few seconds
 
   @override
   void initState() {
@@ -43,6 +46,12 @@ class _AdminSignupsScreenState extends State<AdminSignupsScreen> {
       _eventId = first.id;
       _load();
     }
+  }
+
+  @override
+  void dispose() {
+    _poll?.cancel();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -88,6 +97,13 @@ class _AdminSignupsScreenState extends State<AdminSignupsScreen> {
     try {
       final r = await _state.api.certReview(id);
       if (mounted) setState(() => _review = r);
+      final queued = ((r['counts'] as Map?)?['queued'] ?? 0) as int;
+      if (queued > 0 && _poll == null) {
+        _poll = Timer.periodic(const Duration(seconds: 4), (_) => _load());
+      } else if (queued == 0) {
+        _poll?.cancel();
+        _poll = null;
+      }
     } catch (_) {
       if (mounted) setState(() => _review = null);
     }
@@ -143,7 +159,7 @@ class _AdminSignupsScreenState extends State<AdminSignupsScreen> {
     setState(() => _sending = true);
     try {
       final r = await _state.api.certSend(eid, ids: ids);
-      if (mounted) showSnack(context, 'Certificates emailed to ${r['sent'] ?? 0} people');
+      if (mounted) showSnack(context, 'Sending started: ${r['queued'] ?? 0} certificates are on their way');
       await _load();
     } on ApiException catch (e) {
       if (!mounted) return;
@@ -185,6 +201,7 @@ class _AdminSignupsScreenState extends State<AdminSignupsScreen> {
     final people = (r['people'] as List? ?? const []).map((e) => Map<String, dynamic>.from(e as Map)).toList();
     final problems = (r['problems'] as List? ?? const []).map((e) => Map<String, dynamic>.from(e as Map)).toList();
     final published = _stage == 'published';
+    final counts = r['counts'] is Map ? Map<String, dynamic>.from(r['counts'] as Map) : <String, dynamic>{};
     final waiting = (r['waiting'] ?? 0) as int;
     String line(String k, String v) => v;
     Widget row(String k, String v) => Padding(
@@ -232,6 +249,31 @@ class _AdminSignupsScreenState extends State<AdminSignupsScreen> {
                 Expanded(child: Text('${pr['text']}', style: bodyStyle(context, size: 12.5))),
               ]),
             ),
+        if ((counts['sent'] ?? 0) > 0 || (counts['queued'] ?? 0) > 0 || (counts['failed'] ?? 0) > 0) ...[
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(border: Border.all(color: p.line), borderRadius: BorderRadius.circular(14)),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Wrap(spacing: 14, runSpacing: 4, children: [
+                Text('${counts['sent'] ?? 0} sent', style: bodyStyle(context, weight: FontWeight.w700, size: 13)),
+                if ((counts['queued'] ?? 0) > 0) Text('${counts['queued']} on the way', style: bodyStyle(context, size: 13, color: const Color(0xFF0369A1))),
+                if ((counts['failed'] ?? 0) > 0) Text('${counts['failed']} failed', style: bodyStyle(context, weight: FontWeight.w700, size: 13, color: const Color(0xFFDC2626))),
+              ]),
+              const SizedBox(height: 8),
+              ClipRRect(borderRadius: BorderRadius.circular(6), child: LinearProgressIndicator(value: people.isEmpty ? 0 : ((counts['sent'] ?? 0) as int) / people.length, minHeight: 8, color: const Color(0xFF10B981), backgroundColor: p.line)),
+              if ((counts['queued'] ?? 0) == 0 && (counts['failed'] ?? 0) == 0 && (counts['sent'] ?? 0) > 0)
+                Padding(padding: const EdgeInsets.only(top: 8), child: Text('All ${counts['sent']} certificates were emailed.', style: bodyStyle(context, weight: FontWeight.w700, size: 13, color: const Color(0xFF059669)))),
+              if ((counts['failed'] ?? 0) > 0) ...[
+                const SizedBox(height: 8),
+                Text('Some certificates could not be sent. The reason is written under each name. Fix it (for example a wrong email address), then try again.', style: bodyStyle(context, size: 12.5, color: const Color(0xFFDC2626))),
+                _btn('Try the failed ones again', Icons.refresh_rounded, () => _certJob(() async { final n = await _state.api.certRetry(_eventId!); if (mounted) showSnack(context, '$n will be tried again'); })),
+              ],
+              if (people.any((x) => x['status'] == 'queued' && '${x['error']}'.startsWith('Waiting')))
+                Padding(padding: const EdgeInsets.only(top: 8), child: Text('The mail service has reached its limit for now. The rest waits and goes out by itself later (nothing is lost).', style: bodyStyle(context, size: 12.5, color: const Color(0xFFB45309)))),
+            ]),
+          ),
+        ],
         const SizedBox(height: 8),
         for (final x in people)
           Container(
@@ -240,11 +282,14 @@ class _AdminSignupsScreenState extends State<AdminSignupsScreen> {
             decoration: BoxDecoration(border: Border.all(color: p.line), borderRadius: BorderRadius.circular(14)),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text('${x['name']}${x['custom_name'] == true ? '  · custom name' : ''}', style: bodyStyle(context, weight: FontWeight.w700, size: 14)),
-              Text('${(x['email'] ?? '').toString().isEmpty ? 'no email' : x['email']}${x['sent'] == true ? ' · emailed' : ''}', style: bodyStyle(context, size: 12, color: p.muted)),
+              Text('${(x['email'] ?? '').toString().isEmpty ? 'no email' : x['email']}', style: bodyStyle(context, size: 12, color: p.muted)),
+              if (x['status'] == 'sent') Text('emailed', style: bodyStyle(context, size: 12, weight: FontWeight.w700, color: const Color(0xFF059669))),
+              if (x['status'] == 'queued') Text('${(x['error'] ?? '').toString().isEmpty ? 'on the way' : x['error']}', style: bodyStyle(context, size: 12, weight: FontWeight.w700, color: const Color(0xFF0369A1))),
+              if (x['status'] == 'failed') Text('Could not send: ${x['error']}', style: bodyStyle(context, size: 12, weight: FontWeight.w700, color: const Color(0xFFDC2626))),
               Wrap(spacing: 4, children: [
                 _btn('Preview', Icons.visibility_rounded, () => _preview(x['id'] as int)),
                 _btn('Edit name', Icons.edit_rounded, () => _editCertName(x['id'] as int, '${x['name']}')),
-                if (published && x['sent'] == true) _btn('Send again', Icons.send_rounded, _sending ? () {} : () => _publish(ids: [x['id'] as int])),
+                if (published && (x['status'] == 'sent' || x['status'] == 'failed')) _btn(x['status'] == 'failed' ? 'Try again' : 'Send again', Icons.send_rounded, _sending ? () {} : () => _publish(ids: [x['id'] as int])),
               ]),
             ]),
           ),

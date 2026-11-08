@@ -381,7 +381,7 @@ router.get('/event/:eventId/certificates', async (req, res) => {
     if (!ev) return res.status(404).json({ error: 'Event not found' });
     const cert = ev.reg_form?.cert || {};
     const rows = (await pool.query("SELECT * FROM event_registrations WHERE event_id = $1 AND deleted_at IS NULL AND cert_pick = TRUE AND checked_in_at IS NOT NULL ORDER BY full_name", [ev.id])).rows;
-    const people = rows.map((r) => ({ id: r.id, name: certNameOf({ ...r, ev_form: ev.reg_form }), custom_name: !!r.cert_name, email: r.email || '', sent: !!r.certificate_sent_at }));
+    const people = rows.map((r) => ({ id: r.id, name: certNameOf({ ...r, ev_form: ev.reg_form }), custom_name: !!r.cert_name, email: r.email || '', sent: !!r.certificate_sent_at && r.cert_status !== 'queued', status: r.cert_status === 'queued' ? 'queued' : r.cert_status === 'failed' ? 'failed' : r.certificate_sent_at ? 'sent' : 'new', error: r.cert_status === 'failed' ? (r.cert_error || 'Could not send') : r.cert_status === 'queued' && r.cert_error ? r.cert_error : '' }));
     const def = await certDefaults();
     const advisor = String(cert.signer || '').trim() || tickets.DEFAULT_ADVISOR.name;
     const advisorTitle = String(cert.signer_title || '').trim() || tickets.DEFAULT_ADVISOR.title;
@@ -395,9 +395,10 @@ router.get('/event/:eventId/certificates', async (req, res) => {
     if (!String(cert.organizer || '').trim()) problems.push({ level: 'warn', text: 'No "organised by" line: it will say the BAUET ICT Club organised it.' });
     people.filter((x) => !x.email).forEach((x) => problems.push({ level: 'error', text: `${x.name} has no email address.` }));
     if (!mail.provider()) problems.push({ level: 'error', text: 'Email is not set up on the server (BREVO_API_KEY and MAIL_FROM).' });
-    const waiting = people.filter((x) => !x.sent).length;
+    const waiting = people.filter((x) => x.status === 'new').length;
+    const counts = { sent: people.filter((x) => x.status === 'sent').length, queued: people.filter((x) => x.status === 'queued').length, failed: people.filter((x) => x.status === 'failed').length };
     res.json({ stage: stageOf(ev), enabled: !!cert.enabled, cert: { title: cert.title || '', organizer: cert.organizer || '', event_kind: cert.event_kind || '', theme: cert.theme || 'gold', signer: advisor, signer_title: advisorTitle, signature_source: advisorPicture, signer2: president, signer2_title: String(cert.signer2_title || '').trim() || 'President, BAUET ICT Club', signature2_source: presidentPicture, note: cert.note || '' },
-      people, waiting, problems, can_publish: !problems.some((p) => p.level === 'error') && people.length > 0 });
+      people, waiting, counts, problems, can_publish: !problems.some((p) => p.level === 'error') && people.length > 0 });
   } catch (e) { fail(res, e); }
 });
 
@@ -418,7 +419,8 @@ router.post('/event/:eventId/certificates/stage', async (req, res) => {
 });
 
 /**
- * Admin: publish. Emails the certificate (as a PDF) to the chosen people, only after the final check.
+ * Admin: publish. Puts the certificate emails (PDF attached) in a queue that lives in the database, so nothing is lost if the server restarts
+ * or the mail service is busy. Each person is marked "emailed" only after the mail service really accepted the mail.
  * body: { ids?: [..] }  without ids = everyone chosen who has not got one yet; with ids = exactly those (also people who already got one: a corrected copy).
  */
 router.post('/event/:eventId/certificates/send', async (req, res) => {
@@ -430,22 +432,65 @@ router.post('/event/:eventId/certificates/send', async (req, res) => {
     if (!mail.provider()) return res.status(400).json({ error: 'Email is not configured. Set BREVO_API_KEY and MAIL_FROM in .env.' });
     const given = Array.isArray(req.body?.ids) ? [...new Set(req.body.ids.map(Number).filter((n) => Number.isInteger(n) && n > 0))].slice(0, 2000) : null;
     const rows = (await pool.query(
-      `SELECT * FROM event_registrations WHERE event_id = $1 AND deleted_at IS NULL AND cert_pick = TRUE ${given ? (given.length ? 'AND id IN (' + given.map((_, i) => '$' + (i + 2)).join(',') + ')' : 'AND FALSE') : 'AND certificate_sent_at IS NULL'}`,
+      `SELECT * FROM event_registrations WHERE event_id = $1 AND deleted_at IS NULL AND cert_pick = TRUE ${given ? (given.length ? 'AND id IN (' + given.map((_, i) => '$' + (i + 2)).join(',') + ')' : 'AND FALSE') : "AND certificate_sent_at IS NULL AND COALESCE(cert_status, '') NOT IN ('queued')"}`,
       given ? [ev.id, ...given] : [ev.id])).rows;
-    if (!rows.length) return res.status(400).json({ error: given ? 'Nobody in that choice is ticked for a certificate.' : 'Everyone chosen already has their certificate.' });
-    const sent = []; const skipped = []; const base = site(req);
+    if (!rows.length) return res.status(400).json({ error: given ? 'Nobody in that choice is ticked for a certificate.' : 'Everyone chosen already has their certificate (or it is on its way).' });
+    const queued = []; const skipped = [];
     for (const r of rows) {
       if (!r.checked_in_at) { skipped.push({ id: r.id, reason: 'not checked in' }); continue; }
       if (!r.email) { skipped.push({ id: r.id, reason: 'no email' }); continue; }
       if (r.pay_status === 'rejected') { skipped.push({ id: r.id, reason: 'payment rejected' }); continue; }
-      mail.sendMail({ to: r.email, ...mail.templates.certificateReady(r, ev, r.ticket), attachments: async () => [{ filename: `Certificate - ${certNameOf({ ...r, ev_form: ev.reg_form }).replace(/[^\p{L}\p{N} ._-]+/gu, '').trim() || 'Participant'}.pdf`, content: await certPdfFor(r, ev, base), contentType: 'application/pdf' }] });
-      await pool.query('UPDATE event_registrations SET certificate_sent_at = NOW() WHERE id = $1', [r.id]);
-      sent.push(r.id);
+      await pool.query("UPDATE event_registrations SET cert_status = 'queued', cert_tries = 0, cert_error = NULL WHERE id = $1", [r.id]);
+      queued.push(r.id);
     }
     await pool.query("UPDATE events SET cert_stage = 'published' WHERE id = $1", [ev.id]);
-    res.json({ sent: sent.length, skipped, stage: 'published' });
+    processCertQueue().catch((e) => console.warn('Certificate queue:', e.message)); // keeps going in the background
+    res.json({ queued: queued.length, sent: 0, skipped, stage: 'published' });
   } catch (e) { fail(res, e); }
 });
+
+/** Admin: put the certificates that failed back in the queue (after fixing an address, or when the mail service was down). */
+router.post('/event/:eventId/certificates/retry', async (req, res) => {
+  try {
+    const r = await pool.query("UPDATE event_registrations SET cert_status = 'queued', cert_tries = 0, cert_error = NULL WHERE event_id = $1 AND cert_status = 'failed' AND deleted_at IS NULL", [req.params.eventId]);
+    processCertQueue().catch((e) => console.warn('Certificate queue:', e.message));
+    res.json({ queued: r.rowCount });
+  } catch (e) { fail(res, e); }
+});
+
+let certRunning = false;
+/**
+ * Sends the queued certificate emails one by one (the PDF is drawn just before each mail). A failed mail is tried again later (3 tries, then it is
+ * marked "failed" with the reason). When the mail service says its daily limit is reached, the rest simply waits and goes on at the next run
+ * (the cron job, or the next start of the server). Safe to call at any time and from anywhere.
+ */
+async function processCertQueue() {
+  if (certRunning) return;
+  certRunning = true;
+  try {
+    for (let guard = 0; guard < 5000; guard++) {
+      const r = (await pool.query("SELECT * FROM event_registrations WHERE cert_status = 'queued' AND deleted_at IS NULL ORDER BY cert_tries, id LIMIT 1")).rows[0];
+      if (!r) break;
+      const ev = (await pool.query('SELECT * FROM events WHERE id = $1', [r.event_id])).rows[0];
+      const fail1 = async (msg, final) => pool.query('UPDATE event_registrations SET cert_tries = cert_tries + 1, cert_error = $1, cert_status = $2 WHERE id = $3', [String(msg).slice(0, 200), final || r.cert_tries + 1 >= 3 ? 'failed' : 'queued', r.id]);
+      if (!ev || !ev.reg_form?.cert?.enabled) { await fail1('Certificates are switched off for this event', true); continue; }
+      if (!r.email) { await fail1('No email address', true); continue; }
+      if (!mail.provider()) break; // mail is not set up: leave everything queued
+      try {
+        const pdf = await certPdfFor(r, ev, mail.siteUrl());
+        const clean1 = certNameOf({ ...r, ev_form: ev.reg_form }).replace(/[^\p{L}\p{N} ._-]+/gu, '').trim() || 'Participant';
+        await mail.sendNow({ to: r.email, ...mail.templates.certificateReady(r, ev, r.ticket), attachments: [{ filename: `Certificate - ${clean1}.pdf`, content: pdf, contentType: 'application/pdf' }] });
+        await pool.query("UPDATE event_registrations SET certificate_sent_at = NOW(), cert_status = 'sent', cert_error = NULL WHERE id = $1", [r.id]);
+      } catch (e) {
+        if (/429|limit|quota|credit|too many/i.test(e.message)) { await pool.query('UPDATE event_registrations SET cert_error = $1 WHERE id = $2', [`Waiting: ${String(e.message).slice(0, 150)}`, r.id]); break; } // try again at the next run
+        await fail1(e.message);
+        await new Promise((ok) => setTimeout(ok, 1500));
+      }
+      await new Promise((ok) => setTimeout(ok, 300)); // gentle on the mail service
+    }
+  } finally { certRunning = false; }
+}
+router.processCertQueue = processCertQueue;
 
 /** Admin: email the feedback form link of this event now (people who came, or everyone confirmed). */
 router.post('/event/:eventId/feedback/send', async (req, res) => {
