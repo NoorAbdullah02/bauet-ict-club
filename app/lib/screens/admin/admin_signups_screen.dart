@@ -29,6 +29,8 @@ class _AdminSignupsScreenState extends State<AdminSignupsScreen> {
   bool _loading = false;
   String? _error;
   String _filter = 'All';
+  Map<String, dynamic>? _review; // certificates: the saved choice, the final-check data and the stage (draft | review | published)
+  bool _sending = false;
 
   @override
   void initState() {
@@ -52,6 +54,7 @@ class _AdminSignupsScreenState extends State<AdminSignupsScreen> {
     try {
       final r = await _state.api.eventSignups(id);
       if (mounted) setState(() => _rows = r);
+      await _loadReview();
     } on ApiException catch (e) {
       if (!mounted) return;
       await _state.handleAuthError(e);
@@ -59,6 +62,197 @@ class _AdminSignupsScreenState extends State<AdminSignupsScreen> {
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  EventItem? get _event {
+    for (final e in _state.events) {
+      if (e.id == _eventId) return e;
+    }
+    return null;
+  }
+
+  bool get _certOn {
+    final c = _event?.regForm['cert'];
+    return c is Map && c['enabled'] == true;
+  }
+
+  String get _stage => (_review?['stage'] ?? 'draft').toString();
+
+  Future<void> _loadReview() async {
+    final id = _eventId;
+    if (id == null || !_certOn) {
+      if (mounted) setState(() => _review = null);
+      return;
+    }
+    try {
+      final r = await _state.api.certReview(id);
+      if (mounted) setState(() => _review = r);
+    } catch (_) {
+      if (mounted) setState(() => _review = null);
+    }
+  }
+
+  Future<void> _certJob(Future<void> Function() job, {String? ok}) async {
+    try {
+      await job();
+      if (ok != null && mounted) showSnack(context, ok);
+      await _load();
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      await _state.handleAuthError(e);
+      if (mounted) showSnack(context, e.message, error: true);
+    }
+  }
+
+  Future<void> _preview(int? regId) {
+    final id = _eventId!;
+    return previewPdf(context, _state.api, '/event-registrations/event/$id/certificates/preview', 'certificate-preview.pdf', query: regId == null ? null : {'reg': regId});
+  }
+
+  Future<void> _editCertName(int regId, String current) async {
+    final c = TextEditingController(text: current);
+    final name = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Name on the certificate'),
+        content: TextField(controller: c, maxLength: 80, autofocus: true, decoration: const InputDecoration(hintText: 'Full name as it should be printed')),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx, c.text.trim()), child: const Text('Save')),
+        ],
+      ),
+    );
+    c.dispose();
+    if (name == null) return;
+    await _certJob(() => _state.api.setCertName(regId, name), ok: 'Name on the certificate saved');
+  }
+
+  Future<void> _publish({List<int>? ids}) async {
+    final eid = _eventId!;
+    final n = ids?.length ?? (_review?['waiting'] ?? 0);
+    final yes = await confirmAction(
+      context,
+      title: ids != null ? 'Send a new copy?' : 'Publish and email $n certificate${n == 1 ? '' : 's'}?',
+      message: ids != null ? 'This person gets the certificate again, with the corrected details.' : 'Each chosen person gets an email with their certificate attached as a PDF. Everyone else gets nothing.',
+      confirmText: ids != null ? 'Send again' : 'Publish',
+    );
+    if (yes != true) return;
+    setState(() => _sending = true);
+    try {
+      final r = await _state.api.certSend(eid, ids: ids);
+      if (mounted) showSnack(context, 'Certificates emailed to ${r['sent'] ?? 0} people');
+      await _load();
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      await _state.handleAuthError(e);
+      if (mounted) showSnack(context, e.message, error: true);
+    } finally {
+      if (mounted) setState(() => _sending = false);
+    }
+  }
+
+  Widget _certSection(Pal p) {
+    final eid = _eventId!;
+    final chosen = _rows.where((r) => r['cert_pick'] == true).length;
+    final notYet = _rows.where((r) => r['checked_in_at'] != null && (r['email'] ?? '').toString().isNotEmpty && r['pay_status'] != 'rejected' && r['certificate_sent_at'] == null).length;
+    if (_stage == 'draft' || _review == null) {
+      return GlassCard(
+        padding: const EdgeInsets.all(16),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            Icon(Icons.workspace_premium_rounded, color: p.accent),
+            const SizedBox(width: 10),
+            Expanded(child: Text('Certificates · step 1 of 2: choose the people', style: bodyStyle(context, weight: FontWeight.w700, size: 15))),
+          ]),
+          const SizedBox(height: 6),
+          Text('Tick the people on the list below. Nobody is chosen until you tick them. Then go to the final check.', style: bodyStyle(context, size: 12.5, color: p.muted)),
+          const SizedBox(height: 10),
+          Wrap(spacing: 8, runSpacing: 4, children: [
+            _btn('Tick all not emailed ($notYet)', Icons.done_all_rounded, notYet == 0 ? () {} : () => _certJob(() => _state.api.certPick(eid, all: true))),
+            _btn('Preview', Icons.visibility_rounded, () => _preview(null)),
+            _btn('Clear', Icons.clear_all_rounded, chosen == 0 ? () {} : () => _certJob(() => _state.api.certPick(eid, all: true, picked: false))),
+          ]),
+          const SizedBox(height: 8),
+          GradientButton(label: 'Final check ($chosen)', icon: Icons.arrow_forward_rounded, onPressed: chosen == 0 ? null : () => _certJob(() => _state.api.certStage(eid, 'review'))),
+        ]),
+      );
+    }
+    final r = _review!;
+    final cert = r['cert'] is Map ? Map<String, dynamic>.from(r['cert'] as Map) : <String, dynamic>{};
+    final people = (r['people'] as List? ?? const []).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+    final problems = (r['problems'] as List? ?? const []).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+    final published = _stage == 'published';
+    final waiting = (r['waiting'] ?? 0) as int;
+    String line(String k, String v) => v;
+    Widget row(String k, String v) => Padding(
+          padding: const EdgeInsets.symmetric(vertical: 2),
+          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            SizedBox(width: 96, child: Text(k.toUpperCase(), style: monoStyle(context, size: 9.5))),
+            Expanded(child: Text(line(k, v), style: bodyStyle(context, size: 13))),
+          ]),
+        );
+    final signer = '${cert['signer'] ?? ''}'.isEmpty ? '(empty)' : '${cert['signer']}${'${cert['signer_title'] ?? ''}'.isEmpty ? '' : ', ${cert['signer_title']}'}${cert['signature'] == true ? ' · signature ✓' : ' · no signature picture'}';
+    final signer2 = '${cert['signer2'] ?? ''}'.isEmpty ? 'none' : '${cert['signer2']}${cert['signature2'] == true ? ' · signature ✓' : ' · no signature picture'}';
+    return GlassCard(
+      padding: const EdgeInsets.all(16),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Icon(Icons.fact_check_rounded, color: p.accent),
+          const SizedBox(width: 10),
+          Expanded(child: Text('Certificates · step 2 of 2: final check${published ? ' (published)' : ''}', style: bodyStyle(context, weight: FontWeight.w700, size: 15))),
+        ]),
+        const SizedBox(height: 6),
+        Text(published ? 'The certificates were emailed. You can still fix a name and send a new copy to one person.' : 'Look at everything once more. If it is all right, publish. If not, go back and change it: nothing has been sent yet.', style: bodyStyle(context, size: 12.5, color: p.muted)),
+        const SizedBox(height: 10),
+        row('Title', '${cert['title'] ?? ''}'),
+        row('Organised by', '${cert['organizer'] ?? ''}'.isEmpty ? 'BAUET ICT Club' : '${cert['organizer']}'),
+        row('Signer', signer),
+        row('Second signer', signer2),
+        row('People', '${people.length} chosen · $waiting not emailed yet'),
+        const SizedBox(height: 8),
+        if (problems.isEmpty)
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(color: const Color(0xFF10B981).withValues(alpha: 0.12), borderRadius: BorderRadius.circular(12)),
+            child: Row(children: [const Icon(Icons.check_circle_rounded, size: 18, color: Color(0xFF059669)), const SizedBox(width: 8), Expanded(child: Text('Everything looks right.', style: bodyStyle(context, weight: FontWeight.w700, size: 13)))]),
+          )
+        else
+          for (final pr in problems)
+            Container(
+              margin: const EdgeInsets.only(bottom: 6),
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(color: (pr['level'] == 'error' ? const Color(0xFFEF4444) : const Color(0xFFF59E0B)).withValues(alpha: 0.12), borderRadius: BorderRadius.circular(12)),
+              child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Icon(Icons.warning_amber_rounded, size: 18, color: pr['level'] == 'error' ? const Color(0xFFEF4444) : const Color(0xFFD97706)),
+                const SizedBox(width: 8),
+                Expanded(child: Text('${pr['text']}', style: bodyStyle(context, size: 12.5))),
+              ]),
+            ),
+        const SizedBox(height: 8),
+        for (final x in people)
+          Container(
+            margin: const EdgeInsets.only(bottom: 6),
+            padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
+            decoration: BoxDecoration(border: Border.all(color: p.line), borderRadius: BorderRadius.circular(14)),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('${x['name']}${x['custom_name'] == true ? '  · custom name' : ''}', style: bodyStyle(context, weight: FontWeight.w700, size: 14)),
+              Text('${(x['email'] ?? '').toString().isEmpty ? 'no email' : x['email']}${x['sent'] == true ? ' · emailed' : ''}', style: bodyStyle(context, size: 12, color: p.muted)),
+              Wrap(spacing: 4, children: [
+                _btn('Preview', Icons.visibility_rounded, () => _preview(x['id'] as int)),
+                _btn('Edit name', Icons.edit_rounded, () => _editCertName(x['id'] as int, '${x['name']}')),
+                if (published && x['sent'] == true) _btn('Send again', Icons.send_rounded, _sending ? () {} : () => _publish(ids: [x['id'] as int])),
+              ]),
+            ]),
+          ),
+        const SizedBox(height: 8),
+        Wrap(spacing: 8, runSpacing: 4, children: [
+          _btn(published ? 'Choose more people' : 'Back to editing', Icons.arrow_back_rounded, () => _certJob(() => _state.api.certStage(eid, 'draft'))),
+          _btn('Preview', Icons.visibility_rounded, () => _preview(null)),
+        ]),
+        const SizedBox(height: 8),
+        GradientButton(label: _sending ? 'Sending…' : 'Publish: email $waiting certificate${waiting == 1 ? '' : 's'}', icon: Icons.send_rounded, onPressed: (r['can_publish'] == true && waiting > 0 && !_sending) ? () => _publish() : null),
+      ]),
+    );
   }
 
   Future<void> _do(Future<void> Function() job, String ok) async {
@@ -169,6 +363,7 @@ class _AdminSignupsScreenState extends State<AdminSignupsScreen> {
                   const SizedBox(width: 10),
                   _stat('Arrived', arrived, p.tech),
                 ]),
+                if (_eventId != null && _certOn) ...[const SizedBox(height: 14), _certSection(p)],
                 const SizedBox(height: 14),
                 SizedBox(
                   height: 42,
@@ -227,6 +422,20 @@ class _AdminSignupsScreenState extends State<AdminSignupsScreen> {
         if (pay != null) ...[
           const SizedBox(height: 8),
           Text('${pay['method'] ?? ''} · ${pay['amount'] ?? ''} BDT · from ${pay['sender'] ?? ''} · TrxID ${pay['trx_id'] ?? ''}', style: monoStyle(context, size: 11, color: p.muted)),
+        ],
+        if (_certOn && checked) ...[
+          const SizedBox(height: 8),
+          Row(children: [
+            Checkbox(
+              value: r['cert_pick'] == true,
+              onChanged: ((r['email'] ?? '').toString().isEmpty || r['pay_status'] == 'rejected' || (r['certificate_sent_at'] != null && _stage == 'published'))
+                  ? null
+                  : (v) => _certJob(() => _state.api.certPick(_eventId!, ids: [id], picked: v == true)),
+            ),
+            Expanded(child: Text(r['certificate_sent_at'] != null ? 'Certificate emailed' : (r['email'] ?? '').toString().isEmpty ? 'No email: cannot email a certificate' : 'Email a certificate to this person', style: bodyStyle(context, size: 12.5, color: p.muted))),
+            IconButton(tooltip: 'Preview the certificate', onPressed: () => _preview(id), icon: const Icon(Icons.visibility_rounded, size: 20)),
+            IconButton(tooltip: 'Edit the name on the certificate', onPressed: () => _editCertName(id, (r['cert_name'] ?? _display(r)).toString()), icon: const Icon(Icons.edit_rounded, size: 20)),
+          ]),
         ],
         const SizedBox(height: 10),
         Wrap(spacing: 8, runSpacing: 4, children: [

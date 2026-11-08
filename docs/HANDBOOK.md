@@ -158,7 +158,22 @@ The app works offline for pages it has already loaded (cache on the phone); firs
 - **Tickets:** link in the confirmation email. Lost it? Web `/ticket` or app → My tickets → *Lost your ticket?*: enter the email, the tickets are emailed to that address only (always the same answer, so nobody can check who signed up).
 - **Admin (website `/admin` and in the app):** manage every list, forms, registrations, check-in by QR, certificates, payments, newsletter, visitors and insights, activity log, trash, editors, two-step sign-in, backup, phone notifications.
 - **Server safety:** rate limits, lock after wrong passwords, two-step sign-in, helmet headers.
-- **Tests:** `cd server && npm run qa` runs 264 checks on an in-memory database with no accounts. Run it before every push. In the app: `cd app && flutter analyze lib`.
+- **Tests:** `cd server && npm run qa` runs 287 checks on an in-memory database with no accounts. Run it before every push. In the app: `cd app && flutter analyze lib`.
+
+---
+
+## 8b. Certificates (event participants)
+
+Switch on in the event's sign-up form settings (web: Events -> sign-up form -> Certificates; app: Edit sign-up form -> Certificate). Fill in: title, **organised by**, kind of event (online session, workshop...), closing line, **signer** (name, role, **signature picture**) and an optional **second signer**.
+
+People who were checked in at the entrance can always download their own certificate (PDF with a QR code anyone can verify at `/verify/<code>`). To **email** certificates to people:
+
+1. **Choose** (Check-in on the web, *Event sign-ups* in the app): tick the people. Nobody is ticked by default. The choice is saved on the server.
+2. **Final check:** press *Final check*. The page shows the settings, every chosen person, a **preview** of each certificate, a name editor (for a corrected name) and a list of problems (no signer, no signature picture, no email, mail not set up). Not right? *Back to editing*: nothing has been sent.
+3. **Publish:** when it says "Everything looks right", press *Publish*. Each chosen person gets an email with the **certificate attached as a PDF**.
+4. Mistake after publishing? Open the final check again, fix the name, press *Send again* on that person.
+
+The PDF is drawn by the server (`server/utils/tickets.js`, fonts in `server/assets/fonts/`). Signature pictures must be uploaded through the admin (they live on Cloudinary).
 
 ---
 

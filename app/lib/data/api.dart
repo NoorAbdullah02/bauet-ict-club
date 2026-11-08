@@ -360,6 +360,15 @@ class Api {
   Future<void> setSignupPayment(int id, String status) =>
       _send(() => _dio.patch('/event-registrations/$id/payment', data: {'status': status}, options: _auth));
 
+  // ---- certificates: choose people -> final check -> publish (email with the PDF attached)
+  Future<Map<String, dynamic>> certReview(int eventId) async => _map(await _send(() => _dio.get('/event-registrations/event/$eventId/certificates', options: _auth)));
+  Future<void> certPick(int eventId, {List<int>? ids, bool all = false, bool picked = true}) =>
+      _send(() => _dio.patch('/event-registrations/event/$eventId/certificates/pick', data: {if (ids != null) 'ids': ids, if (all) 'all': true, 'picked': picked}, options: _auth));
+  Future<void> certStage(int eventId, String stage) => _send(() => _dio.post('/event-registrations/event/$eventId/certificates/stage', data: {'stage': stage}, options: _auth));
+  Future<Map<String, dynamic>> certSend(int eventId, {List<int>? ids}) async =>
+      _map(await _send(() => _dio.post('/event-registrations/event/$eventId/certificates/send', data: {if (ids != null) 'ids': ids}, options: _auth)));
+  Future<void> setCertName(int regId, String name) => _send(() => _dio.patch('/event-registrations/$regId/cert-name', data: {'name': name}, options: _auth));
+
   Future<void> promoteSignup(int id) => _send(() => _dio.patch('/event-registrations/$id/promote', options: _auth));
 
   Future<void> deleteSignup(int id) => _send(() => _dio.delete('/event-registrations/$id', options: _auth));
