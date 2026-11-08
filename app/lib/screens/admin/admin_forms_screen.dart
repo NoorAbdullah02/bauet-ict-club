@@ -200,6 +200,8 @@ class _AdminFormEditScreenState extends State<AdminFormEditScreen> {
   final _certTitle = TextEditingController();
   final _certSigner = TextEditingController();
   final _certSignerTitle = TextEditingController();
+  final _certTheme = TextEditingController(text: 'gold');
+  bool _certSecond = true;
   final _certOrganizer = TextEditingController();
   final _certKind = TextEditingController();
   final _certNote = TextEditingController();
@@ -228,7 +230,7 @@ class _AdminFormEditScreenState extends State<AdminFormEditScreen> {
   bool _busy = false;
   String? _error;
 
-  List<TextEditingController> get _all => [_title, _desc, _slug, _cap, _heading, _intro, _confirm, _emailNote, _theme, _amount, _payNote, ..._numbers.values, _certOrganizer, _certKind, _certNote, _certSigUrl, _certSigner2, _certSigner2Title, _certSig2Url, _certTitle, _certSigner, _certSignerTitle];
+  List<TextEditingController> get _all => [_title, _desc, _slug, _cap, _heading, _intro, _confirm, _emailNote, _theme, _amount, _payNote, ..._numbers.values, _certTheme, _certOrganizer, _certKind, _certNote, _certSigUrl, _certSigner2, _certSigner2Title, _certSig2Url, _certTitle, _certSigner, _certSignerTitle];
 
   @override
   void initState() {
@@ -294,6 +296,8 @@ class _AdminFormEditScreenState extends State<AdminFormEditScreen> {
         _certTitle.text = s(cert['title']);
         _certSigner.text = s(cert['signer']);
         _certSignerTitle.text = s(cert['signer_title']);
+        _certTheme.text = ['gold', 'royal', 'emerald'].contains(s(cert['theme'])) ? s(cert['theme']) : 'gold';
+        _certSecond = cert['second'] != false;
         _certOrganizer.text = s(cert['organizer']);
         _certKind.text = s(cert['event_kind']);
         _certNote.text = s(cert['note']);
@@ -374,6 +378,8 @@ class _AdminFormEditScreenState extends State<AdminFormEditScreen> {
       rf['cert'] = {
         'enabled': true,
         'title': _certTitle.text.trim(),
+        'theme': _certTheme.text.trim(),
+        'second': _certSecond,
         'organizer': _certOrganizer.text.trim(),
         'event_kind': _certKind.text.trim(),
         'note': _certNote.text.trim(),
@@ -598,11 +604,15 @@ class _AdminFormEditScreenState extends State<AdminFormEditScreen> {
               if (_certOn) ...[
                 AppField(controller: _certTitle, label: 'Certificate title (Certificate of Participation)'),
                 _gap(),
-                AppField(controller: _certSigner, label: 'Signer name'),
+                PickerField(label: 'Colours', value: _certTheme.text == 'royal' ? 'Royal blue' : _certTheme.text == 'emerald' ? 'Emerald green' : 'Gold (classic)', options: const ['Gold (classic)', 'Royal blue', 'Emerald green'], icon: Icons.palette_rounded, onChanged: (v) => setState(() => _certTheme.text = v == 'Royal blue' ? 'royal' : v == 'Emerald green' ? 'emerald' : 'gold')),
                 _gap(),
-                AppField(controller: _certSignerTitle, label: 'Signer title (Advisor, BAUET ICT Club)'),
+                Text('Right: the advisor (empty = Partha Pratim Debnath with his signature). Left: the president (empty = Sheikh Noor Abdullah with a designed signature).', style: bodyStyle(context, size: 12.5, color: context.pal.muted)),
                 _gap(),
-                ImageUploadField(controller: _certSigUrl, label: 'Signature picture (right)', kind: 'logo'),
+                AppField(controller: _certSigner, label: 'Advisor name (right)'),
+                _gap(),
+                AppField(controller: _certSignerTitle, label: 'Advisor role (Advisor, BAUET ICT Club)'),
+                _gap(),
+                ImageUploadField(controller: _certSigUrl, label: 'Advisor signature picture (right)', kind: 'logo'),
                 _gap(),
                 AppField(controller: _certOrganizer, label: 'Organised by (Department of ICE, BAUET)'),
                 _gap(),
@@ -610,11 +620,12 @@ class _AdminFormEditScreenState extends State<AdminFormEditScreen> {
                 _gap(),
                 AppField(controller: _certNote, label: 'Closing line (optional)', maxLines: 2),
                 _gap(),
-                AppField(controller: _certSigner2, label: 'Second signer name (optional)'),
+                SwitchListTile(contentPadding: EdgeInsets.zero, title: const Text("Show the president's signature (left)"), value: _certSecond, onChanged: (v) => setState(() => _certSecond = v)),
+                AppField(controller: _certSigner2, label: 'President name (Sheikh Noor Abdullah)'),
                 _gap(),
-                AppField(controller: _certSigner2Title, label: 'Second signer title (President)'),
+                AppField(controller: _certSigner2Title, label: 'President role (President, BAUET ICT Club)'),
                 _gap(),
-                ImageUploadField(controller: _certSig2Url, label: 'Second signature picture (left)', kind: 'logo'),
+                ImageUploadField(controller: _certSig2Url, label: 'President signature picture (left). Empty = designed signature', kind: 'logo'),
                 _gap(),
                 Text('Save the event, then open Event sign-ups and use Preview to see exactly what people get by email.', style: bodyStyle(context, size: 12.5, color: context.pal.muted)),
               ],

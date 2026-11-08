@@ -78,9 +78,9 @@ function sanitizeForm(raw) {
   // certificate for people who were checked in
   if (f.cert?.enabled) {
     const picture = (v) => { const u = clip(v, 400); return /^https:\/\/res\.cloudinary\.com\//.test(u) ? u : ''; }; // signature pictures live on our picture host only
-    form.cert = { enabled: true, title: clip(f.cert.title, 60) || 'Certificate of Participation', organizer: clip(f.cert.organizer, 120), event_kind: clip(f.cert.event_kind, 30),
-      signer: clip(f.cert.signer, 60), signer_title: clip(f.cert.signer_title, 80), signature_url: picture(f.cert.signature_url),
-      signer2: clip(f.cert.signer2, 60), signer2_title: clip(f.cert.signer2_title, 80), signature2_url: picture(f.cert.signature2_url), note: clip(f.cert.note, 220) };
+    form.cert = { enabled: true, title: clip(f.cert.title, 60) || 'Certificate of Participation', theme: ['gold', 'royal', 'emerald'].includes(f.cert.theme) ? f.cert.theme : 'gold', second: f.cert.second !== false, organizer: clip(f.cert.organizer, 120), event_kind: clip(f.cert.event_kind, 30),
+      signer: clip(f.cert.signer, 60), signer_title: clip(f.cert.signer_title, 80), signature_url: picture(f.cert.signature_url), signature_text: clip(f.cert.signature_text, 40),
+      signer2: clip(f.cert.signer2, 60), signer2_title: clip(f.cert.signer2_title, 80), signature2_url: picture(f.cert.signature2_url), signature2_text: clip(f.cert.signature2_text, 40), note: clip(f.cert.note, 220) };
   }
   // registration deadline: "YYYY-MM-DDTHH:mm" (Bangladesh time is entered by the admin; compared as a plain timestamp)
   if (f.closes_at) { if (!/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2})?$/.test(String(f.closes_at))) return { error: 'The closing date is not valid' }; form.closes_at = String(f.closes_at).slice(0, 16); }

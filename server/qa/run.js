@@ -266,6 +266,7 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
       { const pk = await call('PATCH', certUrl('/pick'), { ids: [reg0.id] }, T); ok(pk.j?.changed === 1, 'the admin ticks a checked-in person', { pk: pk.j, reg: { email: reg0.email, in: reg0.checked_in_at, pay: reg0.pay_status } }); }
       rev = (await call('GET', certUrl(''), undefined, T)).j;
       ok(rev.people.length === 1 && rev.people[0].email === 'e0@example.com' && rev.problems.some((x) => /signature picture/.test(x.text)), 'the final check lists the chosen person and what is missing', rev.problems);
+      ok(rev.cert.signer2 === 'Sheikh Noor Abdullah' && rev.cert.signature2_source === 'a designed signature' && rev.cert.theme === 'gold', 'the final check shows the president default and the colour theme', rev.cert);
       ok((await call('POST', certUrl('/stage'), { stage: 'review' }, T)).j?.stage === 'review', 'the admin moves to the final check');
       ok((await call('POST', certUrl('/send'), {}, T)).s === 400, 'publishing without a mail service is refused with a clear message');
       await call('PATCH', certUrl('/pick'), { ids: [reg0.id], picked: false }, T);

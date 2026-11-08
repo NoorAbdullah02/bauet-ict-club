@@ -164,7 +164,7 @@ The app works offline for pages it has already loaded (cache on the phone); firs
 
 ## 8b. Certificates (event participants)
 
-Switch on in the event's sign-up form settings (web: Events -> sign-up form -> Certificates; app: Edit sign-up form -> Certificate). Fill in: title, **organised by**, kind of event (online session, workshop...), closing line, **signer** (name, role, **signature picture**) and an optional **second signer**.
+Switch on in the event's sign-up form settings (web: Events -> sign-up form -> Certificates; app: Edit sign-up form -> Certificate). Fill in: title, **colours** (gold, royal blue, emerald), **organised by**, kind of event (online session, workshop...) and the closing line. Two signatures: **right = advisor** (empty = Partha Pratim Debnath, with his signature taken from the club's earlier certificate), **left = president** (empty = Sheikh Noor Abdullah, with a designed signature that reads "Noor Abdullah"). Type another name or upload a picture to change either; untick the president to hide the left one. The certificate is English only.
 
 People who were checked in at the entrance can always download their own certificate (PDF with a QR code anyone can verify at `/verify/<code>`). To **email** certificates to people:
 
