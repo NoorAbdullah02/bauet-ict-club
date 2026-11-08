@@ -672,9 +672,9 @@ class _QuestionCardState extends State<QuestionCard> {
           Row(children: [
             Tag(kTypeLabels[t] ?? t, color: p.accent),
             const Spacer(),
-            IconButton(visualDensity: VisualDensity.compact, onPressed: widget.index == 0 ? null : () => widget.onMove(-1), icon: const Icon(Icons.arrow_upward_rounded, size: 18)),
-            IconButton(visualDensity: VisualDensity.compact, onPressed: widget.index == widget.count - 1 ? null : () => widget.onMove(1), icon: const Icon(Icons.arrow_downward_rounded, size: 18)),
-            IconButton(visualDensity: VisualDensity.compact, onPressed: widget.onRemove, icon: const Icon(Icons.delete_outline_rounded, size: 18, color: Color(0xFFEF4444))),
+            IconButton(tooltip: tr('Move up'), visualDensity: VisualDensity.compact, onPressed: widget.index == 0 ? null : () => widget.onMove(-1), icon: const Icon(Icons.arrow_upward_rounded, size: 18)),
+            IconButton(tooltip: tr('Move down'), visualDensity: VisualDensity.compact, onPressed: widget.index == widget.count - 1 ? null : () => widget.onMove(1), icon: const Icon(Icons.arrow_downward_rounded, size: 18)),
+            IconButton(tooltip: tr('Delete'), visualDensity: VisualDensity.compact, onPressed: widget.onRemove, icon: const Icon(Icons.delete_outline_rounded, size: 18, color: Color(0xFFEF4444))),
           ]),
           AppField(controller: _label, label: t == 'section' ? 'Heading' : 'Question', onChanged: () {
             q['label'] = _label.text;

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/i18n.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
@@ -77,7 +78,7 @@ class _AdminCommitteesScreenState extends State<AdminCommitteesScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
               child: Row(children: [
-                IconButton(onPressed: () => context.canPop() ? context.pop() : context.go('/admin'), icon: const Icon(Icons.arrow_back_rounded)),
+                IconButton(tooltip: tr('Back'), onPressed: () => context.canPop() ? context.pop() : context.go('/admin'), icon: const Icon(Icons.arrow_back_rounded)),
                 Expanded(child: Text('Committees', style: displayStyle(context, 24))),
                 const AdminThemeButton(),
               ]),

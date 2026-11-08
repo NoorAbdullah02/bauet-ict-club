@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/i18n.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
@@ -245,7 +246,7 @@ class _AdminApplicationsScreenState extends State<AdminApplicationsScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
               child: Row(children: [
-                IconButton(onPressed: () => context.canPop() ? context.pop() : context.go('/admin'), icon: const Icon(Icons.arrow_back_rounded)),
+                IconButton(tooltip: tr('Back'), onPressed: () => context.canPop() ? context.pop() : context.go('/admin'), icon: const Icon(Icons.arrow_back_rounded)),
                 Expanded(child: Text('Applications', style: displayStyle(context, 24))),
                 const AdminThemeButton(),
                 ExportMenu(onPick: (f) {
@@ -264,7 +265,7 @@ class _AdminApplicationsScreenState extends State<AdminApplicationsScreen> {
                     PopupMenuItem(value: 'docx', child: Text('Email Word of this list')),
                   ],
                 ),
-                IconButton(onPressed: _load, icon: const Icon(Icons.refresh_rounded)),
+                IconButton(tooltip: tr('Refresh'), onPressed: _load, icon: const Icon(Icons.refresh_rounded)),
               ]),
             ),
             Padding(

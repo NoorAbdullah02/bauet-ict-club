@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../core/i18n.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/calendar.dart';
@@ -48,9 +49,9 @@ class _EventCalendarViewState extends State<EventCalendarView> {
         padding: const EdgeInsets.fromLTRB(12, 12, 12, 14),
         child: Column(children: [
           Row(children: [
-            IconButton(onPressed: () => setState(() { _month = DateTime(_month.year, _month.month - 1); _picked = null; }), icon: const Icon(Icons.chevron_left_rounded)),
+            IconButton(tooltip: tr('Previous month'), onPressed: () => setState(() { _month = DateTime(_month.year, _month.month - 1); _picked = null; }), icon: const Icon(Icons.chevron_left_rounded)),
             Expanded(child: Text('${_months[_month.month - 1]} ${_month.year}', textAlign: TextAlign.center, style: displayStyle(context, 19))),
-            IconButton(onPressed: () => setState(() { _month = DateTime(_month.year, _month.month + 1); _picked = null; }), icon: const Icon(Icons.chevron_right_rounded)),
+            IconButton(tooltip: tr('Next month'), onPressed: () => setState(() { _month = DateTime(_month.year, _month.month + 1); _picked = null; }), icon: const Icon(Icons.chevron_right_rounded)),
           ]),
           Row(children: [for (final d in const ['S', 'M', 'T', 'W', 'T', 'F', 'S']) Expanded(child: Center(child: Text(d, style: monoStyle(context, size: 10, color: p.muted))))]),
           const SizedBox(height: 4),

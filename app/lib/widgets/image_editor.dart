@@ -1,4 +1,5 @@
 import 'dart:io';
+import '../core/i18n.dart';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
@@ -205,7 +206,7 @@ class _ImageEditorScreenState extends State<ImageEditorScreen> {
         backgroundColor: const Color(0xFF0B0F1C),
         foregroundColor: Colors.white,
         title: const Text('Edit picture'),
-        leading: IconButton(icon: const Icon(Icons.close_rounded), onPressed: () => Navigator.of(context).pop()),
+        leading: IconButton(tooltip: tr('Close'), icon: const Icon(Icons.close_rounded), onPressed: () => Navigator.of(context).pop()),
         actions: [
           TextButton(onPressed: _image == null || _saving ? null : _reset, child: const Text('Reset')),
           Padding(

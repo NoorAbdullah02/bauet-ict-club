@@ -6,6 +6,7 @@ BN = {
 # navigation
 "Home": "হোম", "About": "পরিচিতি", "Events": "ইভেন্ট", "Notices": "নোটিশ", "Projects": "প্রজেক্ট", "Team": "টিম",
 "Ambassadors": "অ্যাম্বাসেডর", "Gallery": "গ্যালারি", "Awards": "অর্জন", "Achievements": "অর্জন", "Contact": "যোগাযোগ",
+"Lost your ticket?": "টিকেট হারিয়ে ফেলেছেন?", "Enter the email you registered with. We email your tickets to that address.": "যে ইমেইলে নিবন্ধন করেছিলেন সেটি দিন। ওই ঠিকানায় টিকেট পাঠিয়ে দেব।", "Previous month": "আগের মাস", "Next month": "পরের মাস", "Move up": "উপরে নিন", "Move down": "নিচে নিন", "Show or hide password": "পাসওয়ার্ড দেখান বা লুকান", "Back": "পেছনে", "Close": "বন্ধ করুন", "Refresh": "রিফ্রেশ", "Delete": "মুছুন", "Email my tickets": "আমার টিকেট ইমেইলে পাঠান", "Email": "ইমেইল",
 "Club data": "ক্লাবের তথ্য", "The club in numbers": "সংখ্যায় ক্লাব", "Counts only: no names, phone numbers or emails.": "শুধু সংখ্যা: কোনো নাম, ফোন নম্বর বা ইমেইল নেই।", "Events per year": "বছরে ইভেন্ট", "Members by department": "বিভাগ অনুযায়ী সদস্য", "Members by committee session": "কমিটির সেশন অনুযায়ী সদস্য", "Event sign-ups": "ইভেন্টে নিবন্ধন", "Photos": "ছবি", "Awards": "পুরস্কার", "Advisors": "উপদেষ্টা",
 "Join": "যোগ দিন", "Join us": "যোগ দিন", "Resources": "রিসোর্স", "FAQ": "প্রশ্নোত্তর", "Menu": "মেনু",
 "Search": "খুঁজুন", "Admin": "অ্যাডমিন", "Admin login": "অ্যাডমিন লগইন", "Admin dashboard": "অ্যাডমিন ড্যাশবোর্ড",

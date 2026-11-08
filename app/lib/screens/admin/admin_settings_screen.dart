@@ -111,7 +111,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
             padding: const EdgeInsets.fromLTRB(12, 8, 12, 40),
             children: [
               Row(children: [
-                IconButton(onPressed: () => context.canPop() ? context.pop() : context.go('/admin'), icon: const Icon(Icons.arrow_back_rounded)),
+                IconButton(tooltip: tr('Back'), onPressed: () => context.canPop() ? context.pop() : context.go('/admin'), icon: const Icon(Icons.arrow_back_rounded)),
                 Expanded(child: Text('Settings', style: displayStyle(context, 24))),
                 const AdminThemeButton(),
               ]),

@@ -266,7 +266,7 @@ class _AppDrawer extends StatelessWidget {
                   Text(AppConfig.clubName, maxLines: 2, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 17, height: 1.15)),
                 ]),
               ),
-              IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close_rounded, color: Colors.white)),
+              IconButton(tooltip: tr('Close'), onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close_rounded, color: Colors.white)),
             ]),
           ),
           Expanded(

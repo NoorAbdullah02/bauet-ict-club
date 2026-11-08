@@ -411,10 +411,10 @@ class _AdminCrudScreenState extends State<AdminCrudScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
               child: Row(children: [
-                IconButton(onPressed: () => context.canPop() ? context.pop() : context.go('/admin'), icon: const Icon(Icons.arrow_back_rounded)),
+                IconButton(tooltip: tr('Back'), onPressed: () => context.canPop() ? context.pop() : context.go('/admin'), icon: const Icon(Icons.arrow_back_rounded)),
                 Expanded(child: Text(spec.title, style: displayStyle(context, 24))),
                 const AdminThemeButton(),
-                IconButton(onPressed: _load, icon: const Icon(Icons.refresh_rounded)),
+                IconButton(tooltip: tr('Refresh'), onPressed: _load, icon: const Icon(Icons.refresh_rounded)),
               ]),
             ),
             Expanded(
@@ -494,7 +494,7 @@ class _RowTile extends StatelessWidget {
           ]),
         ),
         if (extra != null) extra!,
-        IconButton(onPressed: onDelete, icon: const Icon(Icons.delete_outline_rounded, color: Color(0xFFEF4444), size: 22)),
+        IconButton(tooltip: tr('Delete'), onPressed: onDelete, icon: const Icon(Icons.delete_outline_rounded, color: Color(0xFFEF4444), size: 22)),
       ]),
     );
   }
