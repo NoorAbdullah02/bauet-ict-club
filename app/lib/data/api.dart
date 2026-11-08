@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
 
 import '../core/config.dart';
@@ -367,6 +369,19 @@ class Api {
   Future<void> certStage(int eventId, String stage) => _send(() => _dio.post('/event-registrations/event/$eventId/certificates/stage', data: {'stage': stage}, options: _auth));
   Future<Map<String, dynamic>> certSend(int eventId, {List<int>? ids}) async =>
       _map(await _send(() => _dio.post('/event-registrations/event/$eventId/certificates/send', data: {if (ids != null) 'ids': ids}, options: _auth)));
+  /// The certificate as PDF bytes, to show it inside the app: saved settings (GET) or settings that are not saved yet (POST).
+  Future<Uint8List> certPreviewBytes(int eventId, {int? regId, Map<String, dynamic>? draft}) async {
+    try {
+      final opts = Options(responseType: ResponseType.bytes, headers: {if (token != null) 'Authorization': 'Bearer $token'}, receiveTimeout: const Duration(seconds: 60));
+      final r = draft == null
+          ? await _dio.get('/event-registrations/event/$eventId/certificates/preview', queryParameters: {if (regId != null) 'reg': regId}, options: opts)
+          : await _dio.post('/event-registrations/event/$eventId/certificates/preview-draft', data: {'cert': draft, if (regId != null) 'reg': regId}, options: opts);
+      return Uint8List.fromList((r.data as List).cast<int>());
+    } on DioException catch (e) {
+      throw _wrap(e);
+    }
+  }
+
   Future<void> setCertName(int regId, String name) => _send(() => _dio.patch('/event-registrations/$regId/cert-name', data: {'name': name}, options: _auth));
 
   Future<void> promoteSignup(int id) => _send(() => _dio.patch('/event-registrations/$id/promote', options: _auth));

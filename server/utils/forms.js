@@ -21,6 +21,18 @@ const clip = (v, n) => String(v ?? '').trim().slice(0, n);
 const idOf = (v, i) => (String(v || '').toLowerCase().replace(/[^a-z0-9_]/g, '').slice(0, 24) || `f${i + 1}`);
 
 /** Cleans a form sent by the admin. Returns { form } or { error }. null clears the custom form (the default one is used again). */
+/** The certificate settings an admin can change, cleaned. Used when a form is saved and for the live preview. */
+function sanitizeCert(c = {}) {
+  const picture = (v) => { const u = clip(v, 400); return /^https:\/\/res\.cloudinary\.com\//.test(u) ? u : ''; }; // signature pictures live on our picture host only
+  return {
+    enabled: true, title: clip(c.title, 60) || 'Certificate of Participation', theme: ['gold', 'royal', 'emerald'].includes(c.theme) ? c.theme : 'gold',
+    ribbon: clip(c.ribbon, 60), body: clip(c.body, 600), show_seal: c.show_seal !== false, show_watermark: c.show_watermark !== false,
+    organizer: clip(c.organizer, 120), event_kind: clip(c.event_kind, 30), note: clip(c.note, 220),
+    signer: clip(c.signer, 60), signer_title: clip(c.signer_title, 80), signature_url: picture(c.signature_url), signature_text: clip(c.signature_text, 40),
+    second: c.second !== false, signer2: clip(c.signer2, 60), signer2_title: clip(c.signer2_title, 80), signature2_url: picture(c.signature2_url), signature2_text: clip(c.signature2_text, 40),
+  };
+}
+
 function sanitizeForm(raw) {
   if (raw === null || raw === undefined || raw === '') return { form: null };
   let f = raw;
@@ -76,12 +88,7 @@ function sanitizeForm(raw) {
   if (!fields.length) return { form: null };
   const form = { theme: /^#[0-9a-f]{6}$/i.test(String(f.theme || '')) ? String(f.theme).toLowerCase() : '', title: clip(f.title, 120), intro: clip(f.intro, 1000), confirmation: clip(f.confirmation, 500), email_note: clip(f.email_note, 600), unique: seen.has(f.unique) ? f.unique : '', notify_admin: !!f.notify_admin, feedback_form: /^[a-z0-9-]{2,80}$/.test(String(f.feedback_form || '')) ? String(f.feedback_form) : '', fields };
   // certificate for people who were checked in
-  if (f.cert?.enabled) {
-    const picture = (v) => { const u = clip(v, 400); return /^https:\/\/res\.cloudinary\.com\//.test(u) ? u : ''; }; // signature pictures live on our picture host only
-    form.cert = { enabled: true, title: clip(f.cert.title, 60) || 'Certificate of Participation', theme: ['gold', 'royal', 'emerald'].includes(f.cert.theme) ? f.cert.theme : 'gold', second: f.cert.second !== false, organizer: clip(f.cert.organizer, 120), event_kind: clip(f.cert.event_kind, 30),
-      signer: clip(f.cert.signer, 60), signer_title: clip(f.cert.signer_title, 80), signature_url: picture(f.cert.signature_url), signature_text: clip(f.cert.signature_text, 40),
-      signer2: clip(f.cert.signer2, 60), signer2_title: clip(f.cert.signer2_title, 80), signature2_url: picture(f.cert.signature2_url), signature2_text: clip(f.cert.signature2_text, 40), note: clip(f.cert.note, 220) };
-  }
+  if (f.cert?.enabled) form.cert = sanitizeCert(f.cert);
   // registration deadline: "YYYY-MM-DDTHH:mm" (Bangladesh time is entered by the admin; compared as a plain timestamp)
   if (f.closes_at) { if (!/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2})?$/.test(String(f.closes_at))) return { error: 'The closing date is not valid' }; form.closes_at = String(f.closes_at).slice(0, 16); }
   // manual mobile-banking payment: people send money, then give the transaction ID; the admin verifies it
@@ -193,4 +200,4 @@ function validatePayment(setting, body) {
 /** Is registration still open by the form's own closing time? */
 const closedByTime = (form) => !!form?.closes_at && (form.closes_at.length === 10 ? `${form.closes_at}T23:59` : form.closes_at) < new Date(Date.now() + 6 * 3600e3).toISOString().slice(0, 16); // compared in Bangladesh time (UTC+6)
 
-module.exports = { TYPES, PAY_METHODS, DEFAULT_FIELDS, KEYS, sanitizeForm, fieldsOf, uniqueId, validateAnswers, validatePayment, closedByTime, columnsFrom, show };
+module.exports = { TYPES, PAY_METHODS, DEFAULT_FIELDS, KEYS, sanitizeForm, sanitizeCert, fieldsOf, uniqueId, validateAnswers, validatePayment, closedByTime, columnsFrom, show };

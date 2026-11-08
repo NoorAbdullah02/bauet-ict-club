@@ -13,6 +13,7 @@ import '../../widgets/common.dart';
 import '../../widgets/form_widgets.dart';
 import '../event_detail_screen.dart';
 import 'admin_widgets.dart';
+import 'certificate_viewer.dart';
 
 /// Event sign-ups: who registered, verify or reject payments, check people in, give a seat from the waiting list.
 class AdminSignupsScreen extends StatefulWidget {
@@ -106,7 +107,9 @@ class _AdminSignupsScreenState extends State<AdminSignupsScreen> {
 
   Future<void> _preview(int? regId) {
     final id = _eventId!;
-    return previewPdf(context, _state.api, '/event-registrations/event/$id/certificates/preview', 'certificate-preview.pdf', query: regId == null ? null : {'reg': regId});
+    return Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => CertificateViewer(title: regId == null ? 'Sample certificate' : 'Certificate', load: () => _state.api.certPreviewBytes(id, regId: regId)),
+    ));
   }
 
   Future<void> _editCertName(int regId, String current) async {

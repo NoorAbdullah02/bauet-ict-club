@@ -258,6 +258,10 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
       ok(pvr.status === 200, 'the admin can preview one person\'s certificate');
       ok((await call('PATCH', `/api/event-registrations/${reg0.id}/cert-name`, { name: 'Dr. Corrected Name' }, T)).j?.cert_name === 'Dr. Corrected Name' && (await call('GET', `/api/event-registrations/verify/${code}`)).j?.name === 'Dr. Corrected Name', 'the name on one person\'s certificate can be corrected');
       ok((await call('PATCH', `/api/event-registrations/${reg0.id}/cert-name`, { name: 'x' })).s === 401, 'only an admin corrects a certificate name');
+      const draft = await fetch(`${B}/api/event-registrations/event/${ev.id}/certificates/preview-draft`, { method: 'POST', headers: { authorization: `Bearer ${T}`, 'content-type': 'application/json' }, body: JSON.stringify({ cert: { theme: 'royal', ribbon: 'Awarded to', body: 'for **great work** at {event} on {date}, {location}.', show_seal: false, signer: 'Prof. Dr. A Very Long Named Advisor Of The University', theme_bad: 1 }, reg: reg0.id }) });
+      ok(draft.status === 200 && Buffer.from(await draft.arrayBuffer()).subarray(0, 5).toString() === '%PDF-', 'the live preview draws a certificate from settings that are not saved yet');
+      ok((await fetch(`${B}/api/event-registrations/event/${ev.id}/certificates/preview-draft`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' })).status === 401, 'the live preview needs an admin login');
+
       const certUrl = (x) => `/api/event-registrations/event/${ev.id}/certificates${x}`;
       let rev = (await call('GET', certUrl(''), undefined, T)).j;
       ok(rev.stage === 'draft' && rev.people.length === 0 && !rev.can_publish, 'certificates start as a draft with nobody chosen', rev);
