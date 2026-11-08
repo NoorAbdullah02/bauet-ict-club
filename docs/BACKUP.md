@@ -11,6 +11,8 @@
 
 **Open a backup:**
 ```bash
-openssl enc -d -aes-256-cbc -pbkdf2 -pass pass:'YOUR PHRASE' -in bauet-backup.tar.gz.enc | tar -xz
+openssl enc -d -aes-256-cbc -pbkdf2 -in bauet-backup.tar.gz.enc | tar -xz
 ```
+It asks for the passphrase (typing it there keeps it out of your shell history).
+
 Not inside: pictures (they stay on Cloudinary), password hashes, 2FA secrets, phone push tokens.
