@@ -3,6 +3,7 @@ import { inputCls } from './join/shared';
 import { cn } from '../lib/cn';
 import { useEffect, useMemo, useState } from 'react';
 import { Loader2, ImagePlus, ArrowLeft, ArrowRight } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { api } from '../context/store';
 import { isVisible, isOther, OTHER, isEmpty, ruleProblem } from '../lib/forms';
 import { compressImage } from '../lib/compressImage';
@@ -25,7 +26,8 @@ function PhotoAnswer({ value, onChange, disabled, error }) {
       const fd = new FormData(); fd.append('photo', small);
       const r = await api.post('/registrations/photo', fd);
       onChange(r.data.url);
-    } catch (e) { onChange(''); alert(e.response?.data?.error || 'Could not upload the picture. Use a JPG or PNG under 3 MB.'); }
+      toast.success('Picture uploaded');
+    } catch (e) { onChange(''); toast.error(e.response?.data?.error || 'Could not upload the picture. Use a JPG or PNG under 3 MB.'); }
     setBusy(false);
   };
   return (
@@ -34,7 +36,7 @@ function PhotoAnswer({ value, onChange, disabled, error }) {
         {value ? <img src={value} alt="Your upload" className="size-full object-cover" /> : <ImagePlus className="text-muted" />}
         {busy && <span className="absolute inset-0 grid place-items-center bg-bg/70"><Loader2 size={18} className="animate-spin text-tech" /></span>}
       </span>
-      <span className="text-sm text-fg2">{value ? 'Change picture' : 'Choose a picture (JPG or PNG, max 3 MB)'}</span>
+      <span className={cn('text-sm', value && !busy ? 'font-semibold text-emerald-600' : 'text-fg2')} aria-live="polite">{busy ? 'Uploading…' : value ? 'Uploaded ✓ Tap to change' : 'Choose a picture (JPG or PNG, max 3 MB)'}</span>
       <input type="file" accept="image/jpeg,image/png,image/webp" hidden disabled={disabled || busy} onChange={(e) => pick(e.target.files?.[0])} />
     </label>
   );

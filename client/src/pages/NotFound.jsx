@@ -21,7 +21,7 @@ export function ProblemPage({ code = '404', title = 'We could not find this page
       <section className="container grid min-h-[75vh] place-items-center px-4 py-24">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="w-full max-w-xl text-center">
           <LostRobot className="mb-2" />
-          <div role="img" aria-label={`Error ${code}`} className="select-none bg-clip-text font-display text-[clamp(4.5rem,18vw,7rem)] font-bold leading-none text-transparent" style={{ backgroundImage: 'linear-gradient(135deg,#1F4FD8,#17A2D8 55%,#0B7F58)' }}>{code}</div>
+          <div role="img" aria-label={`Error ${code}`} className="select-none bg-clip-text text-[clamp(5rem,20vw,8rem)] font-extrabold leading-none tracking-tight text-transparent" style={{ fontFamily: 'var(--font-body)', backgroundImage: 'linear-gradient(135deg,#1A43B8,#1388B8 55%,#09704E)', filter: 'drop-shadow(0 6px 14px rgba(26,67,184,.22))' }}>{code}</div>
           <h1 className="mt-2 text-[clamp(1.5rem,4vw,2.1rem)] leading-tight text-fg">{t(title)}</h1>
           <p className="mx-auto mt-3 max-w-md text-fg2">{t(message)}</p>
           {showPath && <code className="mx-auto mt-4 inline-block max-w-full truncate rounded-xl border border-line bg-surface px-3 py-1.5 font-mono text-xs text-fg2" title={pathname}>{pathname}</code>}

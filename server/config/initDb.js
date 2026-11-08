@@ -367,6 +367,18 @@ async function initDb() {
       console.log(`Seeded ${rows.length} committee members`);
     }
 
+    // Committee sessions are ready until 2030: Winter 2026, then Summer and Winter of every year (two per year). Added once, never removes or reorders yours.
+    try {
+      const planned = [];
+      for (let y = 2026; y <= 2030; y++) { if (y > 2026) planned.push(`Summer ${y}`); planned.push(`Winter ${y}`); }
+      const cur = (await client.query("SELECT value FROM settings WHERE key = 'site'")).rows[0]?.value || {};
+      const have = Array.isArray(cur.sessions) ? cur.sessions : [];
+      const merged = [...new Set([...have, ...planned])];
+      if (merged.length !== have.length) {
+        await client.query("INSERT INTO settings (key, value) VALUES ('site', $1::jsonb) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value", [JSON.stringify({ ...cur, sessions: merged })]);
+      }
+    } catch (e) { console.warn('Committee sessions setup skipped:', e.message); }
+
     // Demo content is opt-in (SEED_SAMPLES=true) — or load/remove it any time from Admin → Settings
     if (process.env.SEED_SAMPLES === 'true') await require('../utils/demo').loadDemo();
 

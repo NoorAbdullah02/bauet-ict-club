@@ -65,14 +65,16 @@ import '../widgets/shell.dart';
 CustomTransitionPage<void> _fade(GoRouterState s, Widget child) => CustomTransitionPage<void>(
       key: s.pageKey,
       child: child,
-      transitionDuration: const Duration(milliseconds: 280),
+      transitionDuration: const Duration(milliseconds: 130),
+      reverseTransitionDuration: const Duration(milliseconds: 110),
       transitionsBuilder: (context, anim, _, c) => FadeTransition(opacity: CurvedAnimation(parent: anim, curve: Curves.easeOut), child: c),
     );
 
 CustomTransitionPage<void> _slide(GoRouterState s, Widget child) => CustomTransitionPage<void>(
       key: s.pageKey,
       child: child,
-      transitionDuration: const Duration(milliseconds: 380),
+      transitionDuration: const Duration(milliseconds: 260),
+      reverseTransitionDuration: const Duration(milliseconds: 200),
       transitionsBuilder: (context, anim, _, c) {
         final curved = CurvedAnimation(parent: anim, curve: Curves.easeOutCubic);
         return SlideTransition(

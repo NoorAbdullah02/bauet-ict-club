@@ -390,7 +390,7 @@ class _GlossNav extends StatelessWidget {
                         onTap: () => onTap(i),
                         child: Center(
                           child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 260),
+                            duration: const Duration(milliseconds: 160),
                             curve: Curves.easeOutCubic,
                             padding: EdgeInsets.symmetric(horizontal: i == selected ? 16 : 8, vertical: 8),
                             decoration: BoxDecoration(

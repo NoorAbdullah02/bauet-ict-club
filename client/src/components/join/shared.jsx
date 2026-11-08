@@ -51,7 +51,7 @@ export function PhotoDrop({ value, onFile, uploading, error, optional }) {
           {uploading && <span className="absolute inset-0 grid place-items-center bg-bg/70"><Loader2 className="animate-spin text-tech" size={20} /></span>}
         </span>
         <span>
-          <span className="block text-sm font-semibold text-fg">{value ? 'Change photo' : 'Drop your photo or click to browse'}</span>
+          <span className={cn('block text-sm font-semibold', value && !uploading ? 'text-emerald-600' : 'text-fg')} aria-live="polite">{uploading ? 'Uploading…' : value ? 'Photo uploaded ✓ Click to change' : 'Drop your photo or click to browse'}</span>
           <span className="mt-0.5 block text-xs text-muted">JPG or PNG · max 3MB · a clear face photo works best</span>
         </span>
         <input ref={ref} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={(e) => pick(e.target.files?.[0])} />
@@ -84,6 +84,7 @@ export function useApplication(type, extra, extraRules) {
       const small = await compressImage(file, { max: 1200 }); // phone photos shrink to a few hundred KB
       if (small.size > 3 * 1024 * 1024) { setUploading(false); return toast.error('Image is still too large, please pick another photo'); }
       patch('photo_url', await uploadApplicantPhoto(small));
+      toast.success('Photo uploaded');
     }
     catch (e) { toast.error(e.response?.data?.error || 'Photo upload failed'); }
     setUploading(false);

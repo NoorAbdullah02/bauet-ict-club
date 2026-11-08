@@ -11,11 +11,12 @@ import 'coder.dart';
 
 /// Staggered entrance used across lists.
 extension StaggerX on Widget {
-  Widget stagger(int index, {int step = 70, int maxDelay = 700}) {
+  Widget stagger(int index, {int step = 30, int maxDelay = 150}) {
+    // short and quick: a page must feel instant when you switch (a long staggered entrance felt like lag)
     final delay = (index * step).clamp(0, maxDelay);
     return animate()
-        .fadeIn(duration: 450.ms, delay: delay.ms, curve: Curves.easeOut)
-        .slideY(begin: 0.08, end: 0, duration: 520.ms, delay: delay.ms, curve: Curves.easeOutCubic);
+        .fadeIn(duration: 200.ms, delay: delay.ms, curve: Curves.easeOut)
+        .slideY(begin: 0.03, end: 0, duration: 220.ms, delay: delay.ms, curve: Curves.easeOutCubic);
   }
 }
 
@@ -503,3 +504,34 @@ class GradientText extends StatelessWidget {
 
 /// Page padding used by all tab screens.
 const EdgeInsets kPagePadding = EdgeInsets.fromLTRB(20, 8, 20, 120);
+
+/// Opens a picture full screen: pinch to zoom, tap or swipe down to close.
+Future<void> showPhoto(BuildContext context, String url, {String? title}) {
+  if (url.isEmpty) return Future.value();
+  return showGeneralDialog<void>(
+    context: context,
+    barrierDismissible: true,
+    barrierLabel: 'Close',
+    barrierColor: Colors.black.withValues(alpha: 0.92),
+    transitionDuration: const Duration(milliseconds: 160),
+    pageBuilder: (c, _, __) => Dismissible(
+      key: const Key('photo-viewer'),
+      direction: DismissDirection.down,
+      onDismissed: (_) => Navigator.of(c).maybePop(),
+      child: Material(
+        color: Colors.transparent,
+        child: Stack(children: [
+          Positioned.fill(
+            child: GestureDetector(
+              onTap: () => Navigator.of(c).pop(),
+              child: InteractiveViewer(minScale: 1, maxScale: 5, child: Center(child: NetImage(url, fit: BoxFit.contain, fallbackLabel: title))),
+            ),
+          ),
+          if (title != null && title.isNotEmpty)
+            Positioned(left: 20, right: 70, top: MediaQuery.of(c).padding.top + 14, child: Text(title, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600))),
+          Positioned(right: 8, top: MediaQuery.of(c).padding.top + 4, child: IconButton(tooltip: 'Close', onPressed: () => Navigator.of(c).pop(), icon: const Icon(Icons.close_rounded, color: Colors.white))),
+        ]),
+      ),
+    ),
+  );
+}
