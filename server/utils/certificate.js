@@ -199,7 +199,7 @@ function designedSignature(doc, name, cx, baseY, T) {
   const bn = BN.test(txt);
   let size = bn ? 22 : 36;
   doc.font(bn ? 'bn' : 'script');
-  while (size > 14 && doc.fontSize(size).widthOfString(txt) > 124) size -= 1;
+  while (size > 14 && doc.fontSize(size).widthOfString(txt) > 112) size -= 1;
   const w = doc.fontSize(size).widthOfString(txt);
   doc.save();
   doc.rotate(-5, { origin: [cx, baseY] });
@@ -359,25 +359,25 @@ async function certificatePdf({ name, event, cert = {}, code, siteUrl, defaults 
   // bottom row: QR | President | seal | Advisor | how to verify. The two signatures are the same distance from the seal.
   const rowY = H - 150;
   const url = `${siteUrl}/verify/${code}`;
-  try { doc.image(await qrPng(url, 300, T.ink), 142, rowY + 12, { width: 50 }); } catch { /* the certificate is still valid without the picture */ }
-  doc.fillColor(T.sub).font('Helvetica').fontSize(6.5).text('Scan to verify', 132, rowY + 66, { width: 70, align: 'center', lineBreak: false });
+  try { doc.image(await qrPng(url, 300, T.ink), 116, rowY + 12, { width: 50 }); } catch { /* the certificate is still valid without the picture */ }
+  doc.fillColor(T.sub).font('Helvetica').fontSize(6.5).text('Scan to verify', 106, rowY + 66, { width: 70, align: 'center', lineBreak: false });
   // one quiet line under the seal: where to verify and the certificate ID
   const host = String(siteUrl || '').replace(/^https?:\/\//, '').replace(/\/$/, '');
   doc.fillColor(T.sub).font('Helvetica').fontSize(6.5).text(`Verify at ${host}/verify  ·  Certificate ID ${pretty(code)}`, 0, H - 47, { width: W, align: 'center', lineBreak: false });
   if (cert.show_seal !== false) seal3d(doc, cx, rowY + 34, T);
 
   const signBlock = async (centerX, signer, title, img, sigText) => {
-    const x = centerX - 78;
+    const x = centerX - 72;
     if (img) { try { doc.image(img, centerX - 65, rowY - 2, { fit: [130, 52], align: 'center', valign: 'bottom' }); } catch { designedSignature(doc, sigText || signer, centerX, rowY + 44, T); } }
     else designedSignature(doc, sigText || signer, centerX, rowY + 44, T);
-    doc.moveTo(x, rowY + 54).lineTo(x + 156, rowY + 54).lineWidth(0.9).strokeColor(T.accent).stroke();
-    doc.circle(x, rowY + 54, 1.5).fillColor(T.accent).fill(); doc.circle(x + 156, rowY + 54, 1.5).fillColor(T.accent).fill();
+    doc.moveTo(x, rowY + 54).lineTo(x + 144, rowY + 54).lineWidth(0.9).strokeColor(T.accent).stroke();
+    doc.circle(x, rowY + 54, 1.5).fillColor(T.accent).fill(); doc.circle(x + 144, rowY + 54, 1.5).fillColor(T.accent).fill();
     const fit = (font, size, txt, maxW, min, spacing = 0) => { let z = size; doc.font(font); while (z > min && doc.fontSize(z).widthOfString(txt, { characterSpacing: spacing }) > maxW) z -= 0.5; return z; };
     const sf = BN.test(signer) ? 'bnB' : 'bodyB'; const tt = title.toUpperCase(); const tf = BN.test(title) ? 'bn' : 'title';
     doc.fillColor(T.ink).font(sf).fontSize(fit(sf, 14.5, signer, 178, 9)).text(signer, x - 14, rowY + 60, { width: 184, align: 'center', lineBreak: false });
     doc.fillColor(T.sub).font(tf).fontSize(fit(tf, BN.test(title) ? 10 : 8, tt, 178, 5.5, 0.8)).text(tt, x - 14, rowY + 79, { width: 184, align: 'center', lineBreak: false, characterSpacing: 0.8 });
   };
-  const L = cx - 151; const R = cx + 151;
+  const L = cx - 158; const R = cx + 158;
   // right: the advisor (the club's real signature unless the admin uploaded another picture)
   const advisorName = clean(cert.signer, 60) || DEFAULT_ADVISOR.name;
   const advisorTitle = clean(cert.signer_title, 80) || DEFAULT_ADVISOR.title;
