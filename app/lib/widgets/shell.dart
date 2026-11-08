@@ -38,6 +38,7 @@ const _more = [
   _NavItem('/jobs', 'Jobs', Icons.work_outline_rounded, Icons.work_rounded),
   _NavItem('/contests', 'Contests', Icons.sports_esports_outlined, Icons.sports_esports_rounded),
   _NavItem('/leaderboard', 'Leaderboard', Icons.leaderboard_outlined, Icons.leaderboard_rounded),
+  _NavItem('/data', 'Club data', Icons.bar_chart_outlined, Icons.bar_chart_rounded),
   _NavItem('/faq', 'FAQ', Icons.help_outline_rounded, Icons.help_rounded),
   _NavItem('/about', 'About', Icons.info_outline_rounded, Icons.info_rounded),
   _NavItem('/contact', 'Contact', Icons.mail_outline_rounded, Icons.mail_rounded),
@@ -136,7 +137,7 @@ class _AppDrawer extends StatelessWidget {
   static const _groups = <(String, List<String>)>[
     ('Opportunities', ['/jobs', '/jobs/remote', '/contests', '/leaderboard']),
     ('The club', ['/my-card', '/notices', '/ambassadors', '/gallery', '/achievements', '/projects', '/resources']),
-    ('Help', ['/faq', '/about', '/contact']),
+    ('Help', ['/faq', '/data', '/about', '/contact']),
   ];
 
   _NavItem _item(String path) => _more.firstWhere((t) => t.path == path);

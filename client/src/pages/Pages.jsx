@@ -1,6 +1,7 @@
 import PageShell from '../components/PageShell';
 import About from '../components/About';
 import Events from '../components/Events';
+import ClubData from '../components/ClubData';
 import EventDetail from '../components/EventDetail';
 import FormPage from '../components/FormPage';
 import TicketPage from '../components/TicketPage';
@@ -41,6 +42,7 @@ export const GalleryPage = page(Gallery, 'orbs');
 export const AchievementsPage = page(Achievements, 'committee');
 export const ProjectsPage = page(Projects, 'orbs');
 export const FaqPage = page(Faq, 'orbs');
+export const ClubDataPage = page(ClubData, 'orbs');
 export const ContactPage = page(Contact, 'orbs');
 export const JoinHubPage = JoinHub;
 export const JoinCommitteePage = JoinCommittee;

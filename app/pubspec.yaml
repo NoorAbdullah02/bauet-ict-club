@@ -39,6 +39,7 @@ flutter:
   assets:
     - assets/icon.png
     - assets/logos/
+    - assets/google_fonts/
 
 # the phone's home-screen icon (CI runs: dart run flutter_launcher_icons)
 flutter_launcher_icons:

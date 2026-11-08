@@ -311,6 +311,7 @@ class Api {
   // ---- event registration, tickets, public forms ----
   Map<String, dynamic> _map(dynamic d) => d is Map ? Map<String, dynamic>.from(d) : <String, dynamic>{};
 
+  Future<Map<String, dynamic>> dataset() async => _map(await _send(() => _dio.get('/dataset')));
   Future<Map<String, dynamic>> event(int id) async => _map(await _send(() => _dio.get('/events/$id')));
 
   /// Seats taken per event id (waiting list not counted).

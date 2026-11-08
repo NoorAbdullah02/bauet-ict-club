@@ -43,6 +43,7 @@ import '../screens/join/join_ambassador_screen.dart';
 import '../screens/join/join_committee_screen.dart';
 import '../screens/join/join_general_screen.dart';
 import '../screens/join/join_hub_screen.dart';
+import '../screens/data_screen.dart';
 import '../screens/faq_screen.dart';
 import '../screens/notices_screen.dart';
 import '../screens/projects_screen.dart';
@@ -118,6 +119,7 @@ GoRouter buildRouter(AppState state) {
           GoRoute(path: '/jobs', pageBuilder: (c, s) => _fade(s, const JobsScreen())),
           GoRoute(path: '/jobs/remote', pageBuilder: (c, s) => _fade(s, const JobsScreen(remote: true))),
           GoRoute(path: '/faq', pageBuilder: (c, s) => _fade(s, const FaqScreen())),
+          GoRoute(path: '/data', pageBuilder: (c, s) => _fade(s, const DataScreen())),
           GoRoute(path: '/about', pageBuilder: (c, s) => _fade(s, const AboutScreen())),
           GoRoute(path: '/contact', pageBuilder: (c, s) => _fade(s, const ContactScreen())),
           GoRoute(path: '/join', pageBuilder: (c, s) => _fade(s, const JoinHubScreen())),

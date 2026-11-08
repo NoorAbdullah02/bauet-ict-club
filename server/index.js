@@ -110,6 +110,7 @@ app.use('/api/analytics', require('./routes/analytics'));
 app.use('/api/event-registrations', require('./routes/eventRegs'));
 app.use('/api/forms', require('./routes/forms'));
 app.use('/api/search', require('./routes/search'));
+app.use('/api/dataset', require('./routes/dataset'));
 app.use('/api/pay', require('./routes/pay'));
 app.use('/api/card', require('./routes/card'));
 app.use('/api/points', require('./routes/points'));
@@ -211,7 +212,7 @@ app.get('/sitemap-events.xml', async (req, res) => {
     res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${rows.map((r) => `  <url><loc>${origin(req)}/events/${r.id}</loc></url>`).join('\n')}\n</urlset>\n`);
   } catch { res.status(500).end(); }
 });
-const SITE_PATHS = ['/', '/my-card', '/about', '/events', '/notices', '/projects', '/resources', '/leaderboard', '/contests', '/jobs', '/jobs/remote', '/team', '/ambassadors', '/gallery', '/achievements', '/faq', '/contact', '/join', '/join/committee', '/join/general', '/join/ambassador', '/app'];
+const SITE_PATHS = ['/', '/data', '/my-card', '/about', '/events', '/notices', '/projects', '/resources', '/leaderboard', '/contests', '/jobs', '/jobs/remote', '/team', '/ambassadors', '/gallery', '/achievements', '/faq', '/contact', '/join', '/join/committee', '/join/general', '/join/ambassador', '/app'];
 const origin = (req) => (process.env.PUBLIC_URL || process.env.RENDER_EXTERNAL_URL || '').replace(/\/$/, '') || `${req.protocol}://${req.get('host')}`;
 app.get('/sitemap.xml', (req, res) => {
   const base = origin(req);

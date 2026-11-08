@@ -6,6 +6,7 @@ BN = {
 # navigation
 "Home": "হোম", "About": "পরিচিতি", "Events": "ইভেন্ট", "Notices": "নোটিশ", "Projects": "প্রজেক্ট", "Team": "টিম",
 "Ambassadors": "অ্যাম্বাসেডর", "Gallery": "গ্যালারি", "Awards": "অর্জন", "Achievements": "অর্জন", "Contact": "যোগাযোগ",
+"Club data": "ক্লাবের তথ্য", "The club in numbers": "সংখ্যায় ক্লাব", "Counts only: no names, phone numbers or emails.": "শুধু সংখ্যা: কোনো নাম, ফোন নম্বর বা ইমেইল নেই।", "Events per year": "বছরে ইভেন্ট", "Members by department": "বিভাগ অনুযায়ী সদস্য", "Members by committee session": "কমিটির সেশন অনুযায়ী সদস্য", "Event sign-ups": "ইভেন্টে নিবন্ধন", "Photos": "ছবি", "Awards": "পুরস্কার", "Advisors": "উপদেষ্টা",
 "Join": "যোগ দিন", "Join us": "যোগ দিন", "Resources": "রিসোর্স", "FAQ": "প্রশ্নোত্তর", "Menu": "মেনু",
 "Search": "খুঁজুন", "Admin": "অ্যাডমিন", "Admin login": "অ্যাডমিন লগইন", "Admin dashboard": "অ্যাডমিন ড্যাশবোর্ড",
 "Chat assistant": "চ্যাট সহকারী", "Chat with us": "আমাদের সাথে চ্যাট করুন", "Language": "ভাষা",

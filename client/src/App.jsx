@@ -32,6 +32,7 @@ const MyCardRoute = named('MyCardRoute');
 const RemoteJobsPage = named('RemoteJobsPage');
 const ContestDetailPage = named('ContestDetailPage');
 const FaqPage = named('FaqPage');
+const ClubDataPage = named('ClubDataPage');
 const JoinHubPage = named('JoinHubPage');
 const JoinCommitteePage = named('JoinCommitteePage');
 const JoinGeneralPage = named('JoinGeneralPage');
@@ -165,6 +166,7 @@ export default function App() {
           <Route path="jobs/remote" element={<RemoteJobsPage />} />
           <Route path="contests/:id" element={<ContestDetailPage />} />
           <Route path="faq" element={<FaqPage />} />
+          <Route path="data" element={<ClubDataPage />} />
           <Route path="contact" element={<ContactPage />} />
           <Route path="join" element={<JoinHubPage />} />
           <Route path="join/committee" element={<JoinCommitteePage />} />
