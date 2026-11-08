@@ -6,6 +6,7 @@ import { Link } from 'react-router-dom';
 import Backdrop3D from '../Backdrop3D';
 import { Field, PhotoDrop, inputCls, useApplication, POSTS, DEPARTMENTS, BATCHES } from './shared';
 import { cn } from '../../lib/cn';
+import CheckEmailNote from '../CheckEmailNote';
 
 const STEPS = [
   { icon: ScrollText, t: 'Apply', d: 'Fill the form & upload your photo' },
@@ -116,6 +117,7 @@ export default function JoinCommittee() {
                 <p className="mx-auto mt-3 max-w-sm text-sm leading-7 text-fg2">
                   You applied for <b className="text-fg">{done.post}</b>. We’ll contact you at <b className="text-fg">{done.email}</b> about the interview.
                 </p>
+                <CheckEmailNote email={done.email} className="mx-auto mt-5 max-w-md" />
                 <button onClick={() => { reset(); setStep(0); }} className="btn-outline mt-8"><RotateCcw size={15} /> New application</button>
               </motion.div>
             ) : (

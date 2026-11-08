@@ -25,7 +25,7 @@ const idOf = (v, i) => (String(v || '').toLowerCase().replace(/[^a-z0-9_]/g, '')
 function sanitizeCert(c = {}) {
   const picture = (v) => { const u = clip(v, 400); return /^https:\/\/res\.cloudinary\.com\//.test(u) ? u : ''; }; // signature pictures live on our picture host only
   return {
-    enabled: true, title: clip(c.title, 60) || 'Certificate of Participation', theme: ['gold', 'royal', 'emerald'].includes(c.theme) ? c.theme : 'gold',
+    enabled: true, title: clip(c.title, 60) || 'Certificate of Participation', theme: ['gold', 'royal', 'emerald'].includes(c.theme) ? c.theme : 'gold', name_font: ['allura', 'alexbrush', 'vibes', 'pinyon', 'parisienne'].includes(c.name_font) ? c.name_font : 'allura',
     ribbon: clip(c.ribbon, 60), body: clip(c.body, 600), show_seal: c.show_seal !== false, show_watermark: c.show_watermark !== false,
     organizer: clip(c.organizer, 120), event_kind: clip(c.event_kind, 30), note: clip(c.note, 220),
     signer: clip(c.signer, 60), signer_title: clip(c.signer_title, 80), signature_url: picture(c.signature_url), signature_text: clip(c.signature_text, 40),

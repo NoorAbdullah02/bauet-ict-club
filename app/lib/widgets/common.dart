@@ -535,3 +535,37 @@ Future<void> showPhoto(BuildContext context, String url, {String? title}) {
     ),
   );
 }
+
+/// Shown right after someone submits something: the confirmation is an email, and it often lands in Spam.
+class CheckEmailNote extends StatelessWidget {
+  const CheckEmailNote({super.key, this.email = ''});
+  final String email;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.pal;
+    const amber = Color(0xFFF59E0B);
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(color: amber.withValues(alpha: 0.12), border: Border.all(color: amber.withValues(alpha: 0.45)), borderRadius: BorderRadius.circular(16)),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Icon(Icons.mark_email_unread_rounded, color: Color(0xFFD97706), size: 22),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text.rich(
+            TextSpan(style: bodyStyle(context, size: 13, color: p.fg), children: [
+              TextSpan(text: 'Please check your email${email.isEmpty ? '' : ' ($email)'} now. ', style: const TextStyle(fontWeight: FontWeight.w700)),
+              const TextSpan(text: 'It can take a minute. If you cannot find our message, look in the '),
+              const TextSpan(text: 'Spam / Junk', style: TextStyle(fontWeight: FontWeight.w700)),
+              const TextSpan(text: ' folder (and '),
+              const TextSpan(text: 'Promotions', style: TextStyle(fontWeight: FontWeight.w700)),
+              const TextSpan(text: ' in Gmail), then mark it '),
+              const TextSpan(text: '"Not spam"', style: TextStyle(fontWeight: FontWeight.w700)),
+              const TextSpan(text: ' so the next ones arrive in your inbox.'),
+            ]),
+          ),
+        ),
+      ]),
+    );
+  }
+}

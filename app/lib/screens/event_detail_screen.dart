@@ -386,6 +386,8 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
       Text(title, textAlign: TextAlign.center, style: displayStyle(context, 22)),
       const SizedBox(height: 6),
       Text(body, textAlign: TextAlign.center, style: bodyStyle(context, color: p.muted, size: 14)),
+      const SizedBox(height: 14),
+      const CheckEmailNote(),
       if (ticket.isNotEmpty) ...[
         const SizedBox(height: 18),
         TicketQr(code: ticket, size: 170),

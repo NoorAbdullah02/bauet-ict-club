@@ -5,6 +5,7 @@ import { Megaphone, ArrowLeft, ArrowUpRight, Loader2, RotateCcw, Check, PartyPop
 import Backdrop3D from '../Backdrop3D';
 import { Field, PhotoDrop, inputCls, useApplication, BATCHES } from './shared';
 import { cn } from '../../lib/cn';
+import CheckEmailNote from '../CheckEmailNote';
 
 const DEPTS = [['ICE', 'Information & Communication'], ['CSE', 'Computer Science'], ['EEE', 'Electrical & Electronic'], ['CE', 'Civil'], ['ME', 'Mechanical']];
 const ROLE = ['Be the voice of the club in your department', 'Spread news of events, contests and notices', 'Bring new members and ideas to the committee'];
@@ -36,6 +37,7 @@ export default function JoinAmbassador() {
                   className="mx-auto mb-6 grid size-20 place-items-center rounded-full text-white" style={{ background: 'var(--grad-btn)' }}><PartyPopper size={34} /></motion.div>
                 <h3 className="text-3xl text-fg">Application received, {done.full_name.split(' ')[0]}!</h3>
                 <p className="mx-auto mt-3 max-w-sm text-sm leading-7 text-fg2">We’ll review your ambassador application and contact you at <b className="text-fg">{done.email}</b>.</p>
+                <CheckEmailNote email={done.email} className="mx-auto mt-5 max-w-md" />
                 <button onClick={reset} className="btn-outline mt-8"><RotateCcw size={15} /> New application</button>
               </motion.div>
             ) : (

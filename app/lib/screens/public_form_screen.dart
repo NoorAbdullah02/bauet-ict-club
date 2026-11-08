@@ -198,6 +198,8 @@ class _PublicFormScreenState extends State<PublicFormScreen> {
               textAlign: TextAlign.center,
               style: bodyStyle(context, color: p.muted),
             ),
+            const SizedBox(height: 16),
+            const CheckEmailNote(),
           ]),
         ),
       );

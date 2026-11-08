@@ -189,6 +189,7 @@ class _AdminFormEditScreenState extends State<AdminFormEditScreen> {
         'enabled': true,
         'title': _certTitle.text.trim(),
         'theme': _certTheme.text.trim(),
+        'name_font': _certFont.text.trim(),
         'second': _certSecond,
         'ribbon': _certRibbon.text.trim(),
         'body': _certBody.text.trim(),
@@ -227,6 +228,7 @@ class _AdminFormEditScreenState extends State<AdminFormEditScreen> {
   final _certSigner = TextEditingController();
   final _certSignerTitle = TextEditingController();
   final _certTheme = TextEditingController(text: 'gold');
+  final _certFont = TextEditingController(text: 'allura');
   final _certRibbon = TextEditingController();
   final _certBody = TextEditingController();
   bool _certSeal = true;
@@ -260,7 +262,7 @@ class _AdminFormEditScreenState extends State<AdminFormEditScreen> {
   bool _busy = false;
   String? _error;
 
-  List<TextEditingController> get _all => [_title, _desc, _slug, _cap, _heading, _intro, _confirm, _emailNote, _theme, _amount, _payNote, ..._numbers.values, _certRibbon, _certBody, _certTheme, _certOrganizer, _certKind, _certNote, _certSigUrl, _certSigner2, _certSigner2Title, _certSig2Url, _certTitle, _certSigner, _certSignerTitle];
+  List<TextEditingController> get _all => [_title, _desc, _slug, _cap, _heading, _intro, _confirm, _emailNote, _theme, _amount, _payNote, ..._numbers.values, _certFont, _certRibbon, _certBody, _certTheme, _certOrganizer, _certKind, _certNote, _certSigUrl, _certSigner2, _certSigner2Title, _certSig2Url, _certTitle, _certSigner, _certSignerTitle];
 
   @override
   void initState() {
@@ -327,6 +329,7 @@ class _AdminFormEditScreenState extends State<AdminFormEditScreen> {
         _certSigner.text = s(cert['signer']);
         _certSignerTitle.text = s(cert['signer_title']);
         _certTheme.text = ['gold', 'royal', 'emerald'].contains(s(cert['theme'])) ? s(cert['theme']) : 'gold';
+        _certFont.text = ['allura', 'alexbrush', 'vibes', 'pinyon', 'parisienne'].contains(s(cert['name_font'])) ? s(cert['name_font']) : 'allura';
         _certSecond = cert['second'] != false;
         _certRibbon.text = s(cert['ribbon']);
         _certBody.text = s(cert['body']);
@@ -625,6 +628,8 @@ class _AdminFormEditScreenState extends State<AdminFormEditScreen> {
                 AppField(controller: _certTitle, label: 'Certificate title (Certificate of Participation)'),
                 _gap(),
                 PickerField(label: 'Colours', value: _certTheme.text == 'royal' ? 'Royal blue' : _certTheme.text == 'emerald' ? 'Emerald green' : 'Gold (classic)', options: const ['Gold (classic)', 'Royal blue', 'Emerald green'], icon: Icons.palette_rounded, onChanged: (v) => setState(() => _certTheme.text = v == 'Royal blue' ? 'royal' : v == 'Emerald green' ? 'emerald' : 'gold')),
+                _gap(),
+                PickerField(label: 'Writing of the name', value: const {'allura': 'Allura (clean, default)', 'alexbrush': 'Alex Brush (bold swirls)', 'vibes': 'Great Vibes (large, graceful)', 'pinyon': 'Pinyon Script (classic)', 'parisienne': 'Parisienne (wide, light)'}[_certFont.text] ?? 'Allura (clean, default)', options: const ['Allura (clean, default)', 'Alex Brush (bold swirls)', 'Great Vibes (large, graceful)', 'Pinyon Script (classic)', 'Parisienne (wide, light)'], icon: Icons.draw_rounded, onChanged: (v) => setState(() => _certFont.text = v.startsWith('Alex') ? 'alexbrush' : v.startsWith('Great') ? 'vibes' : v.startsWith('Pinyon') ? 'pinyon' : v.startsWith('Pari') ? 'parisienne' : 'allura')),
                 _gap(),
                 Text('Right: the advisor (empty = Partha Pratim Debnath with his signature). Left: the president (empty = Sheikh Noor Abdullah with a designed signature).', style: bodyStyle(context, size: 12.5, color: context.pal.muted)),
                 _gap(),
