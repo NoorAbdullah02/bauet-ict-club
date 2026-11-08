@@ -67,7 +67,23 @@ function localAnswer(question, k) {
   // plain questions about the club itself, answered without any AI key
   if (/(contact|phone|number|call|mail|e-mail|reach|যোগাযোগ|ফোন|নম্বর|ইমেইল)/.test(lower)) return contact;
   if (/(join|member|apply|registration form|become|how.*(register|sign ?up)|সদস্য|যোগ দ|আবেদন)/.test(lower) && !/event|workshop/.test(lower)) return 'To join, open the **Join** page and choose General member, Committee or Department Ambassador. Fill in the form; we e-mail you when it is reviewed. Approved members get a member card under **My member card**.';
-  if (/(job|internship|career|hire|চাকরি|ইন্টার্ন)/.test(lower)) return 'See the **Jobs** page for internships and jobs, and **Remote jobs** for remote work from around the world.';
+  if (/(job|internship|career|hire|চাকরি|ইন্টার্ন)/.test(lower)) {
+    return k.jobs?.length ? `Open jobs and internships:\n${k.jobs.slice(0, 5).map((j) => `- **${j.title}**${j.company ? ` at ${j.company}` : ''}${j.deadline ? `, apply by ${d10(j.deadline)}` : ''}`).join('\n')}\nSee the **Jobs** page for all of them, and **Remote jobs** for remote work from around the world.`
+      : 'No job is listed right now. See the **Jobs** page for new ones, and **Remote jobs** for remote work from around the world.';
+  }
+  if (/(advisor|adviser|supervisor|teacher|faculty|উপদেষ্টা|শিক্ষক)/.test(lower)) {
+    return k.advisors?.length ? `Club advisors:\n${k.advisors.slice(0, 6).map((a) => `- **${a.name}**${[a.designation, a.rank_title, a.department].filter(Boolean).length ? `, ${[a.designation, a.rank_title, a.department].filter(Boolean).join(', ')}` : ''}`).join('\n')}\nThe Team page shows them too.` : `No advisor is listed yet. ${contact}`;
+  }
+  if (/(contest|competition|প্রতিযোগিতা|কনটেস্ট)/.test(lower)) {
+    return k.contests?.length ? `Open contests:\n${k.contests.slice(0, 5).map((c) => `- **${c.title}**${c.prize ? `, prize: ${c.prize}` : ''}${c.deadline ? `, deadline ${d10(c.deadline)}` : ''}`).join('\n')}\nSee the **Contests** page to join.` : 'No contest is open right now. See the **Contests** page for new ones.';
+  }
+  if (/(notice|announcement|নোটিশ|বিজ্ঞপ্তি)/.test(lower)) {
+    return k.notices.length ? `Latest notices:\n${k.notices.slice(0, 4).map((n) => `- **${n.title}** (${d10(n.date)})`).join('\n')}\nSee the **Notices** page for details.` : 'There is no notice right now. See the **Notices** page later.';
+  }
+  if (/(project|প্রজেক্ট)/.test(lower)) {
+    return k.projects.length ? `Club projects:\n${k.projects.slice(0, 5).map((p) => `- **${p.title}**${p.status ? ` [${p.status}]` : ''}`).join('\n')}\nSee the **Projects** page.` : 'No project is listed yet. See the **Projects** page later.';
+  }
+  if (/(resource|tutorial|learn|রিসোর্স)/.test(lower) && k.resources?.length) return `Learning resources: ${k.resources.slice(0, 6).map((r) => r.title).join('; ')}. See the **Resources** page.`;
   if (/(leaderboard|points|badge|rank|পয়েন্ট|ব্যাজ)/.test(lower)) return 'You earn points for joining events and contests. See the **Leaderboard** page for the top members and badges.';
   if (/(app|apk|download|install|অ্যাপ|ডাউনলোড)/.test(lower)) return 'Get the Android app from the **App** page (/app). The website also works on phones.';
   if (/(certificate|সার্টিফিকেট)/.test(lower)) return 'Certificates are given after events. Check one on the **Verify** page with its code.';
@@ -88,4 +104,7 @@ function localAnswer(question, k) {
   return `I am not sure about that. ${contact}`;
 }
 
-module.exports = { load, asPrompt, localAnswer };
+/** Forget the cached facts, so the next question sees what the admin just added or changed. */
+function clear() { cache = { at: 0, data: null }; }
+
+module.exports = { load, asPrompt, localAnswer, clear };

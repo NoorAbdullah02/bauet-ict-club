@@ -109,6 +109,11 @@ app.use('/api/chat', require('./routes/chat'));
 app.use('/api/analytics', require('./routes/analytics'));
 app.use('/api/event-registrations', require('./routes/eventRegs'));
 app.use('/api/forms', require('./routes/forms'));
+// the assistant reads the live data: forget what it remembered as soon as an admin saves something
+app.use('/api', (req, res, next) => {
+  if (req.method !== 'GET' && req.method !== 'OPTIONS') res.on('finish', () => { if (res.statusCode < 400) require('./utils/knowledge').clear(); });
+  next();
+});
 app.use('/api/search', require('./routes/search'));
 app.use('/api/dataset', require('./routes/dataset'));
 app.use('/api/pay', require('./routes/pay'));

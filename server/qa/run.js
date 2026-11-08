@@ -48,7 +48,7 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
   });
   await new Promise((r) => gw.listen(0, '127.0.0.1', r));
   const GW = `http://127.0.0.1:${gw.address().port}`;
-  const srv = spawn(process.execPath, [path.join(__dirname, 'harness.js')], { env: { ...process.env, QA_PORT: PORT, SSLCOMMERZ_STORE_ID: 'qa_store', SSLCOMMERZ_STORE_PASSWD: 'qa_pass', SSLCOMMERZ_BASE: GW, REMOTIVE_URL: `${GW}/remotive`, REMOTEOK_URL: `${GW}/remoteok` }, stdio: 'ignore' });
+  const srv = spawn(process.execPath, [path.join(__dirname, 'harness.js')], { env: { ...process.env, GROQ_API_KEY: '', QA_PORT: PORT, SSLCOMMERZ_STORE_ID: 'qa_store', SSLCOMMERZ_STORE_PASSWD: 'qa_pass', SSLCOMMERZ_BASE: GW, REMOTIVE_URL: `${GW}/remotive`, REMOTEOK_URL: `${GW}/remoteok` }, stdio: 'ignore' });
   try {
     for (let i = 0; i < 60; i++) { try { if ((await fetch(`${B}/api/health`)).ok) break; } catch { /* booting */ } await new Promise((r) => setTimeout(r, 1000)); }
 
@@ -110,6 +110,20 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
       const bad = await call('POST', '/api/event-registrations/lost', { email: 'nope' });
       const good = await call('POST', '/api/event-registrations/lost', { email: 'nobody-here@example.com' });
       ok(bad.s === 400 && good.s === 200 && good.j?.success === true, 'lost ticket: bad address refused, any valid address gets the same answer');
+    }
+    // the assistant sees what the admin just saved (no waiting for the cache), and answers from it without an AI key
+    {
+      const ask = async (message) => (await call('POST', '/api/chat', { message })).j?.reply || '';
+      await ask('hello'); // fills the assistant's memory first, so the next lines prove it is forgotten on save
+      await call('POST', '/api/events', { title: 'Zorbaglot Night', date: new Date(Date.now() + 86400000).toISOString().slice(0, 10), time: '10:00', location: 'Hall 7' }, T);
+      const adv = await call('POST', '/api/advisors', { name: 'Dr. Quinlan Vexley', designation: 'Professor', department: 'CSE' }, T);
+      const jb = await call('POST', '/api/jobs', { title: 'Plumbus Engineer', company: 'Acme QA', kind: 'Job', work_mode: 'Remote', apply_email: 'jobs@example.com' }, T); ok(jb.s === 201 || jb.s === 200, 'job create', jb.j);
+      await call('POST', '/api/contests', { title: 'Wumbo Cup', status: 'open', team_min: 1, team_max: 3, prize: 'Gold' }, T);
+      ok(adv.s === 201 || adv.s === 200, 'advisor create', adv.j);
+      { const r = await ask('upcoming event ki ache?'); ok(/Zorbaglot/.test(r), 'assistant: a new event is known at once', r.slice(0, 160)); }
+      ok(/Quinlan/.test(await ask('who are the advisors?')), 'assistant: a new advisor is known at once');
+      { const r = await ask('any job or internship?'); ok(/Plumbus/.test(r), 'assistant: a new job is known at once', r.slice(0, 160)); }
+      ok(/Wumbo/.test(await ask('which contest is open?')), 'assistant: a new contest is known at once');
     }
     // ---- phone notifications: the app registers its token; nothing is sent without Firebase set up ----
     {
