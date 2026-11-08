@@ -61,7 +61,7 @@ After adding or changing one, press **Save, rebuild, and deploy**.
 | `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | photo upload |
 | `BREVO_API_KEY`, `MAIL_FROM`, `ADMIN_NOTIFY_EMAIL` | email |
 | `CRON_SECRET` | lets cron-job.org run reminders (16+ characters) |
-| `PUBLIC_URL` | public address for card links, previews, sitemap |
+| `PUBLIC_URL` | **optional**: only when you use your own domain. Without it the server uses Render's own address (`RENDER_EXTERNAL_URL`) for email links, tickets, card previews and the sitemap |
 | `ANDROID_CERT_SHA256` | app links (fingerprint of the app signing key, optional) |
 
 All keys are explained in `.env.example`.
