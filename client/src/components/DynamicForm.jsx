@@ -32,7 +32,7 @@ function PhotoAnswer({ value, onChange, disabled, error }) {
   };
   return (
     <label className={cn('flex cursor-pointer items-center gap-4 rounded-2xl border-2 border-dashed p-3.5 transition hover:border-tech/60', error ? 'border-red-500/70' : 'border-line')}>
-      <span className="relative grid size-16 shrink-0 place-items-center overflow-hidden rounded-xl bg-alt ring-1 ring-line">
+      <span className="relative grid size-28 shrink-0 place-items-center overflow-hidden rounded-2xl bg-alt ring-1 ring-line">
         {value ? <img src={value} alt="Your upload" className="size-full object-cover" /> : <ImagePlus className="text-muted" />}
         {busy && <span className="absolute inset-0 grid place-items-center bg-bg/70"><Loader2 size={18} className="animate-spin text-tech" /></span>}
       </span>

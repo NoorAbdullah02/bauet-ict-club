@@ -96,7 +96,7 @@ class _ImageUploadFieldState extends State<ImageUploadField> {
         if (url.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(right: 12),
-            child: ClipRRect(borderRadius: BorderRadius.circular(12), child: SizedBox(width: 64, height: 64, child: NetImage(url))),
+            child: GestureDetector(onTap: () => showPhoto(context, url), child: ClipRRect(borderRadius: BorderRadius.circular(12), child: SizedBox(width: 84, height: 84, child: NetImage(url)))),
           ),
         Expanded(
           child: OutlinedButton.icon(

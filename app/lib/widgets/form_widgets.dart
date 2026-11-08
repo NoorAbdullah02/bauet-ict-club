@@ -273,7 +273,7 @@ Future<PickedPhoto?> pickPhoto(BuildContext context, {double? aspect, bool circl
 
 /// Circular photo slot with gradient ring.
 class PhotoSlot extends StatelessWidget {
-  const PhotoSlot({super.key, required this.photo, required this.onTap, this.size = 120, this.error, this.label = 'Add photo'});
+  const PhotoSlot({super.key, required this.photo, required this.onTap, this.size = 150, this.error, this.label = 'Add photo'});
   final PickedPhoto? photo;
   final VoidCallback onTap;
   final double size;
@@ -303,7 +303,7 @@ class PhotoSlot extends StatelessWidget {
                 : Image.file(File(photo!.path), fit: BoxFit.cover, width: size, height: size),
           ),
         ),
-      ).animate(onPlay: (c) => c.repeat(reverse: true)).scaleXY(begin: 1, end: 1.03, duration: 2.seconds, curve: Curves.easeInOut),
+      ).animate(target: photo == null ? 1 : 0, onPlay: (c) => c.repeat(reverse: true)).scaleXY(begin: 1, end: 1.03, duration: 2.seconds, curve: Curves.easeInOut),
       if (photo != null && error == null)
         Padding(
           padding: const EdgeInsets.only(top: 8),
