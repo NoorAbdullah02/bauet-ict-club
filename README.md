@@ -32,6 +32,7 @@ New managed lists (sponsors, projects, FAQs...) need two small files and no wiri
 
 ## Email, photos and roadmap
 
+- **[Complete handbook (start here): setup, secrets, backups, APK publishing, fixes)](docs/HANDBOOK.md)**
 - [Email and Cloudinary setup](docs/SETUP_EMAIL_AND_CLOUDINARY.md)
 - [Roadmap](docs/ROADMAP.md)
 - [Status and to-do (what exists, what is missing, what to improve)](docs/STATUS_AND_TODO.md)
