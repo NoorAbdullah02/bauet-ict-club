@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/i18n.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -131,7 +132,7 @@ class _AdminSignupScreenState extends State<AdminSignupScreen> {
                       onSubmitted: _start,
                       hint: '6+ characters, letters and numbers',
                       onChanged: () => setState(() {}),
-                      suffix: IconButton(onPressed: () => setState(() => _show = !_show), icon: Icon(_show ? Icons.visibility_off_rounded : Icons.visibility_rounded, size: 20, color: p.muted)),
+                      suffix: IconButton(tooltip: tr('Show or hide password'), onPressed: () => setState(() => _show = !_show), icon: Icon(_show ? Icons.visibility_off_rounded : Icons.visibility_rounded, size: 20, color: p.muted)),
                     ),
                     _PwMeter(score: _PwScore(_pass.text, _user.text.trim())),
                   ] else

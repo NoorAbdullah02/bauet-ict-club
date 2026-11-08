@@ -89,7 +89,7 @@ class _AdminTrashScreenState extends State<AdminTrashScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
               child: Row(children: [
-                IconButton(onPressed: () => context.canPop() ? context.pop() : context.go('/admin'), icon: const Icon(Icons.arrow_back_rounded)),
+                IconButton(tooltip: tr('Back'), onPressed: () => context.canPop() ? context.pop() : context.go('/admin'), icon: const Icon(Icons.arrow_back_rounded)),
                 Expanded(child: Text('Trash', style: displayStyle(context, 24))),
                 const AdminThemeButton(),
                 if (_items.isNotEmpty)

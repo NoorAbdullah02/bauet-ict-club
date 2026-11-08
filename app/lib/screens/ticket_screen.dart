@@ -285,6 +285,9 @@ class MyTicketsScreen extends StatefulWidget {
 
 class _MyTicketsScreenState extends State<MyTicketsScreen> {
   final _input = TextEditingController();
+  final _email = TextEditingController();
+  String? _emailError;
+  bool _sending = false;
   List<SavedTicket> _saved = [];
   String? _error;
 
@@ -297,12 +300,31 @@ class _MyTicketsScreenState extends State<MyTicketsScreen> {
   @override
   void dispose() {
     _input.dispose();
+    _email.dispose();
     super.dispose();
   }
 
   Future<void> _reload() async {
     final l = await loadMyTickets();
     if (mounted) setState(() => _saved = l);
+  }
+
+  Future<void> _sendMine() async {
+    final api = context.read<AppState>().api;
+    final messenger = ScaffoldMessenger.of(context);
+    final e = _email.text.trim();
+    if (!RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(e)) {
+      setState(() => _emailError = 'Enter the email you registered with.');
+      return;
+    }
+    setState(() { _emailError = null; _sending = true; });
+    try {
+      final msg = await api.lostTickets(e);
+      messenger.showSnackBar(SnackBar(content: Text(msg)));
+    } catch (err) {
+      messenger.showSnackBar(SnackBar(content: Text(err.toString())));
+    }
+    if (mounted) setState(() => _sending = false);
   }
 
   void _open() {
@@ -356,6 +378,19 @@ class _MyTicketsScreenState extends State<MyTicketsScreen> {
                   AppField(controller: _input, label: 'Ticket code or link', error: _error, icon: Icons.qr_code_2_rounded, textInputAction: TextInputAction.go, onSubmitted: _open, onChanged: () => setState(() => _error = null)),
                   const SizedBox(height: 14),
                   GradientButton(label: 'Open', icon: Icons.arrow_forward_rounded, onPressed: _open),
+                ]),
+              ),
+              const SizedBox(height: 14),
+              GlassCard(
+                padding: const EdgeInsets.all(18),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(tr('Lost your ticket?'), style: displayStyle(context, 18)),
+                  const SizedBox(height: 4),
+                  Text(tr('Enter the email you registered with. We email your tickets to that address.'), style: bodyStyle(context, size: 13, color: p.muted)),
+                  const SizedBox(height: 14),
+                  AppField(controller: _email, label: 'Email', error: _emailError, icon: Icons.mail_outline_rounded, keyboard: TextInputType.emailAddress, textInputAction: TextInputAction.send, onSubmitted: _sendMine),
+                  const SizedBox(height: 14),
+                  GradientButton(label: _sending ? 'Sending…' : 'Email my tickets', icon: Icons.send_rounded, onPressed: _sending ? null : _sendMine),
                 ]),
               ),
               const SizedBox(height: 22),

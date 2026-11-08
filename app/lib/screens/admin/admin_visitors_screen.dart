@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/i18n.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
@@ -87,10 +88,10 @@ class _AdminVisitorsScreenState extends State<AdminVisitorsScreen> {
               physics: const AlwaysScrollableScrollPhysics(),
               children: [
                 Row(children: [
-                  IconButton(onPressed: () => context.canPop() ? context.pop() : context.go('/admin'), icon: const Icon(Icons.arrow_back_rounded)),
+                  IconButton(tooltip: tr('Back'), onPressed: () => context.canPop() ? context.pop() : context.go('/admin'), icon: const Icon(Icons.arrow_back_rounded)),
                   Expanded(child: Text('Visitors', style: displayStyle(context, 24))),
                   const AdminThemeButton(),
-                  IconButton(onPressed: _load, icon: const Icon(Icons.refresh_rounded)),
+                  IconButton(tooltip: tr('Refresh'), onPressed: _load, icon: const Icon(Icons.refresh_rounded)),
                 ]),
                 if (_loading)
                   const Padding(padding: EdgeInsets.all(8), child: ShimmerList(count: 3, height: 90))

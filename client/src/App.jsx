@@ -33,6 +33,7 @@ const RemoteJobsPage = named('RemoteJobsPage');
 const ContestDetailPage = named('ContestDetailPage');
 const FaqPage = named('FaqPage');
 const ClubDataPage = named('ClubDataPage');
+const TicketFindPage = named('TicketFindPage');
 const JoinHubPage = named('JoinHubPage');
 const JoinCommitteePage = named('JoinCommitteePage');
 const JoinGeneralPage = named('JoinGeneralPage');
@@ -149,6 +150,7 @@ export default function App() {
           <Route path="events" element={<EventsPage />} />
           <Route path="events/:id" element={<EventDetailPage />} />
           <Route path="f/:slug" element={<FormPageRoute />} />
+          <Route path="ticket" element={<TicketFindPage />} />
           <Route path="ticket/:code" element={<TicketRoute />} />
           <Route path="card/:id" element={<MemberCardRoute />} />
           <Route path="my-card" element={<MyCardRoute />} />

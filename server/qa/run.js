@@ -106,6 +106,11 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
       const ds = await call('GET', '/api/dataset');
       ok(ds.s === 200 && typeof ds.j?.totals?.members === 'number' && Array.isArray(ds.j.eventsByYear) && !JSON.stringify(ds.j).match(/@|\b01[3-9]\d{8}\b/), 'club data page: counts only, no emails or phone numbers', ds.j);
     }
+    {
+      const bad = await call('POST', '/api/event-registrations/lost', { email: 'nope' });
+      const good = await call('POST', '/api/event-registrations/lost', { email: 'nobody-here@example.com' });
+      ok(bad.s === 400 && good.s === 200 && good.j?.success === true, 'lost ticket: bad address refused, any valid address gets the same answer');
+    }
     // ---- phone notifications: the app registers its token; nothing is sent without Firebase set up ----
     {
       const tokenA = `qa-token-${'a'.repeat(40)}:APA91b_x-y`;

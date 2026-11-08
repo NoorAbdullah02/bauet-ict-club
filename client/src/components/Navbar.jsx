@@ -26,7 +26,7 @@ export const LINKS = [
 export const MENU_GROUPS = [
   ['Opportunities', [['/jobs', 'Jobs', Briefcase], ['/jobs/remote', 'Remote jobs', Globe2], ['/contests', 'Contests', Swords], ['/leaderboard', 'Leaderboard', Trophy]]],
   ['The club', [['/notices', 'Notices', Megaphone], ['/projects', 'Projects', Code2], ['/ambassadors', 'Ambassadors', GraduationCap], ['/gallery', 'Gallery', Image], ['/achievements', 'Awards', Award], ['/resources', 'Resources', Library]]],
-  ['Help', [['/faq', 'FAQ', HelpCircle], ['/data', 'Club data', Library], ['/contact', 'Contact', Mail], ['/my-card', 'My member card', IdCard]]],
+  ['Help', [['/faq', 'FAQ', HelpCircle], ['/data', 'Club data', Library], ['/ticket', 'Find my ticket', IdCard], ['/contact', 'Contact', Mail], ['/my-card', 'My member card', IdCard]]],
 ];
 const MAIN = [['/', 'Home', Home], ['/about', 'About', Info], ['/events', 'Events', Calendar], ['/team', 'Team', Users]];
 const DESKTOP = ['/', '/about', '/events', '/notices', '/projects', '/team', '/gallery', '/contact'];

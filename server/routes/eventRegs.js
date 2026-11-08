@@ -22,6 +22,21 @@ const day = (d) => (d instanceof Date ? d.toISOString() : String(d || '')).slice
 
 const limiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 600, standardHeaders: true, legacyHeaders: false, message: { error: 'Too many sign-ups from this network. Please try again later.' } });
 
+const lostLimiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 5, standardHeaders: true, legacyHeaders: false, message: { error: 'Too many tries. Please wait an hour and try again.' } });
+/** Public: "I lost my ticket". Emails the live tickets of that address to that address only. Always answers the same, so nobody can check who signed up. */
+router.post('/lost', lostLimiter, async (req, res) => {
+  const email = clean(req.body?.email, 160).toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ error: 'Please enter a valid email address.' });
+  res.json({ success: true, message: 'If this email has tickets, we just sent them. Check your inbox and spam folder.' });
+  try {
+    const { rows } = await pool.query(
+      `SELECT r.ticket, r.full_name, e.title, e.date FROM event_registrations r JOIN events e ON e.id = r.event_id
+       WHERE LOWER(r.email) = $1 AND r.deleted_at IS NULL AND e.deleted_at IS NULL AND r.ticket IS NOT NULL AND COALESCE(r.waitlisted, FALSE) = FALSE
+         AND COALESCE(r.pay_status, 'none') NOT IN ('rejected', 'pending') AND (e.date IS NULL OR e.date >= CURRENT_DATE - 30) ORDER BY e.date DESC LIMIT 10`, [email]);
+    if (rows.length) mail.sendMail({ to: email, ...mail.templates.ticketsList(rows[0].full_name, rows, formalDate) });
+  } catch (e) { console.warn('Lost ticket lookup failed:', e.message); }
+});
+
 /** Public: how many people signed up for each event (numbers only), so the pages can show "12 / 40 joined". */
 router.get('/counts', async (_req, res) => {
   try {

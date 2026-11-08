@@ -40,7 +40,7 @@ export default function CodeWindow({ className }) {
         <i style={{ background: '#FF5F57' }} /><i style={{ background: '#FEBC2E' }} /><i style={{ background: '#28C840' }} />
         <span>~/bauet-ict-club — zsh</span>
       </div>
-      <pre className="code-body" aria-label="Code sample: the club object and a join call">
+      <pre className="code-body" role="group" aria-label="Code sample: the club object and a join call">
         {parts.map(([s, k], i) => s && <span key={i} className={`tok-${k}`}>{s}</span>)}
         <span className="code-cursor" />
       </pre>

@@ -188,6 +188,11 @@ const templates = {
     html: layout({ title: 'See you tomorrow', body: `<p>Hi ${esc(r.full_name || 'there')},</p><p><b>${esc(ev.title)}</b> is tomorrow.</p><p>${esc(fDate(ev.date))}${ev.time ? ` · ${esc(fTime(ev.time))}` : ''}${ev.location ? `<br>${esc(ev.location)}` : ''}</p><p>Please bring your ticket (the QR code) and your student ID.</p>`, button: { href: `${siteUrl()}/ticket/${r.ticket}`, label: 'Open my ticket' } }),
     text: `Reminder: ${ev.title} is tomorrow. Your ticket: ${siteUrl()}/ticket/${r.ticket}`,
   }),
+  ticketsList: (name, items, fDate) => ({
+    subject: 'Your event tickets',
+    html: layout({ title: 'Your tickets', body: `<p>Hi ${esc(name || 'there')},</p><p>Here are your tickets. Open one and show its QR code at the entrance.</p><ul style="padding-left:18px">${items.map((i) => `<li style="margin:8px 0"><b>${esc(i.title)}</b>${i.date ? ` (${esc(fDate(i.date))})` : ''}<br><a href="${siteUrl()}/ticket/${esc(i.ticket)}">${esc(i.ticket.slice(0, 5))}-${esc(i.ticket.slice(5))}</a></li>`).join('')}</ul><p style="font-size:12px;color:#64748b">If you did not ask for this, you can ignore this email.</p>`, button: { href: `${siteUrl()}/ticket/${items[0].ticket}`, label: 'Open my ticket' } }),
+    text: `Your tickets:\n${items.map((i) => `${i.title}: ${siteUrl()}/ticket/${i.ticket}`).join('\n')}`,
+  }),
   paymentVerified: (r, ev, fDate) => ({
     subject: `Payment received: ${ev.title}`,
     html: layout({ title: 'Payment confirmed', body: `<p>Hi ${esc(r.full_name || 'there')},</p><p>We received your payment for <b>${esc(ev.title)}</b>${ev.date ? ` (${esc(fDate(ev.date))})` : ''}. Your place is confirmed.</p>${ev.email_note ? `<p style="white-space:pre-line">${esc(ev.email_note)}</p>` : ''}${ev.ticket ? `<p>Your ticket code: <b style="letter-spacing:2px">${esc(ev.ticket.slice(0, 5))}-${esc(ev.ticket.slice(5))}</b></p>` : ''}`, button: { href: ev.ticket ? `${siteUrl()}/ticket/${ev.ticket}` : `${siteUrl()}${ev.path || `/events/${ev.id}`}`, label: ev.ticket ? 'Open my ticket' : 'Details' } }),
