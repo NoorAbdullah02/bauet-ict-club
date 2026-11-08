@@ -39,6 +39,12 @@ jobs:
       run:
         working-directory: app
     steps:
+      # the runner's disk is small and the app has native libraries (PDF drawing): free space that this job never uses
+      - name: Free disk space
+        working-directory: .
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/boost /usr/local/lib/node_modules /opt/hostedtoolcache/CodeQL /usr/local/share/powershell || true
+          df -h / | tail -1
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
         with:
@@ -67,8 +73,6 @@ jobs:
       - name: Analyse (errors fail the build)
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
       - run: flutter test
-      - name: Build a debug APK
-        run: flutter build apk --debug --build-number=${{ github.run_number }} --dart-define=APP_BUILD=${{ github.run_number }} --dart-define-from-file=env.production.json
       # the version to install on a phone: much smaller and faster than the debug one (arm64 = almost every phone made after 2017)
       - name: Build a release APK (small, fast)
         run: flutter build apk --release --split-per-abi --build-number=${{ github.run_number }} --dart-define=APP_BUILD=${{ github.run_number }} --dart-define-from-file=env.production.json
