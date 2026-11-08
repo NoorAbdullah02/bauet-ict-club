@@ -153,15 +153,13 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     const CodeLabel('demo data'),
                     const SizedBox(height: 10),
-                    Text('Fill every section (events, notices, gallery, posts, projects, committee, applications, messages) with illustrated sample content to preview the site. Demo subscribers never get email.', style: bodyStyle(context, color: p.muted, size: 13.5)),
+                    Text('Sample (demo) rows are not loaded any more. If any are left in the database, this button removes only them: your real data stays.', style: bodyStyle(context, color: p.muted, size: 13.5)),
                     const SizedBox(height: 12),
                     if (_error != null)
                       Text('error: $_error', style: monoStyle(context, color: const Color(0xFFEF4444), size: 11.5))
                     else
                       Text(_count == null ? 'checking...' : '$_count demo rows loaded', style: monoStyle(context, color: p.tech, size: 12)),
                     const SizedBox(height: 16),
-                    GradientButton(label: 'Load demo data', icon: Icons.download_rounded, loading: _busy, onPressed: (_count ?? 0) > 0 ? null : () => _run(_state.api.loadDemo, 'Demo data loaded')),
-                    const SizedBox(height: 10),
                     GhostButton(label: 'Remove demo data', icon: Icons.delete_sweep_outlined, onPressed: (_count ?? 0) > 0 && !_busy ? _remove : null),
                   ]),
                 ),
