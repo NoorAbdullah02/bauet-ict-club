@@ -11,7 +11,8 @@ module.exports = {
     sort_order INTEGER DEFAULT 99,
     created_at TIMESTAMPTZ DEFAULT NOW()
   )`,
-  // inserted once, only when the table is empty
+  // sample questions: only with SEED_FAQS=true (a practice site, tests). A real site writes its own.
+  seedOnlyWith: 'SEED_FAQS',
   seed: [
     { question: 'Who can join the BAUET ICT Club?', answer: 'Any BAUET student from any department and batch. You only need curiosity about technology.', sort_order: 1 },
     { question: 'Is there a membership fee?', answer: 'Please contact the club for the current membership details. Applying through the website is free.', sort_order: 2 },

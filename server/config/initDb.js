@@ -175,7 +175,7 @@ async function initDb() {
     const features = require('../features');
     for (const f of features) {
       await client.query(f.sql);
-      if (f.seed?.length && !(await client.query(`SELECT 1 FROM ${f.table} LIMIT 1`)).rows.length) {
+      if (f.seed?.length && (!f.seedOnlyWith || process.env[f.seedOnlyWith] === 'true') && !(await client.query(`SELECT 1 FROM ${f.table} LIMIT 1`)).rows.length) {
         for (const row of f.seed) {
           const keys = Object.keys(row);
           await client.query(`INSERT INTO ${f.table} (${keys.join(',')}) VALUES (${keys.map((_, i) => `$${i + 1}`).join(',')})`, keys.map((k) => row[k]));
@@ -386,6 +386,19 @@ async function initDb() {
         console.log(`Sample committee clean-up: ${moved} members moved to the Trash`);
       }
     } catch (e) { console.warn('Sample committee clean-up skipped:', e.message); }
+
+    // One-time clean-up: the sample FAQs that were loaded before go to the Trash (restore them from Admin -> Trash). Only untouched ones (same question and answer).
+    try {
+      const done = await client.query("SELECT 1 FROM settings WHERE key = 'faq_seed_cleanup_v1'");
+      if (!done.rows.length && process.env.SEED_FAQS !== 'true') {
+        let moved = 0;
+        for (const q of require('../features/faqs').seed || []) {
+          moved += (await client.query('UPDATE faqs SET deleted_at = NOW() WHERE deleted_at IS NULL AND question = $1 AND answer = $2', [q.question, q.answer])).rowCount || 0;
+        }
+        await client.query("INSERT INTO settings (key, value) VALUES ('faq_seed_cleanup_v1', $1::jsonb) ON CONFLICT (key) DO NOTHING", [JSON.stringify({ at: new Date().toISOString(), moved })]);
+        console.log(`Sample FAQ clean-up: ${moved} moved to the Trash`);
+      }
+    } catch (e) { console.warn('Sample FAQ clean-up skipped:', e.message); }
 
     // Committee sessions are ready until 2030: Winter 2026, then Summer and Winter of every year (two per year). Added once, never removes or reorders yours.
     try {

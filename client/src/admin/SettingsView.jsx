@@ -231,12 +231,13 @@ export default function SettingsView() {
         <TwoFactorPanel />
         {['superadmin', 'admin'].includes(user?.role) && <PushPanel />}
         {user?.role === 'superadmin' && <Security />}
+        {demo > 0 && (
         <Panel className="self-start p-6 xl:col-start-2">
           <div className="flex items-start gap-4">
             <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-tech/12 text-tech"><FlaskConical size={22} /></span>
             <div className="min-w-0">
               <h3 className="text-xl text-fg">Demo data</h3>
-              <p className="mt-1 text-sm leading-6 text-fg2">Fill the site with a sample <b>Winter 2026</b> committee, department ambassadors, events, notices, awards and a few pending applications — so you can see how everything looks. Remove it in one click.</p>
+              <p className="mt-1 text-sm leading-6 text-fg2">Sample (demo) rows are still in the database. Remove them in one click: only the demo rows go, your real data stays.</p>
               <p className="mt-2 font-mono text-[11px] uppercase tracking-widest text-muted">{demo === null ? 'checking…' : demo > 0 ? `${demo} demo items loaded` : 'no demo data loaded'}</p>
               <button onClick={toggleDemo} disabled={demoBusy || demo === null} className={`mt-4 inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-xs font-semibold transition disabled:opacity-60 ${demo > 0 ? 'border border-red-500/40 text-red-500 hover:bg-red-500/10' : 'btn-primary'}`}>
                 {demoBusy ? <Loader2 size={14} className="animate-spin" /> : demo > 0 ? <Trash2 size={14} /> : <FlaskConical size={14} />}{demo > 0 ? 'Remove demo data' : 'Load demo data'}
@@ -244,6 +245,7 @@ export default function SettingsView() {
             </div>
           </div>
         </Panel>
+        )}
       </div>
     </div>
   );
