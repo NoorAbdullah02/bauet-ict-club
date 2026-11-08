@@ -359,9 +359,9 @@ async function initDb() {
       await client.query(`UPDATE settings SET value = jsonb_set(value, '{socialLinks,phone}', '"01748-269350"') WHERE key = 'site' AND value->'socialLinks'->>'phone' = '01707-533471'`);
     } catch (e) { console.warn('Contact number update skipped:', e.message); }
 
-    // Seed committee sessions (President, VPs and executives) once
+    // The sample committee (config/committeeSeed.json) is only loaded when SEED_COMMITTEE=true (tests, a fresh practice site). A real site starts with no members.
     const seeded = await client.query('SELECT 1 FROM members WHERE committee_session IS NOT NULL LIMIT 1');
-    if (!seeded.rows.length) {
+    if (process.env.SEED_COMMITTEE === 'true' && !seeded.rows.length) {
       const rows = require('./committeeSeed.json');
       for (const m of rows) {
         await client.query(
@@ -372,6 +372,20 @@ async function initDb() {
       }
       console.log(`Seeded ${rows.length} committee members`);
     }
+
+    // One-time clean-up: sample committee members that were loaded before go to the Trash (nothing is erased: Admin -> Trash brings them back).
+    // Only rows that still match the sample exactly are moved, so members the club added or changed stay.
+    try {
+      const done = await client.query("SELECT 1 FROM settings WHERE key = 'committee_seed_cleanup_v1'");
+      if (!done.rows.length && process.env.SEED_COMMITTEE !== 'true') {
+        let moved = 0;
+        for (const m of require('./committeeSeed.json')) {
+          moved += (await client.query('UPDATE members SET deleted_at = NOW() WHERE deleted_at IS NULL AND name = $1 AND position = $2 AND committee_session = $3 AND image_url IS NULL', [m.name, m.position, m.session])).rowCount || 0;
+        }
+        await client.query("INSERT INTO settings (key, value) VALUES ('committee_seed_cleanup_v1', $1::jsonb) ON CONFLICT (key) DO NOTHING", [JSON.stringify({ at: new Date().toISOString(), moved })]);
+        console.log(`Sample committee clean-up: ${moved} members moved to the Trash`);
+      }
+    } catch (e) { console.warn('Sample committee clean-up skipped:', e.message); }
 
     // Committee sessions are ready until 2030: Winter 2026, then Summer and Winter of every year (two per year). Added once, never removes or reorders yours.
     try {
