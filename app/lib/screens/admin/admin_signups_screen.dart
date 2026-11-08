@@ -191,8 +191,8 @@ class _AdminSignupsScreenState extends State<AdminSignupsScreen> {
             Expanded(child: Text(line(k, v), style: bodyStyle(context, size: 13))),
           ]),
         );
-    final signer = '${cert['signer'] ?? ''}'.isEmpty ? '(empty)' : '${cert['signer']}${'${cert['signer_title'] ?? ''}'.isEmpty ? '' : ', ${cert['signer_title']}'}${cert['signature'] == true ? ' · signature ✓' : ' · no signature picture'}';
-    final signer2 = '${cert['signer2'] ?? ''}'.isEmpty ? 'none' : '${cert['signer2']}${cert['signature2'] == true ? ' · signature ✓' : ' · no signature picture'}';
+    final signer = '${cert['signer'] ?? ''}, ${cert['signer_title'] ?? ''} · signature: ${cert['signature_source'] ?? ''}';
+    final signer2 = '${cert['signer2'] ?? ''}'.isEmpty ? 'not shown' : '${cert['signer2']}, ${cert['signer2_title'] ?? ''} · signature: ${cert['signature2_source'] ?? ''}';
     return GlassCard(
       padding: const EdgeInsets.all(16),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -206,8 +206,9 @@ class _AdminSignupsScreenState extends State<AdminSignupsScreen> {
         const SizedBox(height: 10),
         row('Title', '${cert['title'] ?? ''}'),
         row('Organised by', '${cert['organizer'] ?? ''}'.isEmpty ? 'BAUET ICT Club' : '${cert['organizer']}'),
-        row('Signer', signer),
-        row('Second signer', signer2),
+        row('Colours', '${cert['theme'] ?? 'gold'}'),
+        row('Advisor (right)', signer),
+        row('President (left)', signer2),
         row('People', '${people.length} chosen · $waiting not emailed yet'),
         const SizedBox(height: 8),
         if (problems.isEmpty)

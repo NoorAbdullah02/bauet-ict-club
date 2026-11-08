@@ -59,7 +59,9 @@ async function byCode(raw) {
 const canCancel = (r) => !r.checked_in_at && !r.payment && statusOf(r) !== 'cancelled' && !(r.ev_date && day(r.ev_date) < todayStr());
 /** The name printed on a certificate: the one the admin typed for this person, else the sign-up name. */
 const certNameOf = (r) => clean(r.cert_name, 80) || clean(r.full_name, 80) || clean(forms.show(answersOf(r)[forms.fieldsOf({ reg_form: r.ev_form })[0]?.id]), 80) || 'Participant';
-const certPdfFor = (r, ev, base) => tickets.certificatePdf({ name: certNameOf({ ...r, ev_form: ev.reg_form }), event: { title: ev.title, date: ev.date, location: ev.location }, cert: ev.reg_form?.cert || {}, code: r.ticket, siteUrl: base });
+/** Defaults for a certificate: the president is Sheikh Noor Abdullah unless the admin types another name. */
+async function certDefaults() { return { president: tickets.DEFAULT_PRESIDENT.name }; }
+const certPdfFor = async (r, ev, base) => tickets.certificatePdf({ name: certNameOf({ ...r, ev_form: ev.reg_form }), event: { title: ev.title, date: ev.date, location: ev.location }, cert: ev.reg_form?.cert || {}, code: r.ticket, siteUrl: base, defaults: await certDefaults() });
 const certOn = (r) => !!r.ev_form?.cert?.enabled && !!r.checked_in_at && statusOf(r) !== 'cancelled';
 const site = (req) => (process.env.PUBLIC_URL || process.env.RENDER_EXTERNAL_URL || `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');
 
@@ -93,7 +95,7 @@ router.get('/certificate/:code', async (req, res) => {
   try {
     const r = await byCode(req.params.code);
     if (!r || !certOn(r)) return res.status(404).json({ error: 'There is no certificate for this code.' });
-    const pdf = await tickets.certificatePdf({ name: certNameOf(r), event: { title: r.ev_title, date: r.ev_date, location: r.ev_location }, cert: r.ev_form.cert, code: r.ticket, siteUrl: site(req) });
+    const pdf = await tickets.certificatePdf({ name: certNameOf(r), event: { title: r.ev_title, date: r.ev_date, location: r.ev_location }, cert: r.ev_form.cert, code: r.ticket, siteUrl: site(req), defaults: await certDefaults() });
     res.set({ 'Content-Type': 'application/pdf', 'Content-Disposition': `inline; filename="certificate-${r.ticket}.pdf"`, 'Cache-Control': 'no-store' });
     res.send(pdf);
   } catch (e) { fail(res, e); }
@@ -364,16 +366,21 @@ router.get('/event/:eventId/certificates', async (req, res) => {
     const cert = ev.reg_form?.cert || {};
     const rows = (await pool.query("SELECT * FROM event_registrations WHERE event_id = $1 AND deleted_at IS NULL AND cert_pick = TRUE AND checked_in_at IS NOT NULL ORDER BY full_name", [ev.id])).rows;
     const people = rows.map((r) => ({ id: r.id, name: certNameOf({ ...r, ev_form: ev.reg_form }), custom_name: !!r.cert_name, email: r.email || '', sent: !!r.certificate_sent_at }));
+    const def = await certDefaults();
+    const advisor = String(cert.signer || '').trim() || tickets.DEFAULT_ADVISOR.name;
+    const advisorTitle = String(cert.signer_title || '').trim() || tickets.DEFAULT_ADVISOR.title;
+    const advisorPicture = cert.signature_url ? 'your picture' : advisor === tickets.DEFAULT_ADVISOR.name ? 'the club\'s signature' : 'none';
+    const president = cert.second === false ? '' : String(cert.signer2 || '').trim() || def.president;
+    const presidentPicture = cert.signature2_url ? 'your picture' : president ? 'a designed signature' : 'none';
     const problems = [];
     if (!cert.enabled) problems.push({ level: 'error', text: 'Certificates are switched off for this event.' });
     if (!people.length) problems.push({ level: 'error', text: 'Nobody is chosen yet. Tick the people on the list first.' });
-    if (!String(cert.signer || '').trim()) problems.push({ level: 'error', text: 'The signer name is empty. Add the advisor or president in the certificate settings.' });
-    if (!cert.signature_url) problems.push({ level: 'warn', text: 'There is no signature picture, so the signature line stays empty.' });
+    if (advisorPicture === 'none') problems.push({ level: 'warn', text: `${advisor} has no signature picture, so only the name is printed. Upload one in the certificate settings.` });
     if (!String(cert.organizer || '').trim()) problems.push({ level: 'warn', text: 'No "organised by" line: it will say the BAUET ICT Club organised it.' });
     people.filter((x) => !x.email).forEach((x) => problems.push({ level: 'error', text: `${x.name} has no email address.` }));
     if (!mail.provider()) problems.push({ level: 'error', text: 'Email is not set up on the server (BREVO_API_KEY and MAIL_FROM).' });
     const waiting = people.filter((x) => !x.sent).length;
-    res.json({ stage: stageOf(ev), enabled: !!cert.enabled, cert: { title: cert.title || '', organizer: cert.organizer || '', event_kind: cert.event_kind || '', signer: cert.signer || '', signer_title: cert.signer_title || '', signature: !!cert.signature_url, signer2: cert.signer2 || '', signer2_title: cert.signer2_title || '', signature2: !!cert.signature2_url, note: cert.note || '' },
+    res.json({ stage: stageOf(ev), enabled: !!cert.enabled, cert: { title: cert.title || '', organizer: cert.organizer || '', event_kind: cert.event_kind || '', theme: cert.theme || 'gold', signer: advisor, signer_title: advisorTitle, signature_source: advisorPicture, signer2: president, signer2_title: String(cert.signer2_title || '').trim() || 'President, BAUET ICT Club', signature2_source: presidentPicture, note: cert.note || '' },
       people, waiting, problems, can_publish: !problems.some((p) => p.level === 'error') && people.length > 0 });
   } catch (e) { fail(res, e); }
 });
