@@ -57,6 +57,9 @@ async function byCode(raw) {
 }
 // people may cancel their own free sign-up until they are checked in or the event day has passed (paid ones go through the organisers)
 const canCancel = (r) => !r.checked_in_at && !r.payment && statusOf(r) !== 'cancelled' && !(r.ev_date && day(r.ev_date) < todayStr());
+/** The name printed on a certificate: the one the admin typed for this person, else the sign-up name. */
+const certNameOf = (r) => clean(r.cert_name, 80) || clean(r.full_name, 80) || clean(forms.show(answersOf(r)[forms.fieldsOf({ reg_form: r.ev_form })[0]?.id]), 80) || 'Participant';
+const certPdfFor = (r, ev, base) => tickets.certificatePdf({ name: certNameOf({ ...r, ev_form: ev.reg_form }), event: { title: ev.title, date: ev.date, location: ev.location }, cert: ev.reg_form?.cert || {}, code: r.ticket, siteUrl: base });
 const certOn = (r) => !!r.ev_form?.cert?.enabled && !!r.checked_in_at && statusOf(r) !== 'cancelled';
 const site = (req) => (process.env.PUBLIC_URL || process.env.RENDER_EXTERNAL_URL || `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');
 
@@ -90,7 +93,7 @@ router.get('/certificate/:code', async (req, res) => {
   try {
     const r = await byCode(req.params.code);
     if (!r || !certOn(r)) return res.status(404).json({ error: 'There is no certificate for this code.' });
-    const pdf = await tickets.certificatePdf({ name: r.full_name || 'Participant', event: { title: r.ev_title, date: r.ev_date, location: r.ev_location }, cert: r.ev_form.cert, code: r.ticket, siteUrl: site(req) });
+    const pdf = await tickets.certificatePdf({ name: certNameOf(r), event: { title: r.ev_title, date: r.ev_date, location: r.ev_location }, cert: r.ev_form.cert, code: r.ticket, siteUrl: site(req) });
     res.set({ 'Content-Type': 'application/pdf', 'Content-Disposition': `inline; filename="certificate-${r.ticket}.pdf"`, 'Cache-Control': 'no-store' });
     res.send(pdf);
   } catch (e) { fail(res, e); }
@@ -102,7 +105,7 @@ router.get('/verify/:code', async (req, res) => {
     const r = await byCode(req.params.code);
     if (!r || !certOn(r)) return res.json({ valid: false });
     res.set('Cache-Control', 'no-store');
-    res.json({ valid: true, name: r.full_name, event: r.ev_title, date: r.ev_date, issuedBy: 'BAUET ICT Club', code: r.ticket });
+    res.json({ valid: true, name: certNameOf(r), event: r.ev_title, date: r.ev_date, issuedBy: 'BAUET ICT Club', code: r.ticket });
   } catch (e) { fail(res, e); }
 });
 
@@ -307,17 +310,59 @@ router.patch('/:id/checkin', async (req, res) => {
   } catch (e) { fail(res, e); }
 });
 
-/** Admin: email every checked-in person their certificate link (once each). */
+/** Admin: see exactly the certificate a person will get (the PDF that is attached to the email). Without ?reg= it shows a sample. */
+router.get('/event/:eventId/certificates/preview', async (req, res) => {
+  try {
+    const ev = (await pool.query('SELECT * FROM events WHERE id = $1', [req.params.eventId])).rows[0];
+    if (!ev) return res.status(404).json({ error: 'Event not found' });
+    if (!ev.reg_form?.cert?.enabled) return res.status(409).json({ error: 'Switch certificates on for this event first.' });
+    let r = { full_name: 'Participant Name', ticket: 'PREVIEW000' };
+    if (req.query.reg) {
+      r = (await pool.query('SELECT * FROM event_registrations WHERE id = $1 AND event_id = $2 AND deleted_at IS NULL', [Number(req.query.reg) || 0, ev.id])).rows[0];
+      if (!r) return res.status(404).json({ error: 'Sign-up not found' });
+    }
+    res.set({ 'Content-Type': 'application/pdf', 'Content-Disposition': 'inline; filename="certificate-preview.pdf"', 'Cache-Control': 'no-store' });
+    res.send(await certPdfFor(r, ev, site(req)));
+  } catch (e) { fail(res, e); }
+});
+
+/** Admin: change the name printed on one person's certificate (empty = use the sign-up name again). */
+router.patch('/:id/cert-name', async (req, res) => {
+  try {
+    const name = clean(req.body?.name, 80);
+    const { rows } = await pool.query('UPDATE event_registrations SET cert_name = $1 WHERE id = $2 AND deleted_at IS NULL RETURNING id, cert_name', [name || null, req.params.id]);
+    if (!rows.length) return res.status(404).json({ error: 'Sign-up not found' });
+    res.json(rows[0]);
+  } catch (e) { fail(res, e); }
+});
+
+/**
+ * Admin: email the certificate link to the people the admin picked (body: { ids: [registration ids] }). Nobody is chosen by default:
+ * without ids nothing is sent. Only people who were checked in and have an e-mail get it, and each person only once (unless resend is true).
+ */
 router.post('/event/:eventId/certificates/send', async (req, res) => {
   try {
     const ev = (await pool.query('SELECT * FROM events WHERE id = $1', [req.params.eventId])).rows[0];
     if (!ev) return res.status(404).json({ error: 'Event not found' });
     if (!ev.reg_form?.cert?.enabled) return res.status(409).json({ error: 'Switch certificates on for this event first.' });
+    const ids = [...new Set((Array.isArray(req.body?.ids) ? req.body.ids : []).map(Number).filter((n) => Number.isInteger(n) && n > 0))].slice(0, 1000);
+    if (!ids.length) return res.status(400).json({ error: 'Choose who should get a certificate first.' });
     if (!mail.provider()) return res.status(400).json({ error: 'Email is not configured. Set BREVO_API_KEY and MAIL_FROM in .env.' });
-    const rows = (await pool.query("SELECT * FROM event_registrations WHERE event_id = $1 AND deleted_at IS NULL AND checked_in_at IS NOT NULL AND certificate_sent_at IS NULL AND email IS NOT NULL AND COALESCE(pay_status, 'none') <> 'rejected'", [ev.id])).rows;
-    for (const r of rows) { mail.sendMail({ to: r.email, ...mail.templates.certificateReady(r, ev, r.ticket) }); await pool.query('UPDATE event_registrations SET certificate_sent_at = NOW() WHERE id = $1', [r.id]); }
+    const resend = req.body?.resend === true;
+    const rows = (await pool.query("SELECT * FROM event_registrations WHERE event_id = $1 AND id = ANY($2::int[]) AND deleted_at IS NULL", [ev.id, ids])).rows;
+    const sent = []; const skipped = [];
+    for (const r of rows) {
+      if (!r.checked_in_at) { skipped.push({ id: r.id, reason: 'not checked in' }); continue; }
+      if (!r.email) { skipped.push({ id: r.id, reason: 'no email' }); continue; }
+      if (r.pay_status === 'rejected') { skipped.push({ id: r.id, reason: 'payment rejected' }); continue; }
+      if (r.certificate_sent_at && !resend) { skipped.push({ id: r.id, reason: 'already sent' }); continue; }
+      const base = site(req);
+      mail.sendMail({ to: r.email, ...mail.templates.certificateReady(r, ev, r.ticket), attachments: async () => [{ filename: `Certificate - ${certNameOf({ ...r, ev_form: ev.reg_form }).replace(/[^\p{L}\p{N} ._-]+/gu, '').trim() || 'Participant'}.pdf`, content: await certPdfFor(r, ev, base), contentType: 'application/pdf' }] });
+      await pool.query('UPDATE event_registrations SET certificate_sent_at = NOW() WHERE id = $1', [r.id]);
+      sent.push(r.id);
+    }
     const total = Number((await pool.query('SELECT COUNT(*) AS n FROM event_registrations WHERE event_id = $1 AND deleted_at IS NULL AND checked_in_at IS NOT NULL', [ev.id])).rows[0].n);
-    res.json({ sent: rows.length, checked_in: total });
+    res.json({ sent: sent.length, skipped, checked_in: total });
   } catch (e) { fail(res, e); }
 });
 

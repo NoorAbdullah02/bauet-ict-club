@@ -3,7 +3,7 @@ import { Link, useParams, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { motion } from 'framer-motion';
 import {
-  ArrowDown, ArrowLeft, ArrowUp, Check, CircleAlert, Copy, ExternalLink, Eye, GripVertical, Heading, Loader2, Plus, PlusCircle,
+  ArrowDown, ArrowLeft, ArrowUp, Check, CircleAlert, Copy, ExternalLink, Eye, GripVertical, Heading, ImagePlus, Loader2, Plus, PlusCircle,
   Settings2, Trash2, Users, X, Wallet, FileText, Palette, Shuffle, SlidersHorizontal, ListChecks, Pencil, Link2, QrCode, Award,
 } from 'lucide-react';
 import useStore, { api } from '../context/store';
@@ -205,6 +205,32 @@ function PatternRule({ q, patch }) {
           <span className="mt-1 block text-[11px] text-muted">For example ^[0-9]{'{9}'}$ means exactly 9 digits.</span>
         </label>
       )}
+    </div>
+  );
+}
+
+/** Upload (or remove) a signature picture for the certificate. A transparent PNG looks best. */
+function SignaturePicture({ value, onChange, label }) {
+  const upload = useStore((s) => s.uploadImage);
+  const [busy, setBusy] = useState(false);
+  const pick = async (file) => {
+    if (!file) return;
+    setBusy(true);
+    try { onChange(await upload(file, 'logo')); toast.success('Signature picture uploaded'); }
+    catch (e) { toast.error(e.response?.data?.error || 'Could not upload the picture'); }
+    setBusy(false);
+  };
+  return (
+    <div className="block">
+      <span className="mb-1 block font-mono text-[10px] uppercase tracking-wider text-muted">{label}</span>
+      <div className="flex items-center gap-3">
+        <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-dashed border-line px-4 py-2.5 text-sm text-fg2 transition hover:border-tech hover:text-tech">
+          {busy ? <Loader2 size={14} className="animate-spin" /> : <ImagePlus size={14} />} {busy ? 'Uploading…' : value ? 'Change picture' : 'Upload picture'}
+          <input type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; pick(f); }} />
+        </label>
+        {value && <img src={value} alt="Signature" className="h-12 max-w-[7rem] rounded-lg border border-line bg-white object-contain p-1" />}
+        {value && <button type="button" onClick={() => onChange('')} className="text-xs text-red-500 hover:underline">Remove</button>}
+      </div>
     </div>
   );
 }
@@ -493,14 +519,21 @@ export default function FormEditor({ kind = 'form', eventId }) {
           {kind === 'event' && (
             <section className="rounded-2xl border border-line bg-surface p-6">
               <div className="flex items-center justify-between gap-3"><h3 className="flex items-center gap-2 text-lg text-fg"><Award size={18} className="text-accent" /> Certificates</h3>
-                <Switch checked={!!doc.cert?.enabled} onChange={(v) => patchDoc({ cert: { title: 'Certificate of Participation', signer: '', signer_title: 'BAUET ICT Club', note: '', ...doc.cert, enabled: v } })} label={doc.cert?.enabled ? 'On' : 'Off'} /></div>
-              <p className="mt-1 text-xs text-muted">People who are checked in at the entrance can download a certificate with a QR code anyone can verify. You can also email them all at once from the Check-in desk.</p>
+                <Switch checked={!!doc.cert?.enabled} onChange={(v) => patchDoc({ cert: { title: 'Certificate of Participation', organizer: '', event_kind: 'event', signer: '', signer_title: 'Advisor, BAUET ICT Club', signature_url: '', signer2: '', signer2_title: 'President', signature2_url: '', note: '', ...doc.cert, enabled: v } })} label={doc.cert?.enabled ? 'On' : 'Off'} /></div>
+              <p className="mt-1 text-xs text-muted">People who are checked in at the entrance can download a certificate with a QR code anyone can verify. From the Check-in desk you preview it, correct a name if needed, tick the people you want, and email it to them as a PDF.</p>
               {doc.cert?.enabled && (
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
                   <label className="block sm:col-span-2"><span className="mb-1 block font-mono text-[10px] uppercase tracking-wider text-muted">Title</span><input className={inputCls} value={doc.cert.title} maxLength={60} onChange={(e) => patchDoc({ cert: { ...doc.cert, title: e.target.value } })} /></label>
                   <label className="block"><span className="mb-1 block font-mono text-[10px] uppercase tracking-wider text-muted">Signed by</span><input className={inputCls} placeholder="Dr. Md. Rubel Bashar" value={doc.cert.signer} maxLength={60} onChange={(e) => patchDoc({ cert: { ...doc.cert, signer: e.target.value } })} /></label>
                   <label className="block"><span className="mb-1 block font-mono text-[10px] uppercase tracking-wider text-muted">Role</span><input className={inputCls} placeholder="President, BAUET ICT Club" value={doc.cert.signer_title} maxLength={80} onChange={(e) => patchDoc({ cert: { ...doc.cert, signer_title: e.target.value } })} /></label>
-                  <label className="block sm:col-span-2"><span className="mb-1 block font-mono text-[10px] uppercase tracking-wider text-muted">Line under the event name (optional)</span><input className={inputCls} placeholder="for completing the full-day workshop" value={doc.cert.note} maxLength={160} onChange={(e) => patchDoc({ cert: { ...doc.cert, note: e.target.value } })} /></label>
+<label className="block sm:col-span-2"><span className="mb-1 block font-mono text-[10px] uppercase tracking-wider text-muted">Organised by (optional)</span><input className={inputCls} placeholder="Department of Information and Communication Engineering (ICE), BAUET" value={doc.cert.organizer || ''} maxLength={120} onChange={(e) => patchDoc({ cert: { ...doc.cert, organizer: e.target.value } })} /></label>
+                  <label className="block"><span className="mb-1 block font-mono text-[10px] uppercase tracking-wider text-muted">Kind of event</span><input className={inputCls} placeholder="online session / workshop / seminar" value={doc.cert.event_kind || ''} maxLength={30} onChange={(e) => patchDoc({ cert: { ...doc.cert, event_kind: e.target.value } })} /></label>
+                  <label className="block sm:col-span-2"><span className="mb-1 block font-mono text-[10px] uppercase tracking-wider text-muted">Closing line (optional)</span><input className={inputCls} placeholder="We appreciate your active participation and wish you continued success." value={doc.cert.note || ''} maxLength={220} onChange={(e) => patchDoc({ cert: { ...doc.cert, note: e.target.value } })} /></label>
+                  <div className="sm:col-span-2"><SignaturePicture label="Signature picture (right)" value={doc.cert.signature_url} onChange={(u) => patchDoc({ cert: { ...doc.cert, signature_url: u } })} /></div>
+                  <label className="block"><span className="mb-1 block font-mono text-[10px] uppercase tracking-wider text-muted">Second signer (optional)</span><input className={inputCls} placeholder="Name" value={doc.cert.signer2 || ''} maxLength={60} onChange={(e) => patchDoc({ cert: { ...doc.cert, signer2: e.target.value } })} /></label>
+                  <label className="block"><span className="mb-1 block font-mono text-[10px] uppercase tracking-wider text-muted">Second signer role</span><input className={inputCls} placeholder="President" value={doc.cert.signer2_title || ''} maxLength={80} onChange={(e) => patchDoc({ cert: { ...doc.cert, signer2_title: e.target.value } })} /></label>
+                  <div className="sm:col-span-2"><SignaturePicture label="Second signature picture (left)" value={doc.cert.signature2_url} onChange={(u) => patchDoc({ cert: { ...doc.cert, signature2_url: u } })} /></div>
+                  <p className="text-xs text-muted sm:col-span-2">Save the event, then open <b>Check-in</b> and press <b>Preview certificate</b> to see exactly what people get by email.</p>
                 </div>
               )}
             </section>
