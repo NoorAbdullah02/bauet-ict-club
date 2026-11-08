@@ -12,6 +12,7 @@ import DynamicForm from '../components/DynamicForm';
 import PaymentBox from '../components/PaymentBox';
 import { inputCls } from './ui';
 import QrModal from '../components/QrModal';
+import PdfCanvas from '../components/PdfCanvas';
 import { ResponsesPanel } from './EventRegistrations';
 import { DEFAULT_FIELDS, PRESETS, TYPE_LABELS, PAY_METHODS, hasOptions, newField, uid } from '../lib/forms';
 import { copyText, eventLink } from '../lib/share';
@@ -231,6 +232,46 @@ function SignaturePicture({ value, onChange, label }) {
         {value && <img src={value} alt="Signature" className="h-12 max-w-[7rem] rounded-lg border border-line bg-white object-contain p-1" />}
         {value && <button type="button" onClick={() => onChange('')} className="text-xs text-red-500 hover:underline">Remove</button>}
       </div>
+    </div>
+  );
+}
+
+/** Live picture of the certificate: it is drawn again (about a second after you stop typing) from the settings on screen, saved or not. */
+function CertPreview({ eventId, cert }) {
+  const [blob, setBlob] = useState(null);
+  const [url, setUrl] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  const key = JSON.stringify(cert);
+  useEffect(() => {
+    if (!eventId) return undefined;
+    let dead = false;
+    const t = setTimeout(async () => {
+      setBusy(true);
+      try {
+        const { data } = await api.post(`/event-registrations/event/${eventId}/certificates/preview-draft`, { cert }, { responseType: 'blob' });
+        if (dead) return;
+        const b = new Blob([data], { type: 'application/pdf' });
+        const u = URL.createObjectURL(b);
+        setBlob(b);
+        setUrl((old) => { if (old) URL.revokeObjectURL(old); return u; });
+        setErr('');
+      } catch { if (!dead) setErr('The preview could not be drawn. Check your connection and try again.'); }
+      if (!dead) setBusy(false);
+    }, 700);
+    return () => { dead = true; clearTimeout(t); };
+  }, [eventId, key]); // eslint-disable-line react-hooks/exhaustive-deps
+  return (
+    <div className="sm:col-span-2">
+      <div className="mb-1.5 flex items-center justify-between gap-3">
+        <span className="font-mono text-[10px] uppercase tracking-wider text-muted">Live preview {busy && <Loader2 size={11} className="ml-1 inline animate-spin" />}</span>
+        {url && <a href={url} target="_blank" rel="noreferrer" className="text-xs font-semibold text-tech hover:underline">Open full size</a>}
+      </div>
+      {err && <p role="alert" className="mb-2 text-xs text-red-500">{err}</p>}
+      {blob
+        ? <PdfCanvas blob={blob} />
+        : <div className="grid aspect-[1.414/1] w-full place-items-center rounded-xl border border-dashed border-line text-sm text-muted">{eventId ? 'Drawing the certificate…' : 'Save the event first to see the preview.'}</div>}
+      <p className="mt-1.5 text-xs text-muted">This is exactly the PDF people get. "Open full size" opens the PDF itself.</p>
     </div>
   );
 }
@@ -528,7 +569,13 @@ export default function FormEditor({ kind = 'form', eventId }) {
                   <p className="text-xs text-muted sm:col-span-2">Signatures: the <b>right</b> one is the advisor (empty = Partha Pratim Debnath with his signature). The <b>left</b> one is the president (empty = Sheikh Noor Abdullah, with a designed signature). Type another name or upload a picture to change either.</p>
                   <label className="block"><span className="mb-1 block font-mono text-[10px] uppercase tracking-wider text-muted">Advisor name (right)</span><input className={inputCls} placeholder="Partha Pratim Debnath" value={doc.cert.signer} maxLength={60} onChange={(e) => patchDoc({ cert: { ...doc.cert, signer: e.target.value } })} /></label>
                   <label className="block"><span className="mb-1 block font-mono text-[10px] uppercase tracking-wider text-muted">Advisor role</span><input className={inputCls} placeholder="Advisor, BAUET ICT Club" value={doc.cert.signer_title} maxLength={80} onChange={(e) => patchDoc({ cert: { ...doc.cert, signer_title: e.target.value } })} /></label>
-<label className="block sm:col-span-2"><span className="mb-1 block font-mono text-[10px] uppercase tracking-wider text-muted">Organised by (optional)</span><input className={inputCls} placeholder="Department of Information and Communication Engineering (ICE), BAUET" value={doc.cert.organizer || ''} maxLength={120} onChange={(e) => patchDoc({ cert: { ...doc.cert, organizer: e.target.value } })} /></label>
+<label className="block sm:col-span-2"><span className="mb-1 block font-mono text-[10px] uppercase tracking-wider text-muted">Ribbon text</span><input className={inputCls} placeholder="This certificate is proudly presented to" value={doc.cert.ribbon || ''} maxLength={60} onChange={(e) => patchDoc({ cert: { ...doc.cert, ribbon: e.target.value } })} /></label>
+                  <label className="block sm:col-span-2"><span className="mb-1 block font-mono text-[10px] uppercase tracking-wider text-muted">Write the whole sentence yourself (optional)</span>
+                    <textarea className={cn(inputCls, 'min-h-24')} maxLength={600} placeholder="for outstanding contribution as a **volunteer** at {event} on {date}, {location}." value={doc.cert.body || ''} onChange={(e) => patchDoc({ cert: { ...doc.cert, body: e.target.value } })} />
+                    <span className="mt-1 block text-xs text-muted">Empty = the standard sentence. You can use <code>{'{name}'}</code> <code>{'{event}'}</code> <code>{'{date}'}</code> <code>{'{location}'}</code> <code>{'{kind}'}</code> <code>{'{organizer}'}</code>; <code>**bold**</code> and <code>*italic*</code> work too.</span></label>
+                  <label className="flex items-center gap-2 text-sm text-fg"><input type="checkbox" className="size-4 accent-[var(--accent)]" checked={doc.cert.show_seal !== false} onChange={(e) => patchDoc({ cert: { ...doc.cert, show_seal: e.target.checked } })} /> Show the golden seal</label>
+                  <label className="flex items-center gap-2 text-sm text-fg"><input type="checkbox" className="size-4 accent-[var(--accent)]" checked={doc.cert.show_watermark !== false} onChange={(e) => patchDoc({ cert: { ...doc.cert, show_watermark: e.target.checked } })} /> Show the faint university logo behind the text</label>
+                  <label className="block sm:col-span-2"><span className="mb-1 block font-mono text-[10px] uppercase tracking-wider text-muted">Organised by (optional)</span><input className={inputCls} placeholder="Department of Information and Communication Engineering (ICE), BAUET" value={doc.cert.organizer || ''} maxLength={120} onChange={(e) => patchDoc({ cert: { ...doc.cert, organizer: e.target.value } })} /></label>
                   <label className="block"><span className="mb-1 block font-mono text-[10px] uppercase tracking-wider text-muted">Kind of event</span><input className={inputCls} placeholder="online session / workshop / seminar" value={doc.cert.event_kind || ''} maxLength={30} onChange={(e) => patchDoc({ cert: { ...doc.cert, event_kind: e.target.value } })} /></label>
                   <label className="block sm:col-span-2"><span className="mb-1 block font-mono text-[10px] uppercase tracking-wider text-muted">Closing line (optional)</span><input className={inputCls} placeholder="We appreciate your active participation and wish you continued success." value={doc.cert.note || ''} maxLength={220} onChange={(e) => patchDoc({ cert: { ...doc.cert, note: e.target.value } })} /></label>
                   <div className="sm:col-span-2"> <SignaturePicture label="Advisor signature picture (right)" value={doc.cert.signature_url} onChange={(u) => patchDoc({ cert: { ...doc.cert, signature_url: u } })} /></div>
@@ -537,6 +584,7 @@ export default function FormEditor({ kind = 'form', eventId }) {
                   <label className="block"> <span className="mb-1 block font-mono text-[10px] uppercase tracking-wider text-muted">President role</span><input className={inputCls} placeholder="President, BAUET ICT Club" value={doc.cert.signer2_title || ''} maxLength={80} onChange={(e) => patchDoc({ cert: { ...doc.cert, signer2_title: e.target.value } })} /></label>
                   <div className="sm:col-span-2"> <SignaturePicture label="President signature picture (left). Empty = a designed signature" value={doc.cert.signature2_url} onChange={(u) => patchDoc({ cert: { ...doc.cert, signature2_url: u } })} /></div>
                   <p className="text-xs text-muted sm:col-span-2">Save the event, then open <b>Check-in</b> and press <b>Preview certificate</b> to see exactly what people get by email.</p>
+                  <CertPreview eventId={kind === 'event' ? item?.id : null} cert={doc.cert} />
                 </div>
               )}
             </section>

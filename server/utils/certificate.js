@@ -79,7 +79,9 @@ function seal(doc, cx, cy, T) {
  * slightly tilted, with a long swash underneath.
  */
 function designedSignature(doc, name, cx, baseY, T) {
-  const words = clean(name, 60).replace(/^(dr|prof|professor|md|mr|mrs|ms)\.?\s+/i, '').split(' ').filter(Boolean);
+  // titles in front of the name are not part of a signature ("Prof. Dr. Md. Rafiq Hasan" -> "Rafiq Hasan"); a long name keeps its first and last word
+  const words = clean(name, 60).split(' ').filter(Boolean);
+  while (words.length > 1 && /^(dr|prof|professor|md|mr|mrs|ms|sheikh|sk|syed|engr|eng)\.?$/i.test(words[0])) words.shift();
   const txt = words.length > 2 ? `${words[0]} ${words[words.length - 1]}` : words.join(' ') || 'Signature';
   const bn = BN.test(txt);
   let size = bn ? 22 : 36;
@@ -136,7 +138,7 @@ async function certificatePdf({ name, event, cert = {}, code, siteUrl, defaults 
   doc.rect(21, 21, W - 42, H - 42).lineWidth(0.5).strokeColor(T.accent).stroke();
   corner(doc, 14, 14, 1, 1, T); corner(doc, W - 14, 14, -1, 1, T); corner(doc, 14, H - 14, 1, -1, T); corner(doc, W - 14, H - 14, -1, -1, T);
   divider(doc, cx, 32, 150, T); divider(doc, cx, H - 32, 150, T);
-  if (fs.existsSync(LOGO_UNI_BIG)) { try { doc.save(); doc.opacity(0.04); doc.image(LOGO_UNI_BIG, cx - 150, H / 2 - 160, { width: 300 }); doc.restore(); } catch { /* the watermark is optional */ } }
+  if (cert.show_watermark !== false && fs.existsSync(LOGO_UNI_BIG)) { try { doc.save(); doc.opacity(0.04); doc.image(LOGO_UNI_BIG, cx - 150, H / 2 - 160, { width: 300 }); doc.restore(); } catch { /* the watermark is optional */ } }
 
   // header: both logos have the same height and the same centre line, the title sits between them
   const LH = 70; const logoTop = 58;
@@ -152,26 +154,58 @@ async function certificatePdf({ name, event, cert = {}, code, siteUrl, defaults 
 
   // ribbon
   ribbon(doc, cx, 163, 520, 33, T);
-  doc.fillColor('#FFFFFF').font('bodyB').fontSize(16).text('THIS CERTIFICATE IS PROUDLY PRESENTED TO', cx - 260, 171, { width: 520, align: 'center', characterSpacing: 1.2, lineBreak: false });
+  const ribbonText = (clean(cert.ribbon, 60) || 'This certificate is proudly presented to').toUpperCase();
+  doc.fillColor('#FFFFFF').font(BN.test(ribbonText) ? 'bnB' : 'bodyB').fontSize(ribbonText.length > 44 ? 13 : 16).text(ribbonText, cx - 255, 171, { width: 510, align: 'center', characterSpacing: 1.2, lineBreak: false });
 
-  // name
-  const nm = clean(name, 80) || 'Participant';
+  // name: one line in script when it fits; a long name shrinks, a very long one breaks into two balanced lines. It is always centred between the ribbon and the line.
+  let nm = clean(name, 80) || 'Participant';
+  // an ALL-CAPS name is hard to read in script: show it as Title Case
+  if (nm === nm.toUpperCase() && /[A-Z]{3}/.test(nm)) nm = nm.toLowerCase().replace(/(^|[\s.'-])([a-z])/g, (_m, a, b) => a + b.toUpperCase());
   const bnName = BN.test(nm);
-  let size = bnName ? 38 : 56; doc.font(bnName ? 'bnB' : 'script');
-  while (size > 18 && doc.fontSize(size).widthOfString(nm) > 600) size -= 2;
-  doc.fillColor(T.ink).text(nm, 90, bnName ? 222 : 216, { width: W - 180, align: 'center', lineBreak: false });
+  const plain = /^[\x20-\x7E\u00C0-\u017F]+$/.test(nm); // the script font only has these letters; anything else uses the plain bold font
+  const nameFont = bnName ? 'bnB' : plain ? 'script' : 'bodyB';
+  const NAME_W = 610;
+  const widthAt = (txt, sz) => (doc.font(nameFont).fontSize(sz), doc.widthOfString(txt));
+  let nameLines = [nm]; let size = bnName ? 38 : plain ? 56 : 40;
+  while (size > 30 && widthAt(nm, size) > NAME_W) size -= 2;
+  if (widthAt(nm, size) > NAME_W) {
+    // two lines: split the words where the two halves are the most even
+    const w = nm.split(' ');
+    let best = null;
+    for (let i = 1; i < w.length; i++) { const l1 = w.slice(0, i).join(' '); const l2 = w.slice(i).join(' '); const d = Math.max(widthAt(l1, 30), widthAt(l2, 30)); if (!best || d < best.d) best = { l1, l2, d }; }
+    if (best) { nameLines = [best.l1, best.l2]; size = bnName ? 30 : plain ? 44 : 32; while (size > 16 && Math.max(widthAt(nameLines[0], size), widthAt(nameLines[1], size)) > NAME_W) size -= 1; }
+    else { while (size > 14 && widthAt(nm, size) > NAME_W) size -= 1; } // one very long word: shrink it
+  }
+  const lineH = size * (bnName ? 1.25 : nameLines.length > 1 ? 1.1 : 0.95);
+  const blockH = lineH * nameLines.length;
+  const nameTop = 240 - blockH / 2 - (bnName ? size * 0.12 : size * 0.16);
+  nameLines.forEach((ln, i) => { doc.font(nameFont).fontSize(size).fillColor(T.ink).text(ln, 90, nameTop + i * lineH, { width: W - 180, align: 'center', lineBreak: false }); });
   divider(doc, cx, 284, 300, T);
 
   // the sentence: own word wrap so bold and italic parts stay together; the block is centred between the name line and the bottom row
   const ev = clean(event.title, 120); const org = clean(cert.organizer, 120); const assoc = 'BAUET ICT Club';
   const kind = clean(cert.event_kind, 30) || 'event';
   const when = event.date ? formalDate(event.date) : '';
-  const runs = [{ t: `for participating in the ${kind} ` }, { t: ev, b: 1 }];
-  if (when) runs.push({ t: ' held on ' }, { t: when, b: 1, nb: 1 });
-  if (event.location) runs.push({ t: ` at ${clean(event.location, 80)}` });
-  if (org && org.toLowerCase() !== assoc.toLowerCase()) runs.push({ t: ', organized by the ' }, { t: org, b: 1 }, { t: ', in association with the ' }, { t: assoc, b: 1 });
-  else runs.push({ t: ', organized by the ' }, { t: assoc, b: 1 });
-  runs.push({ t: '. ' }, { t: clean(cert.note, 220) || 'We appreciate your active participation and wish you continued success in your journey ahead.', i: 1 });
+  let runs;
+  if (clean(cert.body, 600)) {
+    // the admin's own sentence: {event} {date} {location} {kind} {organizer} {name} are filled in, **text** is bold, *text* is italic
+    const fill = { event: ev, date: when, location: clean(event.location, 80), kind, organizer: org || assoc, name: nm };
+    const text = String(cert.body).replace(/\{(\w+)\}/g, (_m, k) => fill[k] ?? '');
+    runs = [];
+    text.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/).forEach((part) => {
+      if (!part) return;
+      if (/^\*\*[^*]+\*\*$/.test(part)) runs.push({ t: part.slice(2, -2), b: 1 });
+      else if (/^\*[^*]+\*$/.test(part)) runs.push({ t: part.slice(1, -1), i: 1 });
+      else runs.push({ t: part });
+    });
+  } else {
+    runs = [{ t: `for participating in the ${kind} ` }, { t: ev, b: 1 }];
+    if (when) runs.push({ t: ' held on ' }, { t: when, b: 1, nb: 1 });
+    if (event.location) runs.push({ t: ` at ${clean(event.location, 80)}` });
+    if (org && org.toLowerCase() !== assoc.toLowerCase()) runs.push({ t: ', organized by the ' }, { t: org, b: 1 }, { t: ', in association with the ' }, { t: assoc, b: 1 });
+    else runs.push({ t: ', organized by the ' }, { t: assoc, b: 1 });
+    runs.push({ t: '. ' }, { t: clean(cert.note, 220) || 'We appreciate your active participation and wish you continued success in your journey ahead.', i: 1 });
+  }
   const MAXW = 590; const zoneTop = 296; const zoneH = 140;
   const words = [];
   runs.forEach((r) => (r.nb ? [r.t] : String(r.t).split(/\s+/)).forEach((w) => { if (w) words.push({ w, f: pick(w, r.b, r.i) }); }));
@@ -207,15 +241,17 @@ async function certificatePdf({ name, event, cert = {}, code, siteUrl, defaults 
   // one quiet line under the seal: where to verify and the certificate ID
   const host = String(siteUrl || '').replace(/^https?:\/\//, '').replace(/\/$/, '');
   doc.fillColor(T.sub).font('Helvetica').fontSize(6.5).text(`Verify at ${host}/verify  ·  Certificate ID ${pretty(code)}`, 0, H - 47, { width: W, align: 'center', lineBreak: false });
-  seal(doc, cx, rowY + 36, T);
+  if (cert.show_seal !== false) seal(doc, cx, rowY + 36, T);
 
   const signBlock = async (centerX, signer, title, img, sigText) => {
     const x = centerX - 78;
     if (img) { try { doc.image(img, centerX - 65, rowY - 2, { fit: [130, 52], align: 'center', valign: 'bottom' }); } catch { designedSignature(doc, sigText || signer, centerX, rowY + 44, T); } }
     else designedSignature(doc, sigText || signer, centerX, rowY + 44, T);
     doc.moveTo(x, rowY + 54).lineTo(x + 156, rowY + 54).lineWidth(0.8).strokeColor(T.accent).stroke();
-    doc.fillColor(T.ink).font(BN.test(signer) ? 'bnB' : 'bodyB').fontSize(14.5).text(signer, x - 14, rowY + 60, { width: 184, align: 'center', lineBreak: false });
-    doc.fillColor(T.sub).font(BN.test(title) ? 'bn' : 'title').fontSize(BN.test(title) ? 10 : 8).text(title.toUpperCase(), x - 14, rowY + 79, { width: 184, align: 'center', lineBreak: false, characterSpacing: 0.8 });
+    const fit = (font, size, txt, maxW, min, spacing = 0) => { let z = size; doc.font(font); while (z > min && doc.fontSize(z).widthOfString(txt, { characterSpacing: spacing }) > maxW) z -= 0.5; return z; };
+    const sf = BN.test(signer) ? 'bnB' : 'bodyB'; const tt = title.toUpperCase(); const tf = BN.test(title) ? 'bn' : 'title';
+    doc.fillColor(T.ink).font(sf).fontSize(fit(sf, 14.5, signer, 178, 9)).text(signer, x - 14, rowY + 60, { width: 184, align: 'center', lineBreak: false });
+    doc.fillColor(T.sub).font(tf).fontSize(fit(tf, BN.test(title) ? 10 : 8, tt, 178, 5.5, 0.8)).text(tt, x - 14, rowY + 79, { width: 184, align: 'center', lineBreak: false, characterSpacing: 0.8 });
   };
   const L = cx - 151; const R = cx + 151;
   // right: the advisor (the club's real signature unless the admin uploaded another picture)

@@ -7,6 +7,7 @@ import { Panel, inputCls, askConfirm } from './ui';
 import { formalDate } from '../lib/format';
 import { prettyCode } from '../lib/qr';
 import { fieldsOf, show } from '../lib/forms';
+import PdfCanvas from '../components/PdfCanvas';
 import { cn } from '../lib/cn';
 
 const ans = (r) => r.answers || { name: r.full_name, student_id: r.student_id, email: r.email };
@@ -26,6 +27,7 @@ export default function CheckIn() {
   const [editing, setEditing] = useState(null); // { id, value }: the name printed on one person's certificate
   const [review, setReview] = useState(null); // the saved choice, the final-check data and the stage: draft | review | published
   const [sending, setSending] = useState(false);
+  const [view, setView] = useState(null); // { blob, url, title }: the certificate PDF shown on this page
   const videoRef = useRef(null);
   const lastScan = useRef({ code: '', at: 0 });
 
@@ -100,16 +102,15 @@ export default function CheckIn() {
     try { await api.post(certUrl('/stage'), { stage }); await loadReview(); }
     catch (e) { toast.error(e.response?.data?.error || 'Could not change the step'); }
   };
-  // opens the certificate PDF exactly as it will be attached to the email (a sample when no person is given)
+  // shows the certificate exactly as it will be attached to the email (a sample when no person is given)
   const previewCert = async (r) => {
-    const w = window.open('', '_blank');
     try {
       const { data } = await api.get(certUrl('/preview'), { params: r ? { reg: r.id } : {}, responseType: 'blob' });
-      const url = URL.createObjectURL(new Blob([data], { type: 'application/pdf' }));
-      if (w) w.location.href = url; else window.location.href = url;
-      setTimeout(() => URL.revokeObjectURL(url), 60000);
-    } catch (e) { w?.close(); toast.error('Could not open the preview. Make sure certificates are switched on and saved for this event.'); }
+      const blob = new Blob([data], { type: 'application/pdf' });
+      setView((old) => { if (old?.url) URL.revokeObjectURL(old.url); return { blob, url: URL.createObjectURL(blob), title: r ? nameOf(r) : 'Sample certificate' }; });
+    } catch (e) { toast.error('Could not open the preview. Make sure certificates are switched on and saved for this event.'); }
   };
+  const closeView = () => setView((old) => { if (old?.url) URL.revokeObjectURL(old.url); return null; });
   const saveName = async () => {
     if (!editing) return;
     try { await api.patch(`/event-registrations/${editing.id}/cert-name`, { name: editing.value }); toast.success('Name on the certificate saved'); setEditing(null); await load(); await loadReview(); }
@@ -244,6 +245,20 @@ export default function CheckIn() {
           </div>
         ))}
       </div>
+      {view && (
+        <div className="fixed inset-0 z-[380] grid place-items-center bg-black/80 p-3" role="dialog" aria-modal="true" aria-label={`Certificate: ${view.title}`} onClick={closeView}>
+          <div className="w-full max-w-4xl rounded-2xl bg-surface p-3 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="mb-2 flex items-center justify-between gap-3 px-1">
+              <b className="truncate text-sm text-fg">{view.title}</b>
+              <span className="flex shrink-0 items-center gap-3">
+                <a href={view.url} target="_blank" rel="noreferrer" className="text-xs font-semibold text-tech hover:underline">Open the PDF</a>
+                <button type="button" onClick={closeView} className="rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-fg2 hover:border-red-500 hover:text-red-500">Close</button>
+              </span>
+            </div>
+            <PdfCanvas blob={view.blob} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

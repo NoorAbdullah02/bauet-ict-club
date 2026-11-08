@@ -328,6 +328,22 @@ router.get('/event/:eventId/certificates/preview', async (req, res) => {
   } catch (e) { fail(res, e); }
 });
 
+/** Admin: preview with settings that are NOT saved yet (body: { cert, reg? }). The live preview in the settings page uses this, so every change shows at once. */
+router.post('/event/:eventId/certificates/preview-draft', async (req, res) => {
+  try {
+    const ev = await eventForCerts(req.params.eventId);
+    if (!ev) return res.status(404).json({ error: 'Event not found' });
+    const cert = forms.sanitizeCert(req.body?.cert || {});
+    let r = { full_name: 'Participant Name', ticket: 'PREVIEW000' };
+    if (req.body?.reg) {
+      r = (await pool.query('SELECT * FROM event_registrations WHERE id = $1 AND event_id = $2 AND deleted_at IS NULL', [Number(req.body.reg) || 0, ev.id])).rows[0];
+      if (!r) return res.status(404).json({ error: 'Sign-up not found' });
+    }
+    res.set({ 'Content-Type': 'application/pdf', 'Content-Disposition': 'inline; filename="certificate-preview.pdf"', 'Cache-Control': 'no-store' });
+    res.send(await certPdfFor(r, { ...ev, reg_form: { ...(ev.reg_form || {}), cert } }, site(req)));
+  } catch (e) { fail(res, e); }
+});
+
 /** Admin: change the name printed on one person's certificate (empty = use the sign-up name again). */
 router.patch('/:id/cert-name', async (req, res) => {
   try {

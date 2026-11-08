@@ -18,6 +18,7 @@ import '../../widgets/dynamic_form.dart' show PickerTapField;
 import '../../widgets/form_widgets.dart';
 import 'admin_page.dart';
 import 'admin_widgets.dart';
+import 'certificate_viewer.dart';
 
 const Map<String, String> kTypeLabels = {
   'short': 'Short answer',
@@ -183,6 +184,31 @@ class AdminFormEditScreen extends StatefulWidget {
 
 class _AdminFormEditScreenState extends State<AdminFormEditScreen> {
   late final AppState _state = context.read<AppState>();
+  /// The certificate settings as they are on screen (saved with the form, and sent as they are for the live preview).
+  Map<String, dynamic> _certMap() => {
+        'enabled': true,
+        'title': _certTitle.text.trim(),
+        'theme': _certTheme.text.trim(),
+        'second': _certSecond,
+        'ribbon': _certRibbon.text.trim(),
+        'body': _certBody.text.trim(),
+        'show_seal': _certSeal,
+        'show_watermark': _certMark,
+        'organizer': _certOrganizer.text.trim(),
+        'event_kind': _certKind.text.trim(),
+        'note': _certNote.text.trim(),
+        'signer': _certSigner.text.trim(),
+        'signer_title': _certSignerTitle.text.trim(),
+        'signature_url': _certSigUrl.text.trim(),
+        'signer2': _certSigner2.text.trim(),
+        'signer2_title': _certSigner2Title.text.trim(),
+        'signature2_url': _certSig2Url.text.trim(),
+      };
+
+  void _previewCert() {
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => CertificateViewer(title: 'Certificate preview', load: () => _state.api.certPreviewBytes(widget.eventId, draft: _certMap()))));
+  }
+
   bool get _isEvent => widget.eventId > 0;
 
   final _title = TextEditingController();
@@ -201,6 +227,10 @@ class _AdminFormEditScreenState extends State<AdminFormEditScreen> {
   final _certSigner = TextEditingController();
   final _certSignerTitle = TextEditingController();
   final _certTheme = TextEditingController(text: 'gold');
+  final _certRibbon = TextEditingController();
+  final _certBody = TextEditingController();
+  bool _certSeal = true;
+  bool _certMark = true;
   bool _certSecond = true;
   final _certOrganizer = TextEditingController();
   final _certKind = TextEditingController();
@@ -230,7 +260,7 @@ class _AdminFormEditScreenState extends State<AdminFormEditScreen> {
   bool _busy = false;
   String? _error;
 
-  List<TextEditingController> get _all => [_title, _desc, _slug, _cap, _heading, _intro, _confirm, _emailNote, _theme, _amount, _payNote, ..._numbers.values, _certTheme, _certOrganizer, _certKind, _certNote, _certSigUrl, _certSigner2, _certSigner2Title, _certSig2Url, _certTitle, _certSigner, _certSignerTitle];
+  List<TextEditingController> get _all => [_title, _desc, _slug, _cap, _heading, _intro, _confirm, _emailNote, _theme, _amount, _payNote, ..._numbers.values, _certRibbon, _certBody, _certTheme, _certOrganizer, _certKind, _certNote, _certSigUrl, _certSigner2, _certSigner2Title, _certSig2Url, _certTitle, _certSigner, _certSignerTitle];
 
   @override
   void initState() {
@@ -298,6 +328,10 @@ class _AdminFormEditScreenState extends State<AdminFormEditScreen> {
         _certSignerTitle.text = s(cert['signer_title']);
         _certTheme.text = ['gold', 'royal', 'emerald'].contains(s(cert['theme'])) ? s(cert['theme']) : 'gold';
         _certSecond = cert['second'] != false;
+        _certRibbon.text = s(cert['ribbon']);
+        _certBody.text = s(cert['body']);
+        _certSeal = cert['show_seal'] != false;
+        _certMark = cert['show_watermark'] != false;
         _certOrganizer.text = s(cert['organizer']);
         _certKind.text = s(cert['event_kind']);
         _certNote.text = s(cert['note']);
@@ -375,21 +409,7 @@ class _AdminFormEditScreenState extends State<AdminFormEditScreen> {
       rf.remove('payment');
     }
     if (_certOn) {
-      rf['cert'] = {
-        'enabled': true,
-        'title': _certTitle.text.trim(),
-        'theme': _certTheme.text.trim(),
-        'second': _certSecond,
-        'organizer': _certOrganizer.text.trim(),
-        'event_kind': _certKind.text.trim(),
-        'note': _certNote.text.trim(),
-        'signer': _certSigner.text.trim(),
-        'signer_title': _certSignerTitle.text.trim(),
-        'signature_url': _certSigUrl.text.trim(),
-        'signer2': _certSigner2.text.trim(),
-        'signer2_title': _certSigner2Title.text.trim(),
-        'signature2_url': _certSig2Url.text.trim(),
-      };
+      rf['cert'] = _certMap();
     } else {
       rf.remove('cert');
     }
@@ -614,6 +634,12 @@ class _AdminFormEditScreenState extends State<AdminFormEditScreen> {
                 _gap(),
                 ImageUploadField(controller: _certSigUrl, label: 'Advisor signature picture (right)', kind: 'logo'),
                 _gap(),
+                AppField(controller: _certRibbon, label: 'Ribbon text (This certificate is proudly presented to)'),
+                _gap(),
+                AppField(controller: _certBody, label: 'Write the whole sentence yourself (optional)', maxLines: 4),
+                Padding(padding: const EdgeInsets.only(top: 4), child: Text('Empty = the standard sentence. Use {name} {event} {date} {location} {kind} {organizer}, **bold** and *italic*.', style: bodyStyle(context, size: 12, color: context.pal.muted))),
+                SwitchListTile(contentPadding: EdgeInsets.zero, title: const Text('Show the golden seal'), value: _certSeal, onChanged: (v) => setState(() => _certSeal = v)),
+                SwitchListTile(contentPadding: EdgeInsets.zero, title: const Text('Show the faint university logo behind the text'), value: _certMark, onChanged: (v) => setState(() => _certMark = v)),
                 AppField(controller: _certOrganizer, label: 'Organised by (Department of ICE, BAUET)'),
                 _gap(),
                 AppField(controller: _certKind, label: 'Kind of event (online session, workshop...)'),
@@ -627,7 +653,8 @@ class _AdminFormEditScreenState extends State<AdminFormEditScreen> {
                 _gap(),
                 ImageUploadField(controller: _certSig2Url, label: 'President signature picture (left). Empty = designed signature', kind: 'logo'),
                 _gap(),
-                Text('Save the event, then open Event sign-ups and use Preview to see exactly what people get by email.', style: bodyStyle(context, size: 12.5, color: context.pal.muted)),
+                GradientButton(label: 'Preview the certificate now', icon: Icons.visibility_rounded, onPressed: _previewCert),
+                Padding(padding: const EdgeInsets.only(top: 6), child: Text('The preview uses what is on this screen, saved or not. It is exactly the PDF people get.', style: bodyStyle(context, size: 12.5, color: context.pal.muted))),
               ],
             ]),
           GradientButton(label: 'Save', icon: Icons.check_rounded, loading: _busy, onPressed: _busy ? null : _save),
