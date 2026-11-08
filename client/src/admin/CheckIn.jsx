@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { AlertTriangle, ArrowLeft, ArrowRight, Award, BadgeCheck, Camera, CameraOff, CheckCircle2, CircleAlert, Eye, Loader2, Mail, Pencil, Search, UserCheck, UserX } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, ArrowRight, Award, Clock, RotateCw, XCircle, BadgeCheck, Camera, CameraOff, CheckCircle2, CircleAlert, Eye, Loader2, Mail, Pencil, Search, UserCheck, UserX } from 'lucide-react';
 import useStore, { api } from '../context/store';
 import { Panel, inputCls, askConfirm } from './ui';
 import { formalDate } from '../lib/format';
@@ -93,6 +93,17 @@ export default function CheckIn() {
   const certUrl = (x = '') => `/event-registrations/event/${id}/certificates${x}`;
   const loadReview = useCallback(() => api.get(`/event-registrations/event/${id}/certificates`).then((r) => setReview(r.data)).catch(() => setReview(null)), [id]);
   useEffect(() => { if (ev && ev.reg_form?.cert?.enabled) loadReview(); }, [ev, rows, loadReview]);
+  // while certificates are being sent, look again every few seconds so the admin sees the progress
+  const queuedNow = review?.counts?.queued || 0;
+  useEffect(() => {
+    if (!queuedNow) return undefined;
+    const t = setInterval(() => { load(); loadReview(); }, 3500);
+    return () => clearInterval(t);
+  }, [queuedNow, loadReview, load]);
+  const retryFailed = async () => {
+    try { const { data } = await api.post(certUrl('/retry')); toast.success(`${data.queued} certificate${data.queued === 1 ? '' : 's'} will be tried again`); await load(); await loadReview(); }
+    catch (e) { toast.error(e.response?.data?.error || 'Could not retry'); }
+  };
   const pick = async (body) => {
     try { await api.patch(certUrl('/pick'), body); await load(); await loadReview(); }
     catch (e) { toast.error(e.response?.data?.error || 'Could not save the choice'); }
@@ -121,7 +132,7 @@ export default function CheckIn() {
     const n = ids ? ids.length : review.waiting;
     if (!(await askConfirm({ title: ids ? 'Send a new copy?' : `Publish and email ${n} certificate${n === 1 ? '' : 's'}?`, message: ids ? 'This person gets the certificate again, with the corrected details.' : 'Each chosen person gets an email with their certificate attached as a PDF. Everyone else gets nothing.', confirmText: ids ? 'Send again' : 'Publish' }))) return;
     setSending(true);
-    try { const { data } = await api.post(certUrl('/send'), ids ? { ids } : {}); toast.success(`Certificates emailed to ${data.sent} ${data.sent === 1 ? 'person' : 'people'}`); await load(); await loadReview(); }
+    try { const { data } = await api.post(certUrl('/send'), ids ? { ids } : {}); toast.success(`Sending started: ${data.queued} certificate${data.queued === 1 ? '' : 's'} are on their way`); await load(); await loadReview(); }
     catch (e) { toast.error(e.response?.data?.error || 'Could not send'); }
     setSending(false);
   };
@@ -193,13 +204,31 @@ export default function CheckIn() {
               ? <p className="flex items-center gap-2 rounded-lg bg-emerald-500/10 px-3 py-2 text-sm font-semibold text-emerald-700"><CheckCircle2 size={16} /> Everything looks right.</p>
               : review.problems.map((p, i) => <p key={i} className={cn('flex items-start gap-2 rounded-lg px-3 py-2 text-sm', p.level === 'error' ? 'bg-red-500/10 text-red-600' : 'bg-amber-500/10 text-amber-700')}><AlertTriangle size={16} className="mt-0.5 shrink-0" /> {p.text}</p>)}
           </div>
+          {(review.counts.queued > 0 || review.counts.failed > 0 || review.counts.sent > 0) && (
+            <div className="mt-3 space-y-2" role="status" aria-live="polite">
+              <div className="flex flex-wrap items-center gap-3 rounded-xl border border-line bg-bg/50 p-3 text-sm">
+                <span className="font-semibold text-fg">{review.counts.sent} sent</span>
+                {review.counts.queued > 0 && <span className="flex items-center gap-1 text-sky-700"><Loader2 size={13} className="animate-spin" /> {review.counts.queued} on the way</span>}
+                {review.counts.failed > 0 && <span className="font-semibold text-red-600">{review.counts.failed} failed</span>}
+                <span className="ml-auto h-2 w-40 overflow-hidden rounded-full bg-line" aria-hidden="true"><span className="block h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${Math.round((review.counts.sent / Math.max(1, review.people.length)) * 100)}%` }} /></span>
+              </div>
+              {review.counts.queued === 0 && review.counts.failed === 0 && review.counts.sent > 0 && <p className="flex items-center gap-2 rounded-lg bg-emerald-500/10 px-3 py-2 text-sm font-semibold text-emerald-700"><CheckCircle2 size={16} /> All {review.counts.sent} certificates were emailed.</p>}
+              {review.counts.failed > 0 && (
+                <div className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-600">
+                  <p className="font-semibold">{review.counts.failed} certificate{review.counts.failed === 1 ? '' : 's'} could not be sent. The reason is written next to each name below. Fix it (for example a wrong email address), then try again.</p>
+                  <button type="button" onClick={retryFailed} className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white"><RotateCw size={13} /> Try the failed ones again</button>
+                </div>
+              )}
+              {review.counts.queued > 0 && review.people.some((x) => x.status === 'queued' && /^Waiting/.test(x.error)) && <p className="rounded-lg bg-amber-500/10 px-3 py-2 text-sm text-amber-700">The mail service has reached its limit for now. The rest waits and goes out by itself later (nothing is lost, and you can close this page).</p>}
+            </div>
+          )}
           <ul className="mt-3 divide-y divide-line rounded-xl border border-line">
             {review.people.map((x) => (
               <li key={x.id} className="flex flex-wrap items-center gap-2 px-3 py-2 text-sm">
-                <span className="min-w-0 flex-1"><b className="text-fg">{x.name}</b>{x.custom_name && <span className="ml-2 rounded bg-tech/10 px-1.5 py-0.5 text-[10px] font-semibold text-tech">custom name</span>}<span className="block truncate text-xs text-fg2">{x.email || 'no email'}{x.sent ? ' · emailed' : ''}</span></span>
+                <span className="min-w-0 flex-1"><b className="text-fg">{x.name}</b>{x.custom_name && <span className="ml-2 rounded bg-tech/10 px-1.5 py-0.5 text-[10px] font-semibold text-tech">custom name</span>}<span className="block truncate text-xs text-fg2">{x.email || 'no email'}</span>{x.status === 'sent' && <span className="flex items-center gap-1 text-xs font-semibold text-emerald-700"><Mail size={11} /> emailed</span>}{x.status === 'queued' && <span className="flex items-center gap-1 text-xs font-semibold text-sky-700"><Clock size={11} /> {x.error || 'on the way'}</span>}{x.status === 'failed' && <span className="flex items-start gap-1 text-xs font-semibold text-red-600"><XCircle size={11} className="mt-0.5 shrink-0" /> Could not send: {x.error}</span>}</span>
                 <button type="button" onClick={() => previewCert(x)} className="rounded-lg border border-line px-2.5 py-1.5 text-xs text-fg2 hover:border-tech hover:text-tech"><Eye size={13} className="inline" /> Preview</button>
                 <button type="button" onClick={() => setEditing({ id: x.id, value: x.name })} className="rounded-lg border border-line px-2.5 py-1.5 text-xs text-fg2 hover:border-tech hover:text-tech"><Pencil size={13} className="inline" /> Edit name</button>
-                {stage === 'published' && x.sent && <button type="button" disabled={sending} onClick={() => publish([x.id])} className="rounded-lg border border-line px-2.5 py-1.5 text-xs text-fg2 hover:border-tech hover:text-tech">Send again</button>}
+                {stage === 'published' && (x.status === 'sent' || x.status === 'failed') && <button type="button" disabled={sending} onClick={() => publish([x.id])} className="rounded-lg border border-line px-2.5 py-1.5 text-xs text-fg2 hover:border-tech hover:text-tech">{x.status === 'failed' ? 'Try again' : 'Send again'}</button>}
               </li>
             ))}
           </ul>

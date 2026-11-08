@@ -366,6 +366,7 @@ class Api {
   Future<Map<String, dynamic>> certReview(int eventId) async => _map(await _send(() => _dio.get('/event-registrations/event/$eventId/certificates', options: _auth)));
   Future<void> certPick(int eventId, {List<int>? ids, bool all = false, bool picked = true}) =>
       _send(() => _dio.patch('/event-registrations/event/$eventId/certificates/pick', data: {if (ids != null) 'ids': ids, if (all) 'all': true, 'picked': picked}, options: _auth));
+  Future<int> certRetry(int eventId) async => ((_map(await _send(() => _dio.post('/event-registrations/event/$eventId/certificates/retry', options: _auth))))['queued'] ?? 0) as int;
   Future<void> certStage(int eventId, String stage) => _send(() => _dio.post('/event-registrations/event/$eventId/certificates/stage', data: {'stage': stage}, options: _auth));
   Future<Map<String, dynamic>> certSend(int eventId, {List<int>? ids}) async =>
       _map(await _send(() => _dio.post('/event-registrations/event/$eventId/certificates/send', data: {if (ids != null) 'ids': ids}, options: _auth)));
