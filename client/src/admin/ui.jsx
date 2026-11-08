@@ -107,7 +107,7 @@ export function FormField({ field, value, onChange, upload, all }) {
             if (f) setEditing(f);
           }} />
         </label>
-        {value && <img loading="lazy" decoding="async" src={value} alt="" className="size-12 rounded-xl border border-line object-cover" />}
+        {value && <img loading="lazy" decoding="async" src={value} alt="Uploaded picture" className="size-20 rounded-xl border border-line object-cover" />}
         {value && (
           <button type="button" onClick={async () => {
             try { const b = await (await fetch(value)).blob(); setEditing(new File([b], 'picture.jpg', { type: b.type || 'image/jpeg' })); } catch { toast.error('Could not open this picture here. Upload it again to edit.'); }

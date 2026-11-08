@@ -346,10 +346,10 @@ class _DynamicFormViewState extends State<DynamicFormView> {
                 decoration: BoxDecoration(borderRadius: BorderRadius.circular(16), border: Border.all(color: err != null ? const Color(0xFFEF4444) : p.line)),
                 child: Row(children: [
                   Container(
-                    width: 60,
-                    height: 60,
+                    width: 96,
+                    height: 96,
                     clipBehavior: Clip.antiAlias,
-                    decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), color: p.alt),
+                    decoration: BoxDecoration(borderRadius: BorderRadius.circular(16), color: p.alt),
                     child: busy
                         ? const Center(child: SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.5)))
                         : shot != null

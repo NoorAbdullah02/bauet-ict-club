@@ -46,7 +46,7 @@ export function PhotoDrop({ value, onFile, uploading, error, optional }) {
           'group relative flex w-full items-center gap-5 rounded-2xl border-2 border-dashed p-4 text-left transition',
           drag ? 'border-tech bg-tech/10' : error ? 'border-red-500/70' : 'border-line hover:border-tech/60 hover:bg-tech/5'
         )}>
-        <span className="relative grid size-20 shrink-0 place-items-center overflow-hidden rounded-2xl bg-alt ring-1 ring-line">
+        <span className="relative grid size-28 shrink-0 place-items-center overflow-hidden rounded-2xl bg-alt ring-1 ring-line">
           {value ? <img loading="lazy" decoding="async" src={value} alt="Your photo" className="size-full object-cover" /> : <ImagePlus className="text-muted transition group-hover:text-tech" />}
           {uploading && <span className="absolute inset-0 grid place-items-center bg-bg/70"><Loader2 className="animate-spin text-tech" size={20} /></span>}
         </span>
