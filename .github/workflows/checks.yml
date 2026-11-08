@@ -32,6 +32,8 @@ jobs:
 
   app:
     name: Flutter app
+    permissions:
+      contents: write # to put the finished APKs into a release
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -67,22 +69,19 @@ jobs:
       - run: flutter test
       - name: Build a debug APK
         run: flutter build apk --debug --build-number=${{ github.run_number }} --dart-define=APP_BUILD=${{ github.run_number }} --dart-define-from-file=env.production.json
-      - uses: actions/upload-artifact@v4
-        with:
-          name: bauet-ict-club-debug-apk
-          path: app/build/app/outputs/flutter-apk/app-debug.apk
-          if-no-files-found: error
-          retention-days: 1 # build files fill the free storage quickly
       # the version to install on a phone: much smaller and faster than the debug one (arm64 = almost every phone made after 2017)
       - name: Build a release APK (small, fast)
         run: flutter build apk --release --split-per-abi --build-number=${{ github.run_number }} --dart-define=APP_BUILD=${{ github.run_number }} --dart-define-from-file=env.production.json
       - name: Show who signed the APK (the same fingerprint on every build means updates install over the old app)
         run: keytool -printcert -jarfile build/app/outputs/flutter-apk/app-arm64-v8a-release.apk | grep -E "Owner|SHA256" || true
-      - uses: actions/upload-artifact@v4
-        with:
-          name: bauet-ict-club-phone-apk
-          path: |
-            app/build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
-            app/build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
-          if-no-files-found: error
-          retention-days: 7
+      # The finished APKs go into a GitHub release: releases do not use the small artifact storage that filled up before.
+      - name: Keep the APKs in a GitHub release
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk bauet-ict-club.apk
+          cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk bauet-ict-club-old-phone.apk
+          gh release create "apk-${{ github.run_number }}" bauet-ict-club.apk bauet-ict-club-old-phone.apk --target "${{ github.sha }}" --title "App build ${{ github.run_number }}" --notes "Signed APKs of build ${{ github.run_number }} (commit ${{ github.sha }})."
+          # keep only the 3 newest app releases
+          gh release list --limit 100 --json tagName -q '.[].tagName' | grep '^apk-' | sort -t- -k2 -n -r | tail -n +4 | while read -r t; do gh release delete "$t" --yes --cleanup-tag || true; done
