@@ -1,6 +1,6 @@
 {
-  "build": 131,
+  "build": 136,
   "min": 0,
   "name": "1.0.0",
-  "notes": "Crash reports, notification topics, Club data page, lost-ticket email, built-in fonts for offline use, better screen-reader support."
+  "notes": "Photo viewer in applications, faster page switching, clearer photo upload with bigger preview, crash reports, notification topics, Club data page, lost-ticket email, built-in fonts."
 }
