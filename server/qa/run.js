@@ -258,8 +258,19 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
       ok(pvr.status === 200, 'the admin can preview one person\'s certificate');
       ok((await call('PATCH', `/api/event-registrations/${reg0.id}/cert-name`, { name: 'Dr. Corrected Name' }, T)).j?.cert_name === 'Dr. Corrected Name' && (await call('GET', `/api/event-registrations/verify/${code}`)).j?.name === 'Dr. Corrected Name', 'the name on one person\'s certificate can be corrected');
       ok((await call('PATCH', `/api/event-registrations/${reg0.id}/cert-name`, { name: 'x' })).s === 401, 'only an admin corrects a certificate name');
-      ok((await call('POST', `/api/event-registrations/event/${ev.id}/certificates/send`, {}, T)).s === 400, 'no certificate email goes out unless the admin picks people');
-      ok((await call('POST', `/api/event-registrations/event/${ev.id}/certificates/send`, { ids: [] }, T)).s === 400, 'an empty choice sends nothing');
+      const certUrl = (x) => `/api/event-registrations/event/${ev.id}/certificates${x}`;
+      let rev = (await call('GET', certUrl(''), undefined, T)).j;
+      ok(rev.stage === 'draft' && rev.people.length === 0 && !rev.can_publish, 'certificates start as a draft with nobody chosen', rev);
+      ok((await call('POST', certUrl('/stage'), { stage: 'review' }, T)).s === 400, 'the final check needs at least one chosen person');
+      ok((await call('POST', certUrl('/send'), {}, T)).s === 409, 'nothing is emailed before the final check');
+      { const pk = await call('PATCH', certUrl('/pick'), { ids: [reg0.id] }, T); ok(pk.j?.changed === 1, 'the admin ticks a checked-in person', { pk: pk.j, reg: { email: reg0.email, in: reg0.checked_in_at, pay: reg0.pay_status } }); }
+      rev = (await call('GET', certUrl(''), undefined, T)).j;
+      ok(rev.people.length === 1 && rev.people[0].email === 'e0@example.com' && rev.problems.some((x) => /signature picture/.test(x.text)), 'the final check lists the chosen person and what is missing', rev.problems);
+      ok((await call('POST', certUrl('/stage'), { stage: 'review' }, T)).j?.stage === 'review', 'the admin moves to the final check');
+      ok((await call('POST', certUrl('/send'), {}, T)).s === 400, 'publishing without a mail service is refused with a clear message');
+      await call('PATCH', certUrl('/pick'), { ids: [reg0.id], picked: false }, T);
+      ok((await call('GET', certUrl(''), undefined, T)).j.stage === 'draft', 'changing the choice sends the admin back to editing');
+      ok((await call('GET', certUrl(''))).s === 401, 'the certificate review needs an admin login');
     }
 
     // points, badges and the leaderboard

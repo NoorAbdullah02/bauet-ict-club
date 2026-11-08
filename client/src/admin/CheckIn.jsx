@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { ArrowLeft, Award, BadgeCheck, Camera, CameraOff, CheckCircle2, CircleAlert, Eye, Loader2, Mail, Pencil, Search, UserCheck, UserX } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, ArrowRight, Award, BadgeCheck, Camera, CameraOff, CheckCircle2, CircleAlert, Eye, Loader2, Mail, Pencil, Search, UserCheck, UserX } from 'lucide-react';
 import useStore, { api } from '../context/store';
 import { Panel, inputCls, askConfirm } from './ui';
 import { formalDate } from '../lib/format';
@@ -24,7 +24,8 @@ export default function CheckIn() {
   const [camera, setCamera] = useState(false);
   const [cameraNote, setCameraNote] = useState('');
   const [editing, setEditing] = useState(null); // { id, value }: the name printed on one person's certificate
-  const [picked, setPicked] = useState(() => new Set()); // who gets a certificate email: nobody until the admin ticks them
+  const [review, setReview] = useState(null); // the saved choice, the final-check data and the stage: draft | review | published
+  const [sending, setSending] = useState(false);
   const videoRef = useRef(null);
   const lastScan = useRef({ code: '', at: 0 });
 
@@ -87,12 +88,23 @@ export default function CheckIn() {
     try { const { data } = await api.patch(`/event-registrations/${r.id}/checkin`, { checked: !r.checked_in_at }); setRows((p) => p.map((x) => (x.id === r.id ? { ...x, ...data } : x))); } catch { toast.error('Could not update'); }
   };
   const canSend = (r) => !!r.checked_in_at && !!r.email && r.pay_status !== 'rejected';
-  const togglePick = (r) => setPicked((p) => { const n = new Set(p); if (n.has(r.id)) n.delete(r.id); else n.add(r.id); return n; });
+  const certUrl = (x = '') => `/event-registrations/event/${id}/certificates${x}`;
+  const loadReview = useCallback(() => api.get(`/event-registrations/event/${id}/certificates`).then((r) => setReview(r.data)).catch(() => setReview(null)), [id]);
+  useEffect(() => { if (ev && ev.reg_form?.cert?.enabled) loadReview(); }, [ev, rows, loadReview]);
+  const pick = async (body) => {
+    try { await api.patch(certUrl('/pick'), body); await load(); await loadReview(); }
+    catch (e) { toast.error(e.response?.data?.error || 'Could not save the choice'); }
+  };
+  const togglePick = (r) => pick({ ids: [r.id], picked: !r.cert_pick });
+  const setStage = async (stage) => {
+    try { await api.post(certUrl('/stage'), { stage }); await loadReview(); }
+    catch (e) { toast.error(e.response?.data?.error || 'Could not change the step'); }
+  };
   // opens the certificate PDF exactly as it will be attached to the email (a sample when no person is given)
   const previewCert = async (r) => {
     const w = window.open('', '_blank');
     try {
-      const { data } = await api.get(`/event-registrations/event/${id}/certificates/preview`, { params: r ? { reg: r.id } : {}, responseType: 'blob' });
+      const { data } = await api.get(certUrl('/preview'), { params: r ? { reg: r.id } : {}, responseType: 'blob' });
       const url = URL.createObjectURL(new Blob([data], { type: 'application/pdf' }));
       if (w) w.location.href = url; else window.location.href = url;
       setTimeout(() => URL.revokeObjectURL(url), 60000);
@@ -100,25 +112,26 @@ export default function CheckIn() {
   };
   const saveName = async () => {
     if (!editing) return;
-    try { await api.patch(`/event-registrations/${editing.id}/cert-name`, { name: editing.value }); toast.success('Name on the certificate saved'); setEditing(null); load(); }
+    try { await api.patch(`/event-registrations/${editing.id}/cert-name`, { name: editing.value }); toast.success('Name on the certificate saved'); setEditing(null); await load(); await loadReview(); }
     catch { toast.error('Could not save the name'); }
   };
-  const sendCerts = async () => {
-    const chosen = (rows || []).filter((r) => picked.has(r.id) && canSend(r));
-    if (!chosen.length) { toast.error('Tick the people who should get a certificate first.'); return; }
-    const again = chosen.filter((r) => r.certificate_sent_at).length;
-    const msg = `Each person you ticked gets an email with their certificate attached as a PDF. Everyone else gets nothing.${again ? ` ${again} of them already got one and will get a new copy (for example after a corrected name).` : ''}`;
-    if (!(await askConfirm({ title: `Email ${chosen.length} certificate${chosen.length === 1 ? '' : 's'}?`, message: msg, confirmText: 'Send' }))) return;
-    try { const { data } = await api.post(`/event-registrations/event/${id}/certificates/send`, { ids: chosen.map((r) => r.id), resend: again > 0 }); toast.success(`Certificates emailed to ${data.sent} ${data.sent === 1 ? 'person' : 'people'}`); setPicked(new Set()); load(); }
+  // publish = email the PDF certificate; only possible after the final check
+  const publish = async (ids) => {
+    const n = ids ? ids.length : review.waiting;
+    if (!(await askConfirm({ title: ids ? 'Send a new copy?' : `Publish and email ${n} certificate${n === 1 ? '' : 's'}?`, message: ids ? 'This person gets the certificate again, with the corrected details.' : 'Each chosen person gets an email with their certificate attached as a PDF. Everyone else gets nothing.', confirmText: ids ? 'Send again' : 'Publish' }))) return;
+    setSending(true);
+    try { const { data } = await api.post(certUrl('/send'), ids ? { ids } : {}); toast.success(`Certificates emailed to ${data.sent} ${data.sent === 1 ? 'person' : 'people'}`); await load(); await loadReview(); }
     catch (e) { toast.error(e.response?.data?.error || 'Could not send'); }
+    setSending(false);
   };
 
   if (ev === false) return <p className="text-sm text-red-500">Event not found.</p>;
   if (!ev || rows === null) return <Loader2 className="animate-spin text-muted" />;
   const certOn = !!ev.reg_form?.cert?.enabled;
   const sendable = (rows || []).filter(canSend);
-  const waiting = sendable.filter((r) => !r.certificate_sent_at).length;
-  const pickedCount = sendable.filter((r) => picked.has(r.id)).length;
+  const notYet = sendable.filter((r) => !r.certificate_sent_at).length;
+  const chosenCount = (rows || []).filter((r) => r.cert_pick).length;
+  const stage = review?.stage || 'draft';
   const tone = { ok: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700', warn: 'border-amber-500/40 bg-amber-500/10 text-amber-700', bad: 'border-red-500/40 bg-red-500/10 text-red-600' };
 
   return (
@@ -149,17 +162,58 @@ export default function CheckIn() {
         )}
       </Panel>
 
-      {certOn && (
+      {certOn && stage === 'draft' && (
         <Panel className="mt-4 p-5">
           <div className="flex flex-wrap items-center gap-3">
             <Award size={22} className="text-accent" />
-            <div className="min-w-0 flex-1 text-sm"><b className="text-fg">Certificates are on</b><div className="text-xs text-fg2">Everyone who is checked in can download theirs. Tick the people who should also get it by email (as a PDF): <b>nobody is ticked until you choose.</b> {waiting} not emailed yet.</div></div>
+            <div className="min-w-0 flex-1 text-sm"><b className="text-fg">Certificates · step 1 of 2: choose the people</b><div className="text-xs text-fg2">Tick the people on the list below. Nobody is chosen until you tick them. Everyone checked in can still download their own certificate. Then go to the final check.</div></div>
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-2">
-            <button type="button" onClick={() => setPicked(new Set(sendable.filter((r) => !r.certificate_sent_at).map((r) => r.id)))} disabled={!waiting} className="rounded-lg border border-line px-3 py-2 text-xs font-semibold text-fg2 hover:border-tech hover:text-tech disabled:opacity-40">Tick everyone not emailed yet ({waiting})</button>
+            <button type="button" onClick={() => pick({ all: true, picked: true })} disabled={!notYet} className="rounded-lg border border-line px-3 py-2 text-xs font-semibold text-fg2 hover:border-tech hover:text-tech disabled:opacity-40">Tick everyone not emailed yet ({notYet})</button>
             <button type="button" onClick={() => previewCert(null)} className="flex items-center gap-1.5 rounded-lg border border-line px-3 py-2 text-xs font-semibold text-fg2 hover:border-tech hover:text-tech"><Eye size={13} /> Preview certificate</button>
-            <button type="button" onClick={() => setPicked(new Set())} disabled={!pickedCount} className="rounded-lg border border-line px-3 py-2 text-xs font-semibold text-fg2 hover:border-red-500 hover:text-red-500 disabled:opacity-40">Clear</button>
-            <button type="button" onClick={sendCerts} disabled={!pickedCount} className="btn-primary ml-auto !px-4 !py-2.5 text-xs disabled:opacity-50"><Mail size={14} /> Email {pickedCount || ''} selected</button>
+            <button type="button" onClick={() => pick({ all: true, picked: false })} disabled={!chosenCount} className="rounded-lg border border-line px-3 py-2 text-xs font-semibold text-fg2 hover:border-red-500 hover:text-red-500 disabled:opacity-40">Clear</button>
+            <button type="button" onClick={() => setStage('review')} disabled={!chosenCount} className="btn-primary ml-auto !px-4 !py-2.5 text-xs disabled:opacity-50">Final check ({chosenCount}) <ArrowRight size={14} /></button>
+          </div>
+        </Panel>
+      )}
+      {certOn && stage !== 'draft' && review && (
+        <Panel className="mt-4 p-5">
+          <div className="flex flex-wrap items-center gap-3">
+            <Award size={22} className="text-accent" />
+            <div className="min-w-0 flex-1 text-sm"><b className="text-fg">Certificates · step 2 of 2: final check{stage === 'published' ? ' (published)' : ''}</b><div className="text-xs text-fg2">{stage === 'published' ? 'The certificates were emailed. You can still open this page, fix a name and send a new copy to one person.' : 'Look at everything once more. If it is all right, publish. If not, go back and change it: nothing has been sent yet.'}</div></div>
+          </div>
+          <dl className="mt-4 grid gap-x-6 gap-y-1.5 rounded-xl border border-line bg-bg/50 p-4 text-sm sm:grid-cols-2">
+            {[['Title', review.cert.title], ['Organised by', review.cert.organizer || 'BAUET ICT Club'], ['Kind of event', review.cert.event_kind || 'event'], ['Signer', `${review.cert.signer || '(empty)'}${review.cert.signer_title ? `, ${review.cert.signer_title}` : ''}${review.cert.signature ? ' · signature picture ✓' : ' · no signature picture'}`], ['Second signer', review.cert.signer2 ? `${review.cert.signer2}${review.cert.signer2_title ? `, ${review.cert.signer2_title}` : ''}${review.cert.signature2 ? ' · signature picture ✓' : ' · no signature picture'}` : 'none'], ['People', `${review.people.length} chosen · ${review.waiting} not emailed yet`]].map(([k, v]) => (
+              <div key={k} className="flex gap-2"><dt className="w-28 shrink-0 text-xs uppercase tracking-wider text-muted">{k}</dt><dd className="min-w-0 break-words text-fg">{v}</dd></div>
+            ))}
+          </dl>
+          <div className="mt-3 space-y-1.5" role="status">
+            {review.problems.length === 0
+              ? <p className="flex items-center gap-2 rounded-lg bg-emerald-500/10 px-3 py-2 text-sm font-semibold text-emerald-700"><CheckCircle2 size={16} /> Everything looks right.</p>
+              : review.problems.map((p, i) => <p key={i} className={cn('flex items-start gap-2 rounded-lg px-3 py-2 text-sm', p.level === 'error' ? 'bg-red-500/10 text-red-600' : 'bg-amber-500/10 text-amber-700')}><AlertTriangle size={16} className="mt-0.5 shrink-0" /> {p.text}</p>)}
+          </div>
+          <ul className="mt-3 divide-y divide-line rounded-xl border border-line">
+            {review.people.map((x) => (
+              <li key={x.id} className="flex flex-wrap items-center gap-2 px-3 py-2 text-sm">
+                <span className="min-w-0 flex-1"><b className="text-fg">{x.name}</b>{x.custom_name && <span className="ml-2 rounded bg-tech/10 px-1.5 py-0.5 text-[10px] font-semibold text-tech">custom name</span>}<span className="block truncate text-xs text-fg2">{x.email || 'no email'}{x.sent ? ' · emailed' : ''}</span></span>
+                <button type="button" onClick={() => previewCert(x)} className="rounded-lg border border-line px-2.5 py-1.5 text-xs text-fg2 hover:border-tech hover:text-tech"><Eye size={13} className="inline" /> Preview</button>
+                <button type="button" onClick={() => setEditing({ id: x.id, value: x.name })} className="rounded-lg border border-line px-2.5 py-1.5 text-xs text-fg2 hover:border-tech hover:text-tech"><Pencil size={13} className="inline" /> Edit name</button>
+                {stage === 'published' && x.sent && <button type="button" disabled={sending} onClick={() => publish([x.id])} className="rounded-lg border border-line px-2.5 py-1.5 text-xs text-fg2 hover:border-tech hover:text-tech">Send again</button>}
+              </li>
+            ))}
+          </ul>
+          {editing && review.people.some((x) => x.id === editing.id) && (
+            <form onSubmit={(e) => { e.preventDefault(); saveName(); }} className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-tech/40 bg-tech/5 p-3">
+              <label htmlFor="certname" className="text-xs font-semibold text-fg2">Name on the certificate</label>
+              <input id="certname" autoFocus value={editing.value} onChange={(e) => setEditing({ ...editing, value: e.target.value })} maxLength={80} className={cn(inputCls, 'min-w-0 flex-1 !py-2')} />
+              <button className="rounded-lg bg-accent px-3 py-2 text-xs font-semibold text-white">Save</button>
+              <button type="button" onClick={() => setEditing(null)} className="rounded-lg border border-line px-3 py-2 text-xs text-fg2">Cancel</button>
+            </form>
+          )}
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <button type="button" onClick={() => setStage('draft')} className="rounded-lg border border-line px-3 py-2 text-xs font-semibold text-fg2 hover:border-tech hover:text-tech">← {stage === 'published' ? 'Choose more people' : 'Back to editing'}</button>
+            <button type="button" onClick={() => previewCert(null)} className="flex items-center gap-1.5 rounded-lg border border-line px-3 py-2 text-xs font-semibold text-fg2 hover:border-tech hover:text-tech"><Eye size={13} /> Preview certificate</button>
+            <button type="button" onClick={() => publish(null)} disabled={!review.can_publish || !review.waiting || sending} className="btn-primary ml-auto !px-4 !py-2.5 text-xs disabled:opacity-50">{sending ? <Loader2 size={14} className="animate-spin" /> : <Mail size={14} />} Publish: email {review.waiting} certificate{review.waiting === 1 ? '' : 's'}</button>
           </div>
         </Panel>
       )}
@@ -168,10 +222,10 @@ export default function CheckIn() {
       <div className="mt-3 space-y-2">
         {shown.length === 0 ? <p className="py-8 text-center text-sm text-muted">{rows.length ? 'No match.' : 'Nobody has registered yet.'}</p> : shown.map((r) => (
           <div key={r.id} className={cn('flex items-center gap-3 rounded-2xl border p-3.5', r.checked_in_at ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-line')}>
-            {certOn && r.checked_in_at && <input type="checkbox" checked={picked.has(r.id)} disabled={!canSend(r)} onChange={() => togglePick(r)} aria-label={`Email a certificate to ${nameOf(r)}`} title={r.email ? 'Email a certificate to this person' : 'No email address'} className="size-5 shrink-0 accent-[var(--accent)] disabled:opacity-30" />}
+            {certOn && r.checked_in_at && <input type="checkbox" checked={!!r.cert_pick} disabled={!canSend(r) || (r.certificate_sent_at && stage === 'published')} onChange={() => togglePick(r)} aria-label={`Email a certificate to ${nameOf(r)}`} title={r.email ? 'Email a certificate to this person' : 'No email address'} className="size-5 shrink-0 accent-[var(--accent)] disabled:opacity-30" />}
             <span className={cn('grid size-10 shrink-0 place-items-center rounded-full', r.checked_in_at ? 'bg-emerald-500 text-white' : 'bg-alt text-muted')}>{r.checked_in_at ? <BadgeCheck size={20} /> : <UserX size={18} />}</span>
             <div className="min-w-0 flex-1">
-              {editing?.id === r.id ? (
+              {editing?.id === r.id && stage === 'draft' ? (
                 <form onSubmit={(e) => { e.preventDefault(); saveName(); }} className="flex items-center gap-2">
                   <input autoFocus value={editing.value} onChange={(e) => setEditing({ ...editing, value: e.target.value })} maxLength={80} aria-label="Name on the certificate" placeholder="Name on the certificate" className={cn(inputCls, '!py-2')} />
                   <button className="rounded-lg bg-accent px-3 py-2 text-xs font-semibold text-white">Save</button>
@@ -180,7 +234,7 @@ export default function CheckIn() {
               ) : <div className="truncate font-semibold text-fg">{nameOf(r)}{r.cert_name && <span className="ml-2 rounded bg-tech/10 px-1.5 py-0.5 text-[10px] font-semibold text-tech">custom name</span>}{certOn && r.certificate_sent_at && <span className="ml-2 inline-flex items-center gap-1 rounded bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700"><Mail size={10} /> emailed</span>}</div>}
               <div className="flex flex-wrap items-center gap-x-3 text-xs text-fg2"><span className="font-mono tracking-wider">{prettyCode(r.ticket || '')}</span>{r.student_id && <span>ID {r.student_id}</span>}
                 {r.pay_status === 'pending' && <span className="font-semibold text-amber-600">payment not verified</span>}{r.pay_status === 'rejected' && <span className="font-semibold text-red-500">payment rejected</span>}</div></div>
-            {certOn && r.checked_in_at && editing?.id !== r.id && (
+            {certOn && r.checked_in_at && !(editing?.id === r.id && stage === 'draft') && (
               <span className="flex shrink-0 gap-1">
                 <button type="button" onClick={() => previewCert(r)} aria-label={`Preview the certificate of ${nameOf(r)}`} title="Preview the certificate" className="grid size-9 place-items-center rounded-lg border border-line text-fg2 hover:border-tech hover:text-tech"><Eye size={15} /></button>
                 <button type="button" onClick={() => setEditing({ id: r.id, value: r.cert_name || nameOf(r) })} aria-label={`Edit the name on the certificate of ${nameOf(r)}`} title="Edit the name on the certificate" className="grid size-9 place-items-center rounded-lg border border-line text-fg2 hover:border-tech hover:text-tech"><Pencil size={15} /></button>

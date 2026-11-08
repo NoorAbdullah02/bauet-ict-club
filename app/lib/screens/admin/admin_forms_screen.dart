@@ -200,6 +200,13 @@ class _AdminFormEditScreenState extends State<AdminFormEditScreen> {
   final _certTitle = TextEditingController();
   final _certSigner = TextEditingController();
   final _certSignerTitle = TextEditingController();
+  final _certOrganizer = TextEditingController();
+  final _certKind = TextEditingController();
+  final _certNote = TextEditingController();
+  final _certSigUrl = TextEditingController();
+  final _certSigner2 = TextEditingController();
+  final _certSigner2Title = TextEditingController();
+  final _certSig2Url = TextEditingController();
 
   Map<String, dynamic> _regForm = {};
   List<Q> _fields = [];
@@ -221,7 +228,7 @@ class _AdminFormEditScreenState extends State<AdminFormEditScreen> {
   bool _busy = false;
   String? _error;
 
-  List<TextEditingController> get _all => [_title, _desc, _slug, _cap, _heading, _intro, _confirm, _emailNote, _theme, _amount, _payNote, ..._numbers.values, _certTitle, _certSigner, _certSignerTitle];
+  List<TextEditingController> get _all => [_title, _desc, _slug, _cap, _heading, _intro, _confirm, _emailNote, _theme, _amount, _payNote, ..._numbers.values, _certOrganizer, _certKind, _certNote, _certSigUrl, _certSigner2, _certSigner2Title, _certSig2Url, _certTitle, _certSigner, _certSignerTitle];
 
   @override
   void initState() {
@@ -287,6 +294,13 @@ class _AdminFormEditScreenState extends State<AdminFormEditScreen> {
         _certTitle.text = s(cert['title']);
         _certSigner.text = s(cert['signer']);
         _certSignerTitle.text = s(cert['signer_title']);
+        _certOrganizer.text = s(cert['organizer']);
+        _certKind.text = s(cert['event_kind']);
+        _certNote.text = s(cert['note']);
+        _certSigUrl.text = s(cert['signature_url']);
+        _certSigner2.text = s(cert['signer2']);
+        _certSigner2Title.text = s(cert['signer2_title']);
+        _certSig2Url.text = s(cert['signature2_url']);
       });
     } on ApiException catch (e) {
       if (!mounted) return;
@@ -357,7 +371,19 @@ class _AdminFormEditScreenState extends State<AdminFormEditScreen> {
       rf.remove('payment');
     }
     if (_certOn) {
-      rf['cert'] = {'enabled': true, 'title': _certTitle.text.trim(), 'signer': _certSigner.text.trim(), 'signer_title': _certSignerTitle.text.trim()};
+      rf['cert'] = {
+        'enabled': true,
+        'title': _certTitle.text.trim(),
+        'organizer': _certOrganizer.text.trim(),
+        'event_kind': _certKind.text.trim(),
+        'note': _certNote.text.trim(),
+        'signer': _certSigner.text.trim(),
+        'signer_title': _certSignerTitle.text.trim(),
+        'signature_url': _certSigUrl.text.trim(),
+        'signer2': _certSigner2.text.trim(),
+        'signer2_title': _certSigner2Title.text.trim(),
+        'signature2_url': _certSig2Url.text.trim(),
+      };
     } else {
       rf.remove('cert');
     }
@@ -574,7 +600,23 @@ class _AdminFormEditScreenState extends State<AdminFormEditScreen> {
                 _gap(),
                 AppField(controller: _certSigner, label: 'Signer name'),
                 _gap(),
-                AppField(controller: _certSignerTitle, label: 'Signer title (President, ICT Club)'),
+                AppField(controller: _certSignerTitle, label: 'Signer title (Advisor, BAUET ICT Club)'),
+                _gap(),
+                ImageUploadField(controller: _certSigUrl, label: 'Signature picture (right)', kind: 'logo'),
+                _gap(),
+                AppField(controller: _certOrganizer, label: 'Organised by (Department of ICE, BAUET)'),
+                _gap(),
+                AppField(controller: _certKind, label: 'Kind of event (online session, workshop...)'),
+                _gap(),
+                AppField(controller: _certNote, label: 'Closing line (optional)', maxLines: 2),
+                _gap(),
+                AppField(controller: _certSigner2, label: 'Second signer name (optional)'),
+                _gap(),
+                AppField(controller: _certSigner2Title, label: 'Second signer title (President)'),
+                _gap(),
+                ImageUploadField(controller: _certSig2Url, label: 'Second signature picture (left)', kind: 'logo'),
+                _gap(),
+                Text('Save the event, then open Event sign-ups and use Preview to see exactly what people get by email.', style: bodyStyle(context, size: 12.5, color: context.pal.muted)),
               ],
             ]),
           GradientButton(label: 'Save', icon: Icons.check_rounded, loading: _busy, onPressed: _busy ? null : _save),

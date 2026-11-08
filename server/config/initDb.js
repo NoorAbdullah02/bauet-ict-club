@@ -246,6 +246,8 @@ async function initDb() {
       ALTER TABLE event_registrations ADD COLUMN IF NOT EXISTS waitlisted BOOLEAN DEFAULT FALSE;
       ALTER TABLE event_registrations ADD COLUMN IF NOT EXISTS certificate_sent_at TIMESTAMPTZ;
       ALTER TABLE event_registrations ADD COLUMN IF NOT EXISTS cert_name TEXT;
+      ALTER TABLE event_registrations ADD COLUMN IF NOT EXISTS cert_pick BOOLEAN NOT NULL DEFAULT FALSE;
+      ALTER TABLE events ADD COLUMN IF NOT EXISTS cert_stage TEXT;
       ALTER TABLE events ADD COLUMN IF NOT EXISTS reminded_at TIMESTAMPTZ;
       ALTER TABLE events ADD COLUMN IF NOT EXISTS feedback_sent_at TIMESTAMPTZ;
       ALTER TABLE event_registrations ADD COLUMN IF NOT EXISTS pay_tran TEXT;
@@ -379,6 +381,19 @@ async function initDb() {
         await client.query("INSERT INTO settings (key, value) VALUES ('site', $1::jsonb) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value", [JSON.stringify({ ...cur, sessions: merged })]);
       }
     } catch (e) { console.warn('Committee sessions setup skipped:', e.message); }
+
+    // One-time clean-up: remove any sample ("demo") rows left in the database. Only rows marked is_demo are touched, and only once.
+    try {
+      const done = await client.query("SELECT 1 FROM settings WHERE key = 'demo_cleanup_v1'");
+      if (!done.rows.length && process.env.SEED_SAMPLES !== 'true') {
+        let removed = 0;
+        for (const t of ['events', 'notices', 'members', 'achievements', 'registrations', 'gallery', 'posts', 'messages', 'projects', 'subscribers', 'page_views']) {
+          try { removed += (await client.query(`DELETE FROM ${t} WHERE is_demo = true`)).rowCount || 0; } catch { /* table or column not there: nothing to remove */ }
+        }
+        await client.query("INSERT INTO settings (key, value) VALUES ('demo_cleanup_v1', $1::jsonb) ON CONFLICT (key) DO NOTHING", [JSON.stringify({ at: new Date().toISOString(), removed })]);
+        console.log(`Demo clean-up done: ${removed} sample rows removed`);
+      }
+    } catch (e) { console.warn('Demo clean-up skipped:', e.message); }
 
     // Demo content is opt-in (SEED_SAMPLES=true) — or load/remove it any time from Admin → Settings
     if (process.env.SEED_SAMPLES === 'true') await require('../utils/demo').loadDemo();

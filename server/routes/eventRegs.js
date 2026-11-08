@@ -336,33 +336,91 @@ router.patch('/:id/cert-name', async (req, res) => {
   } catch (e) { fail(res, e); }
 });
 
+/* ---- certificates: choose people -> final check -> publish (email) ---- */
+const eventForCerts = async (id) => (await pool.query('SELECT * FROM events WHERE id = $1 AND deleted_at IS NULL', [id])).rows[0];
+const stageOf = (ev) => (['review', 'published'].includes(ev.cert_stage) ? ev.cert_stage : 'draft');
+
+/** Admin: tick or untick people for certificates (body: { ids: [..], picked: true|false } or { all: true, picked }). Only checked-in people can be ticked. Going back to editing resets the final check. */
+router.patch('/event/:eventId/certificates/pick', async (req, res) => {
+  try {
+    const ev = await eventForCerts(req.params.eventId);
+    if (!ev) return res.status(404).json({ error: 'Event not found' });
+    const picked = req.body?.picked !== false;
+    const ids = req.body?.all ? null : [...new Set((Array.isArray(req.body?.ids) ? req.body.ids : []).map(Number).filter((n) => Number.isInteger(n) && n > 0))].slice(0, 2000);
+    const base = "UPDATE event_registrations SET cert_pick = $1 WHERE event_id = $2 AND deleted_at IS NULL AND (checked_in_at IS NOT NULL OR $1 = FALSE) AND email IS NOT NULL AND COALESCE(pay_status, 'none') <> 'rejected'";
+    const r = ids === null
+      ? await pool.query(`${base} AND (certificate_sent_at IS NULL OR $1 = FALSE)`, [picked, ev.id])
+      : (ids.length ? await pool.query(`${base} AND id IN (${ids.map((_, i) => '$' + (i + 3)).join(',')})`, [picked, ev.id, ...ids]) : { rowCount: 0 });
+    if (stageOf(ev) === 'review') await pool.query("UPDATE events SET cert_stage = 'draft' WHERE id = $1", [ev.id]);
+    res.json({ changed: r.rowCount });
+  } catch (e) { fail(res, e); }
+});
+
+/** Admin: everything for the final check: who gets a certificate, what the settings say, and what is still wrong. */
+router.get('/event/:eventId/certificates', async (req, res) => {
+  try {
+    const ev = await eventForCerts(req.params.eventId);
+    if (!ev) return res.status(404).json({ error: 'Event not found' });
+    const cert = ev.reg_form?.cert || {};
+    const rows = (await pool.query("SELECT * FROM event_registrations WHERE event_id = $1 AND deleted_at IS NULL AND cert_pick = TRUE AND checked_in_at IS NOT NULL ORDER BY full_name", [ev.id])).rows;
+    const people = rows.map((r) => ({ id: r.id, name: certNameOf({ ...r, ev_form: ev.reg_form }), custom_name: !!r.cert_name, email: r.email || '', sent: !!r.certificate_sent_at }));
+    const problems = [];
+    if (!cert.enabled) problems.push({ level: 'error', text: 'Certificates are switched off for this event.' });
+    if (!people.length) problems.push({ level: 'error', text: 'Nobody is chosen yet. Tick the people on the list first.' });
+    if (!String(cert.signer || '').trim()) problems.push({ level: 'error', text: 'The signer name is empty. Add the advisor or president in the certificate settings.' });
+    if (!cert.signature_url) problems.push({ level: 'warn', text: 'There is no signature picture, so the signature line stays empty.' });
+    if (!String(cert.organizer || '').trim()) problems.push({ level: 'warn', text: 'No "organised by" line: it will say the BAUET ICT Club organised it.' });
+    people.filter((x) => !x.email).forEach((x) => problems.push({ level: 'error', text: `${x.name} has no email address.` }));
+    if (!mail.provider()) problems.push({ level: 'error', text: 'Email is not set up on the server (BREVO_API_KEY and MAIL_FROM).' });
+    const waiting = people.filter((x) => !x.sent).length;
+    res.json({ stage: stageOf(ev), enabled: !!cert.enabled, cert: { title: cert.title || '', organizer: cert.organizer || '', event_kind: cert.event_kind || '', signer: cert.signer || '', signer_title: cert.signer_title || '', signature: !!cert.signature_url, signer2: cert.signer2 || '', signer2_title: cert.signer2_title || '', signature2: !!cert.signature2_url, note: cert.note || '' },
+      people, waiting, problems, can_publish: !problems.some((p) => p.level === 'error') && people.length > 0 });
+  } catch (e) { fail(res, e); }
+});
+
+/** Admin: move between "choosing" and "final check" (publishing happens when the emails are sent). */
+router.post('/event/:eventId/certificates/stage', async (req, res) => {
+  try {
+    const ev = await eventForCerts(req.params.eventId);
+    if (!ev) return res.status(404).json({ error: 'Event not found' });
+    const to = req.body?.stage === 'review' ? 'review' : 'draft';
+    if (to === 'review') {
+      if (!ev.reg_form?.cert?.enabled) return res.status(409).json({ error: 'Switch certificates on for this event first.' });
+      const n = Number((await pool.query('SELECT COUNT(*) AS n FROM event_registrations WHERE event_id = $1 AND deleted_at IS NULL AND cert_pick = TRUE AND checked_in_at IS NOT NULL', [ev.id])).rows[0].n);
+      if (!n) return res.status(400).json({ error: 'Choose at least one person first.' });
+    }
+    await pool.query('UPDATE events SET cert_stage = $1 WHERE id = $2', [to, ev.id]);
+    res.json({ stage: to });
+  } catch (e) { fail(res, e); }
+});
+
 /**
- * Admin: email the certificate link to the people the admin picked (body: { ids: [registration ids] }). Nobody is chosen by default:
- * without ids nothing is sent. Only people who were checked in and have an e-mail get it, and each person only once (unless resend is true).
+ * Admin: publish. Emails the certificate (as a PDF) to the chosen people, only after the final check.
+ * body: { ids?: [..] }  without ids = everyone chosen who has not got one yet; with ids = exactly those (also people who already got one: a corrected copy).
  */
 router.post('/event/:eventId/certificates/send', async (req, res) => {
   try {
-    const ev = (await pool.query('SELECT * FROM events WHERE id = $1', [req.params.eventId])).rows[0];
+    const ev = await eventForCerts(req.params.eventId);
     if (!ev) return res.status(404).json({ error: 'Event not found' });
     if (!ev.reg_form?.cert?.enabled) return res.status(409).json({ error: 'Switch certificates on for this event first.' });
-    const ids = [...new Set((Array.isArray(req.body?.ids) ? req.body.ids : []).map(Number).filter((n) => Number.isInteger(n) && n > 0))].slice(0, 1000);
-    if (!ids.length) return res.status(400).json({ error: 'Choose who should get a certificate first.' });
+    if (stageOf(ev) === 'draft') return res.status(409).json({ error: 'Do the final check first, then publish.' });
     if (!mail.provider()) return res.status(400).json({ error: 'Email is not configured. Set BREVO_API_KEY and MAIL_FROM in .env.' });
-    const resend = req.body?.resend === true;
-    const rows = (await pool.query("SELECT * FROM event_registrations WHERE event_id = $1 AND id = ANY($2::int[]) AND deleted_at IS NULL", [ev.id, ids])).rows;
-    const sent = []; const skipped = [];
+    const given = Array.isArray(req.body?.ids) ? [...new Set(req.body.ids.map(Number).filter((n) => Number.isInteger(n) && n > 0))].slice(0, 2000) : null;
+    const rows = (await pool.query(
+      `SELECT * FROM event_registrations WHERE event_id = $1 AND deleted_at IS NULL AND cert_pick = TRUE ${given ? (given.length ? 'AND id IN (' + given.map((_, i) => '$' + (i + 2)).join(',') + ')' : 'AND FALSE') : 'AND certificate_sent_at IS NULL'}`,
+      given ? [ev.id, ...given] : [ev.id])).rows;
+    if (!rows.length) return res.status(400).json({ error: given ? 'Nobody in that choice is ticked for a certificate.' : 'Everyone chosen already has their certificate.' });
+    const sent = []; const skipped = []; const base = site(req);
     for (const r of rows) {
       if (!r.checked_in_at) { skipped.push({ id: r.id, reason: 'not checked in' }); continue; }
       if (!r.email) { skipped.push({ id: r.id, reason: 'no email' }); continue; }
       if (r.pay_status === 'rejected') { skipped.push({ id: r.id, reason: 'payment rejected' }); continue; }
-      if (r.certificate_sent_at && !resend) { skipped.push({ id: r.id, reason: 'already sent' }); continue; }
-      const base = site(req);
       mail.sendMail({ to: r.email, ...mail.templates.certificateReady(r, ev, r.ticket), attachments: async () => [{ filename: `Certificate - ${certNameOf({ ...r, ev_form: ev.reg_form }).replace(/[^\p{L}\p{N} ._-]+/gu, '').trim() || 'Participant'}.pdf`, content: await certPdfFor(r, ev, base), contentType: 'application/pdf' }] });
       await pool.query('UPDATE event_registrations SET certificate_sent_at = NOW() WHERE id = $1', [r.id]);
       sent.push(r.id);
     }
-    const total = Number((await pool.query('SELECT COUNT(*) AS n FROM event_registrations WHERE event_id = $1 AND deleted_at IS NULL AND checked_in_at IS NOT NULL', [ev.id])).rows[0].n);
-    res.json({ sent: sent.length, skipped, checked_in: total });
+    await pool.query("UPDATE events SET cert_stage = 'published' WHERE id = $1", [ev.id]);
+    res.json({ sent: sent.length, skipped, stage: 'published' });
   } catch (e) { fail(res, e); }
 });
 
