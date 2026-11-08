@@ -304,6 +304,15 @@ class PhotoSlot extends StatelessWidget {
           ),
         ),
       ).animate(onPlay: (c) => c.repeat(reverse: true)).scaleXY(begin: 1, end: 1.03, duration: 2.seconds, curve: Curves.easeInOut),
+      if (photo != null && error == null)
+        Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            const Icon(Icons.check_circle_rounded, size: 16, color: Color(0xFF16A34A)),
+            const SizedBox(width: 6),
+            Text('Photo selected. It is sent when you submit. Tap to change.', style: bodyStyle(context, size: 12, color: const Color(0xFF16A34A))),
+          ]),
+        ),
       if (error != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(error!, style: bodyStyle(context, size: 12, color: const Color(0xFFEF4444)))),
     ]);
   }

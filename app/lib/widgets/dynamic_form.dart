@@ -91,9 +91,13 @@ class _DynamicFormViewState extends State<DynamicFormView> {
     try {
       final url = await widget.api.uploadPhoto(shot.path, shot.name, shot.mime);
       widget.onChanged(id, url);
+      if (mounted) showSnack(context, 'Picture uploaded');
     } on ApiException catch (e) {
       if (mounted) showSnack(context, e.message, error: true);
-      setState(() => _photos.remove(id));
+      if (mounted) setState(() => _photos.remove(id));
+    } catch (_) {
+      if (mounted) showSnack(context, 'Could not upload the picture. Check your internet and try again.', error: true);
+      if (mounted) setState(() => _photos.remove(id));
     } finally {
       if (mounted) setState(() => _uploading.remove(id));
     }
@@ -355,7 +359,7 @@ class _DynamicFormViewState extends State<DynamicFormView> {
                                 : Icon(Icons.add_photo_alternate_outlined, color: p.muted),
                   ),
                   const SizedBox(width: 14),
-                  Expanded(child: Text(busy ? 'Uploading…' : (isBlank(v) ? 'Choose a picture (JPG or PNG, max 3 MB)' : 'Change picture'), style: bodyStyle(context, size: 13.5, color: p.muted))),
+                  Expanded(child: Text(busy ? 'Uploading…' : (isBlank(v) ? 'Choose a picture (JPG or PNG, max 3 MB)' : 'Uploaded ✓  Tap to change'), style: bodyStyle(context, size: 13.5, color: p.muted))),
                 ]),
               ),
             ),

@@ -409,7 +409,7 @@ class _AppCard extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          GestureDetector(onTap: onOpen, child: ClipRRect(borderRadius: BorderRadius.circular(16), child: SizedBox(width: 64, height: 64, child: NetImage(r.photoUrl, fallbackLabel: r.fullName)))),
+          GestureDetector(onTap: r.photoUrl.isEmpty ? onOpen : () => showPhoto(context, r.photoUrl, title: r.fullName), child: ClipRRect(borderRadius: BorderRadius.circular(16), child: SizedBox(width: 64, height: 64, child: NetImage(r.photoUrl, fallbackLabel: r.fullName)))),
           const SizedBox(width: 14),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -617,7 +617,7 @@ class _DetailsSheet extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
           Row(children: [
-            ClipRRect(borderRadius: BorderRadius.circular(22), child: SizedBox(width: 96, height: 96, child: NetImage(r.photoUrl, fallbackLabel: r.fullName))),
+            GestureDetector(onTap: r.photoUrl.isEmpty ? null : () => showPhoto(context, r.photoUrl, title: r.fullName), child: ClipRRect(borderRadius: BorderRadius.circular(22), child: SizedBox(width: 96, height: 96, child: NetImage(r.photoUrl, fallbackLabel: r.fullName)))),
             const SizedBox(width: 16),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

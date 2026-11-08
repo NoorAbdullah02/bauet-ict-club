@@ -125,6 +125,10 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
       { const r = await ask('any job or internship?'); ok(/Plumbus/.test(r), 'assistant: a new job is known at once', r.slice(0, 160)); }
       ok(/Wumbo/.test(await ask('which contest is open?')), 'assistant: a new contest is known at once');
     }
+    {
+      const labels = ((await call('GET', '/api/committees')).j || []).map((x) => x.label);
+      ok(['Winter 2026', 'Summer 2027', 'Winter 2027', 'Summer 2028', 'Winter 2028', 'Summer 2029', 'Winter 2029', 'Summer 2030', 'Winter 2030'].every((l) => labels.includes(l)), 'committee sessions are ready from Winter 2026 to Winter 2030', labels);
+    }
     // ---- phone notifications: the app registers its token; nothing is sent without Firebase set up ----
     {
       const tokenA = `qa-token-${'a'.repeat(40)}:APA91b_x-y`;
