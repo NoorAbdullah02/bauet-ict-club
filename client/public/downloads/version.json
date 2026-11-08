@@ -1,6 +1,6 @@
 {
-  "build": 136,
+  "build": 143,
   "min": 0,
   "name": "1.0.0",
-  "notes": "Photo viewer in applications, faster page switching, clearer photo upload with bigger preview, crash reports, notification topics, Club data page, lost-ticket email, built-in fonts."
+  "notes": "Certificates: choose people, final check, publish by email with the PDF, live preview and settings. Reminder to check your email and Spam after every submit. Photo viewer, faster page switching, bigger upload previews, Club data page, lost-ticket email."
 }
