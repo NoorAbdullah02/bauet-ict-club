@@ -400,6 +400,15 @@ async function initDb() {
       }
     } catch (e) { console.warn('Sample FAQ clean-up skipped:', e.message); }
 
+    // The sample "How can I contact the club?" FAQ still held the old phone number, so the exact-match clean-up above missed it. Same treatment (Trash, once).
+    try {
+      const done = await client.query("SELECT 1 FROM settings WHERE key = 'faq_seed_cleanup_v2'");
+      if (!done.rows.length && process.env.SEED_FAQS !== 'true') {
+        const r = await client.query("UPDATE faqs SET deleted_at = NOW() WHERE deleted_at IS NULL AND question = 'How can I contact the club?' AND answer LIKE '%01707-533471%'");
+        await client.query("INSERT INTO settings (key, value) VALUES ('faq_seed_cleanup_v2', $1::jsonb) ON CONFLICT (key) DO NOTHING", [JSON.stringify({ at: new Date().toISOString(), moved: r.rowCount || 0 })]);
+      }
+    } catch (e) { console.warn('Sample FAQ clean-up (2) skipped:', e.message); }
+
     // Committee sessions are ready until 2030: Winter 2026, then Summer and Winter of every year (two per year). Added once, never removes or reorders yours.
     try {
       const planned = [];
