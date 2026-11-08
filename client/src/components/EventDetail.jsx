@@ -14,6 +14,7 @@ import { formalDate, formalTime } from '../lib/format';
 import { thumb } from '../lib/img';
 import { downloadIcs, eventStart } from '../lib/ics';
 import { eventLink, shareLinks, copyText, nativeShare } from '../lib/share';
+import CheckEmailNote from './CheckEmailNote';
 
 /** One event with its own address (/events/12): details, share buttons and the registration form. */
 export default function EventDetail() {
@@ -133,6 +134,7 @@ export default function EventDetail() {
                   <CheckCircle2 size={44} className="mx-auto text-emerald-500" />
                   <h3 className="mt-3 text-xl text-fg">{waiting ? 'You are on the waiting list' : pendingPay ? 'Registration received' : 'You are registered!'}</h3>
                   <p className="mt-1 whitespace-pre-line text-sm text-fg2">{waiting ? `${ev.title} is full right now, so you are number ${waiting} in line. If a seat opens up you get it automatically and we email you.` : thanks || (pendingPay ? `We got your payment details for ${ev.title}. Your place is confirmed as soon as we verify the transaction. You will get an email.` : `We saved your place for ${ev.title}. If you gave an email address, a confirmation is on its way.`)}</p>
+                  <CheckEmailNote className="mx-auto mt-4 max-w-md" />
                   {ticket && (
                     <div className="mt-5 rounded-2xl border border-line bg-alt/50 p-4">
                       <div className="mx-auto grid size-36 place-items-center rounded-xl bg-white p-1.5">{ticketQr ? <img src={ticketQr} alt="Your ticket QR code" className="size-full" /> : <Loader2 className="animate-spin text-muted" />}</div>

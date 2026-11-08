@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import Backdrop3D from '../Backdrop3D';
 import { Field, PhotoDrop, inputCls, useApplication, DEPARTMENTS, BATCHES } from './shared';
 import { cn } from '../../lib/cn';
+import CheckEmailNote from '../CheckEmailNote';
 
 const INTERESTS = [
   'Web Development', 'AI & ML', 'Competitive Programming', 'Cyber Security', 'Robotics & IoT', 'App Development',
@@ -66,6 +67,7 @@ export default function JoinGeneral() {
                   </motion.div>
                   <h3 className="text-3xl text-fg">Welcome aboard, {done.full_name.split(' ')[0]}!</h3>
                   <p className="mx-auto mt-3 max-w-sm text-sm leading-7 text-fg2">We’ve got your request and will confirm your membership at <b className="text-fg">{done.email}</b>.</p>
+                <CheckEmailNote email={done.email} className="mx-auto mt-5 max-w-md" />
                   <button onClick={reset} className="btn-outline mt-8"><RotateCcw size={15} /> Add another member</button>
                 </motion.div>
               ) : (

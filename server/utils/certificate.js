@@ -21,6 +21,9 @@ const DEFAULT_ADVISOR = { name: 'Partha Pratim Debnath', title: 'Advisor, BAUET 
 /** Used when the admin leaves the second signer empty: the club president, with a designed signature that reads "Noor Abdullah". */
 const DEFAULT_PRESIDENT = { name: 'Sheikh Noor Abdullah', title: 'President, BAUET ICT Club', signature: 'Noor Abdullah' };
 
+/** Script fonts the admin can choose for the name. */
+const NAME_FONTS = { allura: 'Allura-Regular.ttf', alexbrush: 'AlexBrush-Regular.ttf', vibes: 'GreatVibes-Regular.ttf', pinyon: 'PinyonScript-Regular.ttf', parisienne: 'Parisienne-Regular.ttf' };
+
 const THEMES = {
   gold: { paperLight: '#FFFEF8', inkLight: '#2D4180', accent: '#B8924A', light: '#E6CD8C', dark: '#8C6B2E', paper: '#FFFBF1', ink: '#1B2A4E', sub: '#3D4A6B', ribbon: ['#CDAA5C', '#E2C57F', '#B48C45'], medal: ['#F8E9B4', '#D5B05E', '#9A7430'], scallop: '#C79F52', star: '#FBF0C4' },
   royal: { paperLight: '#FFFFFF', inkLight: '#2A52B8', accent: '#3A63B8', light: '#A9C0EC', dark: '#1E3F85', paper: '#F8FAFF', ink: '#12224A', sub: '#3C4C75', ribbon: ['#4A74CC', '#6F94E0', '#355FB5'], medal: ['#DCE7FB', '#7F9FE0', '#2E52A3'], scallop: '#5B7FCC', star: '#EAF1FF' },
@@ -198,7 +201,7 @@ function designedSignature(doc, name, cx, baseY, T) {
   const txt = words.length > 2 ? `${words[0]} ${words[words.length - 1]}` : words.join(' ') || 'Signature';
   const bn = BN.test(txt);
   let size = bn ? 22 : 36;
-  doc.font(bn ? 'bn' : 'script');
+  doc.font(bn ? 'bn' : 'sig');
   while (size > 14 && doc.fontSize(size).widthOfString(txt) > 112) size -= 1;
   const w = doc.fontSize(size).widthOfString(txt);
   doc.save();
@@ -240,7 +243,7 @@ async function certificatePdf({ name, event, cert = {}, code, siteUrl, defaults 
   const chunks = [];
   doc.on('data', (c) => chunks.push(c));
   const done = new Promise((resolve) => doc.on('end', () => resolve(Buffer.concat(chunks))));
-  const F = { title: 'Cinzel-Bold.ttf', titleLight: 'Cinzel-Regular.ttf', script: 'GreatVibes-Regular.ttf', body: 'CormorantGaramond-Medium.ttf', bodyB: 'CormorantGaramond-Bold.ttf', bodyI: 'CormorantGaramond-MediumItalic.ttf', bn: 'NotoSansBengali-Regular.ttf', bnB: 'NotoSansBengali-Bold.ttf' };
+  const F = { title: 'Cinzel-Bold.ttf', titleLight: 'Cinzel-Regular.ttf', script: NAME_FONTS[cert.name_font] || NAME_FONTS.allura, sig: 'GreatVibes-Regular.ttf', body: 'CormorantGaramond-Medium.ttf', bodyB: 'CormorantGaramond-Bold.ttf', bodyI: 'CormorantGaramond-MediumItalic.ttf', bn: 'NotoSansBengali-Regular.ttf', bnB: 'NotoSansBengali-Bold.ttf' };
   Object.entries(F).forEach(([k, v]) => doc.registerFont(k, path.join(FONTS, v)));
   const pick = (t, bold, italic) => (BN.test(t) ? (bold ? 'bnB' : 'bn') : bold ? 'bodyB' : italic ? 'bodyI' : 'body');
   const W = doc.page.width; const H = doc.page.height; const cx = W / 2;
@@ -288,22 +291,26 @@ async function certificatePdf({ name, event, cert = {}, code, siteUrl, defaults 
   const nameFont = bnName ? 'bnB' : plain ? 'script' : 'bodyB';
   const NAME_W = 610;
   const widthAt = (txt, sz) => (doc.font(nameFont).fontSize(sz), doc.widthOfString(txt));
-  let nameLines = [nm]; let size = bnName ? 38 : plain ? 56 : 40;
+  let nameLines = [nm]; let size = bnName ? 38 : plain ? 60 : 40;
   while (size > 30 && widthAt(nm, size) > NAME_W) size -= 2;
   if (widthAt(nm, size) > NAME_W) {
     // two lines: split the words where the two halves are the most even
     const w = nm.split(' ');
     let best = null;
     for (let i = 1; i < w.length; i++) { const l1 = w.slice(0, i).join(' '); const l2 = w.slice(i).join(' '); const d = Math.max(widthAt(l1, 30), widthAt(l2, 30)); if (!best || d < best.d) best = { l1, l2, d }; }
-    if (best) { nameLines = [best.l1, best.l2]; size = bnName ? 28 : plain ? 31 : 26; while (size > 14 && Math.max(widthAt(nameLines[0], size), widthAt(nameLines[1], size)) > NAME_W) size -= 1; }
+    if (best) { nameLines = [best.l1, best.l2]; size = bnName ? 28 : plain ? 33 : 26; while (size > 14 && Math.max(widthAt(nameLines[0], size), widthAt(nameLines[1], size)) > NAME_W) size -= 1; }
     else { while (size > 14 && widthAt(nm, size) > NAME_W) size -= 1; } // one very long word: shrink it
   }
-  const lineH = size * (bnName ? 1.25 : nameLines.length > 1 ? 1.1 : 0.95);
-  const blockH = lineH * nameLines.length;
-  const nameCenter = nameLines.length > 1 ? 250 : 241; // two lines must stay clear of the ribbon above and the line below
-  const nameTop = nameCenter - blockH / 2 - (bnName ? size * 0.12 : size * 0.16);
-  nameLines.forEach((ln, i) => { doc.font(nameFont).fontSize(size).fillColor(T.ink).text(ln, 90, nameTop + i * lineH, { width: W - 180, align: 'center', lineBreak: false }); });
-  swash(doc, cx, 286, 300, T);
+  const lineH = size * (bnName ? 1.25 : nameLines.length > 1 ? 1.12 : 1);
+  const asc = (doc.font(nameFont), (doc._font.ascender / 1000) * size); // distance from the top of the text box to the baseline
+  const firstBase = nameLines.length > 1 ? 249 : 268; // the baseline of the first line; descenders (q, y, g) then stay clear of the rule below
+  const ng = doc.linearGradient(cx - 300, 0, cx + 300, 0); ng.stop(0, T.ink).stop(0.5, T.inkLight).stop(1, T.ink);
+  nameLines.forEach((ln, i) => {
+    const y = firstBase + i * lineH - asc;
+    doc.font(nameFont).fontSize(size).fillColor(T.light).text(ln, 90 + 1, y + 1.3, { width: W - 180, align: 'center', lineBreak: false }); // soft gold shadow
+    doc.fillColor(ng).text(ln, 90, y, { width: W - 180, align: 'center', lineBreak: false });
+  });
+  swash(doc, cx, 304, 300, T);
 
   // the sentence: own word wrap so bold and italic parts stay together; the block is centred between the name line and the bottom row
   const ev = clean(event.title, 120); const org = clean(cert.organizer, 120); const assoc = 'BAUET ICT Club';
@@ -329,7 +336,7 @@ async function certificatePdf({ name, event, cert = {}, code, siteUrl, defaults 
     else runs.push({ t: ', organized by the ' }, { t: assoc, b: 1 });
     runs.push({ t: '. ' }, { t: clean(cert.note, 220) || 'We appreciate your active participation and wish you continued success in your journey ahead.', i: 1 });
   }
-  const MAXW = 590; const zoneTop = 296; const zoneH = 140;
+  const MAXW = 590; const zoneTop = 318; const zoneH = 122;
   const words = [];
   runs.forEach((r) => (r.nb ? [r.t] : String(r.t).split(/[ \t\r\n]+/)).forEach((w) => { if (w) words.push({ w, f: pick(w, r.b, r.i) }); }));
   // wrap at 16.5pt; a long text gets a smaller size until it fits, so nothing is ever cut off
@@ -393,4 +400,4 @@ async function certificatePdf({ name, event, cert = {}, code, siteUrl, defaults 
   return done;
 }
 
-module.exports = { certificatePdf, DEFAULT_ADVISOR, DEFAULT_PRESIDENT, THEMES, qrPng, pretty };
+module.exports = { NAME_FONTS, certificatePdf, DEFAULT_ADVISOR, DEFAULT_PRESIDENT, THEMES, qrPng, pretty };

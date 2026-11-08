@@ -10,6 +10,7 @@ import { useGateway, modeOf } from '../lib/pay';
 import { isVisible, isEmpty, themeStyle } from '../lib/forms';
 import { formalDate, formalTime } from '../lib/format';
 import { shareLinks, copyText, nativeShare } from '../lib/share';
+import CheckEmailNote from './CheckEmailNote';
 
 /** A stand-alone form made in Admin → Forms, opened from its own link: /f/<name>. */
 export default function FormPage() {
@@ -103,6 +104,7 @@ export default function FormPage() {
                   <CheckCircle2 size={48} className="mx-auto text-emerald-500" />
                   <h2 className="mt-3 text-2xl text-fg">{done?.pending ? 'Response received' : 'Thank you!'}</h2>
                   <p className="mx-auto mt-2 max-w-md whitespace-pre-line text-sm text-fg2">{done?.message || (returned ? 'Your payment was received and your response is saved.' : done?.pending ? 'We will check your payment and confirm by email.' : 'Your response has been recorded.')}</p>
+                  <CheckEmailNote className="mx-auto mt-4 max-w-md" />
                 </div>
               ) : closed ? (
                 <p className="rounded-2xl bg-alt p-5 text-center text-sm text-fg2">{full ? 'This form has reached its limit.' : timeUp ? 'This form has closed.' : 'This form is not accepting responses right now.'}</p>
