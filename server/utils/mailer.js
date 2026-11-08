@@ -30,6 +30,7 @@ const state = { sent: 0, failed: 0, lastError: null, lastSentAt: null };
 
 async function deliver({ to, subject, html, text, replyTo, attachments }) {
   const name = 'BAUET ICT Club';
+  if (typeof attachments === 'function') attachments = await attachments(); // built now, not when queued
   if (provider() === 'smtp') {
     await smtpTransport().sendMail({ from: `"${name}" <${fromAddress()}>`, to, subject, html, text, replyTo, attachments });
   } else if (provider() === 'brevo') {
@@ -175,8 +176,8 @@ const templates = {
   }),
   certificateReady: (r, ev, code) => ({
     subject: `Your certificate: ${ev.title}`,
-    html: layout({ title: 'Your certificate is ready', body: `<p>Hi ${esc(r.full_name || 'there')},</p><p>Thank you for joining <b>${esc(ev.title)}</b>. Your certificate is ready to download.</p>`, button: { href: `${siteUrl()}/certificate/${code}`, label: 'Download certificate' } }),
-    text: `Your certificate for ${ev.title}: ${siteUrl()}/certificate/${code}`,
+    html: layout({ title: 'Your certificate is ready', body: `<p>Hi ${esc(r.cert_name || r.full_name || 'there')},</p><p>Thank you for joining <b>${esc(ev.title)}</b>. Your certificate is attached to this email as a PDF.</p><p>You can also open or download it any time with the button below. Anyone can check that it is real by scanning the QR code on it.</p>`, button: { href: `${siteUrl()}/certificate/${code}`, label: 'Open my certificate' } }),
+    text: `Hi ${r.cert_name || r.full_name || 'there'}, your certificate for ${ev.title} is attached as a PDF. You can also open it here: ${siteUrl()}/certificate/${code}`,
   }),
   eventFeedback: (r, ev, url) => ({
     subject: `How was ${ev.title}?`,

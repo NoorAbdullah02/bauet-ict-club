@@ -76,7 +76,12 @@ function sanitizeForm(raw) {
   if (!fields.length) return { form: null };
   const form = { theme: /^#[0-9a-f]{6}$/i.test(String(f.theme || '')) ? String(f.theme).toLowerCase() : '', title: clip(f.title, 120), intro: clip(f.intro, 1000), confirmation: clip(f.confirmation, 500), email_note: clip(f.email_note, 600), unique: seen.has(f.unique) ? f.unique : '', notify_admin: !!f.notify_admin, feedback_form: /^[a-z0-9-]{2,80}$/.test(String(f.feedback_form || '')) ? String(f.feedback_form) : '', fields };
   // certificate for people who were checked in
-  if (f.cert?.enabled) form.cert = { enabled: true, title: clip(f.cert.title, 60) || 'Certificate of Participation', signer: clip(f.cert.signer, 60), signer_title: clip(f.cert.signer_title, 80), note: clip(f.cert.note, 160) };
+  if (f.cert?.enabled) {
+    const picture = (v) => { const u = clip(v, 400); return /^https:\/\/res\.cloudinary\.com\//.test(u) ? u : ''; }; // signature pictures live on our picture host only
+    form.cert = { enabled: true, title: clip(f.cert.title, 60) || 'Certificate of Participation', organizer: clip(f.cert.organizer, 120), event_kind: clip(f.cert.event_kind, 30),
+      signer: clip(f.cert.signer, 60), signer_title: clip(f.cert.signer_title, 80), signature_url: picture(f.cert.signature_url),
+      signer2: clip(f.cert.signer2, 60), signer2_title: clip(f.cert.signer2_title, 80), signature2_url: picture(f.cert.signature2_url), note: clip(f.cert.note, 220) };
+  }
   // registration deadline: "YYYY-MM-DDTHH:mm" (Bangladesh time is entered by the admin; compared as a plain timestamp)
   if (f.closes_at) { if (!/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2})?$/.test(String(f.closes_at))) return { error: 'The closing date is not valid' }; form.closes_at = String(f.closes_at).slice(0, 16); }
   // manual mobile-banking payment: people send money, then give the transaction ID; the admin verifies it

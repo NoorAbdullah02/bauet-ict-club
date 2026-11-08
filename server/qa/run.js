@@ -242,6 +242,26 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
     ok((await call('POST', '/api/event-registrations/checkin', { code }, T)).s === 200, 'check-in');
     ok((await call('POST', '/api/event-registrations/checkin', { code }, T)).j?.already === true || (await call('POST', '/api/event-registrations/checkin', { code }, T)).s === 409, 'second check-in is reported');
 
+    // certificates: a real PDF for a checked-in person, nobody gets an email unless the admin picks them, signature pictures only from our host
+    {
+      const reg_form = { fields: [{ id: 'name', type: 'short', label: 'Name', required: true }], cert: { enabled: true, title: 'Certificate of Participation', organizer: 'Department of ICE, BAUET', signer: 'Advisor Name', signature_url: 'https://evil.example/sig.png' } };
+      const up = await call('PUT', `/api/events/${ev.id}`, { reg_form }, T);
+      const got = (await call('GET', `/api/events/${ev.id}`)).j?.reg_form?.cert;
+      ok(up.s === 200 && got?.enabled && got.organizer === 'Department of ICE, BAUET' && got.signature_url === '', 'certificate settings saved; a signature picture from another host is dropped', got);
+      const pdf = await fetch(`${B}/api/event-registrations/certificate/${code}`); const head = Buffer.from(await pdf.arrayBuffer()).subarray(0, 5).toString();
+      ok(pdf.status === 200 && head === '%PDF-' && /pdf/.test(pdf.headers.get('content-type')), 'a checked-in person gets the certificate as a PDF');
+      const pv = await fetch(`${B}/api/event-registrations/event/${ev.id}/certificates/preview`, { headers: { authorization: `Bearer ${T}` } });
+      ok(pv.status === 200 && Buffer.from(await pv.arrayBuffer()).subarray(0, 5).toString() === '%PDF-', 'the admin can preview the certificate (a sample PDF)');
+      ok((await fetch(`${B}/api/event-registrations/event/${ev.id}/certificates/preview`)).status === 401, 'the certificate preview needs an admin login');
+      const reg0 = (await call('GET', `/api/event-registrations/by-event/${ev.id}`, undefined, T)).j.find((x) => x.ticket === code);
+      const pvr = await fetch(`${B}/api/event-registrations/event/${ev.id}/certificates/preview?reg=${reg0.id}`, { headers: { authorization: `Bearer ${T}` } });
+      ok(pvr.status === 200, 'the admin can preview one person\'s certificate');
+      ok((await call('PATCH', `/api/event-registrations/${reg0.id}/cert-name`, { name: 'Dr. Corrected Name' }, T)).j?.cert_name === 'Dr. Corrected Name' && (await call('GET', `/api/event-registrations/verify/${code}`)).j?.name === 'Dr. Corrected Name', 'the name on one person\'s certificate can be corrected');
+      ok((await call('PATCH', `/api/event-registrations/${reg0.id}/cert-name`, { name: 'x' })).s === 401, 'only an admin corrects a certificate name');
+      ok((await call('POST', `/api/event-registrations/event/${ev.id}/certificates/send`, {}, T)).s === 400, 'no certificate email goes out unless the admin picks people');
+      ok((await call('POST', `/api/event-registrations/event/${ev.id}/certificates/send`, { ids: [] }, T)).s === 400, 'an empty choice sends nothing');
+    }
+
     // points, badges and the leaderboard
     {
       const me = await call('GET', `/api/points/me?ticket=${code}`);

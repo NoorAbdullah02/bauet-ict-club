@@ -245,6 +245,7 @@ async function initDb() {
       ALTER TABLE event_registrations ADD COLUMN IF NOT EXISTS checked_in_at TIMESTAMPTZ;
       ALTER TABLE event_registrations ADD COLUMN IF NOT EXISTS waitlisted BOOLEAN DEFAULT FALSE;
       ALTER TABLE event_registrations ADD COLUMN IF NOT EXISTS certificate_sent_at TIMESTAMPTZ;
+      ALTER TABLE event_registrations ADD COLUMN IF NOT EXISTS cert_name TEXT;
       ALTER TABLE events ADD COLUMN IF NOT EXISTS reminded_at TIMESTAMPTZ;
       ALTER TABLE events ADD COLUMN IF NOT EXISTS feedback_sent_at TIMESTAMPTZ;
       ALTER TABLE event_registrations ADD COLUMN IF NOT EXISTS pay_tran TEXT;
