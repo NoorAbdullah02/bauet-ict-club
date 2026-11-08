@@ -102,6 +102,10 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
       const al = await call('GET', '/.well-known/assetlinks.json');
       ok(al.s === 200 && Array.isArray(al.j) && (!al.j.length || al.j[0].target.package_name === 'com.bauet.bauet_ict_club'), 'app links: assetlinks.json is served (empty until ANDROID_CERT_SHA256 is set)');
     }
+    {
+      const ds = await call('GET', '/api/dataset');
+      ok(ds.s === 200 && typeof ds.j?.totals?.members === 'number' && Array.isArray(ds.j.eventsByYear) && !JSON.stringify(ds.j).match(/@|\b01[3-9]\d{8}\b/), 'club data page: counts only, no emails or phone numbers', ds.j);
+    }
     // ---- phone notifications: the app registers its token; nothing is sent without Firebase set up ----
     {
       const tokenA = `qa-token-${'a'.repeat(40)}:APA91b_x-y`;
@@ -302,6 +306,7 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
     ok((await call('GET', '/api/backup', undefined, et)).s === 403 && (await call('GET', '/api/team', undefined, et)).s === 403 && (await call('GET', '/api/audit', undefined, et)).s === 403, 'editor cannot reach backup, team or activity');
     const bk = await fetch(`${B}/api/backup`, { headers: { authorization: `Bearer ${T}` } }); const bb = new Uint8Array(await bk.arrayBuffer());
     ok(bk.status === 200 && bb[0] === 0x50 && bb[1] === 0x4B, 'main admin can download a backup');
+    { const txt = Buffer.from(bb).toString('latin1'); ok(txt.includes('jobs.json') && txt.includes('advisors.json') && txt.includes('README.txt') && !txt.includes('push_tokens.json'), 'the backup holds every table (jobs, advisors...) and no phone tokens'); }
     await new Promise((r) => setTimeout(r, 300));
     const log = (await call('GET', '/api/audit', undefined, T)).j || [];
     ok(log.some((x) => x.username === 'editor1' && x.method === 'POST' && x.path === '/api/forms'), 'activity log shows who created a form', log.slice(0, 3));

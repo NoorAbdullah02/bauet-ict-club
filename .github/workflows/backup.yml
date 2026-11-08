@@ -1,0 +1,34 @@
+name: Weekly backup
+# Saves every table of the Neon database, encrypted, as a private build file (kept 90 days). Needs two repository secrets:
+#   BACKUP_DATABASE_URL  = the Neon connection string        BACKUP_PASSPHRASE = a long secret phrase (needed to open the backup)
+on:
+  schedule:
+    - cron: '30 21 * * 0' # Sunday 21:30 UTC = Monday 03:30 Bangladesh
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: npm, cache-dependency-path: server/package-lock.json }
+      - name: Check secrets
+        env: { DB: '${{ secrets.BACKUP_DATABASE_URL }}', PP: '${{ secrets.BACKUP_PASSPHRASE }}' }
+        run: |
+          [ -n "$DB" ] && [ -n "$PP" ] || { echo "::warning::Add the repository secrets BACKUP_DATABASE_URL and BACKUP_PASSPHRASE (see docs/BACKUP.md). Nothing was backed up."; echo SKIP=1 >> "$GITHUB_ENV"; }
+      - name: Dump and encrypt
+        if: env.SKIP != '1'
+        working-directory: server
+        env: { DATABASE_URL: '${{ secrets.BACKUP_DATABASE_URL }}', PP: '${{ secrets.BACKUP_PASSPHRASE }}', NODE_ENV: production }
+        run: |
+          npm ci --omit=dev
+          node scripts/backup.js ../dump
+          tar -czf - -C .. dump | openssl enc -aes-256-cbc -pbkdf2 -salt -pass env:PP -out ../bauet-backup.tar.gz.enc
+      - uses: actions/upload-artifact@v4
+        if: env.SKIP != '1'
+        with:
+          name: bauet-db-backup
+          path: bauet-backup.tar.gz.enc
+          retention-days: 90
