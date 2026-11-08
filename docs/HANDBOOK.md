@@ -63,6 +63,7 @@ After adding or changing one, press **Save, rebuild, and deploy**.
 | `CRON_SECRET` | lets cron-job.org run reminders (16+ characters) |
 | `PUBLIC_URL` | **optional**: only when you use your own domain. Without it the server uses Render's own address (`RENDER_EXTERNAL_URL`) for email links, tickets, card previews and the sitemap |
 | `ANDROID_CERT_SHA256` | app links (fingerprint of the app signing key, optional) |
+| `SEED_COMMITTEE` | `true` only for a practice site: loads a sample committee. Leave it unset on the real site (the real site starts with no members; add yours in Admin -> Committee) |
 
 All keys are explained in `.env.example`.
 
