@@ -182,7 +182,14 @@ const show = (v) => (Array.isArray(v) ? v.join(', ') : v === undefined || v === 
 function columnsFrom(fields, clean) {
   const col = {};
   for (const f of fields) if (f.key && clean[f.id] !== undefined) col[f.key] = show(clean[f.id]);
-  return { full_name: col.name || null, student_id: col.student_id || null, email: col.email || null, phone: col.phone || null, department: col.department || null, batch: col.batch || null };
+  // Questions the admin made by hand have no key. Find the obvious ones anyway, so tickets, reminders, certificates and "lost ticket" still reach the person.
+  const answered = (f) => f && clean[f.id] !== undefined && show(clean[f.id]);
+  const first = (test) => { const f = fields.find((x) => !x.key && test(x) && answered(x)); return f ? show(clean[f.id]) : ''; };
+  if (!col.email) col.email = first((f) => f.type === 'email');
+  if (!col.phone) col.phone = first((f) => f.type === 'phone');
+  if (!col.name) col.name = first((f) => f.type === 'short' && /\bname\b|নাম/i.test(f.label || '')) || first((f) => f.type === 'short' && !/\bid\b|roll|batch|department|dept/i.test(f.label || ''));
+  if (!col.student_id) col.student_id = first((f) => f.type === 'short' && /student\s*id|\broll\b|\bid\b/i.test(f.label || ''));
+  return { full_name: col.name || null, student_id: col.student_id || null, email: col.email ? String(col.email).toLowerCase() : null, phone: col.phone || null, department: col.department || null, batch: col.batch || null };
 }
 
 /** Checks the payment part of a sign-up against the event's payment settings. Returns { payment } or { errors }. */

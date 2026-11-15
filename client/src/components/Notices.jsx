@@ -6,6 +6,7 @@ import { useInView } from 'react-intersection-observer';
 import { Pin, ChevronDown, Bell, Share2 } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import useStore from '../context/store';
+import EmptyState from './EmptyState';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 40 },
@@ -41,10 +42,7 @@ export default function Notices() {
         </motion.div>
 
         {sorted.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--fg-muted)' }}>
-            <Bell size={48} style={{ opacity: 0.3, marginBottom: 16 }} />
-            <p>No notices yet.</p>
-          </div>
+          <EmptyState icon={Bell} title="No notices yet" hint="Important updates and announcements from the club will be posted here." className="my-10" />
         )}
 
         <div style={{ maxWidth: 800, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 12 }}>

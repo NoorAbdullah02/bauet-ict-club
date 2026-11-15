@@ -7,7 +7,9 @@
    - `BACKUP_DATABASE_URL` = the Neon connection string
    - `BACKUP_PASSPHRASE` = a long phrase only you know (write it down: without it the backup cannot be opened)
 2. Actions -> Weekly backup -> Run workflow (to try it once).
-3. Download: open the run -> Artifacts -> `bauet-db-backup` (kept 90 days).
+3. Download: repo -> **Releases** -> the newest `backup-...` -> the `.tar.gz.enc` file (the 12 newest are kept).
+
+If the run says **"this database has no tables"**, the secret `BACKUP_DATABASE_URL` points at the wrong database: copy the exact `DATABASE_URL` value from Render -> Environment and save the secret again.
 
 **Open a backup:**
 ```bash

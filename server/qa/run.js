@@ -313,6 +313,14 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
       ok((await call('GET', certUrl(''))).s === 401, 'the certificate review needs an admin login');
     }
 
+    // a form the admin built by hand (questions without a key): the name and the e-mail are still found, so tickets and certificates reach the person
+    {
+      const ce = (await call('POST', '/api/events', { title: 'Hand-made form event', date: '2099-03-03', reg_open: true, reg_form: { fields: [{ id: 'q1', type: 'short', label: 'Your full name', required: true }, { id: 'q2', type: 'email', label: 'Mail address', required: true }, { id: 'q3', type: 'phone', label: 'Mobile' }, { id: 'q4', type: 'short', label: 'Student ID' }] } }, T)).j;
+      const cr = await call('POST', `/api/event-registrations/${ce.id}`, { answers: { q1: 'Hand Made', q2: 'Hand.Made@Example.com', q3: '01712345678', q4: 'S-77' } });
+      const row = (await call('GET', `/api/event-registrations/by-event/${ce.id}`, undefined, T)).j[0];
+      ok(cr.s === 201 && row.full_name === 'Hand Made' && row.email === 'hand.made@example.com' && row.phone && row.student_id === 'S-77', 'a hand-made form still fills the name, e-mail, phone and student ID', { s: cr.s, row: row && { n: row.full_name, e: row.email, p: row.phone, i: row.student_id } });
+    }
+
     // points, badges and the leaderboard
     {
       const me = await call('GET', `/api/points/me?ticket=${code}`);

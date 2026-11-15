@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, HelpCircle } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import useStore from '../context/store';
 import Newsletter from './Newsletter';
 import { cn } from '../lib/cn';
+import EmptyState from './EmptyState';
 
 export default function Faq() {
   const faqs = useStore(useShallow((s) => s.faqs)) || [];
@@ -31,7 +32,7 @@ export default function Faq() {
         </div>
 
         <div className="space-y-3">
-          {faqs.length === 0 && <p className="text-center text-sm text-muted">No questions yet.</p>}
+          {faqs.length === 0 && <EmptyState icon={HelpCircle} title="No questions yet" hint="Answers to common questions will be added here. Until then, the Contact page reaches us directly." />}
           {faqs.map((f, i) => (
             <div key={f.id} className={cn('rounded-2xl border bg-surface transition-colors', open === i ? 'border-tech/50 shadow-[var(--shadow-md)]' : 'border-line')}>
               <button type="button" onClick={() => setOpen(open === i ? -1 : i)} aria-expanded={open === i}

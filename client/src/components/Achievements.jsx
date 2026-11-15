@@ -6,6 +6,7 @@ import { useInView } from 'react-intersection-observer';
 import { Trophy, Award } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import useStore from '../context/store';
+import EmptyState from './EmptyState';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 40 },
@@ -28,10 +29,7 @@ export default function Achievements() {
         </motion.div>
 
         {sorted.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--fg-muted)' }}>
-            <Trophy size={48} style={{ opacity: 0.3, marginBottom: 16 }} />
-            <p>Achievements coming soon!</p>
-          </div>
+          <EmptyState icon={Trophy} title="No awards yet" hint="Prizes and achievements of the club and its members will be listed here." className="my-10" />
         )}
 
         <div style={{ maxWidth: 700, margin: '0 auto', position: 'relative', paddingLeft: 36 }}>
