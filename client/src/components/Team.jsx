@@ -245,7 +245,7 @@ export default function Team() {
         <div className="container" style={{ textAlign: 'center' }}>
           <div className="section-tag">Our People</div>
           <h2 className="section-title">Executive Committee</h2>
-          <p className="section-desc">Committee members will appear here once they are added from the admin panel.</p>
+          <p className="section-desc">The executive committee will be announced here soon.</p>
         </div>
       </section>
     );

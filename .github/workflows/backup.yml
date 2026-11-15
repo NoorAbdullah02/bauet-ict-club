@@ -1,12 +1,12 @@
 name: Weekly backup
-# Saves every table of the Neon database, encrypted, as a private build file (kept 90 days). Needs two repository secrets:
+# Saves every table of the Neon database, encrypted, as a file of a private GitHub release (the 12 newest are kept). Needs two repository secrets:
 #   BACKUP_DATABASE_URL  = the Neon connection string        BACKUP_PASSPHRASE = a long secret phrase (needed to open the backup)
 on:
   schedule:
     - cron: '30 21 * * 0' # Sunday 21:30 UTC = Monday 03:30 Bangladesh
   workflow_dispatch:
 permissions:
-  contents: read
+  contents: write # to keep the backup as a release file
 jobs:
   backup:
     runs-on: ubuntu-latest
@@ -26,9 +26,14 @@ jobs:
           npm ci --omit=dev
           node scripts/backup.js ../dump
           tar -czf - -C .. dump | openssl enc -aes-256-cbc -pbkdf2 -salt -pass env:PP -out ../bauet-backup.tar.gz.enc
-      - uses: actions/upload-artifact@v4
+      # kept as a file of a GitHub release (private, like the repository): releases do not use the small artifact storage
+      - name: Keep the backup in a GitHub release
         if: env.SKIP != '1'
-        with:
-          name: bauet-db-backup
-          path: bauet-backup.tar.gz.enc
-          retention-days: 90
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="backup-$(date -u +%Y-%m-%d-%H%M)"
+          mv bauet-backup.tar.gz.enc "bauet-$TAG.tar.gz.enc"
+          gh release create "$TAG" "bauet-$TAG.tar.gz.enc" --title "Database backup $(date -u +%Y-%m-%d)" --notes "Encrypted backup of every table. Open it with the BACKUP_PASSPHRASE (see docs/BACKUP.md)." --latest=false
+          # keep the 12 newest backups
+          gh release list --limit 200 --json tagName -q '.[].tagName' | grep '^backup-' | sort -r | tail -n +13 | while read -r t; do gh release delete "$t" --yes --cleanup-tag || true; done

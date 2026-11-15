@@ -190,6 +190,31 @@ function seal3d(doc, cx, cy, T) {
   doc.moveTo(...st[0]); st.slice(1).forEach((q) => doc.lineTo(...q)); doc.closePath().lineWidth(0.4).strokeColor(T.dark).stroke();
 }
 
+/** Two laurel branches around the seal (open at the top), drawn leaf by leaf. */
+function laurel(doc, cx, cy, r, T) {
+  const leaf = (x, y, deg, k) => { doc.save(); doc.translate(x, y); doc.rotate(deg); doc.scale(k); doc.path('M 0 0 Q 5 -5.5 13 0 Q 5 5.5 0 0 Z').fillColor(T.accent).fill(); doc.restore(); };
+  for (const side of [-1, 1]) {
+    // the stem
+    const pts = []; for (let a = 112; a <= 232; a += 4) { const t = (a * Math.PI) / 180; pts.push([cx + side * -Math.cos(t) * r * -1, cy + Math.sin(t) * r]); }
+    doc.moveTo(...pts[0]); pts.slice(1).forEach((q) => doc.lineTo(...q)); doc.lineWidth(0.8).strokeColor(T.accent).stroke();
+    for (let i = 0; i < 9; i++) {
+      const a = 118 + i * 13.5; const t = (a * Math.PI) / 180;
+      const x = cx + side * Math.cos(t) * r * -1 * -1; const y = cy + Math.sin(t) * r;
+      // direction of travel along the stem (towards the top), then one leaf to each side of it
+      const dir = side === 1 ? a - 90 + 180 : 270 - a + 180;
+      const k = 0.62 + 0.3 * Math.sin((i / 8) * Math.PI);
+      leaf(x, y, dir + 28, k); leaf(x, y, dir - 28, k);
+    }
+  }
+}
+
+/** A large, very faint rosette of fine lines behind the text (like the pattern on a banknote). */
+function rosette(doc, cx, cy, T) {
+  doc.save().lineWidth(0.35).strokeColor(T.accent).strokeOpacity(0.16);
+  for (let i = 0; i < 30; i++) { doc.save(); doc.translate(cx, cy); doc.rotate(i * 6); doc.ellipse(0, 0, 232, 74).stroke(); doc.restore(); }
+  doc.restore();
+}
+
 /**
  * A handwritten-looking signature drawn from a name (when no signature picture is given): the first and last name in script,
  * slightly tilted, with a long swash underneath.
@@ -254,6 +279,7 @@ async function certificatePdf({ name, event, cert = {}, code, siteUrl, defaults 
   frame(doc, W, H, T);
   const ci = 38; const cs = 0.64;
   corner(doc, ci, ci, cs, cs, T); corner(doc, W - ci, ci, -cs, cs, T); corner(doc, ci, H - ci, cs, -cs, T); corner(doc, W - ci, H - ci, -cs, -cs, T);
+  if (cert.show_watermark !== false) rosette(doc, cx, H * 0.53, T);
   if (cert.show_watermark !== false && fs.existsSync(LOGO_UNI_BIG)) { try { doc.save(); doc.opacity(0.045); doc.image(LOGO_UNI_BIG, cx - 150, H / 2 - 158, { width: 300 }); doc.restore(); } catch { /* the watermark is optional */ } }
 
   // header: the university emblem (round plate) and the club logo (rounded plate) have the same height and the same centre line
@@ -267,7 +293,9 @@ async function certificatePdf({ name, event, cert = {}, code, siteUrl, defaults 
   const m = /^certificate\s+(of\s+.+)$/i.exec(full);
   const main = m ? 'CERTIFICATE' : full.toUpperCase(); const sub = m ? m[1].toUpperCase() : '';
   const tg = doc.linearGradient(cx - 250, 0, cx + 250, 0); tg.stop(0, T.ink).stop(0.5, T.inkLight).stop(1, T.ink);
-  doc.fillColor(tg).font(BN.test(main) ? 'bnB' : 'title').fontSize(m ? 46 : main.length > 28 ? 26 : 34).text(main, 0, m ? 63 : 82, { width: W, align: 'center', characterSpacing: m ? 3 : 1, lineBreak: false });
+  const tf2 = BN.test(main) ? 'bnB' : 'title'; const ts2 = m ? 46 : main.length > 28 ? 26 : 34; const ty2 = m ? 63 : 82; const to2 = { width: W, align: 'center', characterSpacing: m ? 3 : 1, lineBreak: false };
+  doc.fillColor(T.light).font(tf2).fontSize(ts2).text(main, 1.1, ty2 + 1.5, to2); // soft depth under the letters
+  doc.fillColor(tg).font(tf2).fontSize(ts2).text(main, 0, ty2, to2);
   if (sub) {
     doc.fillColor(T.ink).font(BN.test(sub) ? 'bn' : 'titleLight').fontSize(17).text(sub, 0, 118, { width: W, align: 'center', characterSpacing: 3.4, lineBreak: false });
     const sw = doc.widthOfString(sub, { characterSpacing: 3.4 }) / 2 + 20;
@@ -371,7 +399,7 @@ async function certificatePdf({ name, event, cert = {}, code, siteUrl, defaults 
   // one quiet line under the seal: where to verify and the certificate ID
   const host = String(siteUrl || '').replace(/^https?:\/\//, '').replace(/\/$/, '');
   doc.fillColor(T.sub).font('Helvetica').fontSize(6.5).text(`Verify at ${host}/verify  ·  Certificate ID ${pretty(code)}`, 0, H - 47, { width: W, align: 'center', lineBreak: false });
-  if (cert.show_seal !== false) seal3d(doc, cx, rowY + 34, T);
+  if (cert.show_seal !== false) { laurel(doc, cx, rowY + 34, 49, T); seal3d(doc, cx, rowY + 34, T); }
 
   const signBlock = async (centerX, signer, title, img, sigText) => {
     const x = centerX - 72;

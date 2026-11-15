@@ -5,6 +5,7 @@ import { ExternalLink, Github, Rocket, Users } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import useStore from '../context/store';
 import { cn } from '../lib/cn';
+import EmptyState from './EmptyState';
 
 const STATUS_STYLE = { Active: 'bg-tech/15 text-tech', Completed: 'bg-accent/15 text-accent', Planning: 'bg-amber-500/15 text-amber-600' };
 
@@ -33,10 +34,7 @@ export default function Projects() {
         )}
 
         {list.length === 0 ? (
-          <div className="mx-auto max-w-md rounded-3xl border border-line bg-surface p-10 text-center">
-            <Rocket className="mx-auto mb-3 text-muted" />
-            <p className="text-sm text-fg2">Projects will appear here once they are added from the admin panel.</p>
-          </div>
+          <EmptyState icon={Rocket} title="No projects yet" hint="Things our members build will be shown here. Want to build with us? Join the club." />
         ) : (
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 [&>*]:min-w-0">
             {list.map((p, i) => (

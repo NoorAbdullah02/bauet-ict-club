@@ -78,7 +78,7 @@ export default function HomeSections() {
           <div>
             <Head tag="Don’t miss" title="Upcoming events" to="/events" cta="All events" />
             <div className="space-y-3">
-              {upcoming.length === 0 && <p className="text-sm text-muted">Events will appear here once they’re added.</p>}
+              {upcoming.length === 0 && <p className="text-sm text-muted">No upcoming event right now. New ones are announced here.</p>}
               {upcoming.map((e) => (
                 <Link key={e.id} to="/events" className="spot group flex items-center gap-5 rounded-3xl border border-line bg-surface p-4 pr-6 transition hover:-translate-y-0.5 hover:border-accent/50">
                   <div className="grid size-20 shrink-0 place-items-center rounded-2xl text-center" style={{ background: 'var(--grad-btn)', color: 'var(--btn-fg)' }}>

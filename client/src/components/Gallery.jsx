@@ -5,6 +5,7 @@ import { useInView } from 'react-intersection-observer';
 import { Image, X } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import useStore from '../context/store';
+import EmptyState from './EmptyState';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 40 },
@@ -52,10 +53,7 @@ export default function Gallery() {
         )}
 
         {filtered.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--fg-muted)' }}>
-            <Image size={48} style={{ opacity: 0.3, marginBottom: 16 }} />
-            <p>Gallery coming soon!</p>
-          </div>
+          <EmptyState icon={Image} title="No photos yet" hint="Pictures from our events and activities will be shared here soon." className="my-10" />
         )}
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 16 }}>

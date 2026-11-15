@@ -12,6 +12,7 @@ import { downloadIcs, eventStart } from '../lib/ics';
 import { eventLink, shareLinks, copyText, nativeShare } from '../lib/share';
 import { Link as RouterLink } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import EmptyState from './EmptyState';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 40 },
@@ -129,10 +130,7 @@ export default function Events() {
 
         {view === 'calendar' ? <EventCalendar events={calEvents} /> : <>
         {sorted.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--fg-muted)' }}>
-            <Calendar size={48} style={{ opacity: 0.3, marginBottom: 16 }} />
-            <p>{events.length ? 'No events match. Try another filter.' : 'No events yet. Check back soon!'}</p>
-          </div>
+          <EmptyState icon={Calendar} title={events.length ? 'No events match' : 'No events yet'} hint={events.length ? 'Try another filter or search word.' : 'New workshops, contests and seminars are announced here. Check back soon.'} className="my-10" />
         )}
 
         {groups.map((g) => (

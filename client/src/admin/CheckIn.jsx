@@ -118,7 +118,7 @@ export default function CheckIn() {
     try {
       const { data } = await api.get(certUrl('/preview'), { params: r ? { reg: r.id } : {}, responseType: 'blob' });
       const blob = new Blob([data], { type: 'application/pdf' });
-      setView((old) => { if (old?.url) URL.revokeObjectURL(old.url); return { blob, url: URL.createObjectURL(blob), title: r ? nameOf(r) : 'Sample certificate' }; });
+      setView((old) => { if (old?.url) URL.revokeObjectURL(old.url); return { blob, url: URL.createObjectURL(blob), title: r ? (r.name || nameOf(r)) : 'Sample certificate' }; });
     } catch (e) { toast.error('Could not open the preview. Make sure certificates are switched on and saved for this event.'); }
   };
   const closeView = () => setView((old) => { if (old?.url) URL.revokeObjectURL(old.url); return null; });
@@ -275,7 +275,7 @@ export default function CheckIn() {
         ))}
       </div>
       {view && (
-        <div className="fixed inset-0 z-[380] grid place-items-center bg-black/80 p-3" role="dialog" aria-modal="true" aria-label={`Certificate: ${view.title}`} onClick={closeView}>
+        <div className="fixed inset-0 z-[1000] grid place-items-center overflow-y-auto bg-black/80 p-3" role="dialog" aria-modal="true" aria-label={`Certificate: ${view.title}`} onClick={closeView}>
           <div className="w-full max-w-4xl rounded-2xl bg-surface p-3 shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <div className="mb-2 flex items-center justify-between gap-3 px-1">
               <b className="truncate text-sm text-fg">{view.title}</b>
