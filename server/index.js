@@ -51,7 +51,12 @@ app.use(helmet({
 app.use(compression());
 
 // browsers only: the site and the admin panel call this API from their own origin. Add other origins (e.g. the mobile web build) via CORS_ORIGINS.
-const allowed = (process.env.CORS_ORIGINS || '').split(',').map((o) => o.trim()).filter(Boolean);
+const defaultOrigins = [
+  'https://bauetictclub.eu.org',
+  'https://www.bauetictclub.eu.org',
+  'https://bauet-ict-club.onrender.com'
+];
+const allowed = [...new Set([...defaultOrigins, ...(process.env.CORS_ORIGINS || '').split(',').map((o) => o.trim()).filter(Boolean)])];
 app.use(cors({
   origin: (origin, cb) => {
     if (!origin) return cb(null, true); // mobile apps, curl and same-origin requests send no Origin header

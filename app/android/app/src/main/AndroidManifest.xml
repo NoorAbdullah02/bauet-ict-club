@@ -66,6 +66,50 @@
                 <data android:scheme="https" android:host="bauet-ict-club.onrender.com" android:pathPrefix="/about" />
                 <data android:scheme="https" android:host="bauet-ict-club.onrender.com" android:pathPrefix="/contact" />
                 <data android:scheme="https" android:host="bauet-ict-club.onrender.com" android:pathPrefix="/ambassadors" />
+
+                <data android:scheme="https" android:host="bauetictclub.eu.org" android:pathPrefix="/events" />
+                <data android:scheme="https" android:host="bauetictclub.eu.org" android:pathPrefix="/card" />
+                <data android:scheme="https" android:host="bauetictclub.eu.org" android:pathPrefix="/ticket" />
+                <data android:scheme="https" android:host="bauetictclub.eu.org" android:pathPrefix="/verify" />
+                <data android:scheme="https" android:host="bauetictclub.eu.org" android:pathPrefix="/f" />
+                <data android:scheme="https" android:host="bauetictclub.eu.org" android:pathPrefix="/contests" />
+                <data android:scheme="https" android:host="bauetictclub.eu.org" android:pathPrefix="/jobs" />
+                <data android:scheme="https" android:host="bauetictclub.eu.org" android:pathPrefix="/notices" />
+                <data android:scheme="https" android:host="bauetictclub.eu.org" android:pathPrefix="/team" />
+                <data android:scheme="https" android:host="bauetictclub.eu.org" android:pathPrefix="/projects" />
+                <data android:scheme="https" android:host="bauetictclub.eu.org" android:pathPrefix="/resources" />
+                <data android:scheme="https" android:host="bauetictclub.eu.org" android:pathPrefix="/leaderboard" />
+                <data android:scheme="https" android:host="bauetictclub.eu.org" android:pathPrefix="/my-card" />
+                <data android:scheme="https" android:host="bauetictclub.eu.org" android:pathPrefix="/tickets" />
+                <data android:scheme="https" android:host="bauetictclub.eu.org" android:pathPrefix="/join" />
+                <data android:scheme="https" android:host="bauetictclub.eu.org" android:pathPrefix="/gallery" />
+                <data android:scheme="https" android:host="bauetictclub.eu.org" android:pathPrefix="/achievements" />
+                <data android:scheme="https" android:host="bauetictclub.eu.org" android:pathPrefix="/faq" />
+                <data android:scheme="https" android:host="bauetictclub.eu.org" android:pathPrefix="/about" />
+                <data android:scheme="https" android:host="bauetictclub.eu.org" android:pathPrefix="/contact" />
+                <data android:scheme="https" android:host="bauetictclub.eu.org" android:pathPrefix="/ambassadors" />
+
+                <data android:scheme="https" android:host="www.bauetictclub.eu.org" android:pathPrefix="/events" />
+                <data android:scheme="https" android:host="www.bauetictclub.eu.org" android:pathPrefix="/card" />
+                <data android:scheme="https" android:host="www.bauetictclub.eu.org" android:pathPrefix="/ticket" />
+                <data android:scheme="https" android:host="www.bauetictclub.eu.org" android:pathPrefix="/verify" />
+                <data android:scheme="https" android:host="www.bauetictclub.eu.org" android:pathPrefix="/f" />
+                <data android:scheme="https" android:host="www.bauetictclub.eu.org" android:pathPrefix="/contests" />
+                <data android:scheme="https" android:host="www.bauetictclub.eu.org" android:pathPrefix="/jobs" />
+                <data android:scheme="https" android:host="www.bauetictclub.eu.org" android:pathPrefix="/notices" />
+                <data android:scheme="https" android:host="www.bauetictclub.eu.org" android:pathPrefix="/team" />
+                <data android:scheme="https" android:host="www.bauetictclub.eu.org" android:pathPrefix="/projects" />
+                <data android:scheme="https" android:host="www.bauetictclub.eu.org" android:pathPrefix="/resources" />
+                <data android:scheme="https" android:host="www.bauetictclub.eu.org" android:pathPrefix="/leaderboard" />
+                <data android:scheme="https" android:host="www.bauetictclub.eu.org" android:pathPrefix="/my-card" />
+                <data android:scheme="https" android:host="www.bauetictclub.eu.org" android:pathPrefix="/tickets" />
+                <data android:scheme="https" android:host="www.bauetictclub.eu.org" android:pathPrefix="/join" />
+                <data android:scheme="https" android:host="www.bauetictclub.eu.org" android:pathPrefix="/gallery" />
+                <data android:scheme="https" android:host="www.bauetictclub.eu.org" android:pathPrefix="/achievements" />
+                <data android:scheme="https" android:host="www.bauetictclub.eu.org" android:pathPrefix="/faq" />
+                <data android:scheme="https" android:host="www.bauetictclub.eu.org" android:pathPrefix="/about" />
+                <data android:scheme="https" android:host="www.bauetictclub.eu.org" android:pathPrefix="/contact" />
+                <data android:scheme="https" android:host="www.bauetictclub.eu.org" android:pathPrefix="/ambassadors" />
             </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
