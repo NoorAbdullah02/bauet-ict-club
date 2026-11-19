@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { NavLink, Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, Sun, Moon, Monitor, Shield, ArrowRight, Download, Search, ChevronDown, Briefcase, Globe2, Swords, Trophy, Library, HelpCircle, IdCard, Languages, Users, Calendar, Home, Info, Megaphone, Code2, Image, Award, Mail, GraduationCap } from 'lucide-react';
+import { Menu, X, Sun, Moon, Monitor, Shield, ArrowRight, Download, Search, ChevronDown, Briefcase, Globe2, Swords, Trophy, Library, HelpCircle, IdCard, Languages, Users, Calendar, Home, Info, Megaphone, Code2, Image, Award, Mail, GraduationCap, Facebook } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import Logo from './Logo';
 import SearchBox from './SearchBox';
@@ -128,6 +128,9 @@ export default function Navbar() {
 
           <div className="nav-actions flex shrink-0 items-center gap-2">
             <button onClick={() => setSearching(true)} className={iconBtn} aria-label={t('Search the site')} title={`${t('Search')} ( / )`}><Search size={16} /></button>
+            <a href="https://www.facebook.com/bauetictclub" target="_blank" rel="noopener noreferrer" className={cn(iconBtn, 'max-sm:hidden hover:border-[#1877F2] hover:text-[#1877F2]')} aria-label="Official Facebook Page" title="BAUET ICT Club on Facebook">
+              <Facebook size={16} />
+            </a>
             <button onClick={() => setTheme(nextTheme)} className={iconBtn} aria-label={`${themeLabel}. Press to change`} title={`${themeLabel}. Press to change`}>
               {theme === 'dark' ? <Moon size={16} /> : theme === 'system' ? <Monitor size={16} /> : <Sun size={16} />}
             </button>

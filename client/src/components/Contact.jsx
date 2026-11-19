@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
-import { Mail, Phone, MapPin, Globe, Send } from 'lucide-react';
+import { Mail, Phone, MapPin, Globe, Send, Facebook } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useShallow } from 'zustand/react/shallow';
 import useStore from '../context/store';
@@ -21,6 +21,7 @@ export default function Contact() {
 
   const contacts = [
     { icon: Mail, label: 'Email', value: s.email || 'ictclubbauet@gmail.com', href: `mailto:${s.email || 'ictclubbauet@gmail.com'}` },
+    { icon: Facebook, label: 'Facebook Page', value: 'fb.com/bauetictclub', href: s.fb || 'https://www.facebook.com/bauetictclub' },
     { icon: Phone, label: 'Phone', value: s.phone || '01748-269350', href: `tel:${s.phone || '01748-269350'}` },
     { icon: MapPin, label: 'Location', value: 'BAUET, Qadirabad Cantonment, Natore, Rajshahi' },
     { icon: Globe, label: 'Website', value: s.website || 'bauet.ac.bd', href: `https://${s.website || 'bauet.ac.bd'}` },

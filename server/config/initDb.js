@@ -195,6 +195,7 @@ async function initDb() {
       id SERIAL PRIMARY KEY, email TEXT NOT NULL, name TEXT, points INTEGER NOT NULL, reason TEXT NOT NULL,
       created_at TIMESTAMPTZ DEFAULT NOW(), deleted_at TIMESTAMPTZ
     )`);
+    await client.query('ALTER TABLE point_awards ADD COLUMN IF NOT EXISTS is_demo BOOLEAN DEFAULT false');
     await client.query('CREATE INDEX IF NOT EXISTS idx_point_awards_email ON point_awards (LOWER(email))');
     // drafts and scheduled posts
     for (const t of ['events', 'notices', ...features.filter((f) => f.scheduled).map((f) => f.table)]) {
