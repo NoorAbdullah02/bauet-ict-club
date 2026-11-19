@@ -155,9 +155,13 @@ const templates = {
     text: `Hi ${r.full_name}, we received your ${typeLabel(r)}. We will email you when it is reviewed.`,
   }),
   applicationSelected: (r, position, session) => ({
-    subject: `Congratulations! You are selected | BAUET ICT Club`,
-    html: layout({ title: 'You are selected 🎉', body: `<p>Dear ${esc(r.full_name)},</p><p>We are happy to tell you that you have been selected as <b>${esc(position)}</b> for the <b>${esc(session)}</b> session.</p>${r.post && r.type === 'committee' && r.post !== position ? `<p>You applied for <b>${esc(r.post)}</b>; after reviewing all applications the committee has placed you as <b>${esc(position)}</b>, where we think you will do great work.</p>` : ''}<p>Your photo and post are now published on our Team page. Welcome to the team!</p>`, button: { href: `${siteUrl()}/team`, label: 'See the team page' } }),
-    text: `Congratulations ${r.full_name}! You are selected as ${position} for ${session}.`,
+    subject: `Congratulations! You are selected as ${position} | BAUET ICT Club`,
+    html: layout({
+      title: 'You are selected 🎉',
+      body: `<p>Dear ${esc(r.full_name)},</p><p>We are happy to tell you that you have been selected as <b>${esc(position)}</b> for the <b>${esc(session)}</b> session.</p>${r.post && r.type === 'committee' && r.post !== position ? `<p>You applied for <b>${esc(r.post)}</b>; after reviewing all applications the committee has placed you as <b>${esc(position)}</b>, where we think you will do great work.</p>` : ''}<p>Your photo and role are now published on our Team page. Welcome to the leadership team!</p><p><b>Your Digital Member Card:</b> Your official membership card is ready. You can view, save, or share it anytime using the button below:</p>`,
+      button: { href: r.card_path ? `${siteUrl()}${r.card_path}` : `${siteUrl()}/team`, label: 'Open My Member Card' }
+    }),
+    text: `Congratulations ${r.full_name}! You are selected as ${position} for ${session}. Your member card: ${siteUrl()}${r.card_path || '/team'}`,
   }),
   // sent the moment someone registers for ONE event: it names that event, its time and place, and carries the organiser's own note
   eventRegistered: (r, ev, fDate, fTime) => ({
