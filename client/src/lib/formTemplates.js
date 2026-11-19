@@ -1,4 +1,4 @@
-import { BATCH_LIST, DEPT_LIST } from './forms';
+import { BATCH_LIST, DEPT_LIST } from './forms.js';
 
 const name = { id: 'name', key: 'name', type: 'short', label: 'Full name', required: true };
 const sid = { id: 'student_id', key: 'student_id', type: 'short', label: 'Student ID', required: true };
