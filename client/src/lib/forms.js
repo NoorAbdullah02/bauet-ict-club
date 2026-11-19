@@ -60,3 +60,18 @@ export function ruleProblem(f, v) {
   if (f.type === 'checkbox' && Array.isArray(v)) { if (f.minSel && v.length < f.minSel) return `Choose at least ${f.minSel}`; if (f.maxSel && v.length > f.maxSel) return `Choose at most ${f.maxSel}`; }
   return '';
 }
+
+/** Smoothly scrolls the viewport to the first form element showing an error */
+export function scrollToFirstError(container = document) {
+  setTimeout(() => {
+    const el = container.querySelector('.text-red-500, [aria-invalid="true"], .border-red-500');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const target = ['INPUT', 'SELECT', 'TEXTAREA'].includes(el.tagName)
+        ? el
+        : el.closest('label')?.querySelector('input, select, textarea') || el.parentElement?.querySelector('input, select, textarea');
+      target?.focus?.();
+    }
+  }, 60);
+}
+

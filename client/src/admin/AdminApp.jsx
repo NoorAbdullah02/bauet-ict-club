@@ -75,6 +75,11 @@ function Sidebar({ badges, onNavigate }) {
 }
 
 export default function AdminApp() {
+  useEffect(() => {
+    const meta = Object.assign(document.createElement('meta'), { name: 'robots', content: 'noindex, nofollow' });
+    document.head.appendChild(meta);
+    return () => meta.remove();
+  }, []);
   const { user, logout, checkAuth, adminTheme, setAdminTheme, registrations, messages, trash, fetchTrash, fetchRegistrations, fetchMessages } = useStore(useShallow((s) => ({
     user: s.user, logout: s.logout, checkAuth: s.checkAuth, adminTheme: s.adminTheme, setAdminTheme: s.setAdminTheme,
     registrations: s.registrations, messages: s.messages, trash: s.trash, fetchTrash: s.fetchTrash, fetchRegistrations: s.fetchRegistrations, fetchMessages: s.fetchMessages,

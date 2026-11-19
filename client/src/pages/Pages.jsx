@@ -27,6 +27,7 @@ import JoinAmbassador from '../components/join/JoinAmbassador';
 import Ambassadors from './Ambassadors';
 import GetApp from '../components/GetApp';
 import MemberCardPage from '../components/MemberCardPage';
+import MemberProfile from '../components/MemberProfile';
 
 const page = (Comp, variant) => function Page() { return <PageShell variant={variant}><Comp /></PageShell>; };
 
@@ -53,6 +54,7 @@ export const JoinAmbassadorPage = JoinAmbassador;
 export const AmbassadorsPage = Ambassadors;
 export const GetAppPage = page(GetApp, 'orbs');
 export const MemberCardRoute = page(MemberCardPage, 'orbs');
+export const MemberProfileRoute = page(MemberProfile, 'orbs');
 export const ResourcesPage = page(Resources, 'orbs');
 export const LeaderboardPage = page(Leaderboard, 'orbs');
 export const ContestsPage = page(Contests, 'orbs');

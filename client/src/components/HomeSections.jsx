@@ -11,6 +11,8 @@ import PanelShowcase from './PanelShowcase';
 import Sponsors from './Sponsors';
 import Newsletter from './Newsletter';
 import NextEvent from './NextEvent';
+import VideoShowcase from './VideoShowcase';
+import Testimonials from './Testimonials';
 
 const fmt = (d) => { try { return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }); } catch { return ''; } };
 
@@ -112,6 +114,10 @@ export default function HomeSections() {
           </div>
         </div>
       </section>
+
+      <VideoShowcase />
+
+      <Testimonials />
 
       <section className="section">
         <div className="container">

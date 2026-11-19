@@ -100,6 +100,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: _Stats(state: state).stagger(0),
           ),
+          const SizedBox(height: 24),
+          _MediaReelStrip(items: state.gallery).stagger(0),
+          const SizedBox(height: 20),
+          const _VideoHighlightsCard().stagger(0),
           if (state.featuredCommittee.isNotEmpty) ...[
             const SizedBox(height: 30),
             _AvatarStrip(
@@ -164,12 +168,28 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 ? const EmptyState(icon: Icons.campaign_outlined, title: 'No notices right now')
                 : Column(children: [for (var i = 0; i < notices.length; i++) _NoticeTile(notice: notices[i]).stagger(i)]),
           ),
-          if (state.sponsors.isNotEmpty) ...[
-            const SizedBox(height: 30),
-            const Padding(padding: EdgeInsets.symmetric(horizontal: 20), child: CodeLabel('our collaborations')),
-            const SizedBox(height: 12),
+          // Partnerships & Collaborations
+          const SizedBox(height: 30),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const SectionHeader(
+                  eyebrow: 'Collaborations',
+                  title: 'Partners & Sponsors',
+                ),
+                TextButton(
+                  onPressed: () => context.go('/contact'),
+                  child: Text(tr('Partner with us')),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          if (state.sponsors.isNotEmpty)
             SizedBox(
-              height: 64,
+              height: 74,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -180,17 +200,63 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                   return GestureDetector(
                     onTap: s.website.isEmpty ? null : () => openUrl(context, normalizeLink(s.website)),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 18),
-                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: p.line)),
-                      child: s.logoUrl.isNotEmpty
-                          ? SizedBox(width: 90, child: NetImage(s.logoUrl, fit: BoxFit.contain, fallbackLabel: s.name))
-                          : Center(child: Text(s.name, style: bodyStyle(context, color: const Color(0xFF0A1A3F), weight: FontWeight.w700, size: 13))),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(color: p.line),
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          if (s.logoUrl.isNotEmpty)
+                            SizedBox(height: 32, child: NetImage(s.logoUrl, fit: BoxFit.contain, fallbackLabel: s.name))
+                          else
+                            Text(s.name, style: bodyStyle(context, color: const Color(0xFF0A1A3F), weight: FontWeight.w700, size: 13)),
+                          if (s.tier.isNotEmpty) ...[
+                            const SizedBox(height: 3),
+                            Text(
+                              s.tier,
+                              style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.blueGrey),
+                            ),
+                          ],
+                        ],
+                      ),
                     ),
                   );
                 },
               ),
+            )
+          else
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: GlassCard(
+                onTap: () => context.go('/contact'),
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    Icon(Icons.handshake_outlined, color: p.tech, size: 28),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Interested in Partnering?',
+                            style: displayStyle(context, 14, weight: FontWeight.w700),
+                          ),
+                          Text(
+                            'Collaborate on workshops, hackathons & tech events.',
+                            style: bodyStyle(context, size: 12, color: p.muted),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(Icons.arrow_forward_rounded, size: 18, color: p.accent),
+                  ],
+                ),
+              ),
             ),
-          ],
           const SizedBox(height: 28),
           const Padding(padding: EdgeInsets.symmetric(horizontal: 20), child: NewsletterBox()),
           const SizedBox(height: 14),
@@ -509,5 +575,193 @@ class _AvatarStrip extends StatelessWidget {
         ),
       ),
     ]);
+  }
+}
+
+/// Horizontal photo reel showing club moments in motion.
+class _MediaReelStrip extends StatelessWidget {
+  const _MediaReelStrip({required this.items});
+  final List<GalleryItem> items;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.pal;
+    // Curated fallback moments when database has no gallery items yet
+    final displayItems = items.isNotEmpty
+        ? items
+        : [
+            GalleryItem.fromJson({
+              'id': 101,
+              'title': 'National Hackathon Championship',
+              'category': 'Contest',
+              'image_url': 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=800&q=80',
+            }),
+            GalleryItem.fromJson({
+              'id': 102,
+              'title': 'Robotics & Hardware Lab',
+              'category': 'Robotics',
+              'image_url': 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?auto=format&fit=crop&w=800&q=80',
+            }),
+            GalleryItem.fromJson({
+              'id': 103,
+              'title': 'AI & Machine Learning Workshop',
+              'category': 'Workshop',
+              'image_url': 'https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=800&q=80',
+            }),
+          ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: SectionHeader(
+            eyebrow: 'In motion',
+            title: 'Campus Life & Moments',
+            trailing: TextButton(
+              onPressed: () => context.go('/gallery'),
+              child: Text(tr('See all')),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          height: 175,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            itemCount: displayItems.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 14),
+            itemBuilder: (context, i) {
+              final g = displayItems[i];
+              return GestureDetector(
+                onTap: () => context.go('/gallery'),
+                child: Container(
+                  width: 240,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(22),
+                    border: Border.all(color: p.line),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.06),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      NetImage(g.imageUrl, fallbackLabel: g.title),
+                      Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.transparent,
+                              Colors.black.withValues(alpha: 0.85),
+                            ],
+                          ),
+                        ),
+                      ),
+                      if (g.category.isNotEmpty)
+                        Positioned(
+                          top: 10,
+                          left: 10,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: Colors.black54,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              g.category,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      Positioned(
+                        bottom: 12,
+                        left: 12,
+                        right: 12,
+                        child: Text(
+                          g.title.isNotEmpty ? g.title : 'Club moment',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Highlight card showing video content and campus journey.
+class _VideoHighlightsCard extends StatelessWidget {
+  const _VideoHighlightsCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.pal;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: GlassCard(
+        onTap: () => openUrl(context, 'https://www.youtube.com'),
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                gradient: p.brand,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 32),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'CLUB IN MOTION',
+                    style: TextStyle(
+                      color: p.tech,
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Watch our hackathon recap & tech talks',
+                    style: displayStyle(context, 14, weight: FontWeight.w700),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.arrow_forward_ios_rounded, size: 14, color: p.muted),
+          ],
+        ),
+      ),
+    );
   }
 }

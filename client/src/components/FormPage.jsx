@@ -7,7 +7,7 @@ import { api } from '../context/store';
 import DynamicForm from './DynamicForm';
 import PaymentBox from './PaymentBox';
 import { useGateway, modeOf } from '../lib/pay';
-import { isVisible, isEmpty, themeStyle } from '../lib/forms';
+import { isVisible, isEmpty, themeStyle, scrollToFirstError } from '../lib/forms';
 import { formalDate, formalTime } from '../lib/format';
 import { shareLinks, copyText, nativeShare } from '../lib/share';
 import CheckEmailNote from './CheckEmailNote';
@@ -59,14 +59,24 @@ export default function FormPage() {
       if (!/^[A-Za-z0-9]{6,20}$/.test(String(payment.trx_id || '').trim())) pe.trx_id = 'Enter the transaction ID (6 to 20 letters and numbers)';
     }
     setErrors(err); setPayErrors(pe);
-    if (Object.keys(err).length || Object.keys(pe).length) { toast.error('Please check the highlighted questions'); return; }
+    if (Object.keys(err).length || Object.keys(pe).length) {
+      toast.error('Please check the highlighted questions');
+      scrollToFirstError();
+      return;
+    }
     setBusy(true);
     try {
       const answers = Object.fromEntries(fields.filter((f) => isVisible(f, values)).map((f) => [f.id, values[f.id]]).filter(([, v]) => !isEmpty(v)));
       const r = await api.post(`/forms/public/${slug}`, { _hp: document.querySelector('input[data-hp]')?.value || '', answers, ...(payCfg ? (payMode === 'online' ? { pay_mode: 'online' } : { payment: { method: payCfg.methods[0], ...payment } }) : {}) });
       if (r.data.pay_url) { window.location.assign(r.data.pay_url); return; }
       setDone({ message: r.data.message, pending: r.data.pending_payment });
-    } catch (ex) { const d = ex.response?.data; if (d?.fields) setErrors(d.fields); if (d?.payment) setPayErrors(d.payment); toast.error(d?.error || 'Could not submit. Please try again.'); }
+    } catch (ex) {
+      const d = ex.response?.data;
+      if (d?.fields) setErrors(d.fields);
+      if (d?.payment) setPayErrors(d.payment);
+      scrollToFirstError();
+      toast.error(d?.error || 'Could not submit. Please try again.');
+    }
     setBusy(false);
   };
 

@@ -7,7 +7,16 @@ import { Field, PhotoDrop, inputCls, useApplication, BATCHES } from './shared';
 import { cn } from '../../lib/cn';
 import CheckEmailNote from '../CheckEmailNote';
 
-const DEPTS = [['ICE', 'Information & Communication'], ['CSE', 'Computer Science'], ['EEE', 'Electrical & Electronic'], ['CE', 'Civil'], ['ME', 'Mechanical']];
+const DEPTS = [
+  ['ICE', 'Information & Communication'],
+  ['CSE', 'Computer Science & Engineering'],
+  ['EEE', 'Electrical & Electronic'],
+  ['CE', 'Civil Engineering'],
+  ['ME', 'Mechanical Engineering'],
+  ['BBA', 'Business Administration'],
+  ['LLB', 'Bachelor of Laws'],
+  ['ENG', 'English Language & Literature'],
+];
 const ROLE = ['Be the voice of the club in your department', 'Spread news of events, contests and notices', 'Bring new members and ideas to the committee'];
 
 const rules = (f) => (f.photo_url ? {} : { photo_url: 'A profile photo is required' });

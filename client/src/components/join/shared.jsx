@@ -5,9 +5,10 @@ import { useShallow } from 'zustand/react/shallow';
 import useStore from '../../context/store';
 import { cn } from '../../lib/cn';
 import { compressImage } from '../../lib/compressImage';
+import { scrollToFirstError } from '../../lib/forms';
 
 export { POSTS } from '../../lib/posts';
-export const DEPARTMENTS = ['ICE', 'CSE', 'EEE', 'CE', 'ME', 'Other'];
+export const DEPARTMENTS = ['ICE', 'CSE', 'EEE', 'CE', 'ME', 'BBA', 'LLB', 'ENG', 'Other'];
 export const BATCHES = Array.from({ length: 19 }, (_, i) => String(12 + i));
 
 export const inputCls = (err) => cn(
@@ -61,7 +62,7 @@ export function PhotoDrop({ value, onFile, uploading, error, optional }) {
   );
 }
 
-const BASE = { full_name: '', student_id: '', batch: '', department: '', phone: '', email: '', gender: '', note: '', photo_url: '' };
+const BASE = { full_name: '', student_id: '', batch: '', department: '', phone: '', email: '', gender: '', birth_date: '', note: '', photo_url: '' };
 
 /** Shared state, validation and submit flow for both application types. */
 export function useApplication(type, extra, extraRules) {
@@ -110,14 +111,21 @@ export function useApplication(type, extra, extraRules) {
 
   const submit = async () => {
     const e = validate();
-    if (Object.keys(e).length) { toast.error('Please fix the highlighted fields'); return false; }
+    if (Object.keys(e).length) {
+      toast.error('Please fix the highlighted fields');
+      scrollToFirstError();
+      return false;
+    }
     setBusy(true);
     try {
       const res = await submitRegistration({ ...form, type });
       setDone(res.registration);
     } catch (err) {
       const d = err.response?.data;
-      if (d?.fields) setErrors(d.fields);
+      if (d?.fields) {
+        setErrors(d.fields);
+        scrollToFirstError();
+      }
       toast.error(d?.error || 'Could not submit. Please try again.');
     }
     setBusy(false);

@@ -240,6 +240,16 @@ const templates = {
     text: `${m.name} <${m.email}>: ${m.message}`,
     replyTo: m.email,
   }),
+  birthdayWish: (member) => ({
+    subject: `Happy Birthday, ${member.full_name || member.name}! 🎂 | BAUET ICT Club`,
+    html: layout({
+      title: 'Happy Birthday! 🎈🎉',
+      body: `<p>Dear <b>${esc(member.full_name || member.name)}</b>,</p><p>On behalf of the entire <b>BAUET ICT Club</b> family, we wish you a very <b>Happy Birthday!</b> 🎂✨</p><p>Thank you for being a valued part of our tech community. May your upcoming year be filled with breakthrough innovations, continuous learning, debugging superpowers, and great achievements!</p><p>Keep coding, innovating, and inspiring our campus.</p>`,
+      button: { href: member.card_path ? `${siteUrl()}${member.card_path}` : `${siteUrl()}/my-card`, label: 'View my member card' },
+      footerNote: 'Warmest wishes from BAUET ICT Club 💙',
+    }),
+    text: `Happy Birthday ${member.full_name || member.name}! On behalf of the entire BAUET ICT Club, we wish you a very Happy Birthday filled with joy and success!`,
+  }),
   subscribeWelcome: (email) => ({
     subject: 'Welcome to BAUET ICT Club news',
     html: layout({ title: 'You are subscribed', body: '<p>Thanks for subscribing. You will hear about workshops, hackathons, contests and notices.</p>', button: { href: `${siteUrl()}/events`, label: 'See upcoming events' }, footerNote: `Not you? <a href="${esc(unsubscribeUrl(email))}" style="color:#1F4FD8">Unsubscribe</a>` }),
