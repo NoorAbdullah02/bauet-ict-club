@@ -62,7 +62,7 @@ export function PhotoDrop({ value, onFile, uploading, error, optional }) {
   );
 }
 
-const BASE = { full_name: '', student_id: '', batch: '', department: '', phone: '', email: '', gender: '', birth_date: '', note: '', photo_url: '' };
+const BASE = { full_name: '', student_id: '', batch: '', department: '', phone: '', email: '', gender: '', note: '', photo_url: '' };
 
 /** Shared state, validation and submit flow for both application types. */
 export function useApplication(type, extra, extraRules) {
