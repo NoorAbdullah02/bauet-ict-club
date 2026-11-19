@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@react-three/drei": "^9.121.3",
-    "@react-three/fiber": "^8.17.14",
+    "@react-three/fiber": "^9.8.2",
     "@tailwindcss/vite": "^4.3.4",
     "axios": "^1.7.9",
     "clsx": "^2.1.1",
