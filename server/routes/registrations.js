@@ -267,7 +267,9 @@ router.post('/:id/select', authMiddleware, async (req, res) => {
     );
     const updated = await client.query("UPDATE registrations SET status = 'approved' WHERE id = $1 RETURNING *", [r.id]);
     await client.query('COMMIT');
-    mail.sendMail({ to: r.email, ...mail.templates.applicationSelected(r, position, session) });
+    const { cardCode } = require('./card');
+    const cardPath = `/card/${member.rows[0].id}?c=${cardCode(String(member.rows[0].id))}`;
+    mail.sendMail({ to: r.email, ...mail.templates.applicationSelected({ ...r, card_path: cardPath }, position, session) });
     res.json({ registration: updated.rows[0], member: member.rows[0] });
     // the team picture lives in this committee's own Cloudinary folder; until the copy is ready the application photo link works
     cloneImage(r.photo_url, 'committees', session).then((next) => next && next !== r.photo_url && pool.query('UPDATE members SET image_url = $1 WHERE id = $2', [next, member.rows[0].id])).catch(() => {});
