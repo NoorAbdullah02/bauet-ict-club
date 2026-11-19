@@ -56,7 +56,9 @@ router.post('/launch', authMiddleware, async (req, res) => {
   const session = clean(req.body.session, 50);
   const copyFrom = clean(req.body.copyFrom, 50);
   const scope = ['none', 'leaders', 'all'].includes(req.body.scope) ? req.body.scope : 'none';
-  if (!/^(Summer|Winter|Spring|Autumn|Session)\s+\S+/i.test(session)) return res.status(400).json({ error: 'Use a name like “Winter 2027”' });
+  if (!/^(Summer|Winter|Spring|Autumn|Fall|Session|Semester|\d{4})\b/i.test(session) && session.length < 3) {
+    return res.status(400).json({ error: 'Use a name like “Fall 2026” or “Spring 2027”' });
+  }
 
   try {
     const existing = await allSessions();

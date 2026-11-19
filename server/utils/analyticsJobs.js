@@ -62,11 +62,74 @@ async function feedbackRequests() {
   } catch (e) { console.warn('Feedback requests failed:', e.message); }
 }
 
+/** Send birthday greeting emails to members on their birthday (Bangladesh UTC+6). Sent once per member per year. */
+async function birthdayWishes() {
+  if (!mail.provider()) return;
+  try {
+    const now = new Date(Date.now() + 6 * 3600e3); // Bangladesh is UTC+6
+    const month = now.getUTCMonth() + 1;
+    const day = now.getUTCDate();
+    const year = now.getUTCFullYear();
+    const logKey = `birthday_log_${year}`;
+
+    // Load who already received wishes this year
+    let sentLog = {};
+    try {
+      const row = (await pool.query('SELECT value FROM settings WHERE key = $1', [logKey])).rows[0];
+      if (row?.value) sentLog = typeof row.value === 'string' ? JSON.parse(row.value) : row.value;
+    } catch { /* key might not exist yet */ }
+
+    // 1. Check approved registrations
+    const regQuery = `
+      SELECT id, full_name, email, birth_date, type, post 
+      FROM registrations 
+      WHERE deleted_at IS NULL AND status = 'approved' AND email IS NOT NULL AND birth_date IS NOT NULL
+        AND EXTRACT(MONTH FROM birth_date) = $1 AND EXTRACT(DAY FROM birth_date) = $2
+    `;
+    const regRows = (await pool.query(regQuery, [month, day])).rows;
+
+    // 2. Check active committee members
+    const memQuery = `
+      SELECT id, name AS full_name, email, birth_date, position 
+      FROM members 
+      WHERE deleted_at IS NULL AND active = true AND email IS NOT NULL AND birth_date IS NOT NULL
+        AND EXTRACT(MONTH FROM birth_date) = $1 AND EXTRACT(DAY FROM birth_date) = $2
+    `;
+    let memRows = [];
+    try { memRows = (await pool.query(memQuery, [month, day])).rows; } catch { /* columns might be migrating */ }
+
+    const candidates = [...regRows, ...memRows];
+    let newlySent = 0;
+
+    for (const c of candidates) {
+      const email = String(c.email || '').toLowerCase().trim();
+      if (!email || sentLog[email]) continue;
+
+      const cardPath = c.type ? `/card/r${c.id}` : `/card/${c.id}`;
+      mail.sendMail({
+        to: email,
+        ...mail.templates.birthdayWish({ full_name: c.full_name, card_path: cardPath }),
+      });
+      sentLog[email] = new Date().toISOString();
+      newlySent++;
+    }
+
+    if (newlySent > 0) {
+      await pool.query(
+        "INSERT INTO settings (key, value) VALUES ($1, $2::jsonb) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value",
+        [logKey, JSON.stringify(sentLog)]
+      );
+    }
+  } catch (e) {
+    console.warn('Birthday wishes job failed:', e.message);
+  }
+}
+
 function start() {
-  const tick = () => { purge(); weeklyDigest(); reminders(); feedbackRequests(); require('./schedule').publishDue(); require('./remoteJobs').maybeRefresh(); require('../routes/pay').expireStale(); };
+  const tick = () => { purge(); weeklyDigest(); reminders(); feedbackRequests(); birthdayWishes(); require('./schedule').publishDue(); require('./remoteJobs').maybeRefresh(); require('../routes/pay').expireStale(); };
   setInterval(() => require('../routes/pay').expireStale(), 10 * 60 * 1000).unref?.(); // unfinished online payments free their seat after 30 minutes
   setTimeout(tick, 60 * 1000).unref?.();
   setInterval(tick, 6 * 60 * 60 * 1000).unref?.();
 }
 
-module.exports = { start, purge, weeklyDigest, reminders, feedbackRequests };
+module.exports = { start, purge, weeklyDigest, reminders, feedbackRequests, birthdayWishes };

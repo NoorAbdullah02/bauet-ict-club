@@ -18,6 +18,36 @@ const cardCode = (key) => {
 const same = (a, b) => { try { return a.length === b.length && crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b)); } catch { return false; } };
 const TYPE_LABEL = { general: 'General member', ambassador: 'Department ambassador', committee: 'Committee member' };
 
+async function getMemberStats(email, name) {
+  let points = 0;
+  let eventsCount = 0;
+  let certificates = [];
+  try {
+    if (email) {
+      const att = (await pool.query("SELECT COUNT(DISTINCT event_id)::int as c FROM event_registrations WHERE deleted_at IS NULL AND checked_in_at IS NOT NULL AND LOWER(email) = LOWER($1)", [email])).rows[0];
+      eventsCount = att?.c || 0;
+      const aw = (await pool.query("SELECT COALESCE(SUM(points), 0)::int as p FROM point_awards WHERE deleted_at IS NULL AND LOWER(email) = LOWER($1)", [email])).rows[0];
+      points = eventsCount * 10 + (aw?.p || 0);
+
+      const certs = (await pool.query(`
+        SELECT er.ticket as code, er.cert_name, er.created_at, e.title as event_title, e.date as event_date
+        FROM event_registrations er
+        JOIN events e ON er.event_id = e.id
+        WHERE er.deleted_at IS NULL AND LOWER(er.email) = LOWER($1) AND er.ticket IS NOT NULL 
+          AND (er.cert_pick = true OR er.checked_in_at IS NOT NULL OR er.certificate_sent_at IS NOT NULL)
+        ORDER BY er.id DESC LIMIT 10
+      `, [email])).rows;
+      certificates = certs.map((c) => ({
+        code: c.code,
+        event: c.event_title,
+        date: c.event_date,
+        name: c.cert_name || name,
+      }));
+    }
+  } catch { /* soft fail */ }
+  return { points, eventsCount, certificates };
+}
+
 /**
  * Public: a member who joined through the application form (approved by an admin) finds their own card.
  * POST /api/card/find { email, student_id } -> { id: 'r5', code, path }. Both must match an approved application.
@@ -39,7 +69,7 @@ router.post('/find', findLimiter, async (req, res) => {
 
 /**
  * Public: the data on one card. GET /api/card/:id?c=CODE
- *  - a committee member (numeric id, shown on the Team page anyway) -> { member, code, verified }
+ *  - a committee member (numeric id, shown on the Team page anyway) -> { member, code, verified, stats }
  *  - an approved applicant (r + number): shown only with the right code (the code is the secret), otherwise 404.
  */
 router.get('/:id', async (req, res) => {
@@ -50,10 +80,23 @@ router.get('/:id', async (req, res) => {
       const id = Number(raw.slice(1));
       const code = cardCode(raw);
       if (!same(given, code)) return res.status(404).json({ error: 'Member not found' });
-      const r = (await pool.query("SELECT id, type, full_name, department, batch, post, photo_url, created_at FROM registrations WHERE id = $1 AND status = 'approved' AND deleted_at IS NULL", [id])).rows[0];
+      const r = (await pool.query("SELECT id, type, full_name, email, student_id, department, batch, post, photo_url, interests, experience, note, created_at FROM registrations WHERE id = $1 AND status = 'approved' AND deleted_at IS NULL", [id])).rows[0];
       if (!r) return res.status(404).json({ error: 'Member not found' });
+      const stats = await getMemberStats(r.email, r.full_name);
       return res.set('Cache-Control', 'no-store').json({
-        member: { id: raw, name: r.full_name, position: r.type === 'committee' && r.post ? r.post : (TYPE_LABEL[r.type] || 'Member'), department: r.department, batch: r.batch, session: `Member since ${new Date(r.created_at).getFullYear()}`, image_url: r.photo_url || null, current: true },
+        member: {
+          id: raw,
+          name: r.full_name,
+          position: r.type === 'committee' && r.post ? r.post : (TYPE_LABEL[r.type] || 'Member'),
+          department: r.department,
+          batch: r.batch,
+          session: `Member since ${new Date(r.created_at).getFullYear()}`,
+          image_url: r.photo_url || null,
+          current: true,
+          bio: r.note || '',
+          interests: r.interests || [],
+        },
+        stats,
         code, verified: true,
       });
     }
@@ -69,11 +112,25 @@ router.get('/:id', async (req, res) => {
     }
     const id = Number(raw);
     if (!Number.isInteger(id) || id < 1) return res.status(404).json({ error: 'Member not found' });
-    const m = (await pool.query('SELECT id, name, position, department, batch, committee_session, image_url, active FROM members WHERE id = $1 AND deleted_at IS NULL', [id])).rows[0];
+    const m = (await pool.query('SELECT id, name, position, department, batch, committee_session, image_url, social_fb, social_gh, social_li, active FROM members WHERE id = $1 AND deleted_at IS NULL', [id])).rows[0];
     if (!m) return res.status(404).json({ error: 'Member not found' });
     const code = cardCode(String(m.id));
+    const stats = await getMemberStats(null, m.name);
     res.set('Cache-Control', 'no-store').json({
-      member: { id: m.id, name: m.name, position: m.position, department: m.department, batch: m.batch, session: m.committee_session, image_url: m.image_url, current: m.active !== false },
+      member: {
+        id: m.id,
+        name: m.name,
+        position: m.position,
+        department: m.department,
+        batch: m.batch,
+        session: m.committee_session,
+        image_url: m.image_url,
+        social_fb: m.social_fb,
+        social_gh: m.social_gh,
+        social_li: m.social_li,
+        current: m.active !== false,
+      },
+      stats,
       code, verified: same(given, code),
     });
   } catch (e) { fail(res, e); }

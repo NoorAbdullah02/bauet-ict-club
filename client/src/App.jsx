@@ -8,6 +8,7 @@ import Preloader from './components/Preloader';
 import SiteLayout from './layouts/SiteLayout';
 import Home from './pages/Home';
 import NotFound from './pages/NotFound';
+import InstallPrompt from './components/InstallPrompt';
 
 const AdminApp = lazy(() => import('./admin/AdminApp'));
 const named = (name) => lazy(() => import('./pages/Pages').then((m) => ({ default: m[name] })));
@@ -41,6 +42,7 @@ const JoinAmbassadorPage = named('JoinAmbassadorPage');
 const AmbassadorsPage = named('AmbassadorsPage');
 const GetAppPage = named('GetAppPage');
 const MemberCardRoute = named('MemberCardRoute');
+const MemberProfileRoute = named('MemberProfileRoute');
 
 const Fallback = () => <div className="grid min-h-[60vh] place-items-center"><span className="size-8 animate-spin rounded-full border-2 border-line border-t-accent" /></div>;
 
@@ -137,6 +139,7 @@ export default function App() {
   return (
     <>
       <Preloader />
+      <InstallPrompt />
       <div className="cursor-glow" />
       <Toaster position="top-right" toastOptions={{
         duration: 3000,
@@ -153,6 +156,8 @@ export default function App() {
           <Route path="ticket" element={<TicketFindPage />} />
           <Route path="ticket/:code" element={<TicketRoute />} />
           <Route path="card/:id" element={<MemberCardRoute />} />
+          <Route path="member/:id" element={<MemberProfileRoute />} />
+          <Route path="profile/:id" element={<MemberProfileRoute />} />
           <Route path="my-card" element={<MyCardRoute />} />
           <Route path="verify/:code" element={<VerifyRoute />} />
           <Route path="certificate/:code" element={<CertificateRoute />} />

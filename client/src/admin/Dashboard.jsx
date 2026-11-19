@@ -1,6 +1,6 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Megaphone } from 'lucide-react';
+import { Plus, Megaphone, FileText } from 'lucide-react';
 import { motion } from 'framer-motion';
 import CountUp from 'react-countup';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, CartesianGrid } from 'recharts';
@@ -9,6 +9,7 @@ import { useShallow } from 'zustand/react/shallow';
 import useStore from '../context/store';
 import { Panel, PageTitle } from './ui';
 import { Donut, VBars, tally } from './charts';
+import DeanReportModal from './DeanReportModal';
 
 const C = { a: 'var(--accent)', b: 'var(--tech)', c: '#EF6B8A', d: '#F5A524' };
 const day = (d) => new Date(d).toISOString().slice(0, 10);
@@ -33,6 +34,7 @@ const tip = { contentStyle: { background: 'var(--bg-surface)', border: '1px soli
 
 export default function Dashboard() {
   const { registrations, events, members, messages, user } = useStore(useShallow((s) => ({ registrations: s.registrations, events: s.events, members: s.members, messages: s.messages, user: s.user })));
+  const [reportOpen, setReportOpen] = useState(false);
 
   const pending = registrations.filter((r) => r.status === 'pending').length;
   const unread = messages.filter((m) => !m.is_read).length;
@@ -58,6 +60,7 @@ export default function Dashboard() {
 
   return (
     <div>
+      <DeanReportModal open={reportOpen} onClose={() => setReportOpen(false)} />
       <div className="relative mb-6 overflow-hidden rounded-3xl p-7 text-white sm:p-9" style={{ background: 'linear-gradient(120deg, #0A1A4A 0%, #1F4FD8 60%, #17A2D8 120%)' }}>
         <div className="pointer-events-none absolute -right-10 -top-16 size-64 rounded-full bg-[#35D989]/30 blur-[70px]" />
         <div className="relative flex flex-wrap items-center justify-between gap-6">
@@ -67,6 +70,7 @@ export default function Dashboard() {
             <p className="mt-2 max-w-md text-sm text-white/75">{pending > 0 ? `${pending} application${pending > 1 ? 's are' : ' is'} waiting for your review.` : 'You’re all caught up — no applications waiting.'}</p>
           </div>
           <div className="flex flex-wrap gap-2.5">
+            <button type="button" onClick={() => setReportOpen(true)} className="inline-flex items-center gap-2 rounded-full border border-white/40 bg-white/10 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-white/20"><FileText size={15} /> Official Dean/VC Report</button>
             <Link to="/admin/applications" className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-[#0A1A4A] shadow-lg transition hover:-translate-y-0.5"><ClipboardList size={15} /> Select committee & ambassadors</Link>
             <Link to="/admin/events?new=1" className="inline-flex items-center gap-2 rounded-full border border-white/40 bg-white/10 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-white/20"><Plus size={15} /> Add event</Link>
             <Link to="/admin/notices?new=1" className="inline-flex items-center gap-2 rounded-full border border-white/40 bg-white/10 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-white/20"><Megaphone size={15} /> Post notice</Link>

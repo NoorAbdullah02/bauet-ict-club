@@ -212,6 +212,13 @@ async function initDb() {
     await client.query('ALTER TABLE registrations DROP CONSTRAINT IF EXISTS registrations_type_student_id_key');
     await client.query('CREATE UNIQUE INDEX IF NOT EXISTS uq_reg_type_email ON registrations (type, email) WHERE deleted_at IS NULL');
     await client.query('CREATE UNIQUE INDEX IF NOT EXISTS uq_reg_type_student ON registrations (type, student_id) WHERE deleted_at IS NULL');
+    // member profiles & automated birthday wishes support
+    await client.query(`
+      ALTER TABLE registrations ADD COLUMN IF NOT EXISTS birth_date DATE;
+      ALTER TABLE members ADD COLUMN IF NOT EXISTS birth_date DATE;
+      ALTER TABLE members ADD COLUMN IF NOT EXISTS student_id VARCHAR(30);
+      ALTER TABLE members ADD COLUMN IF NOT EXISTS bio TEXT;
+    `);
     // event sign-ups: every event can have its own registration link and list
     await client.query(`
       ALTER TABLE events ADD COLUMN IF NOT EXISTS reg_url TEXT;

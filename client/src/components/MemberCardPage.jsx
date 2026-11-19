@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { BadgeCheck, Loader2, Download, Link2, ShieldAlert, Share2, Facebook, Globe, MessageCircle, Send, Mail, Linkedin, Twitter } from 'lucide-react';
+import { BadgeCheck, Loader2, Download, Link2, ShieldAlert, Share2, Facebook, Globe, MessageCircle, Send, Mail, Linkedin, Twitter, RefreshCw, User, Shield } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { api } from '../context/store';
 import useStore from '../context/store';
@@ -97,9 +97,55 @@ function ShareMenu({ url, title, text, onPicture }) {
 
 const condensed = { fontFamily: "'Barlow Condensed', 'Space Grotesk', system-ui, sans-serif" };
 
+function BadgeBack({ m, code, qr, c }) {
+  return (
+    <div className="relative size-full overflow-hidden bg-gradient-to-br from-[#061440] via-[#0B2A78] to-[#0A1A3F] text-white" style={{ containerType: 'inline-size', borderRadius: c(6.4) }}>
+      {/* Magnetic stripe */}
+      <div className="absolute inset-x-0 bg-[#0A0F1D] shadow-inner" style={{ top: c(6), height: c(12) }} />
+      
+      {/* Club guidelines and rules */}
+      <div className="absolute inset-x-0 flex flex-col justify-between" style={{ top: c(22), bottom: c(4), padding: `0 ${c(5)}` }}>
+        <div>
+          <div className="flex items-center gap-2 border-b border-white/10 pb-2">
+            <Logo kind="club" height={24} className="!h-auto w-8 brightness-200" />
+            <div>
+              <p className="font-bold uppercase tracking-wider text-white" style={{ fontSize: c(3.2) }}>BAUET ICT Club</p>
+              <p className="font-mono text-[#7CF0B2]" style={{ fontSize: c(2.4) }}>Innovate • Code • Inspire</p>
+            </div>
+          </div>
+
+          <div className="mt-2 space-y-1.5 leading-relaxed text-slate-300" style={{ fontSize: c(2.4) }}>
+            <p>1. This digital credential verifies active affiliation with BAUET ICT Club.</p>
+            <p>2. Entitles bearer to workshops, university hackathons & club facilities.</p>
+            <p>3. Non-transferable; must be presented upon request with student ID card.</p>
+            <p>4. Inquiries & lost card reporting: <b className="text-white">ictclubbauet@gmail.com</b></p>
+          </div>
+        </div>
+
+        {/* Bottom signatory & chip watermark */}
+        <div>
+          <div className="flex items-end justify-between border-t border-white/10 pt-2">
+            <div>
+              <p className="font-mono uppercase tracking-wider text-slate-400" style={{ fontSize: c(2.2) }}>Card ID</p>
+              <p className="font-mono font-bold text-[#7CF0B2]" style={{ fontSize: c(3) }}>&lt;ICT/&gt; {code}</p>
+            </div>
+            <div className="text-right">
+              <div className="font-display italic text-amber-300" style={{ fontSize: c(3.2) }}>Executive Council</div>
+              <p className="uppercase tracking-widest text-slate-400" style={{ fontSize: c(2) }}>Authorized Signatory</p>
+            </div>
+          </div>
+          <p className="mt-2 text-center font-mono text-slate-400" style={{ fontSize: c(2) }}>
+            Qadirabad Cantonment, Natore-6431, Bangladesh
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /** The portrait membership badge (lanyard card): navy side strip with the club, the post, the photo, then name, department, QR and session.
  *  Every size is relative to the card width (cqw), so it looks the same on a 320 px phone and on a printed page. */
-function Badge({ m, code, qr, verified, site, fb }) {
+function Badge({ m, code, qr, verified, site, fb, flipped }) {
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
   const move = (e) => {
     if (e.pointerType === 'touch') return;
@@ -119,6 +165,10 @@ function Badge({ m, code, qr, verified, site, fb }) {
       <div onPointerMove={move} onPointerLeave={() => setTilt({ x: 0, y: 0 })}
         className="member-badge relative aspect-[9/16] w-full shadow-[0_40px_90px_rgba(6,20,64,0.45)] transition-transform duration-200 ease-out print:shadow-none"
         style={{ padding: c(1.7), borderRadius: c(8), background: 'linear-gradient(145deg,#35D989 0%,#38C8F0 35%,#8B5CF6 70%,#FF6B8A 100%)', transform: `rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`, transformStyle: 'preserve-3d' }}>
+      
+      {flipped ? (
+        <BadgeBack m={m} code={code} qr={qr} c={c} />
+      ) : (
       <div className="relative size-full overflow-hidden bg-white text-[#0A1A3F]" style={{ containerType: 'inline-size', borderRadius: c(6.4) }}>
 
         <div aria-hidden="true" className="absolute inset-0" style={{ background: 'radial-gradient(70% 45% at 78% 40%, rgba(56,200,240,0.22), transparent 70%), radial-gradient(60% 40% at 90% 15%, rgba(53,217,137,0.18), transparent 70%), linear-gradient(180deg,#FFFFFF,#F3F6FC)' }} />
@@ -133,6 +183,16 @@ function Badge({ m, code, qr, verified, site, fb }) {
             <span className="whitespace-nowrap font-semibold uppercase text-white" style={{ ...condensed, writingMode: 'vertical-rl', transform: 'rotate(180deg)', fontSize: c(6.4), letterSpacing: '0.2em' }}>BAUET ICT Club</span>
           </div>
           <span aria-hidden="true" className="absolute left-1/2 h-px -translate-x-1/2 bg-gradient-to-r from-transparent via-[#7CF0B2] to-transparent" style={{ top: '23%', width: c(9) }} />
+        </div>
+
+        {/* golden smart chip graphic */}
+        <div className="absolute overflow-hidden rounded-md border border-[#D4AF37]/80 bg-gradient-to-br from-[#FFE89E] via-[#F0C05A] to-[#B8860B] shadow-sm select-none pointer-events-none" style={{ left: c(29.5), top: '11.5%', width: c(9.5), height: c(7), padding: c(0.4) }}>
+          <div className="grid size-full grid-cols-2 grid-rows-2 gap-[1px] rounded-[2px] border border-[#7A5B0B]/40">
+            <div className="border-r border-b border-[#7A5B0B]/30" />
+            <div className="border-b border-[#7A5B0B]/30" />
+            <div className="border-r border-[#7A5B0B]/30" />
+            <div />
+          </div>
         </div>
 
         {/* the post, big */}
@@ -192,6 +252,7 @@ function Badge({ m, code, qr, verified, site, fb }) {
         </div>
         <div aria-hidden="true" className="badge-sheen pointer-events-none absolute inset-0" />
       </div>
+      )}
       </div>
       </div>
     </motion.div>
@@ -206,6 +267,7 @@ export default function MemberCardPage() {
   const [data, setData] = useState(null); // null = loading, false = not found
   const [qr, setQr] = useState('');
   const [saving, setSaving] = useState(false);
+  const [flipped, setFlipped] = useState(false);
   const fbLink = useStore((st) => st.settings?.socialLinks?.fb) || 'https://www.facebook.com/bauetictclub';
 
   useEffect(() => {
@@ -223,6 +285,8 @@ export default function MemberCardPage() {
 
   const m = data.member;
   const checked = !!c; // somebody scanned a code: tell them whether it is real
+  const profileUrl = `/member/${m.id}${c ? `?c=${data.code}` : ''}`;
+
   return (
     <section className="section">
       <div className="container max-w-md">
@@ -231,10 +295,48 @@ export default function MemberCardPage() {
             {data.verified ? <><BadgeCheck size={18} /> Genuine card: this person is a member of BAUET ICT Club.</> : <><ShieldAlert size={18} /> This code does not match the card. Do not trust it.</>}
           </div>
         )}
-        <Badge m={m} code={data.code} qr={qr} verified={checked && data.verified} site={window.location.host} fb={fbShort(fbLink)} />
+        <Badge m={m} code={data.code} qr={qr} verified={checked && data.verified} site={window.location.host} fb={fbShort(fbLink)} flipped={flipped} />
+        
         <div className="mt-5 flex flex-wrap items-center justify-center gap-2 print:hidden">
-          <button disabled={saving} onClick={async () => { setSaving(true); try { await downloadCard(m, data.code, qr, { site: window.location.host, fb: fbShort(fbLink) }); toast.success('Card saved as a picture'); } catch { toast.error('Could not save the card. Try again.'); } setSaving(false); }} className="btn-outline !px-4 !py-2.5 text-xs disabled:opacity-60">{saving ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />} Download</button>
-          <ShareMenu url={`${window.location.origin}/card/${m.id}?c=${data.code}`} title={`${m.name} | BAUET ICT Club`} text={`${m.name}, ${m.position || 'Member'} at BAUET ICT Club`} onPicture={() => shareCardPicture(m, data.code, qr, { site: window.location.host, fb: fbShort(fbLink) }, `${m.name}, ${m.position || 'Member'} at BAUET ICT Club`, `${window.location.origin}/card/${m.id}?c=${data.code}`)} />
+          <button
+            onClick={() => setFlipped((f) => !f)}
+            className="btn-outline !px-4 !py-2.5 text-xs inline-flex items-center gap-1.5"
+            title="Flip to back / front"
+          >
+            <RefreshCw size={14} className={flipped ? 'rotate-180 transition-transform' : 'transition-transform'} />
+            {flipped ? 'Show Front' : 'Flip to Back'}
+          </button>
+
+          <Link
+            to={profileUrl}
+            className="btn-outline !px-4 !py-2.5 text-xs inline-flex items-center gap-1.5 !border-accent/40 text-accent hover:!bg-accent/10"
+          >
+            <User size={14} /> Full Profile
+          </Link>
+
+          <button
+            disabled={saving}
+            onClick={async () => {
+              setSaving(true);
+              try {
+                await downloadCard(m, data.code, qr, { site: window.location.host, fb: fbShort(fbLink) });
+                toast.success('Card saved as a picture');
+              } catch {
+                toast.error('Could not save the card. Try again.');
+              }
+              setSaving(false);
+            }}
+            className="btn-outline !px-4 !py-2.5 text-xs disabled:opacity-60"
+          >
+            {saving ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />} Download
+          </button>
+
+          <ShareMenu
+            url={`${window.location.origin}/card/${m.id}?c=${data.code}`}
+            title={`${m.name} | BAUET ICT Club`}
+            text={`${m.name}, ${m.position || 'Member'} at BAUET ICT Club`}
+            onPicture={() => shareCardPicture(m, data.code, qr, { site: window.location.host, fb: fbShort(fbLink) }, `${m.name}, ${m.position || 'Member'} at BAUET ICT Club`, `${window.location.origin}/card/${m.id}?c=${data.code}`)}
+          />
         </div>
       </div>
     </section>

@@ -60,6 +60,7 @@ function validate(body) {
     experience: clean(body.experience, 20),
     note: clean(body.note, 600),
     photo_url: clean(body.photo_url, 500),
+    birth_date: body.birth_date && /^\d{4}-\d{2}-\d{2}$/.test(body.birth_date) ? body.birth_date : null,
   };
 
   if (data.full_name.length < 2 || !/^[\p{L}\p{M}\s.'-]+$/u.test(data.full_name)) errors.full_name = 'Enter your full name';
@@ -111,11 +112,11 @@ router.post('/', submitLimiter, async (req, res) => {
   try {
     const { rows } = await pool.query(
       `INSERT INTO registrations
-        (type, full_name, student_id, batch, department, phone, email, gender, post, interests, experience, note, photo_url)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+        (type, full_name, student_id, batch, department, phone, email, gender, post, interests, experience, note, photo_url, birth_date)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
        RETURNING id, type, full_name, email, post`,
       [data.type, data.full_name, data.student_id, data.batch, data.department, data.phone, data.email,
-        data.gender, data.post, data.interests, data.experience, data.note, data.photo_url]
+        data.gender, data.post, data.interests, data.experience, data.note, data.photo_url, data.birth_date]
     );
     notify({ ...data, ...rows[0] });
     res.status(201).json({ success: true, registration: rows[0] });
@@ -251,7 +252,9 @@ router.post('/:id/select', authMiddleware, async (req, res) => {
     const { rows } = await client.query("SELECT * FROM registrations WHERE id = $1 AND type IN ('committee', 'ambassador') AND deleted_at IS NULL FOR UPDATE", [req.params.id]);
     if (!rows.length) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'Committee or ambassador application not found' }); }
     const r = rows[0];
-    const position = r.type === 'ambassador' ? 'Department Ambassador' : requested;
+    const position = r.type === 'ambassador'
+      ? (requested && requested !== 'Department Ambassador' ? requested : (r.department ? `Department Ambassador- ${r.department}` : 'Department Ambassador'))
+      : requested;
     const conflict = r.type === 'ambassador' ? null : await leadershipConflict(client, session, position);
     if (conflict) { await client.query('ROLLBACK'); return res.status(409).json({ error: conflict }); }
     const order = r.type === 'ambassador' ? 50 : positionRank(position);

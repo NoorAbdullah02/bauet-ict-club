@@ -1,36 +1,139 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { BadgeCheck, Loader2, ShieldX } from 'lucide-react';
+import { BadgeCheck, Loader2, ShieldX, Download, Linkedin, Copy, Check, Award, ExternalLink } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { api } from '../context/store';
 import { formalDate } from '../lib/format';
 import { prettyCode } from '../lib/qr';
+import { copyText } from '../lib/share';
 
 /** Anyone can check a certificate here (the QR code on every certificate opens this page). Shows only the name, event and date. */
 export default function VerifyPage() {
   const { code } = useParams();
   const [r, setR] = useState(null);
-  useEffect(() => { document.title = 'Verify a certificate | BAUET ICT Club'; api.get(`/event-registrations/verify/${code}`).then((x) => setR(x.data)).catch(() => setR({ valid: false })); }, [code]);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    document.title = 'Verify a certificate | BAUET ICT Club';
+    api.get(`/event-registrations/verify/${code}`).then((x) => setR(x.data)).catch(() => setR({ valid: false }));
+  }, [code]);
+
+  const copyLink = async () => {
+    const ok = await copyText(window.location.href);
+    if (ok) {
+      setCopied(true);
+      toast.success('Certificate link copied!');
+      setTimeout(() => setCopied(false), 2000);
+    } else {
+      toast.error('Could not copy link');
+    }
+  };
+
+  // LinkedIn Certification Deep Link
+  const linkedInCertUrl = r?.valid ? (() => {
+    const d = r.date ? new Date(r.date) : new Date();
+    const certName = encodeURIComponent(`${r.event} - Certificate of Participation`);
+    const org = encodeURIComponent(r.issuedBy || 'BAUET ICT Club');
+    const y = d.getFullYear();
+    const m = d.getMonth() + 1;
+    const certUrl = encodeURIComponent(window.location.href);
+    const certId = encodeURIComponent(r.code || code);
+    return `https://www.linkedin.com/profile/add?startTask=CERTIFICATION_NAME&name=${certName}&organizationName=${org}&issueYear=${y}&issueMonth=${m}&certUrl=${certUrl}&certId=${certId}`;
+  })() : '#';
+
   return (
     <section className="section">
-      <div className="container max-w-lg">
-        <div className="rounded-3xl border border-line bg-surface p-8 text-center shadow-[var(--shadow-md)]">
-          {r === null ? <Loader2 className="mx-auto animate-spin text-muted" /> : r.valid ? (
+      <div className="container max-w-xl">
+        <div className="relative overflow-hidden rounded-3xl border border-line bg-surface p-6 sm:p-10 text-center shadow-[var(--shadow-xl)]">
+          {/* Subtle background glow */}
+          <div aria-hidden="true" className="pointer-events-none absolute -right-20 -top-20 size-60 rounded-full bg-accent/10 blur-3xl" />
+          <div aria-hidden="true" className="pointer-events-none absolute -bottom-20 -left-20 size-60 rounded-full bg-emerald-500/10 blur-3xl" />
+
+          {r === null ? (
+            <div className="py-12">
+              <Loader2 className="mx-auto size-10 animate-spin text-accent" />
+              <p className="mt-4 text-sm text-fg2 font-mono">Verifying credential on blockchain-style ledger...</p>
+            </div>
+          ) : r.valid ? (
             <>
-              <BadgeCheck size={56} className="mx-auto text-emerald-500" />
-              <h1 className="mt-3 text-3xl text-fg">Certificate is genuine</h1>
-              <p className="mt-4 text-fg2">Issued by <b>{r.issuedBy}</b> to</p>
-              <div className="font-display text-3xl text-accent">{r.name}</div>
-              <p className="mt-3 text-fg2">for taking part in <b>{r.event}</b>{r.date ? `, ${formalDate(r.date)}` : ''}.</p>
-              <div className="mt-5 font-mono text-sm tracking-[0.25em] text-muted">{prettyCode(r.code)}</div>
+              <div className="relative mx-auto mb-4 flex size-20 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-500 ring-8 ring-emerald-500/5">
+                <BadgeCheck size={48} className="animate-pulse" />
+                <span className="absolute -top-1 -right-1 flex size-6 items-center justify-center rounded-full bg-emerald-500 text-white shadow-md">
+                  <Award size={14} />
+                </span>
+              </div>
+
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1 font-mono text-[11px] font-semibold uppercase tracking-wider text-emerald-600">
+                Official Credential Verified
+              </span>
+
+              <h1 className="mt-4 text-3xl font-bold tracking-tight text-fg">Certificate is Genuine</h1>
+              
+              <div className="my-6 rounded-2xl border border-line/70 bg-bg/60 p-5 text-center">
+                <p className="text-xs font-mono uppercase tracking-widest text-muted">Awarded To</p>
+                <div className="mt-1 font-display text-3xl sm:text-4xl font-bold text-accent">{r.name}</div>
+                <div className="mx-auto mt-3 h-px w-24 bg-gradient-to-r from-transparent via-line to-transparent" />
+                <p className="mt-3 text-sm text-fg2">
+                  for successfully participating in <b className="text-fg">{r.event}</b>
+                  {r.date ? <span className="text-fg2"> on {formalDate(r.date)}</span> : ''}.
+                </p>
+                <p className="mt-1 text-xs text-muted">Issued by <b>{r.issuedBy}</b></p>
+              </div>
+
+              <div className="flex items-center justify-center gap-2 rounded-xl bg-alt px-3 py-2 font-mono text-xs tracking-[0.2em] text-muted">
+                <span>ID:</span>
+                <span className="font-bold text-fg select-all">{prettyCode(r.code)}</span>
+              </div>
+
+              {/* Action Buttons: LinkedIn, PDF Download, Copy Link */}
+              <div className="mt-6 flex flex-col sm:flex-row flex-wrap items-center justify-center gap-2.5">
+                <a
+                  href={`/api/event-registrations/certificate/${r.code}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-primary !w-full sm:!w-auto !px-4 !py-2.5 text-xs inline-flex items-center justify-center gap-2"
+                >
+                  <Download size={15} /> Download PDF
+                </a>
+                
+                <a
+                  href={linkedInCertUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-outline !w-full sm:!w-auto !px-4 !py-2.5 text-xs inline-flex items-center justify-center gap-2 !border-[#0A66C2]/40 text-[#0A66C2] hover:!bg-[#0A66C2]/10"
+                >
+                  <Linkedin size={15} /> Add to LinkedIn
+                </a>
+
+                <button
+                  onClick={copyLink}
+                  className="btn-outline !w-full sm:!w-auto !px-4 !py-2.5 text-xs inline-flex items-center justify-center gap-2"
+                >
+                  {copied ? <Check size={15} className="text-emerald-500" /> : <Copy size={15} />}
+                  {copied ? 'Copied' : 'Copy link'}
+                </button>
+              </div>
             </>
           ) : (
-            <>
-              <ShieldX size={56} className="mx-auto text-red-500" />
-              <h1 className="mt-3 text-3xl text-fg">Not verified</h1>
-              <p className="mt-2 text-fg2">We have no certificate with the code <span className="font-mono">{prettyCode(code.toUpperCase())}</span>. Check that it was typed correctly.</p>
-            </>
+            <div className="py-6">
+              <div className="mx-auto mb-4 flex size-20 items-center justify-center rounded-2xl bg-red-500/10 text-red-500 ring-8 ring-red-500/5">
+                <ShieldX size={48} />
+              </div>
+              <h1 className="mt-3 text-2xl font-bold text-fg">Not Verified</h1>
+              <p className="mt-3 text-sm text-fg2">
+                We could not find any official certificate with code <span className="font-mono font-bold text-red-500">{prettyCode(code?.toUpperCase() || '')}</span>.
+              </p>
+              <p className="mt-1 text-xs text-muted">
+                Please double-check the QR code or verify that the alphanumeric characters match the document.
+              </p>
+            </div>
           )}
-          <Link to="/" className="btn-outline mt-7 inline-flex !px-5 !py-2.5 text-xs">BAUET ICT Club website</Link>
+
+          <div className="mt-8 border-t border-line/60 pt-5">
+            <Link to="/" className="inline-flex items-center gap-1.5 text-xs text-muted hover:text-accent transition">
+              BAUET ICT Club Official Portal <ExternalLink size={12} />
+            </Link>
+          </div>
         </div>
       </div>
     </section>

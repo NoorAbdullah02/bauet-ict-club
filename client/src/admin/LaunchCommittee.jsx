@@ -51,8 +51,15 @@ export default function LaunchCommittee({ open, onClose }) {
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <label className="block"><span className="mb-1.5 block font-mono text-[11px] uppercase tracking-[0.14em] text-fg2">Semester</span>
-          <Select className={inputCls} value={term} onChange={(e) => setTerm(e.target.value)}><option>Summer</option><option>Winter</option></Select></label>
+        <label className="block"><span className="mb-1.5 block font-mono text-[11px] uppercase tracking-[0.14em] text-fg2">Semester / Cycle</span>
+          <Select className={inputCls} value={term} onChange={(e) => setTerm(e.target.value)}>
+            <option>Spring</option>
+            <option>Summer</option>
+            <option>Fall</option>
+            <option>Winter</option>
+            <option>Session</option>
+          </Select>
+        </label>
         <label className="block"><span className="mb-1.5 block font-mono text-[11px] uppercase tracking-[0.14em] text-fg2">Year</span>
           <input className={inputCls} type="number" min="2019" max="2100" value={year} onChange={(e) => setYear(Number(e.target.value))} /></label>
       </div>
