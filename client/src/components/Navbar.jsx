@@ -193,6 +193,9 @@ export default function Navbar() {
                   <Link to="/join" className="btn-primary justify-center !py-3 text-sm">{t('Join us')} <ArrowRight size={15} /></Link>
                   <Link to="/app" className="btn-outline justify-center !py-3 text-sm"><Download size={15} /> {t('Get the app')}</Link>
                 </div>
+                <a href="https://www.facebook.com/bauetictclub" target="_blank" rel="noopener noreferrer" className="mt-2 flex items-center justify-center gap-2 rounded-2xl border border-line bg-surface py-2.5 text-xs font-semibold text-[#1877F2] hover:bg-alt">
+                  <Facebook size={16} /> Facebook Page
+                </a>
               </div>
             </motion.aside>
           </div>
