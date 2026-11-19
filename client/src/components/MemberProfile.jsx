@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   BadgeCheck, Loader2, Award, Calendar, Share2, Copy, Check, 
   Linkedin, Github, Facebook, Download, ExternalLink, Sparkles, 
-  CreditCard, Shield, Flame, BookOpen
+  CreditCard, Shield, Flame, BookOpen, Camera, Zap, CheckCircle2
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { api } from '../context/store';
@@ -12,6 +12,7 @@ import { formalDate } from '../lib/format';
 import { prettyCode } from '../lib/qr';
 import { thumb } from '../lib/img';
 import { copyText } from '../lib/share';
+import { compressImage } from '../lib/compressImage';
 
 const BADGE_MAP = {
   first: { name: 'First Step', icon: '🌱', desc: 'Attended 1st Club Event' },
@@ -28,6 +29,42 @@ export default function MemberProfile() {
   const c = params.get('c') || '';
   const [data, setData] = useState(null); // null = loading, false = not found
   const [copied, setCopied] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef(null);
+
+  const handlePhotoChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      return toast.error('Please choose a JPG or PNG image');
+    }
+    if (file.size > 15 * 1024 * 1024) {
+      return toast.error('Image must be under 15MB');
+    }
+
+    setUploading(true);
+    try {
+      const small = await compressImage(file, { max: 1200 });
+      const fd = new FormData();
+      fd.append('photo', small);
+      const uploadRes = await api.post('/registrations/photo', fd);
+      const newUrl = uploadRes.data.url;
+
+      await api.patch(`/card/${id}/photo`, { code: data.code, photo_url: newUrl });
+
+      setData((prev) => ({
+        ...prev,
+        member: {
+          ...prev.member,
+          image_url: newUrl,
+        },
+      }));
+      toast.success('Profile photo updated successfully!');
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Could not update profile photo');
+    }
+    setUploading(false);
+  };
 
   useEffect(() => {
     api.get(`/card/${id}`, { params: c ? { c } : {} })
@@ -101,7 +138,7 @@ export default function MemberProfile() {
             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 -mt-16 sm:-mt-20">
               {/* Photo & Role */}
               <div className="flex flex-col sm:flex-row items-center sm:items-end gap-5 text-center sm:text-left">
-                <div className="relative size-32 sm:size-36 shrink-0 rounded-3xl border-4 border-surface bg-bg shadow-2xl overflow-hidden ring-4 ring-accent/20">
+                <div className="group relative size-32 sm:size-36 shrink-0 rounded-3xl border-4 border-surface bg-bg shadow-2xl overflow-hidden ring-4 ring-accent/20">
                   {m.image_url ? (
                     <img src={thumb(m.image_url, 400)} alt={m.name} className="size-full object-cover object-top" />
                   ) : (
@@ -109,8 +146,31 @@ export default function MemberProfile() {
                       {m.name.charAt(0)}
                     </div>
                   )}
-                  {data.verified && (
-                    <span title="Verified Member" className="absolute bottom-2 right-2 flex size-7 items-center justify-center rounded-full bg-emerald-500 text-white shadow-md">
+                  {uploading && (
+                    <div className="absolute inset-0 grid place-items-center bg-black/60 text-white z-20">
+                      <Loader2 size={24} className="animate-spin text-accent" />
+                    </div>
+                  )}
+                  {data.code && !uploading && (
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      title="Click to change photo"
+                      className="absolute inset-0 flex flex-col items-center justify-center bg-black/55 text-white opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-[2px] z-10 cursor-pointer"
+                    >
+                      <Camera size={22} className="mb-1 text-accent" />
+                      <span className="text-[10px] font-bold uppercase tracking-wider font-mono">Change Photo</span>
+                    </button>
+                  )}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    hidden
+                    onChange={handlePhotoChange}
+                  />
+                  {data.verified && !uploading && (
+                    <span title="Verified Member" className="absolute bottom-2 right-2 flex size-7 items-center justify-center rounded-full bg-emerald-500 text-white shadow-md pointer-events-none z-10">
                       <BadgeCheck size={16} />
                     </span>
                   )}
@@ -197,6 +257,63 @@ export default function MemberProfile() {
                 </div>
                 <div className="mt-1 text-xs font-mono uppercase tracking-wider text-muted">Certifications</div>
               </div>
+            </div>
+
+            {/* Contributions & Points Breakdown */}
+            <div className="mt-6 rounded-2xl border border-line bg-alt/30 p-5 sm:p-6">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line/60 pb-3.5">
+                <div className="flex items-center gap-2">
+                  <Zap className="text-amber-500" size={18} />
+                  <h3 className="font-display text-base font-bold text-fg">Activity & Contribution Points</h3>
+                </div>
+                <span className="rounded-full bg-amber-500/10 px-3 py-1 font-mono text-xs font-bold text-amber-600">
+                  Total: {stats.points || 0} XP
+                </span>
+              </div>
+
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <div className="flex items-center justify-between rounded-xl border border-line bg-surface p-3.5">
+                  <div className="flex items-center gap-2.5">
+                    <span className="grid size-9 place-items-center rounded-lg bg-accent/10 text-accent font-bold text-xs">
+                      10x
+                    </span>
+                    <div>
+                      <p className="text-xs font-semibold text-fg">Event Attendance</p>
+                      <p className="text-[11px] text-muted">{stats.eventsCount || 0} events attended (+10 pts each)</p>
+                    </div>
+                  </div>
+                  <span className="font-mono text-sm font-bold text-emerald-600">
+                    +{(stats.eventsCount || 0) * 10} pts
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between rounded-xl border border-line bg-surface p-3.5">
+                  <div className="flex items-center gap-2.5">
+                    <span className="grid size-9 place-items-center rounded-lg bg-amber-500/10 text-amber-500 font-bold text-xs">
+                      ★
+                    </span>
+                    <div>
+                      <p className="text-xs font-semibold text-fg">Tasks & Honors</p>
+                      <p className="text-[11px] text-muted">{stats.awards?.length || 0} special contributions</p>
+                    </div>
+                  </div>
+                  <span className="font-mono text-sm font-bold text-amber-600">
+                    +{(stats.awards || []).reduce((n, a) => n + (Number(a.points) || 0), 0)} pts
+                  </span>
+                </div>
+              </div>
+
+              {stats.awards && stats.awards.length > 0 && (
+                <div className="mt-4 space-y-2">
+                  <p className="font-mono text-[10px] uppercase tracking-wider text-muted">Special Contribution Log:</p>
+                  {stats.awards.map((award, idx) => (
+                    <div key={idx} className="flex items-center justify-between rounded-lg bg-bg/80 px-3 py-2 text-xs">
+                      <span className="font-medium text-fg">{award.reason || 'Contribution Bonus'}</span>
+                      <span className="font-mono font-bold text-amber-500">+{award.points} pts</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Earned Certificates Section */}

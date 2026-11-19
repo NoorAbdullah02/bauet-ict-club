@@ -3,7 +3,7 @@
 const TYPES = ['short', 'long', 'email', 'phone', 'number', 'dropdown', 'radio', 'checkbox', 'date', 'time', 'yesno', 'scale', 'photo', 'section'];
 const PAY_METHODS = ['bKash', 'Nagad', 'Rocket'];
 const BD_MOBILE = /^(\+?88)?01[3-9]\d{8}$/;
-const DEPARTMENTS = ['ICE', 'CSE', 'EEE', 'CE', 'ME', 'BBA', 'LLB', 'ELL', 'Other'];
+const DEPARTMENTS = ['ICE', 'CSE', 'EEE', 'CE', 'ME', 'BBA', 'LLB', 'ENG', 'ELL', 'Other'];
 const BATCHES = Array.from({ length: 19 }, (_, i) => String(12 + i));
 // `key` ties a field to a standard column so the list, confirmation email and duplicate check keep working
 const KEYS = ['name', 'student_id', 'email', 'phone', 'department', 'batch'];

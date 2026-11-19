@@ -69,11 +69,12 @@ void main() {
     expect(values['name'], 'Rahim');
     await tester.ensureVisible(find.text('Next'));
     await tester.tap(find.text('Next'));
-    await tester.pump();
+    await tester.pumpAndSettle();
     expect(find.text('PAGE 2 OF 2'), findsOneWidget);
     expect(label('Comments'), findsOneWidget);
     expect(find.text('FOOTER'), findsOneWidget);
     expect(tester.takeException(), isNull);
+    await tester.pumpAndSettle();
   });
 
   testWidgets('payment box shows the number and reports what was typed', (tester) async {

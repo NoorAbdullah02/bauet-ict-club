@@ -99,43 +99,88 @@ const condensed = { fontFamily: "'Barlow Condensed', 'Space Grotesk', system-ui,
 
 function BadgeBack({ m, code, qr, c }) {
   return (
-    <div className="relative size-full overflow-hidden bg-gradient-to-br from-[#061440] via-[#0B2A78] to-[#0A1A3F] text-white" style={{ containerType: 'inline-size', borderRadius: c(6.4) }}>
-      {/* Magnetic stripe */}
-      <div className="absolute inset-x-0 bg-[#0A0F1D] shadow-inner" style={{ top: c(6), height: c(12) }} />
-      
-      {/* Club guidelines and rules */}
+    <div className="relative size-full overflow-hidden bg-gradient-to-br from-[#040C24] via-[#081B4E] to-[#0A1A3F] text-white" style={{ containerType: 'inline-size', borderRadius: c(6.4) }}>
+      {/* Background Guilloche / Security Pattern */}
+      <div aria-hidden="true" className="absolute inset-0 opacity-15" style={{ backgroundImage: 'radial-gradient(circle at 50% 50%, rgba(124, 240, 178, 0.15) 0%, transparent 60%), repeating-linear-gradient(45deg, rgba(255,255,255,0.03) 0px, rgba(255,255,255,0.03) 2px, transparent 2px, transparent 8px)' }} />
+
+      {/* Realistic Magnetic Stripe */}
+      <div className="absolute inset-x-0 bg-[#070A12] shadow-2xl flex flex-col justify-between py-1" style={{ top: c(5), height: c(14) }}>
+        <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-[#7CF0B2]/30 to-transparent" />
+        <div className="flex items-center justify-between px-4 font-mono text-[8px] text-white/30 tracking-widest select-none">
+          <span>&lt;&lt; BAUET-ICT-CARD // ISO-7816 &gt;&gt;</span>
+          <span>TRACK 1 // 2 OK</span>
+        </div>
+        <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-[#38C8F0]/30 to-transparent" />
+      </div>
+
+      {/* Card Content Body */}
       <div className="absolute inset-x-0 flex flex-col justify-between" style={{ top: c(22), bottom: c(4), padding: `0 ${c(5)}` }}>
+        
+        {/* Signature & Security Strip */}
         <div>
-          <div className="flex items-center gap-2 border-b border-white/10 pb-2">
-            <Logo kind="club" height={24} className="!h-auto w-8 brightness-200" />
-            <div>
-              <p className="font-bold uppercase tracking-wider text-white" style={{ fontSize: c(3.2) }}>BAUET ICT Club</p>
-              <p className="font-mono text-[#7CF0B2]" style={{ fontSize: c(2.4) }}>Innovate • Code • Inspire</p>
+          <div className="mb-2">
+            <div className="flex items-center justify-between text-slate-400 font-mono" style={{ fontSize: c(2) }}>
+              <span>AUTHORIZED SIGNATURE</span>
+              <span>NOT VALID UNLESS SIGNED</span>
+            </div>
+            {/* White security signature panel */}
+            <div className="relative mt-1 flex items-center justify-between rounded-md bg-[#F4F6FB] px-3 shadow-inner" style={{ height: c(7) }}>
+              <div className="font-display italic font-bold text-[#0A1A3F] select-none" style={{ fontSize: c(3.2) }}>
+                {m.name || 'Member Signature'}
+              </div>
+              <div className="font-mono font-bold text-[#0A1A3F] tracking-wider rounded bg-slate-200/80 px-1.5 py-0.5" style={{ fontSize: c(2.4) }}>
+                SEC-VERIFIED
+              </div>
             </div>
           </div>
 
-          <div className="mt-2 space-y-1.5 leading-relaxed text-slate-300" style={{ fontSize: c(2.4) }}>
-            <p>1. This digital credential verifies active affiliation with BAUET ICT Club.</p>
-            <p>2. Entitles bearer to workshops, university hackathons & club facilities.</p>
-            <p>3. Non-transferable; must be presented upon request with student ID card.</p>
-            <p>4. Inquiries & lost card reporting: <b className="text-white">ictclubbauet@gmail.com</b></p>
+          {/* Club Header & Motto */}
+          <div className="flex items-center gap-2 border-b border-white/10 pb-2 mt-3">
+            <Logo kind="club" height={22} className="!h-auto w-7 brightness-200" />
+            <div className="min-w-0">
+              <p className="font-bold uppercase tracking-wider text-white" style={{ fontSize: c(3) }}>BAUET ICT Club</p>
+              <p className="font-mono text-[#7CF0B2] truncate" style={{ fontSize: c(2.2) }}>Innovate • Code • Inspire</p>
+            </div>
+            <div className="ml-auto rounded-full border border-[#7CF0B2]/40 bg-[#7CF0B2]/10 px-2 py-0.5 font-mono text-[9px] uppercase tracking-wider text-[#7CF0B2]">
+              Official
+            </div>
+          </div>
+
+          {/* Club Guidelines & Rules */}
+          <div className="mt-2.5 space-y-1.5 leading-relaxed text-slate-300" style={{ fontSize: c(2.3) }}>
+            <p className="flex items-start gap-1.5">
+              <span className="text-[#7CF0B2] font-bold">1.</span>
+              <span>This credential verifies official membership of BAUET ICT Club.</span>
+            </p>
+            <p className="flex items-start gap-1.5">
+              <span className="text-[#7CF0B2] font-bold">2.</span>
+              <span>Grants entry to workshops, university hackathons, tech labs & perks.</span>
+            </p>
+            <p className="flex items-start gap-1.5">
+              <span className="text-[#7CF0B2] font-bold">3.</span>
+              <span>Must be presented upon request with university student ID card.</span>
+            </p>
+            <p className="flex items-start gap-1.5">
+              <span className="text-[#7CF0B2] font-bold">4.</span>
+              <span>Inquiries & reporting: <b className="text-white">ictclubbauet@gmail.com</b></span>
+            </p>
           </div>
         </div>
 
-        {/* Bottom signatory & chip watermark */}
+        {/* Bottom signatory & card meta */}
         <div>
-          <div className="flex items-end justify-between border-t border-white/10 pt-2">
+          <div className="flex items-end justify-between border-t border-white/10 pt-2.5">
             <div>
-              <p className="font-mono uppercase tracking-wider text-slate-400" style={{ fontSize: c(2.2) }}>Card ID</p>
-              <p className="font-mono font-bold text-[#7CF0B2]" style={{ fontSize: c(3) }}>&lt;ICT/&gt; {code}</p>
+              <p className="font-mono uppercase tracking-wider text-slate-400" style={{ fontSize: c(2) }}>Credential Hash</p>
+              <p className="font-mono font-bold text-[#7CF0B2]" style={{ fontSize: c(2.8) }}>&lt;ICT/&gt; {code}</p>
             </div>
             <div className="text-right">
-              <div className="font-display italic text-amber-300" style={{ fontSize: c(3.2) }}>Executive Council</div>
-              <p className="uppercase tracking-widest text-slate-400" style={{ fontSize: c(2) }}>Authorized Signatory</p>
+              <div className="font-display italic text-amber-300 font-bold" style={{ fontSize: c(3) }}>Executive Council</div>
+              <p className="uppercase tracking-widest text-slate-400 font-mono" style={{ fontSize: c(1.9) }}>Authorized Signatory</p>
             </div>
           </div>
           <p className="mt-2 text-center font-mono text-slate-400" style={{ fontSize: c(2) }}>
-            Qadirabad Cantonment, Natore-6431, Bangladesh
+            Bangladesh Army University of Engineering & Technology (BAUET) · Natore
           </p>
         </div>
       </div>
@@ -235,9 +280,11 @@ function Badge({ m, code, qr, verified, site, fb, flipped }) {
               </p>
             </div>
           </div>
-          <div className="relative flex shrink-0 items-center justify-center self-end border-[#0A1A3F] bg-white/80" style={{ width: c(24.5), height: c(24.5), borderWidth: c(0.8), borderStyle: 'solid', borderRadius: c(5), padding: c(1.4) }}>
-            <span className="absolute left-1/2 -translate-x-1/2 whitespace-nowrap bg-[#DDE2EC] font-extrabold uppercase text-[#0A1A3F]" style={{ top: c(-1.9), padding: `0 ${c(1.4)}`, fontSize: c(2.7), letterSpacing: '0.14em' }}>Scan me</span>
-            {qr ? <img src={qr} alt="QR code of this card" className="size-full rounded-md" /> : <Loader2 className="animate-spin text-slate-400" />}
+          <div className="relative flex shrink-0 flex-col items-center justify-end self-end" style={{ gap: c(1) }}>
+            <span className="rounded-full bg-[#0A1A3F] font-mono font-bold uppercase tracking-wider text-[#7CF0B2] shadow-sm select-none" style={{ fontSize: c(2), padding: `${c(0.35)} ${c(1.6)}` }}>Scan Me</span>
+            <div className="relative flex items-center justify-center overflow-hidden border-[#0A1A3F] bg-white shadow-md" style={{ width: c(23.5), height: c(23.5), borderWidth: c(0.7), borderStyle: 'solid', borderRadius: c(3.5), padding: c(1.2) }}>
+              {qr ? <img src={qr} alt="QR code of this card" className="size-full object-contain" /> : <Loader2 className="animate-spin text-slate-400" />}
+            </div>
           </div>
         </div>
         {/* year / session, turned sideways like the printed design */}

@@ -148,8 +148,11 @@ export default function JoinCommittee() {
                       </Field>
                       <Field label="Phone" required error={errors.phone}><input name="phone" inputMode="tel" className={inputCls(errors.phone)} type="tel" value={form.phone} onChange={set('phone')} placeholder="01XXXXXXXXX" autoComplete="tel" /></Field>
                       <Field label="Email" required error={errors.email}><input name="email" className={inputCls(errors.email)} type="email" value={form.email} onChange={set('email')} placeholder="you@example.com" autoComplete="email" /></Field>
-                      <Field label="Gender" className="sm:col-span-2">
+                      <Field label="Gender">
                         <Select className={inputCls()} value={form.gender} onChange={set('gender')}><option value="">Prefer not to say</option><option>Male</option><option>Female</option><option>Other</option></Select>
+                      </Field>
+                      <Field label="Date of birth (optional)">
+                        <input type="date" className={inputCls()} value={form.birth_date || ''} onChange={set('birth_date')} />
                       </Field>
                     </motion.div>
                   ) : (

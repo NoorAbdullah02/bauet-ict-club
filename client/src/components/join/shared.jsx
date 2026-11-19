@@ -8,7 +8,7 @@ import { compressImage } from '../../lib/compressImage';
 import { scrollToFirstError } from '../../lib/forms';
 
 export { POSTS } from '../../lib/posts';
-export const DEPARTMENTS = ['ICE', 'CSE', 'EEE', 'CE', 'ME', 'BBA', 'LLB', 'ENG', 'Other'];
+export const DEPARTMENTS = ['ICE', 'CSE', 'EEE', 'CE', 'ME', 'BBA', 'LLB', 'ENG', 'ELL', 'Other'];
 export const BATCHES = Array.from({ length: 19 }, (_, i) => String(12 + i));
 
 export const inputCls = (err) => cn(

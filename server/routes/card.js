@@ -22,11 +22,18 @@ async function getMemberStats(email, name) {
   let points = 0;
   let eventsCount = 0;
   let certificates = [];
+  let awards = [];
   try {
-    if (email) {
-      const att = (await pool.query("SELECT COUNT(DISTINCT event_id)::int as c FROM event_registrations WHERE deleted_at IS NULL AND checked_in_at IS NOT NULL AND LOWER(email) = LOWER($1)", [email])).rows[0];
+    let lookupEmail = email;
+    if (!lookupEmail && name) {
+      const found = (await pool.query("SELECT email FROM registrations WHERE deleted_at IS NULL AND LOWER(full_name) = LOWER($1) AND email IS NOT NULL AND email <> '' LIMIT 1", [name])).rows[0];
+      if (found?.email) lookupEmail = found.email;
+    }
+
+    if (lookupEmail) {
+      const att = (await pool.query("SELECT COUNT(DISTINCT event_id)::int as c FROM event_registrations WHERE deleted_at IS NULL AND checked_in_at IS NOT NULL AND LOWER(email) = LOWER($1)", [lookupEmail])).rows[0];
       eventsCount = att?.c || 0;
-      const aw = (await pool.query("SELECT COALESCE(SUM(points), 0)::int as p FROM point_awards WHERE deleted_at IS NULL AND LOWER(email) = LOWER($1)", [email])).rows[0];
+      const aw = (await pool.query("SELECT COALESCE(SUM(points), 0)::int as p FROM point_awards WHERE deleted_at IS NULL AND LOWER(email) = LOWER($1)", [lookupEmail])).rows[0];
       points = eventsCount * 10 + (aw?.p || 0);
 
       const certs = (await pool.query(`
@@ -36,16 +43,26 @@ async function getMemberStats(email, name) {
         WHERE er.deleted_at IS NULL AND LOWER(er.email) = LOWER($1) AND er.ticket IS NOT NULL 
           AND (er.cert_pick = true OR er.checked_in_at IS NOT NULL OR er.certificate_sent_at IS NOT NULL)
         ORDER BY er.id DESC LIMIT 10
-      `, [email])).rows;
+      `, [lookupEmail])).rows;
       certificates = certs.map((c) => ({
         code: c.code,
         event: c.event_title,
         date: c.event_date,
         name: c.cert_name || name,
       }));
+
+      const awardsRows = (await pool.query(
+        "SELECT points, reason, created_at FROM point_awards WHERE deleted_at IS NULL AND (LOWER(email) = LOWER($1) OR (LOWER(name) = LOWER($2) AND $2 IS NOT NULL)) ORDER BY created_at DESC LIMIT 10",
+        [lookupEmail, name || '']
+      )).rows;
+      awards = awardsRows.map((a) => ({
+        points: a.points,
+        reason: a.reason,
+        date: a.created_at,
+      }));
     }
   } catch { /* soft fail */ }
-  return { points, eventsCount, certificates };
+  return { points, eventsCount, certificates, awards };
 }
 
 /**
@@ -134,6 +151,51 @@ router.get('/:id', async (req, res) => {
       code, verified: same(given, code),
     });
   } catch (e) { fail(res, e); }
+});
+
+/**
+ * Public: update member profile photo if the secret card code matches.
+ * PATCH /api/card/:id/photo { code, photo_url }
+ */
+router.patch('/:id/photo', async (req, res) => {
+  const raw = String(req.params.id);
+  const code = String(req.body?.code || req.query.c || '');
+  const photoUrl = String(req.body?.photo_url || '').trim();
+
+  if (!photoUrl || !/^(https:\/\/res\.cloudinary\.com\/|\/uploads\/[a-f0-9]{24}\.(jpg|png|webp)$)/.test(photoUrl)) {
+    return res.status(400).json({ error: 'Invalid photo URL' });
+  }
+
+  const expectedCode = cardCode(raw);
+  if (!same(code, expectedCode)) {
+    return res.status(403).json({ error: 'You are not authorized to update this photo.' });
+  }
+
+  try {
+    if (/^r\d+$/.test(raw)) {
+      const regId = Number(raw.slice(1));
+      const result = await pool.query(
+        "UPDATE registrations SET photo_url = $1 WHERE id = $2 AND deleted_at IS NULL RETURNING id, photo_url",
+        [photoUrl, regId]
+      );
+      if (!result.rows.length) return res.status(404).json({ error: 'Member not found' });
+      return res.json({ success: true, image_url: result.rows[0].photo_url });
+    }
+
+    const memberId = Number(raw);
+    if (Number.isInteger(memberId) && memberId > 0) {
+      const result = await pool.query(
+        "UPDATE members SET image_url = $1 WHERE id = $2 AND deleted_at IS NULL RETURNING id, image_url",
+        [photoUrl, memberId]
+      );
+      if (!result.rows.length) return res.status(404).json({ error: 'Member not found' });
+      return res.json({ success: true, image_url: result.rows[0].image_url });
+    }
+
+    return res.status(400).json({ error: 'Invalid member ID' });
+  } catch (e) {
+    fail(res, e);
+  }
 });
 
 module.exports = router;
