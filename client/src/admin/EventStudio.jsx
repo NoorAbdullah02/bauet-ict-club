@@ -117,9 +117,13 @@ export default function EventStudio() {
               {mode === 'club'
                 ? <FormField field={FIELDS.capacity} value={form.capacity} onChange={set} upload={upload} />
                 : (
-                  <label className="block"><span className="mb-1.5 block font-mono text-[11px] uppercase tracking-[0.14em] text-fg2">Form link *</span>
-                    <input type="url" inputMode="url" placeholder="https://forms.gle/..." value={form.reg_url || ''} onChange={(e) => set('reg_url', e.target.value)} className="w-full rounded-xl border border-line bg-surface px-4 py-3 text-sm text-fg outline-none focus:border-tech" />
-                    <span className="mt-1.5 block text-xs text-muted">Paste the share link of your Google Form (or Microsoft Forms, Typeform ...). It opens in a new tab.</span></label>
+                  <label className="block"><span className="mb-1.5 block font-mono text-[11px] uppercase tracking-[0.14em] text-fg2">Form / Sheet link *</span>
+                    <input type="url" inputMode="url" placeholder="https://forms.gle/... or https://docs.google.com/spreadsheets/..." value={form.reg_url || ''} onChange={(e) => set('reg_url', e.target.value)} className="w-full rounded-xl border border-line bg-surface px-4 py-3 text-sm text-fg outline-none focus:border-tech" />
+                    <span className="mt-1.5 block text-xs text-muted">Paste the share link of your Google Form, Google Sheet, or other web form.</span>
+                    <div className="mt-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs leading-relaxed text-amber-700 dark:text-amber-300">
+                      <b className="font-semibold">Google Form & Sheet Permissions:</b> Make sure to open Google Form Settings → uncheck <i>"Restrict to users in organisation"</i>, and in the linked Google Sheet set General access to <b>"Anyone with the link"</b> so anyone can access it without permission errors.
+                    </div>
+                  </label>
                 )}
             </div>
           </section>
