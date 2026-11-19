@@ -44,6 +44,7 @@ export default function Footer() {
   const s = settings?.socialLinks || {};
   const email = s.email || 'ictclubbauet@gmail.com';
   const phone = s.phone || '01748-269350';
+  const fbUrl = s.fb || 'https://www.facebook.com/bauetictclub';
   const h3 = 'mb-3 flex items-center gap-2 whitespace-nowrap font-mono text-[10px] uppercase tracking-[0.22em] text-white/50 before:h-px before:w-4 before:bg-[#7CF0B2]/70';
   const contact = 'group !flex items-start gap-3 text-white/80 transition hover:text-white';
   const chip = 'mt-0.5 grid size-7 shrink-0 place-items-center rounded-lg bg-white/10 text-[#7CF0B2] transition group-hover:bg-[#7CF0B2]/20';
@@ -89,7 +90,7 @@ export default function Footer() {
             </div>
             <p className="mt-4 max-w-xs text-[13px] leading-6 text-white/70">Bangladesh Army University of Engineering &amp; Technology, Rajshahi. A community of students who learn, build and lead in technology.</p>
             <div className="mt-4 flex gap-2.5">
-              {s.fb && <a href={s.fb} target="_blank" rel="noopener noreferrer" aria-label="Facebook" className={social}><Facebook size={16} /></a>}
+              <a href={fbUrl} target="_blank" rel="noopener noreferrer" aria-label="Facebook" className={social}><Facebook size={16} /></a>
               {(s.li || s.linkedin) && <a href={s.li || s.linkedin} target="_blank" rel="noopener noreferrer" aria-label="LinkedIn" className={social}><Linkedin size={16} /></a>}
               {(s.gh || s.github) && <a href={s.gh || s.github} target="_blank" rel="noopener noreferrer" aria-label="GitHub" className={social}><Github size={16} /></a>}
               {(s.yt || s.youtube) && <a href={s.yt || s.youtube} target="_blank" rel="noopener noreferrer" aria-label="YouTube" className={social}><Youtube size={16} /></a>}
@@ -111,6 +112,7 @@ export default function Footer() {
           <div className="col-span-2 md:col-span-4">
             <h3 className={h3}>Contact</h3>
             <ul className="space-y-3 text-[13px]">
+              <li><a href={fbUrl} target="_blank" rel="noopener noreferrer" className={contact}><span className={chip}><Facebook size={14} /></span><span className="pt-0.5">fb.com/bauetictclub</span></a></li>
               <li><a href={`mailto:${email}`} className={contact}><span className={chip}><Mail size={14} /></span><span className="min-w-0 break-words pt-0.5 [overflow-wrap:anywhere]">{email}</span></a></li>
               <li><a href={`tel:${phone}`} className={contact}><span className={chip}><Phone size={14} /></span><span className="pt-0.5">{phone}</span></a></li>
               <li><a href="https://maps.google.com/?q=BAUET+Qadirabad+Cantonment+Natore" target="_blank" rel="noopener noreferrer" className={contact}><span className={chip}><MapPin size={14} /></span><span className="pt-0.5">Qadirabad Cantonment, Natore</span></a></li>
