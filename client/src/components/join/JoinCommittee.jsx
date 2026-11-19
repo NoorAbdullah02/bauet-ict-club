@@ -151,9 +151,6 @@ export default function JoinCommittee() {
                       <Field label="Gender">
                         <Select className={inputCls()} value={form.gender} onChange={set('gender')}><option value="">Prefer not to say</option><option>Male</option><option>Female</option><option>Other</option></Select>
                       </Field>
-                      <Field label="Date of birth (optional)">
-                        <input type="date" className={inputCls()} value={form.birth_date || ''} onChange={set('birth_date')} />
-                      </Field>
                     </motion.div>
                   ) : (
                     <motion.div key="s1" initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -24 }} className="space-y-6">

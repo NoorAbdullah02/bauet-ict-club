@@ -60,7 +60,7 @@ function validate(body) {
     experience: clean(body.experience, 20),
     note: clean(body.note, 600),
     photo_url: clean(body.photo_url, 500),
-    birth_date: body.birth_date && /^\d{4}-\d{2}-\d{2}$/.test(body.birth_date) ? body.birth_date : null,
+    birth_date: null,
   };
 
   if (data.full_name.length < 2 || !/^[\p{L}\p{M}\s.'-]+$/u.test(data.full_name)) errors.full_name = 'Enter your full name';

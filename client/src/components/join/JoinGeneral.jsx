@@ -119,9 +119,6 @@ export default function JoinGeneral() {
                     <Field label="Gender">
                       <Select className={inputCls()} value={form.gender} onChange={set('gender')}><option value="">Prefer not to say</option><option>Male</option><option>Female</option><option>Other</option></Select>
                     </Field>
-                    <Field label="Date of birth (for birthday wishes)" className="sm:col-span-2">
-                      <input type="date" className={inputCls()} value={form.birth_date || ''} onChange={set('birth_date')} />
-                    </Field>
                   </div>
 
                   <div className="mt-6"><PhotoDrop value={form.photo_url} onFile={onPhoto} uploading={uploading} optional /></div>
