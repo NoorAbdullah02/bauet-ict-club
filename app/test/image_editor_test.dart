@@ -48,7 +48,7 @@ void main() {
       await tester.tap(find.text('Turn right'));
       await tester.pump();
       await tester.dragUntilVisible(find.text('Vivid'), find.byType(ListView).last, const Offset(0, -80));
-      await tester.tap(find.text('Vivid'));
+      await tester.tap(find.text('Vivid'), warnIfMissed: false);
       await tester.pump();
       await tester.tap(find.text('Done'));
       for (var i = 0; i < 60 && result == null; i++) {

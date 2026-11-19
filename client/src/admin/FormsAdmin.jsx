@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
-import { BarChart3, ClipboardList, Copy, CopyPlus, ExternalLink, FilePlus2, HandHeart, HelpCircle, Loader2, Pencil, Plus, Search, Star, Ticket, Trash2, Trophy, Users } from 'lucide-react';
+import {
+  BarChart3, Briefcase, Bug, ClipboardList, Code, Copy, CopyPlus, ExternalLink, FilePlus2,
+  GraduationCap, HandHeart, HelpCircle, Laptop, Loader2, Megaphone, Pencil, Plus, Presentation,
+  Search, Shirt, Sparkles, Star, Ticket, Trash2, Trophy, Users
+} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../context/store';
 import { Panel, Drawer, inputCls, askConfirm } from './ui';
@@ -9,7 +13,20 @@ import { formalDate } from '../lib/format';
 import { TEMPLATES } from '../lib/formTemplates';
 import { cn } from '../lib/cn';
 
-const ICONS = { ticket: Ticket, star: Star, users: Users, hand: HandHeart, trophy: Trophy, poll: BarChart3, help: HelpCircle };
+const ICONS = {
+  ticket: Ticket, star: Star, users: Users, hand: HandHeart, trophy: Trophy, poll: BarChart3, help: HelpCircle,
+  code: Code, laptop: Laptop, briefcase: Briefcase, megaphone: Megaphone, presentation: Presentation,
+  graduation: GraduationCap, sparkles: Sparkles, shirt: Shirt, bug: Bug,
+};
+
+const CATEGORIES = [
+  { id: 'all', label: 'All' },
+  { id: 'events', label: 'Events & Contests' },
+  { id: 'club', label: 'Club & Roles' },
+  { id: 'community', label: 'Community & Talks' },
+  { id: 'feedback', label: 'Surveys & Feedback' },
+  { id: 'services', label: 'Services & Swag' },
+];
 
 /** Admin → Forms: start from a ready-made form or a blank one, share the link, read the responses, copy or delete your forms. */
 export default function FormsAdmin() {
@@ -18,6 +35,7 @@ export default function FormsAdmin() {
   const [name, setName] = useState('');
   const [busy, setBusy] = useState('');
   const [q, setQ] = useState('');
+  const [cat, setCat] = useState('all');
   const navigate = useNavigate();
 
   const load = () => api.get('/forms').then((r) => setForms(r.data)).catch(() => { setForms([]); toast.error('Could not load the forms'); });
@@ -59,17 +77,41 @@ export default function FormsAdmin() {
       </div>
 
       <section aria-labelledby="tpl" className="mb-10">
-        <h2 id="tpl" className="mb-3 text-lg text-fg">Start with a ready-made form</h2>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 id="tpl" className="text-lg font-bold text-fg">Ready-made form templates</h2>
+            <p className="text-xs text-fg2">Launch hackathons, recruitment, bootcamps, merchandise orders or surveys in 1 click.</p>
+          </div>
+          <div className="flex flex-wrap gap-1.5 rounded-xl border border-line bg-surface/80 p-1">
+            {CATEGORIES.map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => setCat(c.id)}
+                className={cn(
+                  'rounded-lg px-3 py-1.5 text-xs font-semibold transition',
+                  cat === c.id ? 'bg-tech text-white shadow-sm' : 'text-fg2 hover:text-fg'
+                )}
+              >
+                {c.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          {TEMPLATES.map((t) => {
+          {TEMPLATES.filter((t) => cat === 'all' || t.category === cat).map((t) => {
             const I = ICONS[t.icon] || ClipboardList;
             return (
               <button key={t.key} onClick={() => make(t.name, t.form, t.key)} disabled={!!busy} className="group relative flex flex-col overflow-hidden rounded-2xl border border-line bg-surface p-4 text-left transition hover:-translate-y-1 hover:border-transparent hover:shadow-xl disabled:opacity-60">
                 <span className="absolute inset-x-0 top-0 h-1" style={{ background: t.color }} />
-                <span className="grid size-10 place-items-center rounded-xl text-white transition group-hover:scale-110" style={{ background: t.color }}>{busy === t.key ? <Loader2 size={18} className="animate-spin" /> : <I size={18} />}</span>
+                <div className="flex items-center justify-between">
+                  <span className="grid size-10 place-items-center rounded-xl text-white transition group-hover:scale-110" style={{ background: t.color }}>{busy === t.key ? <Loader2 size={18} className="animate-spin" /> : <I size={18} />}</span>
+                  <span className="rounded-full bg-alt px-2 py-0.5 font-mono text-[10px] text-muted">{t.form.fields.filter((x) => x.type !== 'section').length} Qs</span>
+                </div>
                 <span className="mt-3 text-sm font-semibold text-fg">{t.name}</span>
                 <span className="mt-1 text-xs leading-5 text-fg2">{t.desc}</span>
-                <span className="mt-3 text-[11px] font-semibold text-tech opacity-0 transition group-hover:opacity-100">{t.form.fields.filter((x) => x.type !== 'section').length} questions · Use this</span>
+                <span className="mt-3 text-[11px] font-semibold text-tech opacity-0 transition group-hover:opacity-100">Use this template →</span>
               </button>
             );
           })}

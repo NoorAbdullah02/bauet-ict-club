@@ -1,6 +1,6 @@
 // Event registration forms (built by the admin like a Google Form). The same shape is validated again on the server.
 export const BATCH_LIST = Array.from({ length: 19 }, (_, i) => String(12 + i));
-export const DEPT_LIST = ['ICE', 'CSE', 'EEE', 'CE', 'ME', 'BBA', 'LLB', 'ELL', 'Other'];
+export const DEPT_LIST = ['ICE', 'CSE', 'EEE', 'CE', 'ME', 'BBA', 'LLB', 'ENG', 'ELL', 'Other'];
 
 export const DEFAULT_FIELDS = [
   { id: 'name', key: 'name', type: 'short', label: 'Full name', required: true },
