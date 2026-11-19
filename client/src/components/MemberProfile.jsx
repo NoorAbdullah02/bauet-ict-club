@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { 
   BadgeCheck, Loader2, Award, Calendar, Share2, Copy, Check, 
   Linkedin, Github, Facebook, Download, ExternalLink, Sparkles, 
-  CreditCard, Shield, Flame, BookOpen, Camera, Zap, CheckCircle2
+  CreditCard, Shield, Flame, BookOpen, Camera, Zap, CheckCircle2, Cake
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { api } from '../context/store';
@@ -30,7 +30,31 @@ export default function MemberProfile() {
   const [data, setData] = useState(null); // null = loading, false = not found
   const [copied, setCopied] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [editingDob, setEditingDob] = useState(false);
+  const [dobValue, setDobValue] = useState('');
+  const [savingDob, setSavingDob] = useState(false);
   const fileInputRef = useRef(null);
+
+  const handleSaveDob = async (e) => {
+    if (e) e.preventDefault();
+    if (!dobValue) return toast.error('Please choose a date of birth');
+    setSavingDob(true);
+    try {
+      await api.patch(`/card/${id}/birthdate`, { code: data.code, birth_date: dobValue });
+      setData((prev) => ({
+        ...prev,
+        member: {
+          ...prev.member,
+          birth_date: dobValue,
+        },
+      }));
+      setEditingDob(false);
+      toast.success('Date of birth updated successfully!');
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Could not update date of birth');
+    }
+    setSavingDob(false);
+  };
 
   const handlePhotoChange = async (e) => {
     const file = e.target.files?.[0];
@@ -224,6 +248,51 @@ export default function MemberProfile() {
                 )}
               </div>
             )}
+
+            {/* Date of Birth (managed from profile) */}
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              {m.birth_date ? (
+                <div className="inline-flex items-center gap-2 rounded-xl border border-line bg-alt/50 px-3.5 py-1.5 text-xs text-fg">
+                  <Cake size={14} className="text-pink-500" />
+                  <span>Born {formalDate(m.birth_date)}</span>
+                  {data.code && (
+                    <button
+                      type="button"
+                      onClick={() => { setDobValue(m.birth_date); setEditingDob((v) => !v); }}
+                      className="ml-1 text-[11px] font-semibold text-tech hover:underline cursor-pointer"
+                    >
+                      {editingDob ? 'Close' : 'Change'}
+                    </button>
+                  )}
+                </div>
+              ) : data.code ? (
+                <button
+                  type="button"
+                  onClick={() => setEditingDob((v) => !v)}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-dashed border-tech/50 bg-tech/5 px-3.5 py-1.5 text-xs font-medium text-tech hover:bg-tech/10 cursor-pointer transition"
+                >
+                  <Cake size={14} /> Add Date of Birth
+                </button>
+              ) : null}
+
+              {editingDob && (
+                <form onSubmit={handleSaveDob} className="flex flex-wrap items-center gap-2 rounded-xl border border-line bg-surface p-2 shadow-sm">
+                  <input
+                    type="date"
+                    required
+                    value={dobValue}
+                    onChange={(e) => setDobValue(e.target.value)}
+                    className="rounded-lg border border-line bg-bg px-2.5 py-1 text-xs text-fg outline-none focus:border-tech"
+                  />
+                  <button type="submit" disabled={savingDob} className="btn-primary !px-3 !py-1 text-xs">
+                    {savingDob ? <Loader2 size={12} className="animate-spin" /> : 'Save'}
+                  </button>
+                  <button type="button" onClick={() => setEditingDob(false)} className="btn-outline !px-3 !py-1 text-xs">
+                    Cancel
+                  </button>
+                </form>
+              )}
+            </div>
 
             {/* Bio / About */}
             {m.bio && (

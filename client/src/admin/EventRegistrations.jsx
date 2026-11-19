@@ -163,6 +163,10 @@ export function ResponsesPanel({ event, kind = 'event' }) {
                 </button>
               ))}
             </div>
+            <div className="mt-2.5 flex items-center justify-between rounded-xl border border-line bg-alt/40 px-3.5 py-2 text-xs">
+              <span className="text-fg2">Share or collaborate in Google Sheets?</span>
+              <a href="https://sheets.new" target="_blank" rel="noopener noreferrer" className="font-semibold text-tech hover:underline">Open Google Sheets (sheets.new) →</a>
+            </div>
           </div>
 
           <div className="mt-4 overflow-hidden rounded-2xl border border-tech/30 bg-gradient-to-br from-tech/10 via-surface to-accent/10 p-4">

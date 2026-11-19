@@ -126,6 +126,14 @@ function layout({ title, body, button, footerNote }) {
 const typeLabel = (r) => (r.type === 'committee' ? `Committee application (${r.post})` : r.type === 'ambassador' ? 'Department Ambassador application' : 'General membership application');
 
 const templates = {
+  cardOtp: (code, minutes) => ({
+    subject: `Your Member Card Access Code: ${code} | BAUET ICT Club`,
+    html: layout({
+      title: 'Member Card & Profile Verification',
+      body: `<p>Use this 6-digit verification code to access your digital member card and profile:</p><p style="font:700 34px monospace;letter-spacing:8px;margin:18px 0;color:#1F4FD8">${esc(code)}</p><p>This code expires in ${minutes} minutes. Never share this code with anyone.</p>`,
+    }),
+    text: `Your member card access code is ${code}. It expires in ${minutes} minutes.`,
+  }),
   signupCode: (code, minutes) => ({
     subject: `Your sign-up code: ${code} | BAUET ICT Club`,
     html: layout({ title: 'Confirm your e-mail', body: `<p>Type this code in the sign-up form to finish creating your admin account:</p><p style="font:700 34px monospace;letter-spacing:8px;margin:18px 0;color:#1F4FD8">${esc(code)}</p><p>It works for ${minutes} minutes. If you did not ask for it, ignore this e-mail: nothing is created.</p>` }),
