@@ -159,7 +159,9 @@ export default function App() {
           <Route path="member/:id" element={<MemberProfileRoute />} />
           <Route path="profile/:id" element={<MemberProfileRoute />} />
           <Route path="my-card" element={<MyCardRoute />} />
+          <Route path="verify" element={<VerifyRoute />} />
           <Route path="verify/:code" element={<VerifyRoute />} />
+          <Route path="certificate" element={<VerifyRoute />} />
           <Route path="certificate/:code" element={<CertificateRoute />} />
           <Route path="notices" element={<NoticesPage />} />
           <Route path="team" element={<TeamPage />} />

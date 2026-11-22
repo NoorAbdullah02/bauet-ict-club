@@ -19,7 +19,7 @@ const KINDS = {
 const DEFAULT_ACTIONS = [
   { type: 'action', id: 'my-card', title: 'Find My Member Card', sub: 'Lookup card by student ID', path: '/my-card', icon: IdCard },
   { type: 'action', id: 'join', title: 'Join BAUET ICT Club', sub: 'Apply for committee, general or ambassador', path: '/join', icon: UserPlus },
-  { type: 'action', id: 'cert', title: 'Verify Certificate', sub: 'Check certificate authenticity', path: '/certificate', icon: Award },
+  { type: 'action', id: 'cert', title: 'Verify Certificate', sub: 'Check certificate authenticity', path: '/verify', icon: Award },
   { type: 'action', id: 'events', title: 'Upcoming Events & Workshops', sub: 'Browse and register for events', path: '/events', icon: Calendar },
   { type: 'action', id: 'notices', title: 'Club Notices & News', sub: 'Important announcements', path: '/notices', icon: Megaphone },
   { type: 'action', id: 'app', title: 'Download Android App', sub: 'Get latest APK for phone', path: '/app', icon: Smartphone },
