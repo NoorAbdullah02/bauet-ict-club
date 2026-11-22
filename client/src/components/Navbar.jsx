@@ -127,9 +127,15 @@ export default function Navbar() {
           </ul>
 
           <div className="nav-actions flex shrink-0 items-center gap-2">
-            <button onClick={() => setSearching(true)} className={cn(iconBtn, 'xl:w-auto xl:px-3 gap-2')} aria-label={t('Search the site')} title={`${t('Search')} (Ctrl+K)`}>
+            <button
+              type="button"
+              onClick={() => setSearching(true)}
+              className="flex h-10 w-10 xl:w-auto xl:px-3.5 items-center justify-center gap-2 rounded-full border border-line bg-surface/60 text-fg2 backdrop-blur transition hover:border-tech hover:text-tech cursor-pointer"
+              aria-label={t('Search the site')}
+              title={`${t('Search')} (Ctrl+K)`}
+            >
               <Search size={16} />
-              <kbd className="hidden xl:inline-block font-mono text-[10px] text-muted">Ctrl K</kbd>
+              <kbd className="hidden xl:inline-block font-mono text-[10px] text-muted tracking-tight">Ctrl K</kbd>
             </button>
             <a href="https://www.facebook.com/bauetictclub" target="_blank" rel="noopener noreferrer" className={cn(iconBtn, 'max-sm:hidden hover:border-[#1877F2] hover:text-[#1877F2]')} aria-label="Official Facebook Page" title="BAUET ICT Club on Facebook">
               <Facebook size={16} />

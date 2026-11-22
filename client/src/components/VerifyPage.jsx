@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { BadgeCheck, Loader2, ShieldX, Download, Linkedin, Copy, Check, Award, ExternalLink } from 'lucide-react';
+import { Link, useParams, useNavigate } from 'react-router-dom';
+import { BadgeCheck, Loader2, ShieldX, Download, Linkedin, Copy, Check, Award, ExternalLink, Search, ArrowRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { api } from '../context/store';
 import { formalDate } from '../lib/format';
@@ -10,13 +10,26 @@ import { copyText } from '../lib/share';
 /** Anyone can check a certificate here (the QR code on every certificate opens this page). Shows only the name, event and date. */
 export default function VerifyPage() {
   const { code } = useParams();
+  const nav = useNavigate();
   const [r, setR] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [searchCode, setSearchCode] = useState('');
 
   useEffect(() => {
     document.title = 'Verify a certificate | BAUET ICT Club';
+    if (!code) {
+      setR(null);
+      return;
+    }
     api.get(`/event-registrations/verify/${code}`).then((x) => setR(x.data)).catch(() => setR({ valid: false }));
   }, [code]);
+
+  const onSearchSubmit = (e) => {
+    e.preventDefault();
+    const clean = searchCode.trim().toUpperCase();
+    if (!clean) return;
+    nav(`/verify/${encodeURIComponent(clean)}`);
+  };
 
   const copyLink = async () => {
     const ok = await copyText(window.location.href);
@@ -49,10 +62,45 @@ export default function VerifyPage() {
           <div aria-hidden="true" className="pointer-events-none absolute -right-20 -top-20 size-60 rounded-full bg-accent/10 blur-3xl" />
           <div aria-hidden="true" className="pointer-events-none absolute -bottom-20 -left-20 size-60 rounded-full bg-emerald-500/10 blur-3xl" />
 
-          {r === null ? (
+          {!code ? (
+            <div className="py-6">
+              <div className="relative mx-auto mb-4 flex size-20 items-center justify-center rounded-2xl bg-accent/10 text-accent ring-8 ring-accent/5">
+                <Award size={44} />
+              </div>
+
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-accent/10 px-3 py-1 font-mono text-[11px] font-semibold uppercase tracking-wider text-accent">
+                Certificate Verification Ledger
+              </span>
+
+              <h1 className="mt-4 text-3xl font-bold tracking-tight text-fg">Verify Certificate</h1>
+              <p className="mt-2 text-sm text-fg2 max-w-md mx-auto">
+                Every official credential issued by BAUET ICT Club carries a verifiable code and cryptographic QR signature.
+              </p>
+
+              <form onSubmit={onSearchSubmit} className="mt-6 flex flex-col sm:flex-row gap-2 max-w-md mx-auto">
+                <div className="relative flex-1">
+                  <input
+                    type="text"
+                    value={searchCode}
+                    onChange={(e) => setSearchCode(e.target.value)}
+                    placeholder="Enter Code (e.g. BC-A1B2C3)"
+                    aria-label="Certificate code"
+                    className="w-full rounded-2xl border border-line bg-bg px-4 py-3 text-sm font-mono uppercase tracking-wider text-fg outline-none focus:border-accent"
+                    autoFocus
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="btn-primary !px-5 !py-3 text-xs inline-flex items-center justify-center gap-2"
+                >
+                  <Search size={15} /> Verify <ArrowRight size={14} />
+                </button>
+              </form>
+            </div>
+          ) : r === null ? (
             <div className="py-12">
               <Loader2 className="mx-auto size-10 animate-spin text-accent" />
-              <p className="mt-4 text-sm text-fg2 font-mono">Verifying credential on blockchain-style ledger...</p>
+              <p className="mt-4 text-sm text-fg2 font-mono">Verifying credential on official club ledger...</p>
             </div>
           ) : r.valid ? (
             <>
@@ -126,6 +174,23 @@ export default function VerifyPage() {
               <p className="mt-1 text-xs text-muted">
                 Please double-check the QR code or verify that the alphanumeric characters match the document.
               </p>
+
+              <form onSubmit={onSearchSubmit} className="mt-6 flex flex-col sm:flex-row gap-2 max-w-md mx-auto">
+                <input
+                  type="text"
+                  value={searchCode}
+                  onChange={(e) => setSearchCode(e.target.value)}
+                  placeholder="Try another code..."
+                  aria-label="Certificate code"
+                  className="w-full rounded-2xl border border-line bg-bg px-4 py-3 text-sm font-mono uppercase tracking-wider text-fg outline-none focus:border-accent"
+                />
+                <button
+                  type="submit"
+                  className="btn-primary !px-5 !py-3 text-xs inline-flex items-center justify-center gap-2"
+                >
+                  <Search size={15} /> Verify
+                </button>
+              </form>
             </div>
           )}
 

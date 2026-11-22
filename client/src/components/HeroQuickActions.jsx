@@ -45,7 +45,7 @@ export default function HeroQuickActions() {
           </form>
         </motion.div>
 
-        <motion.div whileHover={{ y: -3 }} onClick={() => nav('/certificate')} className="group flex cursor-pointer flex-col justify-between rounded-2xl border border-line bg-surface/70 p-4 backdrop-blur-md transition hover:border-tech/50">
+        <motion.div whileHover={{ y: -3 }} onClick={() => nav('/verify')} className="group flex cursor-pointer flex-col justify-between rounded-2xl border border-line bg-surface/70 p-4 backdrop-blur-md transition hover:border-tech/50">
           <div>
             <div className="flex size-9 items-center justify-center rounded-xl bg-tech/10 text-tech">
               <Award size={18} />
