@@ -9,7 +9,7 @@ const baseSiteUrl = () => {
   return u.replace(/\/+$/, '');
 };
 
-async function sendTelegram({ title, description, fields = [], actionUrl, buttons = [] }) {
+async function sendTelegram({ title, description, fields = [], actionUrl, buttons = [], callbackButtons = [] }) {
   const token = process.env.TELEGRAM_BOT_TOKEN?.trim();
   const chatId = process.env.TELEGRAM_CHAT_ID?.trim();
   if (!token || !chatId) return false;
@@ -26,8 +26,13 @@ async function sendTelegram({ title, description, fields = [], actionUrl, button
     const text = `<b>${title}</b>\n\n${description || ''}\n\n${formattedFields}`.trim();
 
     const inlineKeyboard = [];
-    const actionRow = [];
 
+    // Optional Instant Action row (e.g. Approve)
+    if (callbackButtons?.length) {
+      inlineKeyboard.push(callbackButtons.map((b) => ({ text: b.text, callback_data: b.callback_data })));
+    }
+
+    const actionRow = [];
     if (actionUrl) {
       actionRow.push({ text: '🔗 View in Admin', url: actionUrl });
     }
@@ -96,11 +101,11 @@ async function sendDiscord({ title, description, fields = [], actionUrl }) {
   }
 }
 
-async function notifyAdmin({ title, description, fields = [], path, buttons = [] }) {
+async function notifyAdmin({ title, description, fields = [], path, buttons = [], callbackButtons = [] }) {
   const actionUrl = path ? `${baseSiteUrl()}${path.startsWith('/') ? '' : '/'}${path}` : `${baseSiteUrl()}/admin`;
 
   Promise.allSettled([
-    sendTelegram({ title, description, fields, actionUrl, buttons }),
+    sendTelegram({ title, description, fields, actionUrl, buttons, callbackButtons }),
     sendDiscord({ title, description, fields, actionUrl }),
   ]).catch(() => {});
 }

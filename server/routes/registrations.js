@@ -106,6 +106,9 @@ function notify(reg) {
     title: `🔔 New ${reg.type === 'committee' ? 'Committee' : reg.type === 'ambassador' ? 'Ambassador' : 'General'} Member Application`,
     description: `<b>${reg.full_name}</b> has applied for ${reg.type} membership${reg.post ? ` (${reg.post})` : ''}.`,
     path: '/admin/applications',
+    callbackButtons: reg.id ? [
+      { text: '✅ Instant Approve', callback_data: `appr:${reg.id}` },
+    ] : [],
     buttons: [
       ['📞 Call', reg.phone ? `tel:${reg.phone}` : ''],
       ['✉️ Email', reg.email ? `mailto:${reg.email}` : ''],
