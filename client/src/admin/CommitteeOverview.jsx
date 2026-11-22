@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
-import { Rocket, ArrowRightLeft, Trash2, Users, CalendarPlus, UserPlus, ClipboardList, Star, CalendarClock, CalendarCheck, AlertTriangle, PlusCircle, CalendarRange, FileSpreadsheet, Loader2 } from 'lucide-react';
+import { Rocket, ArrowRightLeft, Trash2, Users, CalendarPlus, UserPlus, ClipboardList, Star, CalendarClock, CalendarCheck, AlertTriangle, PlusCircle, CalendarRange, FileSpreadsheet, Loader2, Pencil } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import useStore from '../context/store';
 import { sessionRank, termLeft } from '../lib/sessions';
@@ -25,17 +25,34 @@ export default function CommitteeOverview({ onLaunch, onTransfer, onOpen }) {
   const sessions = useStore((s) => s.sessions);
   const remove = useStore((s) => s.deleteCommittee);
   const updateTerm = useStore((s) => s.updateCommitteeTerm);
+  const setCurrentCommittee = useStore((s) => s.setCurrentCommittee);
+  const editCommittee = useStore((s) => s.editCommittee);
+
   const [busy, setBusy] = useState('');
   const [dates, setDates] = useState(null); // { label, start, end } while the date editor is open
   const [saving, setSaving] = useState(false);
+  const [editItem, setEditItem] = useState(null); // { oldLabel, label, start, end, is_current }
+  const [editSaving, setEditSaving] = useState(false);
+
   const list = useMemo(() => [...sessions].sort((a, b) => sessionRank(b.label) - sessionRank(a.label)), [sessions]);
-  const current = list.find((s) => s.members > 0);
+  const current = list.find((s) => s.is_current) || list.find((s) => s.members > 0);
   const t = current?.term;
 
   const extend = async (label) => {
     if (!(await askConfirm({ title: `Give ${label} six more months?`, message: 'The end date moves six months later; the committee, its people and its pictures stay exactly as they are.', confirmText: 'Extend 6 months' }))) return;
     setBusy(label);
     try { const r = await updateTerm(label, { months: 6 }); toast.success(`${label} now runs to ${day(r?.term?.end)}`); } catch (e) { toast.error(e.response?.data?.error || 'Could not extend the term'); }
+    setBusy('');
+  };
+
+  const handleMakeCurrent = async (label) => {
+    setBusy(label);
+    try {
+      await setCurrentCommittee(label);
+      toast.success(`“${label}” is now set as the Current Committee.`);
+    } catch (e) {
+      toast.error(e.response?.data?.error || 'Could not set current committee');
+    }
     setBusy('');
   };
 
@@ -50,6 +67,24 @@ export default function CommitteeOverview({ onLaunch, onTransfer, onOpen }) {
     setSaving(false);
   };
 
+  const saveEdit = async () => {
+    if (!editItem || !editItem.label?.trim()) return;
+    setEditSaving(true);
+    try {
+      await editCommittee(editItem.oldLabel, {
+        label: editItem.label.trim(),
+        start: editItem.start || null,
+        end: editItem.end || null,
+        is_current: editItem.is_current,
+      });
+      toast.success(`“${editItem.label.trim()}” updated successfully!`);
+      setEditItem(null);
+    } catch (e) {
+      toast.error(e.response?.data?.error || 'Could not update committee');
+    }
+    setEditSaving(false);
+  };
+
   const del = async (s) => {
     if (!(await askConfirm({ title: `Delete the ${s.label} committee?`, message: `${s.members} ${s.members === 1 ? 'person goes' : 'people go'} to the Trash and can be restored for 20 days. Other committees and their pictures are not touched.`, confirmText: 'Move to Trash', danger: true }))) return;
     setBusy(s.label);
@@ -59,6 +94,7 @@ export default function CommitteeOverview({ onLaunch, onTransfer, onOpen }) {
 
   const progress = t ? Math.min(100, Math.max(0, Math.round(((t.days_total - t.days_left) / t.days_total) * 100))) : 0;
   const editedDays = spanDays(dates?.start, dates?.end);
+  const editItemDays = spanDays(editItem?.start, editItem?.end);
 
   return (
     <div className="mb-6 space-y-4">
@@ -72,11 +108,17 @@ export default function CommitteeOverview({ onLaunch, onTransfer, onOpen }) {
                 <span className={cn('inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold', t.expired ? 'bg-amber-500/15 text-amber-600' : 'bg-emerald-500/12 text-emerald-600')}>
                   {t.expired ? <AlertTriangle size={12} /> : <CalendarCheck size={12} />} {termLeft(t)}
                 </span>
+                {current.is_current && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-accent/15 px-2.5 py-0.5 font-mono text-[10px] font-semibold uppercase text-accent">
+                    <Star size={10} /> Active on site
+                  </span>
+                )}
               </div>
               <p className="mt-1.5 text-xs text-fg2">Runs <b className="text-fg">{day(t.start)}</b> → <b className="text-fg">{day(t.end)}</b> · {t.months} month term</p>
             </div>
             <div className="flex flex-wrap gap-2">
               <button onClick={onLaunch} className="btn-primary !px-4 !py-2.5 text-xs"><Rocket size={14} /> {t.expired ? 'Launch the next committee' : 'Launch new committee'}</button>
+              <button onClick={() => setEditItem({ oldLabel: current.label, label: current.label, start: t.start || '', end: t.end || '', is_current: true })} className="btn-outline !px-4 !py-2.5 text-xs"><Pencil size={14} /> Edit committee</button>
               <button onClick={() => setDates({ label: current.label, start: t.start, end: t.end })} className="btn-outline !px-4 !py-2.5 text-xs"><CalendarRange size={14} /> Change dates</button>
               <button onClick={() => extend(current.label)} disabled={busy === current.label} className="btn-outline !px-4 !py-2.5 text-xs disabled:opacity-50"><PlusCircle size={14} /> Extend 6 months</button>
             </div>
@@ -102,13 +144,13 @@ export default function CommitteeOverview({ onLaunch, onTransfer, onOpen }) {
 
       <Panel className="p-5">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <div><h3 className="text-lg text-fg">Committees</h3><p className="text-xs text-muted">Two a year, six months each. The newest one with people is shown as the current committee on the website.</p></div>
+          <div><h3 className="text-lg text-fg">Committees</h3><p className="text-xs text-muted">Two a year, six months each. You can select which committee is currently displayed on the website.</p></div>
           <button onClick={onLaunch} className="btn-primary !px-5 !py-2.5 text-xs"><Rocket size={14} /> Launch new committee</button>
         </div>
         {list.length === 0 ? <p className="text-sm text-muted">No committee yet. Launch the first one.</p> : (
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {list.map((s) => (
-              <div key={s.label} className={cn('rounded-2xl border p-4 transition', s.label === current?.label ? 'border-accent bg-accent/5' : 'border-line')}>
+              <div key={s.label} className={cn('rounded-2xl border p-4 transition', s.is_current ? 'border-accent bg-accent/5 ring-1 ring-accent/30' : 'border-line')}>
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <div className="font-display text-xl text-fg">{s.label}</div>
@@ -119,12 +161,15 @@ export default function CommitteeOverview({ onLaunch, onTransfer, onOpen }) {
                       </div>
                     )}
                   </div>
-                  {s.label === current?.label && <span className="inline-flex items-center gap-1 rounded-full bg-accent px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-white"><Star size={10} /> Current</span>}
+                  {s.is_current && <span className="inline-flex items-center gap-1 rounded-full bg-accent px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-white"><Star size={10} /> Current</span>}
                 </div>
                 <div className="mt-4 flex flex-wrap gap-2">
                   <button onClick={() => onOpen(s.label)} className="rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-fg2 transition hover:border-tech hover:text-tech">View people</button>
                   <button onClick={() => onTransfer(s.label)} className="rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-fg2 transition hover:border-tech hover:text-tech">Copy people to…</button>
-                  <button onClick={() => setDates({ label: s.label, start: s.term?.start || '', end: s.term?.end || '' })} title="Set this committee's first and last day" className="rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-fg2 transition hover:border-tech hover:text-tech">Dates</button>
+                  <button onClick={() => setEditItem({ oldLabel: s.label, label: s.label, start: s.term?.start || '', end: s.term?.end || '', is_current: !!s.is_current })} className="flex items-center gap-1 rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-fg2 transition hover:border-tech hover:text-tech"><Pencil size={12} /> Edit</button>
+                  {!s.is_current && (
+                    <button disabled={busy === s.label} onClick={() => handleMakeCurrent(s.label)} title="Set as the active committee shown on the website" className="rounded-lg border border-accent/40 bg-accent/5 px-2.5 py-1.5 text-xs font-semibold text-accent transition hover:bg-accent hover:text-white disabled:opacity-50">Set as Current</button>
+                  )}
                   <button disabled={!s.members} onClick={() => saveFile(`/committees/${encodeURIComponent(s.label)}/export`, { format: 'xlsx' }, `committee-${s.label.replace(/\s+/g, '-')}.xlsx`)} title="The people list as an Excel workbook" className="flex items-center gap-1 rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-fg2 transition hover:border-tech hover:text-tech disabled:opacity-40"><FileSpreadsheet size={12} /> Excel</button>
                   <button disabled={!s.members} onClick={() => saveFile(`/committees/${encodeURIComponent(s.label)}/zip`, {}, `committee-${s.label.replace(/\s+/g, '-')}.zip`)} title="List and every picture in full quality" className="rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-fg2 transition hover:border-tech hover:text-tech disabled:opacity-40">Download</button>
                   <button disabled={busy === s.label} onClick={() => del(s)} aria-label={`Delete ${s.label}`} className="ml-auto grid size-8 place-items-center rounded-lg text-fg2 transition hover:bg-red-500/10 hover:text-red-500 disabled:opacity-50"><Trash2 size={15} /></button>
@@ -136,6 +181,42 @@ export default function CommitteeOverview({ onLaunch, onTransfer, onOpen }) {
         <p className="mt-4 text-xs text-muted">Not sure who to select yet? <Link to="/admin/applications" className="font-semibold text-tech">Open Applications</Link></p>
       </Panel>
 
+      {/* Edit Committee Drawer */}
+      <Drawer open={!!editItem} title={`Edit Committee: ${editItem?.oldLabel || ''}`} onClose={() => setEditItem(null)}
+        footer={<>
+          <button onClick={() => setEditItem(null)} className="btn-outline !px-5 !py-2.5 text-xs">Cancel</button>
+          <button onClick={saveEdit} disabled={editSaving || !editItem?.label?.trim()} className="btn-primary !px-5 !py-2.5 text-xs disabled:opacity-50">{editSaving ? <Loader2 size={14} className="animate-spin" /> : <Pencil size={14} />} Save changes</button>
+        </>}>
+        <div className="space-y-5">
+          <p className="text-sm leading-6 text-fg2">Modify committee name, term dates, or toggle current active status.</p>
+          <div>
+            <label className="mb-1.5 block font-mono text-[11px] uppercase tracking-[0.14em] text-fg2">Committee Name</label>
+            <input className={inputCls} value={editItem?.label || ''} onChange={(e) => setEditItem((d) => ({ ...d, label: e.target.value }))} placeholder="e.g. Winter 2026 or Executive Committee 2026" />
+            <p className="mt-1 text-[11px] text-muted">Renaming will automatically update all members assigned to this committee.</p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <label className="block"><span className="mb-1.5 block font-mono text-[11px] uppercase tracking-[0.14em] text-fg2">First day</span>
+              <input className={inputCls} type="date" value={editItem?.start || ''} onChange={(e) => setEditItem((d) => ({ ...d, start: e.target.value }))} /></label>
+            <label className="block"><span className="mb-1.5 block font-mono text-[11px] uppercase tracking-[0.14em] text-fg2">Last day</span>
+              <input className={inputCls} type="date" value={editItem?.end || ''} onChange={(e) => setEditItem((d) => ({ ...d, end: e.target.value }))} /></label>
+          </div>
+          {editItemDays > 0 && <p className="text-xs text-fg2">Term duration: {editItemDays} days · about {Math.max(1, Math.round(editItemDays / 30.44))} months.</p>}
+          {editItem?.start && editItem?.end && editItem.end <= editItem.start && <p className="text-xs font-medium text-red-500">The last day has to be after the first day.</p>}
+
+          <div className="rounded-2xl border border-line bg-surface p-4">
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input type="checkbox" checked={!!editItem?.is_current} onChange={(e) => setEditItem((d) => ({ ...d, is_current: e.target.checked }))} className="size-4 rounded accent-[#1F4FD8] cursor-pointer" />
+              <div>
+                <div className="text-sm font-semibold text-fg">Set as Current Committee</div>
+                <div className="text-xs text-muted">Displays this committee as the active current committee on the public website.</div>
+              </div>
+            </label>
+          </div>
+        </div>
+      </Drawer>
+
+      {/* Date-only Drawer */}
       <Drawer open={!!dates} title={`Dates of ${dates?.label || ''}`} onClose={() => setDates(null)}
         footer={<>
           <button onClick={() => setDates(null)} className="btn-outline !px-5 !py-2.5 text-xs">Cancel</button>

@@ -28,7 +28,7 @@ export default function LaunchCommittee({ open, onClose }) {
   const askPlan = useStore((s) => s.planCommittee);
   const navigate = useNavigate();
 
-  const current = useMemo(() => [...sessions].filter((s) => s.members > 0).sort((a, b) => sessionRank(b.label) - sessionRank(a.label))[0], [sessions]);
+  const current = useMemo(() => sessions.find((s) => s.is_current) || [...sessions].filter((s) => s.members > 0).sort((a, b) => sessionRank(b.label) - sessionRank(a.label))[0], [sessions]);
   const suggested = current ? nextSessionLabel(current.label) : '';
   const ordered = useMemo(() => [...sessions].filter((s) => s.members > 0).sort((a, b) => sessionRank(b.label) - sessionRank(a.label)), [sessions]);
 

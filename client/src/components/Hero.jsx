@@ -8,8 +8,6 @@ import { ArrowDown, ArrowUpRight, GraduationCap } from 'lucide-react';
 import Backdrop3D from './Backdrop3D';
 import { useShallow } from 'zustand/react/shallow';
 import Logo from './Logo';
-import AnnouncementBar from './AnnouncementBar';
-import HeroQuickActions from './HeroQuickActions';
 import { useT } from '../lib/i18n';
 import useStore from '../context/store';
 
@@ -68,8 +66,6 @@ export default function Hero() {
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-bg to-transparent" />
 
       <motion.div style={{ y: contentY, opacity: contentOpacity }} className="container relative z-10 pb-24 pt-36 text-center">
-        <AnnouncementBar />
-
         <motion.div {...rise(0.05)} className="mx-auto mb-7 flex items-center justify-center gap-5">
           <Logo kind="crest" height={64} priority />
           <span className="h-10 w-px bg-line" />
@@ -92,7 +88,7 @@ export default function Hero() {
         </motion.h1>
 
         <motion.div {...rise(0.5)}
-          className="mx-auto mt-8 h-8 text-lg text-fg2 sm:text-xl">
+          className="mx-auto mt-8 min-h-[3.25rem] sm:min-h-[2.25rem] h-auto text-lg text-fg2 sm:text-xl">
           <TypeAnimation sequence={TAGLINES} wrapper="span" speed={55} deletionSpeed={70} repeat={Infinity} cursor />
         </motion.div>
 
@@ -108,10 +104,6 @@ export default function Hero() {
         <motion.div {...rise(1)}
           className="glass-edge mx-auto mt-16 grid max-w-3xl grid-cols-2 divide-line rounded-3xl bg-surface/60 backdrop-blur-md sm:grid-cols-4 sm:divide-x">
           {stats.map((s) => <Stat key={s.label} {...s} />)}
-        </motion.div>
-
-        <motion.div {...rise(1.1)}>
-          <HeroQuickActions />
         </motion.div>
       </motion.div>
 

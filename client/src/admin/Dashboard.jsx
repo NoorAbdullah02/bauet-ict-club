@@ -38,7 +38,7 @@ export default function Dashboard() {
   const { registrations, events, members, messages, user, sessions } = useStore(useShallow((s) => ({ registrations: s.registrations, events: s.events, members: s.members, messages: s.messages, user: s.user, sessions: s.sessions })));
   const [reportOpen, setReportOpen] = useState(false);
   // the committee that is serving now, with what is left of its six months
-  const current = useMemo(() => [...sessions].filter((s) => s.members > 0).sort((a, b) => sessionRank(b.label) - sessionRank(a.label))[0], [sessions]);
+  const current = useMemo(() => sessions.find((s) => s.is_current) || [...sessions].filter((s) => s.members > 0).sort((a, b) => sessionRank(b.label) - sessionRank(a.label))[0], [sessions]);
   const fmtDay = (iso) => formalDate(iso, { short: true });
 
   const pending = registrations.filter((r) => r.status === 'pending').length;

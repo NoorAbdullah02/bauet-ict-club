@@ -47,7 +47,14 @@ export default function DataView({ type }) {
   const today = new Date().toISOString().slice(0, 10);
   const openAdd = () => {
     if (type === 'events') { navigate('/admin/events/new'); return; } // events get their own full page: details and registration form together
-    setForm({ ...(cfg.fields.some((f) => f.key === 'date') ? { date: today } : {}), ...(type === 'events' ? { reg_open: true } : {}) }); setDrawer({ mode: 'add' }); };
+    const curSession = sessions.find((s) => s.is_current)?.label || sessions[0]?.label || '';
+    setForm({
+      ...(cfg.fields.some((f) => f.key === 'date') ? { date: today } : {}),
+      ...(type === 'events' ? { reg_open: true } : {}),
+      ...(type === 'members' && curSession ? { committee_session: curSession } : {}),
+    });
+    setDrawer({ mode: 'add' });
+  };
 
   // dashboard shortcuts (…/notices?new=1) open the form straight away
   useEffect(() => {

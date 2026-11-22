@@ -58,7 +58,7 @@ export default function MemberProfile() {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(vEmail.trim())) { setVMsg('Type the e-mail you joined the club with.'); return; }
     setVBusy(true); setVMsg('');
     try {
-      const r = await api.post('/card/otp/request', { email: vEmail.trim() });
+      const r = await api.post('/card/otp/request', { email: vEmail.trim(), memberId: m?.id });
       setVSent(true);
       setVMsg(r.data?.message || 'A 6-digit code is on its way.');
     } catch (err) {
