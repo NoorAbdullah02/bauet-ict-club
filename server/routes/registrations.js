@@ -110,8 +110,7 @@ function notify(reg) {
       { text: '✅ Instant Approve', callback_data: `appr:${reg.id}` },
     ] : [],
     buttons: [
-      ['📞 Call', reg.phone ? `tel:${reg.phone}` : ''],
-      ['✉️ Email', reg.email ? `mailto:${reg.email}` : ''],
+      ['💬 WhatsApp', reg.phone ? `https://wa.me/${reg.phone.replace(/\D/g, '').replace(/^0/, '880')}` : ''],
     ],
     fields: [
       ['Student ID', reg.student_id],

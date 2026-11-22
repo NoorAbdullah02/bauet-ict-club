@@ -205,9 +205,6 @@ async function register(req, res) {
       title: `🎟️ New Event Ticket: ${ev.title}`,
       description: `<b>${col.full_name || 'Attendee'}</b> registered${waitlisted ? ' (Waiting List)' : ''}.`,
       path: `/admin/events/${ev.id}/registrations`,
-      buttons: [
-        ['✉️ Email', col.email ? `mailto:${col.email}` : ''],
-      ],
       fields: [
         ['Ticket Code', ticket],
         ['Student ID', col.student_id || '-'],
