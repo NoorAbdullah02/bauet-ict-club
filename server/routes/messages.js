@@ -36,9 +36,6 @@ router.post('/', contactLimiter, async (req, res) => {
       title: '💬 New Contact Message',
       description: `<b>${name}</b> sent a message: ${subject || '(No Subject)'}`,
       path: '/admin/messages',
-      buttons: [
-        ['✉️ Reply', `mailto:${email}`],
-      ],
       fields: [
         ['From', email],
         ['Message', message.slice(0, 200) + (message.length > 200 ? '…' : '')],

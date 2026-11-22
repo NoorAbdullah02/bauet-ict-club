@@ -9,6 +9,13 @@ const baseSiteUrl = () => {
   return u.replace(/\/+$/, '');
 };
 
+function esc(str) {
+  return String(str ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
 async function sendTelegram({ title, description, fields = [], actionUrl, buttons = [], callbackButtons = [] }) {
   const token = process.env.TELEGRAM_BOT_TOKEN?.trim();
   const chatId = process.env.TELEGRAM_CHAT_ID?.trim();
@@ -16,10 +23,25 @@ async function sendTelegram({ title, description, fields = [], actionUrl, button
 
   try {
     const formattedFields = fields
+      .filter(([k, v]) => v !== undefined && v !== null && v !== '')
       .map(([k, v]) => {
+        const key = esc(k);
         const isCode = /trx|id|code|transaction/i.test(k);
-        const val = isCode ? `<code>${v}</code>` : v;
-        return `• <b>${k}:</b> ${val}`;
+        const isPhone = /phone|contact/i.test(k) && /^\+?[\d\s-]{7,}$/.test(String(v).trim());
+        const isEmail = /email/i.test(k) && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v).trim());
+        const cleanVal = esc(v);
+
+        let val;
+        if (isCode) {
+          val = `<code>${cleanVal}</code>`;
+        } else if (isEmail) {
+          val = `<a href="mailto:${cleanVal}">${cleanVal}</a>`;
+        } else if (isPhone) {
+          val = `<a href="tel:${String(v).replace(/\s+/g, '')}">${cleanVal}</a>`;
+        } else {
+          val = cleanVal;
+        }
+        return `• <b>${key}:</b> ${val}`;
       })
       .join('\n');
 
@@ -38,7 +60,7 @@ async function sendTelegram({ title, description, fields = [], actionUrl, button
     }
 
     buttons.forEach(([text, url]) => {
-      if (url && (url.startsWith('http') || url.startsWith('mailto:') || url.startsWith('tel:'))) {
+      if (url && (url.startsWith('https://') || url.startsWith('http://') || url.startsWith('tg://'))) {
         actionRow.push({ text, url });
       }
     });
