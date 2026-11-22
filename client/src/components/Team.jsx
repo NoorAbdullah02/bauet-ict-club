@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { thumb } from '../lib/img';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
@@ -190,7 +190,7 @@ function MemberCard({ member, index, compact }) {
 
 import { sessionRank, slug, isAmbassador, vpRank } from '../lib/sessions';
 
-function useSessions(dbMembers) {
+function useSessions(dbMembers, currentSessionLabel) {
   return useMemo(() => {
     const out = {};
     dbMembers.filter((m) => m.committee_session && m.active !== false && !isAmbassador(m.position)).forEach((m) => {
@@ -207,17 +207,51 @@ function useSessions(dbMembers) {
       });
     });
     Object.values(out).forEach((c) => c.vps.sort((a, b) => vpRank(a.title) - vpRank(b.title)));
-    const keys = Object.keys(out).sort((a, b) => sessionRank(out[b].label) - sessionRank(out[a].label));
-    return Object.fromEntries(keys.map((k, i) => [k, { ...out[k], tag: i === 0 ? 'Current' : 'Previous' }]));
-  }, [dbMembers]);
+    const keys = Object.keys(out).sort((a, b) => {
+      if (currentSessionLabel) {
+        if (out[a].label.toLowerCase() === currentSessionLabel.toLowerCase()) return -1;
+        if (out[b].label.toLowerCase() === currentSessionLabel.toLowerCase()) return 1;
+      }
+      return sessionRank(out[b].label) - sessionRank(out[a].label);
+    });
+    return Object.fromEntries(keys.map((k, i) => {
+      const isCur = currentSessionLabel
+        ? out[k].label.toLowerCase() === currentSessionLabel.toLowerCase()
+        : i === 0;
+      return [k, { ...out[k], tag: isCur ? 'Current' : 'Previous' }];
+    }));
+  }, [dbMembers, currentSessionLabel]);
 }
 
 export default function Team() {
   const advisors = useStore((s) => s.advisors);
   const dbMembersAll = useStore((s) => s.members);
-  const sessions = useSessions(dbMembersAll);
+  const storeSessions = useStore((s) => s.sessions);
+  const fetchSessions = useStore((s) => s.fetchSessions);
+
+  useEffect(() => {
+    if (!storeSessions || storeSessions.length === 0) {
+      fetchSessions().catch(() => {});
+    }
+  }, [storeSessions, fetchSessions]);
+
+  const currentSessionLabel = useMemo(() => {
+    const cur = (storeSessions || []).find((s) => s.is_current);
+    return cur?.label || null;
+  }, [storeSessions]);
+
+  const sessions = useSessions(dbMembersAll, currentSessionLabel);
   const [activeSession, setActiveSession] = useState(null);
-  const sessionKey = activeSession && sessions[activeSession] ? activeSession : Object.keys(sessions)[0];
+
+  const defaultKey = useMemo(() => {
+    if (currentSessionLabel) {
+      const found = Object.entries(sessions).find(([, val]) => val.label.toLowerCase() === currentSessionLabel.toLowerCase());
+      if (found) return found[0];
+    }
+    return Object.keys(sessions)[0];
+  }, [sessions, currentSessionLabel]);
+
+  const sessionKey = activeSession && sessions[activeSession] ? activeSession : defaultKey;
   const [filterDept, setFilterDept] = useState('all');
   const [ref, inView] = useInView({ threshold: 0.05, triggerOnce: true });
 

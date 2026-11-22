@@ -124,7 +124,16 @@ export default function Select({ value = '', onChange, children, className, disa
       </button>
       {open && pos && createPortal(
         <ul ref={menu} id={`${uid}-list`} role="listbox" data-theme-scope
-          style={{ position: 'fixed', left: pos.left, width: pos.width, top: pos.top, bottom: pos.bottom, maxHeight: pos.maxH, zIndex: 2000 }}
+          style={{
+            position: 'fixed',
+            left: Math.max(8, Math.min(pos.left, (typeof window !== 'undefined' ? window.innerWidth : 1000) - Math.max(pos.width, 240) - 16)),
+            minWidth: Math.max(pos.width, 240),
+            maxWidth: 'min(92vw, 24rem)',
+            top: pos.top,
+            bottom: pos.bottom,
+            maxHeight: pos.maxH,
+            zIndex: 2000,
+          }}
           data-lenis-prevent className="select-menu overflow-y-auto overscroll-contain rounded-2xl border border-line bg-surface p-1.5 shadow-[var(--shadow-xl)] backdrop-blur-xl">
           {options.map((o, i) => (
             <li key={o.value + i} role="option" aria-selected={i === selected} aria-disabled={o.disabled} data-active={i === active}
@@ -134,7 +143,7 @@ export default function Select({ value = '', onChange, children, className, disa
                 i === active && !o.disabled ? 'bg-accent/10 text-fg' : 'text-fg2',
                 i === selected && 'font-semibold !text-accent',
                 o.value === '' && 'text-muted')}>
-              <span className="truncate">{o.label}</span>
+              <span className="truncate pr-1">{o.label}</span>
               {i === selected && <Check size={15} className="shrink-0 text-tech" />}
             </li>
           ))}

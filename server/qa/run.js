@@ -792,7 +792,14 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
         ok(moved.s === 200 && moved.j?.term?.start === '2019-03-01' && moved.j?.term?.months === cur.term.months, 'moving the first day keeps the same length', moved.j);
         await call('POST', `/api/committees/${encodeURIComponent(cur.label)}/term`, { start: cur.term.start, end: cur.term.end }, T);
         ok((await call('POST', `/api/committees/${encodeURIComponent(cur.label)}/term`, { end: '1999-01-01' }, T)).s === 400, 'a last day before the first day is refused');
+
+        // set-current and edit endpoints
+        const setCur = await call('POST', '/api/committees/set-current', { session: cur.label }, T);
+        ok(setCur.s === 200 && setCur.j?.current_session === cur.label, 'admin can set the current committee explicitly', setCur.j);
+        const edited = await call('POST', `/api/committees/${encodeURIComponent(cur.label)}/edit`, { is_current: true }, T);
+        ok(edited.s === 200 && edited.j?.is_current === true, 'admin can edit committee and maintain current status', edited.j);
       }
+      ok((await call('POST', '/api/committees/set-current', { session: 'Winter 2026' })).s === 401, 'only admin can set current committee');
       ok((await call('POST', '/api/committees/launch', { session: 'Session 2098', scope: 'none' })).s === 401, 'only an admin can launch a committee');
     }
 

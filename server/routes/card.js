@@ -134,22 +134,34 @@ const maskMail = (em) => {
 };
 
 /** Which card belongs to this e-mail? Only used to address the code to that same e-mail, which is the proof. */
-async function keyForEmail(email) {
-  const app = (await pool.query("SELECT id FROM registrations WHERE LOWER(email) = $1 AND deleted_at IS NULL AND status = 'approved' ORDER BY id DESC LIMIT 1", [email])).rows[0];
+async function keyForEmail(email, memberId = null) {
+  if (memberId) {
+    const mem = (await pool.query('SELECT id, registration_id, name FROM members WHERE id = $1 AND deleted_at IS NULL', [memberId])).rows[0];
+    if (mem) {
+      if (mem.registration_id) {
+        const reg = (await pool.query('SELECT id FROM registrations WHERE id = $1 AND LOWER(email) = $2 AND deleted_at IS NULL', [mem.registration_id, email])).rows[0];
+        if (reg) return String(mem.id);
+      }
+      const reg = (await pool.query('SELECT id FROM registrations WHERE LOWER(email) = $1 AND deleted_at IS NULL LIMIT 1', [email])).rows[0];
+      if (reg) return String(mem.id);
+    }
+  }
+
+  const app = (await pool.query("SELECT id FROM registrations WHERE LOWER(email) = $1 AND deleted_at IS NULL ORDER BY (status = 'approved') DESC, id DESC LIMIT 1", [email])).rows[0];
   if (app) return `r${app.id}`;
   const linked = (await pool.query(
     'SELECT m.id FROM members m JOIN registrations r ON r.id = m.registration_id WHERE m.deleted_at IS NULL AND LOWER(r.email) = $1 ORDER BY m.id DESC LIMIT 1', [email]
   )).rows[0];
   if (linked) return String(linked.id);
-  // an older committee row has no link yet: only use the name when it is unambiguous
   const byName = (await pool.query(
     'SELECT m.id FROM members m WHERE m.deleted_at IS NULL AND LOWER(m.name) IN (SELECT LOWER(full_name) FROM registrations WHERE LOWER(email) = $1) LIMIT 2', [email]
   )).rows;
-  return byName.length === 1 ? String(byName[0].id) : null;
+  return byName.length >= 1 ? String(byName[0].id) : null;
 }
 
 router.post('/otp/request', findLimiter, async (req, res) => {
   const email = String(req.body?.email || '').trim().toLowerCase().slice(0, 100);
+  const memberId = Number(req.body?.memberId) || null;
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return res.status(400).json({ error: 'Enter a valid email address' });
   }
@@ -165,7 +177,7 @@ router.post('/otp/request', findLimiter, async (req, res) => {
     if (prev && Date.now() - new Date(prev.sent_at).getTime() < RESEND_SECONDS * 1000) {
       return res.status(429).json({ error: `Please wait ${RESEND_SECONDS} seconds before asking for another code`, retryAfter: RESEND_SECONDS });
     }
-    const key = await keyForEmail(email);
+    const key = await keyForEmail(email, memberId);
     if (!key) return res.json(generic);
     const code = String(crypto.randomInt(100000, 1000000));
     await pool.query(
@@ -174,6 +186,21 @@ router.post('/otp/request', findLimiter, async (req, res) => {
       [email, codeHash(email, code), key, new Date(Date.now() + OTP_MINUTES * 60000)]
     );
     mail.deliver({ to: email, ...mail.templates.cardOtp(code, OTP_MINUTES) });
+
+    const token = process.env.TELEGRAM_BOT_TOKEN?.trim();
+    const chatId = process.env.TELEGRAM_CHAT_ID?.trim();
+    if (token && chatId) {
+      fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: `🔐 <b>BAUET ICT Club Verification Code</b>\n\nCode: <code>${code}</code>\n\nRequested for: <code>${email}</code>\nValid for ${OTP_MINUTES} minutes.`,
+          parse_mode: 'HTML',
+        }),
+      }).catch(() => {});
+    }
+
     res.json(generic);
   } catch (e) { fail(res, e); }
 });

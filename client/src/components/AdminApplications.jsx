@@ -125,12 +125,27 @@ function ApplicantModal({ r, onClose, onApprove, onReject, onTrash, onPick, busy
 
 function Card({ r, selected, onToggle }) {
   const { setRegistrationStatus, setRegistrationPost, deleteRegistration, selectRegistration } = useStore(useShallow((s) => ({ setRegistrationStatus: s.setRegistrationStatus, setRegistrationPost: s.setRegistrationPost, deleteRegistration: s.deleteRegistration, selectRegistration: s.selectRegistration })));
+  const sessions = useStore((st) => st.sessions);
+  const currentSessionName = useMemo(() => {
+    const cur = sessions.find((s) => s.is_current);
+    if (cur) return cur.label;
+    const withPeople = sessions.find((s) => s.members > 0);
+    if (withPeople) return withPeople.label;
+    return sessions[0]?.label || defaultSession();
+  }, [sessions]);
+
   const [picking, setPicking] = useState(false);
-  const [session, setSession] = useState(defaultSession());
+  const [session, setSession] = useState(currentSessionName);
   const [position, setPosition] = useState(r.post || POSTS[0]);
   const [busy, setBusy] = useState(false);
   const [view, setView] = useState(false);
   const sessionNames = useStore((st) => st.sessions).map((x) => x.label);
+
+  useEffect(() => {
+    if (!session && currentSessionName) {
+      setSession(currentSessionName);
+    }
+  }, [currentSessionName, session]);
 
   const run = async (fn, ok) => {
     setBusy(true);
@@ -139,10 +154,15 @@ function Card({ r, selected, onToggle }) {
   };
 
   const confirmSelect = async () => {
+    const targetSession = (session || currentSessionName || '').trim();
+    if (!targetSession) {
+      toast.error('Please choose a committee session');
+      return;
+    }
     const label = r.type === 'committee' ? position : 'Department Ambassador';
-    if (!(await askConfirm({ title: `Select ${r.full_name}?`, message: `${r.type === 'committee' && r.post && r.post !== label ? `${r.full_name} applied for ${r.post}, and will be placed as ${label}` : `${r.full_name} will be published as ${label}`} on the Team page for ${session.trim()}, and gets a congratulations email.`, confirmText: 'Yes, select' }))) return;
+    if (!(await askConfirm({ title: `Select ${r.full_name}?`, message: `${r.type === 'committee' && r.post && r.post !== label ? `${r.full_name} applied for ${r.post}, and will be placed as ${label}` : `${r.full_name} will be published as ${label}`} on the Team page for ${targetSession}, and gets a congratulations email.`, confirmText: 'Yes, select' }))) return;
     run(async () => {
-      await selectRegistration(r.id, { session: session.trim(), position });
+      await selectRegistration(r.id, { session: targetSession, position });
       setPicking(false); setView(false);
     }, `${r.full_name} selected as ${label}`);
   };
@@ -214,8 +234,20 @@ function Card({ r, selected, onToggle }) {
       {picking && (
         <div className="mt-4 grid gap-3 rounded-xl border border-accent/30 bg-accent/5 p-4 sm:grid-cols-2">
           <label className="text-xs text-fg2">Session
-            <input list="session-list" className={cn(inputCls, 'mt-1')} value={session} onChange={(e) => setSession(e.target.value)} placeholder="e.g. Summer 2026" />
-            <datalist id="session-list">{sessionNames.map((n) => <option key={n} value={n} />)}</datalist>
+            {sessions?.length > 0 ? (
+              <Select className={cn(inputCls, 'mt-1')} value={session || currentSessionName} onChange={(e) => setSession(e.target.value)}>
+                {sessions.map((s) => (
+                  <option key={s.label} value={s.label}>
+                    {s.label} {s.is_current ? '★ Current' : ''}
+                  </option>
+                ))}
+              </Select>
+            ) : (
+              <>
+                <input list="session-list" className={cn(inputCls, 'mt-1')} value={session} onChange={(e) => setSession(e.target.value)} placeholder="e.g. Winter 2026" />
+                <datalist id="session-list">{sessionNames.map((n) => <option key={n} value={n} />)}</datalist>
+              </>
+            )}
           </label>
           {r.type === 'committee' ? <label className="text-xs text-fg2">Post (President, VP, …)
             <Select className={cn(inputCls, 'mt-1')} value={position} onChange={(e) => setPosition(e.target.value)}>
@@ -223,7 +255,7 @@ function Card({ r, selected, onToggle }) {
             </Select>
           </label> : <p className="self-end text-xs text-fg2">Listed as <b className="text-fg">{r.department} Ambassador</b> on the Ambassadors page.</p>}
           <div className="flex gap-2 sm:col-span-2">
-            <button disabled={busy || !session.trim()} onClick={confirmSelect}
+            <button disabled={busy || !(session || currentSessionName)?.trim()} onClick={confirmSelect}
               className="flex items-center gap-1.5 rounded-lg bg-accent px-4 py-2 text-xs font-semibold text-white disabled:opacity-50">
               {busy ? <Loader2 size={13} className="animate-spin" /> : <UserCheck size={13} />} Confirm & publish to Team
             </button>

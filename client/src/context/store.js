@@ -181,6 +181,18 @@ const useStore = create((set, get) => ({
     return res.data;
   },
 
+  setCurrentCommittee: async (session) => {
+    const res = await api.post('/committees/set-current', { session });
+    await Promise.all([get().fetchSessions(), get().fetchList('members')]);
+    return res.data;
+  },
+
+  editCommittee: async (session, payload = {}) => {
+    const res = await api.post(`/committees/${encodeURIComponent(session)}/edit`, payload);
+    await Promise.all([get().fetchSessions(), get().fetchList('members')]);
+    return res.data;
+  },
+
   deleteCommittee: async (session) => {
     const res = await api.delete(`/committees/${encodeURIComponent(session)}`);
     await Promise.all([get().fetchSessions(), get().fetchList('members'), get().fetchTrash()]);

@@ -60,13 +60,31 @@ async function allSessions() {
   const site = await siteSettings();
   const launched = site.sessions || [];
   const stored = site.terms || {};
-  return [...new Set([...Object.keys(counts), ...launched])]
-    .map((label) => ({ label, members: counts[label] || 0, term: terms.termFor(label, stored[label]) }))
+  const currentSession = site.current_session || null;
+  const list = [...new Set([...Object.keys(counts), ...launched])];
+  const autoCurrent = currentOf(list.map((label) => ({ label, members: counts[label] || 0 })));
+  const effectiveCurrent = currentSession || (autoCurrent ? autoCurrent.label : null);
+
+  return list
+    .map((label) => ({
+      label,
+      members: counts[label] || 0,
+      term: terms.termFor(label, stored[label]),
+      is_current: effectiveCurrent ? label.toLowerCase() === effectiveCurrent.toLowerCase() : false,
+    }))
     .sort((a, b) => terms.rank(b.label) - terms.rank(a.label));
 }
 
-/** The committee that is running now: the newest one with people in it. */
-const currentOf = (list) => list.find((s) => s.members > 0) || null;
+/** The committee that is running now: the one chosen in settings, else newest with people. */
+const currentOf = (list, forcedCurrent = null) => {
+  if (forcedCurrent) {
+    const found = list.find((s) => s.label.toLowerCase() === forcedCurrent.toLowerCase());
+    if (found) return found;
+  }
+  const marked = list.find((s) => s.is_current);
+  if (marked) return marked;
+  return list.find((s) => s.members > 0) || null;
+};
 const isDate = (v) => /^\d{4}-\d{2}-\d{2}$/.test(String(v || ''));
 
 /** Why a start/end pair cannot be used, or null when it is fine. */
@@ -259,6 +277,100 @@ router.post('/:session/term', authMiddleware, async (req, res) => {
   }
 });
 
+router.post('/set-current', authMiddleware, async (req, res) => {
+  const session = clean(req.body?.session, 50);
+  if (!session) return res.status(400).json({ error: 'Choose a committee' });
+  await saveSite((cur) => ({ ...cur, current_session: session }));
+  const list = await allSessions();
+  res.json({ current_session: session, sessions: list });
+});
+
+router.post('/:session/set-current', authMiddleware, async (req, res) => {
+  const session = clean(decodeURIComponent(req.params.session), 50);
+  if (!session) return res.status(400).json({ error: 'Choose a committee' });
+  await saveSite((cur) => ({ ...cur, current_session: session }));
+  const list = await allSessions();
+  res.json({ current_session: session, sessions: list });
+});
+
+async function handleCommitteeEdit(req, res) {
+  const oldSession = clean(decodeURIComponent(req.params.session), 50);
+  if (!oldSession) return res.status(400).json({ error: 'Choose a committee' });
+
+  const newSession = clean(req.body?.session || req.body?.label, 50) || oldSession;
+  if (newSession.length < 3) return res.status(400).json({ error: 'Give the committee a name of at least 3 letters.' });
+
+  const existingList = await allSessions();
+  if (newSession.toLowerCase() !== oldSession.toLowerCase()) {
+    if (existingList.some((s) => s.label.toLowerCase() === newSession.toLowerCase())) {
+      return res.status(409).json({ error: `A committee named “${newSession}” already exists` });
+    }
+  }
+
+  const problem = dateProblem(req.body?.start, req.body?.end);
+  if (problem) return res.status(400).json({ error: problem });
+
+  // Update members table if renamed
+  if (newSession !== oldSession) {
+    await pool.query('UPDATE members SET committee_session = $1 WHERE committee_session = $2', [newSession, oldSession]);
+  }
+
+  // Update site settings
+  await saveSite((cur) => {
+    let sessions = [...(cur.sessions || [])];
+    if (newSession !== oldSession) {
+      sessions = sessions.map((s) => (s.toLowerCase() === oldSession.toLowerCase() ? newSession : s));
+      if (!sessions.some((s) => s.toLowerCase() === newSession.toLowerCase())) {
+        sessions.push(newSession);
+      }
+      sessions = sessions.filter((s) => s.toLowerCase() !== oldSession.toLowerCase() || s === newSession);
+    } else {
+      if (!sessions.some((s) => s.toLowerCase() === newSession.toLowerCase())) {
+        sessions.push(newSession);
+      }
+    }
+
+    const allTerms = { ...(cur.terms || {}) };
+    const prevKey = Object.keys(allTerms).find((k) => k.toLowerCase() === oldSession.toLowerCase());
+    const prevTerm = prevKey ? allTerms[prevKey] : {};
+    const start = req.body?.start !== undefined ? (req.body.start || null) : prevTerm.start;
+    const end = req.body?.end !== undefined ? (req.body.end || null) : prevTerm.end;
+    const computedTerm = terms.termFor(newSession, { start: start || undefined, end: end || undefined });
+
+    if (prevKey && newSession !== prevKey) {
+      delete allTerms[prevKey];
+    }
+    allTerms[newSession] = {
+      start: start || computedTerm.start,
+      end: end || computedTerm.end,
+      months: computedTerm.months,
+    };
+
+    let currentSession = cur.current_session || null;
+    if (req.body?.is_current === true) {
+      currentSession = newSession;
+    } else if (req.body?.is_current === false && currentSession && (currentSession.toLowerCase() === oldSession.toLowerCase() || currentSession.toLowerCase() === newSession.toLowerCase())) {
+      currentSession = null;
+    } else if (currentSession && currentSession.toLowerCase() === oldSession.toLowerCase()) {
+      currentSession = newSession;
+    }
+
+    return {
+      ...cur,
+      sessions: [...new Set(sessions)],
+      terms: allTerms,
+      current_session: currentSession,
+    };
+  });
+
+  const updatedSessions = await allSessions();
+  const updated = updatedSessions.find((s) => s.label === newSession);
+  res.json({ session: newSession, term: updated?.term, is_current: updated?.is_current, sessions: updatedSessions });
+}
+
+router.post('/:session/edit', authMiddleware, handleCommitteeEdit);
+router.put('/:session', authMiddleware, handleCommitteeEdit);
+
 const COMMITTEE_COLS = [
   ['Name', 'name'], ['Position', 'position'], ['Department', 'department'], ['Batch', 'batch'],
   ['Session', 'committee_session'], ['Facebook', 'social_fb'], ['GitHub', 'social_gh'], ['LinkedIn', 'social_li'],
@@ -308,6 +420,7 @@ router.delete('/:session', authMiddleware, async (req, res) => {
       ...cur,
       sessions: (cur.sessions || []).filter((s) => s !== session),
       terms: Object.fromEntries(Object.entries(cur.terms || {}).filter(([key]) => key !== session)),
+      current_session: cur.current_session === session ? null : cur.current_session,
     }));
     res.json({ session, trashed: r.rowCount || 0 });
   } catch (e) {
