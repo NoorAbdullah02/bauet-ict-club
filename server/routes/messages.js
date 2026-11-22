@@ -1,6 +1,7 @@
 const express = require('express');
 const { fail } = require('../utils/http');
 const mail = require('../utils/mailer');
+const { notifyAdmin } = require('../utils/adminAlert');
 const rateLimit = require('express-rate-limit');
 const pool = require('../config/db');
 const { authMiddleware } = require('../middleware/auth');
@@ -31,6 +32,18 @@ router.post('/', contactLimiter, async (req, res) => {
     const m = { name, email, subject, message };
     mail.sendMail({ to: mail.adminAddress(), ...mail.templates.adminNewMessage(m) });
     mail.sendMail({ to: email, ...mail.templates.contactAck(m) });
+    notifyAdmin({
+      title: '💬 New Contact Message',
+      description: `<b>${name}</b> sent a message: ${subject || '(No Subject)'}`,
+      path: '/admin/messages',
+      buttons: [
+        ['✉️ Reply', `mailto:${email}`],
+      ],
+      fields: [
+        ['From', email],
+        ['Message', message.slice(0, 200) + (message.length > 200 ? '…' : '')],
+      ],
+    });
     res.status(201).json({ success: true, id: rows[0].id });
   } catch (e) {
     console.error('Message save failed:', e.message);

@@ -1,6 +1,7 @@
 const express = require('express');
 const { fail } = require('../utils/http');
 const mail = require('../utils/mailer');
+const { notifyAdmin } = require('../utils/adminAlert');
 const exporters = require('../utils/exporters');
 const { sendZip, safe } = require('../utils/zipper');
 const { toCsv } = require('../utils/csv');
@@ -101,6 +102,22 @@ function notify(reg) {
   // applicants hear from us about decisions (approved, selected, rejected); the "we got it" note is off unless APPLICANT_ACK_EMAIL=true
   if ((process.env.APPLICANT_ACK_EMAIL || '').toLowerCase() === 'true') mail.sendMail({ to: reg.email, ...mail.templates.applicationReceived(reg) });
   mail.sendMail({ to: mail.adminAddress(), ...mail.templates.adminNewApplication(reg) });
+  notifyAdmin({
+    title: `🔔 New ${reg.type === 'committee' ? 'Committee' : reg.type === 'ambassador' ? 'Ambassador' : 'General'} Member Application`,
+    description: `<b>${reg.full_name}</b> has applied for ${reg.type} membership${reg.post ? ` (${reg.post})` : ''}.`,
+    path: '/admin/applications',
+    buttons: [
+      ['📞 Call', reg.phone ? `tel:${reg.phone}` : ''],
+      ['✉️ Email', reg.email ? `mailto:${reg.email}` : ''],
+    ],
+    fields: [
+      ['Student ID', reg.student_id],
+      ['Department', reg.department],
+      ['Batch', reg.batch],
+      ['Phone', reg.phone],
+      ['Email', reg.email],
+    ],
+  });
 }
 
 router.post('/photo', submitLimiter, upload.single('photo'), async (req, res) => {

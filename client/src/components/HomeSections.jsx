@@ -7,6 +7,7 @@ import { useT } from '../lib/i18n';
 import useStore from '../context/store';
 import Tilt from './Tilt';
 import CodeWindow from './CodeWindow';
+import ClubWings from './ClubWings';
 import PanelShowcase from './PanelShowcase';
 import Sponsors from './Sponsors';
 import Newsletter from './Newsletter';
@@ -70,6 +71,8 @@ export default function HomeSections() {
           </div>
         </div>
       </section>
+
+      <ClubWings />
 
       <NextEvent events={events} />
 
