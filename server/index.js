@@ -365,12 +365,33 @@ async function start() {
   app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
     require('./utils/push').status().then((st) => console.log(`Phone notifications: ${st.enabled ? `ON (Firebase project ${st.project}, ${st.phones} phone${st.phones === 1 ? '' : 's'} registered)` : `OFF (${st.problem})`}`)).catch(() => {});
-    if (process.env.TELEGRAM_BOT_TOKEN && process.env.PUBLIC_URL) {
-      const hookUrl = `${process.env.PUBLIC_URL.replace(/\/+$/, '')}/api/telegram/webhook`;
-      fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/setWebhook?url=${encodeURIComponent(hookUrl)}`)
+    const tgToken = process.env.TELEGRAM_BOT_TOKEN?.trim();
+    if (tgToken) {
+      const siteUrl = (process.env.PUBLIC_URL || process.env.RENDER_EXTERNAL_URL || 'https://bauet-ict-club.onrender.com').replace(/\/+$/, '');
+      const hookUrl = `${siteUrl}/api/telegram/webhook`;
+      fetch(`https://api.telegram.org/bot${tgToken}/setWebhook?url=${encodeURIComponent(hookUrl)}`)
         .then((r) => r.json())
         .then((res) => { if (res.ok) console.log('Telegram Bot webhook: ACTIVE'); })
         .catch(() => {});
+      fetch(`https://api.telegram.org/bot${tgToken}/setMyCommands`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          commands: [
+            { command: 'stats', description: '📊 লাইভ মেম্বার ও ভিজিটর পরিসংখ্যান' },
+            { command: 'pending', description: '⏳ পেন্ডিং আবেদন যাচাই ও অনুমোদন' },
+            { command: 'events', description: '📅 আসন্ন ক্লাব ইভেন্ট তালিকা' },
+            { command: 'find', description: '🔍 স্টুডেন্ট আইডি বা নাম সার্চ' },
+            { command: 'backup', description: '💾 ডাটাবেজ ব্যাকআপ ফাইল ডাউনলোড' },
+            { command: 'help', description: '❓ সাহায্য ও সব কমান্ডের গাইড' },
+          ],
+        }),
+      }).catch(() => {});
+      fetch(`https://api.telegram.org/bot${tgToken}/setChatMenuButton`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ menu_button: { type: 'commands' } }),
+      }).catch(() => {});
     }
     require('./utils/analyticsJobs').start();
     setTimeout(() => { try { require('./routes/eventRegs').processCertQueue(); } catch { /* the queue starts again at the next run */ } }, 20000); // goes on with certificate emails left over from before a restart
