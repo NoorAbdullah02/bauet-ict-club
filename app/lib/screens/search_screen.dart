@@ -54,7 +54,18 @@ class _SearchScreenState extends State<SearchScreen> {
     setState(() => _busy = true);
     try {
       final r = await _state.api.search(t);
-      if (mounted && mine == _seq) setState(() { _rows = r; _error = null; });
+      if (mounted && mine == _seq) {
+        final results = List<Map<String, dynamic>>.from(r);
+        if (RegExp(r'^\d{4,12}$').hasMatch(t)) {
+          results.insert(0, {
+            'type': 'action',
+            'title': 'Find Member Card for ID: $t',
+            'sub': 'Tap to open member card lookup',
+            'path': '/my-card',
+          });
+        }
+        setState(() { _rows = results; _error = null; });
+      }
     } on ApiException catch (e) {
       if (mounted && mine == _seq) setState(() { _rows = []; _error = e.message; });
     } finally {
@@ -65,7 +76,7 @@ class _SearchScreenState extends State<SearchScreen> {
   void _open(Map<String, dynamic> r) {
     final path = '${r['path']}';
     // the bottom-bar pages are tabs (go); detail pages open on top (push)
-    if (path.startsWith('/events/') || path.startsWith('/card/')) {
+    if (path.startsWith('/events/') || path.startsWith('/card/') || path == '/my-card' || path == '/ticket') {
       context.push(path);
     } else {
       context.go(path);
@@ -79,6 +90,7 @@ class _SearchScreenState extends State<SearchScreen> {
     'project': ('Projects', Icons.code_rounded),
     'faq': ('Questions', Icons.help_rounded),
     'resource': ('Resources', Icons.local_library_rounded),
+    'action': ('Action', Icons.arrow_forward_rounded),
   };
 
   @override
@@ -105,7 +117,19 @@ class _SearchScreenState extends State<SearchScreen> {
               const SizedBox(height: 10),
               Expanded(
                 child: rows == null
-                    ? const EmptyState(icon: Icons.search_rounded, title: 'Search the club', message: 'Type at least two letters. Try a workshop name, a person or a question.')
+                    ? ListView(
+                        padding: const EdgeInsets.only(bottom: 40),
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            child: Text('QUICK SHORTCUTS', style: monoStyle(context, size: 10, color: p.muted, weight: FontWeight.w700)),
+                          ),
+                          _shortcutItem(context, p, Icons.badge_rounded, 'Find My Member Card', 'Lookup verified card with student ID', '/my-card'),
+                          _shortcutItem(context, p, Icons.confirmation_number_rounded, 'Find My Ticket', 'View event registration pass & QR', '/ticket'),
+                          _shortcutItem(context, p, Icons.person_add_alt_1_rounded, 'Join Club', 'Apply for Committee, General, or Ambassador', '/join'),
+                          _shortcutItem(context, p, Icons.event_available_rounded, 'Upcoming Events', 'Workshops, hackathons & tech talks', '/events'),
+                        ],
+                      )
                     : rows.isEmpty
                         ? EmptyState(icon: Icons.search_off_rounded, title: 'Nothing found', message: _error ?? 'Try another word.')
                         : ListView.separated(
@@ -137,6 +161,32 @@ class _SearchScreenState extends State<SearchScreen> {
             ]),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _shortcutItem(BuildContext context, dynamic p, IconData icon, String title, String sub, String path) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: GlassCard(
+        onTap: () => _open({'path': path}),
+        padding: const EdgeInsets.all(12),
+        child: Row(children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), color: p.accent.withValues(alpha: 0.12)),
+            child: Icon(icon, color: p.accent, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(title, style: bodyStyle(context, weight: FontWeight.w700, size: 14.5)),
+              Text(sub, style: bodyStyle(context, size: 12.5, color: p.muted)),
+            ]),
+          ),
+          Icon(Icons.arrow_forward_ios_rounded, size: 12, color: p.muted),
+        ]),
       ),
     );
   }

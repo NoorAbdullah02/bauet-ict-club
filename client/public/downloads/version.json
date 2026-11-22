@@ -1,6 +1,6 @@
 {
-  "build": 143,
+  "build": 144,
   "min": 0,
-  "name": "1.0.0",
-  "notes": "Certificates: choose people, final check, publish by email with the PDF, live preview and settings. Reminder to check your email and Spam after every submit. Photo viewer, faster page switching, bigger upload previews, Club data page, lost-ticket email."
+  "name": "1.0.1",
+  "notes": "Custom domain bauetictclub.eu.org deep links, search shortcuts with student ID member card lookup, committee term lifecycle screens, enhanced ticket security, and offline support."
 }
