@@ -80,7 +80,16 @@ app.all('/api/jobs/run', async (req, res) => {
   const given = String(req.get('x-cron-secret') || req.query.key || '');
   if (!secret || secret.length < 16 || given.length !== secret.length || !require('crypto').timingSafeEqual(Buffer.from(given), Buffer.from(secret))) return res.status(404).json({ error: 'Not found' });
   const jobs = require('./utils/analyticsJobs');
-  await Promise.allSettled([jobs.purge(), jobs.weeklyDigest(), jobs.reminders(), require('./utils/push').remindDue(), require('./utils/schedule').publishDue(), require('./routes/eventRegs').processCertQueue(), require('./utils/remoteJobs').maybeRefresh()]);
+  await Promise.allSettled([
+    jobs.purge(),
+    jobs.weeklyDigest(),
+    jobs.reminders(),
+    require('./utils/push').remindDue(),
+    require('./utils/schedule').publishDue(),
+    require('./routes/eventRegs').processCertQueue(),
+    require('./utils/remoteJobs').maybeRefresh(),
+    require('./utils/backupTelegram').maybeDailyBackup(),
+  ]);
   res.set('Cache-Control', 'no-store').json({ ok: true });
 });
 
@@ -110,6 +119,7 @@ app.use('/api/backup', require('./routes/backup'));
 app.use('/api/downloads', require('./routes/downloads')); // admin: any list as CSV, Excel or JSON (see Admin → Downloads)
 app.use('/api/exports', require('./routes/exports')); // admin: the rows a table is showing, as an Excel workbook
 app.use('/api/auth', require('./routes/auth'));
+app.use('/api/telegram', require('./routes/telegram'));
 app.use('/api/push', require('./routes/push'));
 app.use('/api/upload', authMiddleware, require('./routes/upload'));
 app.use('/api/chat', require('./routes/chat'));
@@ -355,6 +365,13 @@ async function start() {
   app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
     require('./utils/push').status().then((st) => console.log(`Phone notifications: ${st.enabled ? `ON (Firebase project ${st.project}, ${st.phones} phone${st.phones === 1 ? '' : 's'} registered)` : `OFF (${st.problem})`}`)).catch(() => {});
+    if (process.env.TELEGRAM_BOT_TOKEN && process.env.PUBLIC_URL) {
+      const hookUrl = `${process.env.PUBLIC_URL.replace(/\/+$/, '')}/api/telegram/webhook`;
+      fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/setWebhook?url=${encodeURIComponent(hookUrl)}`)
+        .then((r) => r.json())
+        .then((res) => { if (res.ok) console.log('Telegram Bot webhook: ACTIVE'); })
+        .catch(() => {});
+    }
     require('./utils/analyticsJobs').start();
     setTimeout(() => { try { require('./routes/eventRegs').processCertQueue(); } catch { /* the queue starts again at the next run */ } }, 20000); // goes on with certificate emails left over from before a restart
   });

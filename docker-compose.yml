@@ -1,0 +1,76 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: bauet_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-bauet_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-bauet_secure_password_2026}
+      POSTGRES_DB: ${POSTGRES_DB:-bauet_ict_club}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-bauet_user} -d ${POSTGRES_DB:-bauet_ict_club}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - bauet_network
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: bauet_web
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-bauet_user}:${POSTGRES_PASSWORD:-bauet_secure_password_2026}@db:5432/${POSTGRES_DB:-bauet_ict_club}
+      JWT_SECRET: ${JWT_SECRET:-please_set_jwt_secret_in_env_32_characters}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-AdminPass2026}
+      PUBLIC_URL: ${PUBLIC_URL:-https://bauetictclub.eu.org}
+      TRUST_PROXY: "1"
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME:-}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY:-}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET:-}
+      BREVO_API_KEY: ${BREVO_API_KEY:-}
+      MAIL_FROM: ${MAIL_FROM:-}
+      CRON_SECRET: ${CRON_SECRET:-}
+    volumes:
+      - web_uploads:/app/server/uploads
+    networks:
+      - bauet_network
+
+  nginx:
+    image: nginx:alpine
+    container_name: bauet_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - web
+    volumes:
+      - ./deploy/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - certbot_certs:/etc/letsencrypt
+      - certbot_www:/var/www/certbot
+    networks:
+      - bauet_network
+
+networks:
+  bauet_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  web_uploads:
+  certbot_certs:
+  certbot_www:
