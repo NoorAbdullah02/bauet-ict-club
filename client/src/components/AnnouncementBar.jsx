@@ -37,7 +37,9 @@ export default function AnnouncementBar() {
   const badgeLabel = nextEvent ? t('Upcoming') : pinnedNotice ? t('Notice') : t('Active');
   const BadgeIcon = nextEvent ? Calendar : pinnedNotice ? Bell : Sparkles;
 
-  const onDismiss = () => {
+  const onDismiss = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
     setDismissed(true);
     try { sessionStorage.setItem('bauet_ribbon_dismissed', '1'); } catch {}
   };
@@ -45,64 +47,48 @@ export default function AnnouncementBar() {
   return (
     <AnimatePresence>
       <motion.div
-        initial={{ opacity: 0, y: -12, scale: 0.98 }}
+        initial={{ opacity: 0, y: -8, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={{ opacity: 0, y: -10, scale: 0.98 }}
-        transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-        className="group relative z-20 mx-auto mb-7 max-w-2xl px-3"
+        exit={{ opacity: 0, y: -8, scale: 0.98 }}
+        transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+        className="mx-auto mb-6 flex justify-center px-4"
       >
-        {/* Ambient atmospheric glow */}
-        <div className="pointer-events-none absolute -inset-1 rounded-full bg-gradient-to-r from-emerald-500/25 via-blue-500/30 to-teal-500/25 blur-md opacity-60 transition-opacity duration-500 group-hover:opacity-90 dark:opacity-40 dark:group-hover:opacity-75" />
+        <div className="group relative inline-flex max-w-full items-center gap-2.5 rounded-full border border-line bg-surface/85 py-1.5 pl-2.5 pr-2 shadow-xs backdrop-blur-md transition-all duration-300 hover:border-accent/40 hover:bg-surface hover:shadow-md">
+          {/* Badge */}
+          <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-tech/30 bg-tech-light px-2.5 py-0.5 font-mono text-[10.5px] font-semibold uppercase tracking-wider text-tech">
+            <span className="size-1.5 rounded-full bg-tech animate-pulse" />
+            <BadgeIcon size={11} />
+            <span>{badgeLabel}</span>
+          </span>
 
-        {/* Gradient border container */}
-        <div className="relative rounded-full p-[1px] bg-gradient-to-r from-emerald-500/40 via-blue-500/60 to-teal-500/40 shadow-[0_4px_24px_rgba(31,79,216,0.14)] dark:shadow-[0_4px_30px_rgba(47,214,176,0.18)]">
-          {/* Glass inner content */}
-          <div className="relative flex items-center justify-between gap-3 overflow-hidden rounded-full bg-white/85 px-3 py-1.5 backdrop-blur-xl transition-all duration-300 dark:bg-[#07132e]/90 sm:px-4 sm:py-2">
-            {/* Shimmer light streak passing across on hover */}
-            <div className="pointer-events-none absolute -inset-full top-0 block -rotate-12 bg-gradient-to-r from-transparent via-white/30 to-transparent opacity-0 transition-all duration-1000 group-hover:translate-x-full group-hover:opacity-100 dark:via-white/10" />
+          {/* Divider */}
+          <span className="hidden h-3.5 w-px bg-line sm:block" />
 
-            <Link
-              to={link}
-              className="flex min-w-0 flex-1 items-center gap-2.5 sm:gap-3 text-left focus:outline-hidden"
-            >
-              {/* Radar live pulsing dot */}
-              <span className="relative flex size-2 shrink-0">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex size-2 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981]" />
-              </span>
+          {/* Clickable text and CTA link */}
+          <Link
+            to={link}
+            className="flex min-w-0 items-center gap-2 text-left focus:outline-hidden"
+          >
+            <span className="truncate text-xs font-medium text-fg transition-colors group-hover:text-accent sm:text-[13px]">
+              {title}
+            </span>
 
-              {/* Tag pill badge */}
-              <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/15 px-2.5 py-0.5 font-mono text-[10.5px] font-bold uppercase tracking-wider text-emerald-700 dark:border-emerald-400/30 dark:bg-emerald-500/20 dark:text-emerald-300">
-                <BadgeIcon size={11} className="text-emerald-600 dark:text-emerald-400" />
-                <span>{badgeLabel}</span>
-              </span>
+            <span className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-accent transition-all duration-200 group-hover:text-accent-hover sm:ml-1">
+              <span>{cta}</span>
+              <ArrowRight size={12} className="transition-transform duration-200 group-hover:translate-x-0.5" />
+            </span>
+          </Link>
 
-              {/* Headline text */}
-              <span className="truncate text-xs font-semibold text-fg transition-colors duration-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 sm:text-[13px]">
-                {title}
-              </span>
-
-              {/* Right CTA button pill */}
-              <span className="ml-auto hidden shrink-0 items-center gap-1.5 rounded-full bg-blue-600 px-3 py-1 text-xs font-semibold text-white shadow-xs transition-all duration-200 group-hover:bg-blue-700 group-hover:shadow-[0_0_14px_rgba(37,99,235,0.45)] dark:bg-blue-500 dark:text-slate-950 dark:hover:bg-blue-400 sm:inline-flex">
-                <span>{cta}</span>
-                <ArrowRight size={12} className="transition-transform duration-200 group-hover:translate-x-0.5" />
-              </span>
-            </Link>
-
-            {/* Dismiss button */}
-            <button
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onDismiss();
-              }}
-              aria-label="Dismiss banner"
-              title={t('Dismiss')}
-              className="grid size-6 shrink-0 place-items-center rounded-full text-muted transition-colors hover:bg-black/5 hover:text-fg dark:hover:bg-white/10"
-            >
-              <X size={12} />
-            </button>
-          </div>
+          {/* Close button */}
+          <button
+            type="button"
+            onClick={onDismiss}
+            aria-label="Dismiss announcement"
+            title={t('Dismiss')}
+            className="ml-0.5 grid size-5 shrink-0 place-items-center rounded-full text-muted transition-colors hover:bg-fg/5 hover:text-fg"
+          >
+            <X size={12} />
+          </button>
         </div>
       </motion.div>
     </AnimatePresence>
