@@ -220,6 +220,18 @@ async function initDb() {
       ALTER TABLE members ADD COLUMN IF NOT EXISTS student_id VARCHAR(30);
       ALTER TABLE members ADD COLUMN IF NOT EXISTS bio TEXT;
     `);
+    // a committee row points back to the application it came from: points and certificates are matched by that identity, never by name
+    await client.query('ALTER TABLE members ADD COLUMN IF NOT EXISTS registration_id INTEGER');
+    // the card OTP lives in the database, so a server restart (or a second instance) does not lose a code that was just sent
+    await client.query(`CREATE TABLE IF NOT EXISTS card_otps (
+      email TEXT PRIMARY KEY, code_hash TEXT NOT NULL, member_key TEXT NOT NULL,
+      attempts INTEGER NOT NULL DEFAULT 0, sent_at TIMESTAMPTZ DEFAULT NOW(), expires_at TIMESTAMPTZ NOT NULL
+    )`);
+    try {
+      await client.query(`UPDATE members m SET registration_id = r.id FROM registrations r
+        WHERE m.registration_id IS NULL AND m.student_id IS NOT NULL AND r.deleted_at IS NULL
+          AND LOWER(m.student_id) = LOWER(r.student_id)`);
+    } catch { /* older database or the in-memory test database: the link is made when the next person is selected */ }
     // event sign-ups: every event can have its own registration link and list
     await client.query(`
       ALTER TABLE events ADD COLUMN IF NOT EXISTS reg_url TEXT;

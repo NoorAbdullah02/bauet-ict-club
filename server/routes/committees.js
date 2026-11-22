@@ -6,7 +6,9 @@ const { leadershipConflict } = require('../utils/positions');
 const { cloneImage } = require('../utils/images');
 const { sendZip, safe } = require('../utils/zipper');
 const { toCsv } = require('../utils/csv');
+const { tableToXlsx } = require('../utils/exporters');
 const { destroyImage } = require('../utils/cloud');
+const terms = require('../utils/terms');
 
 /**
  * Gives each person their own copy of the picture inside the new committee's Cloudinary folder, a few at a time, after the answer has been sent.
@@ -36,12 +38,54 @@ async function siteSettings() {
   return (await pool.query("SELECT value FROM settings WHERE key = 'site'")).rows[0]?.value || {};
 }
 
-/** All committee sessions: those that have members plus ones launched but still empty. */
+/** Changes the one 'site' settings row (the session list and the committee terms live there). */
+async function saveSite(update) {
+  const cur = await siteSettings();
+  const next = typeof update === 'function' ? update(cur) : { ...cur, ...update };
+  await pool.query("INSERT INTO settings (key, value) VALUES ('site', $1::jsonb) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()", [JSON.stringify(next)]);
+  return next;
+}
+
+/** Keeps one committee's dates in the settings, so an extended or moved term stays put. */
+async function saveTerm(session, term) {
+  const entry = { start: term.start, end: term.end, months: term.months };
+  await saveSite((cur) => ({ ...cur, terms: { ...(cur.terms || {}), [session]: entry } }));
+  return entry;
+}
+
+/** All committee sessions: those that have members plus ones launched but still empty, newest first, each with its six-month term. */
 async function allSessions() {
   const { rows } = await pool.query('SELECT committee_session AS s, COUNT(*) AS n FROM members WHERE committee_session IS NOT NULL AND deleted_at IS NULL GROUP BY committee_session');
   const counts = Object.fromEntries(rows.map((r) => [r.s, Number(r.n)]));
-  const launched = (await siteSettings()).sessions || [];
-  return [...new Set([...Object.keys(counts), ...launched])].map((label) => ({ label, members: counts[label] || 0 }));
+  const site = await siteSettings();
+  const launched = site.sessions || [];
+  const stored = site.terms || {};
+  return [...new Set([...Object.keys(counts), ...launched])]
+    .map((label) => ({ label, members: counts[label] || 0, term: terms.termFor(label, stored[label]) }))
+    .sort((a, b) => terms.rank(b.label) - terms.rank(a.label));
+}
+
+/** The committee that is running now: the newest one with people in it. */
+const currentOf = (list) => list.find((s) => s.members > 0) || null;
+const isDate = (v) => /^\d{4}-\d{2}-\d{2}$/.test(String(v || ''));
+
+/** Why a start/end pair cannot be used, or null when it is fine. */
+function dateProblem(start, end) {
+  if (start && !isDate(start)) return 'Use a start date like 2027-01-01';
+  if (end && !isDate(end)) return 'Use an end date like 2027-06-30';
+  if (start && end && String(end) <= String(start)) return 'The last day has to be after the first day.';
+  if (start && end && new Date(`${end}T00:00:00Z`) - new Date(`${start}T00:00:00Z`) > 750 * 864e5) return 'A committee term can be at most two years.';
+  return null;
+}
+
+/**
+ * The dates a committee gets: what the admin typed, else what is remembered, else the semester calendar,
+ * else today for a name of their own (an "ICT Fest 2027" committee starts the day it is created).
+ */
+function termFrom(session, body = {}, stored = {}) {
+  const start = body.start || stored.start || (terms.named(session) ? undefined : terms.today());
+  const months = Math.min(24, Math.max(1, Number(body.months) || stored.months || terms.MONTHS));
+  return terms.termFor(session, { start, end: body.end || stored.end, months });
 }
 
 router.get('/', async (_req, res) => {
@@ -49,20 +93,59 @@ router.get('/', async (_req, res) => {
 });
 
 /**
- * Launch a new committee for a semester.
- * body: { session: "Winter 2027", copyFrom?: "Summer 2026", scope: "none" | "leaders" | "all" }
+ * Admin: what launching this name would mean, before anything is saved. The client asks this instead of guessing:
+ * the dates, whether the name is taken, and whether the running committee makes it an early handover.
+ * body: { session, start?, end?, months? }
+ */
+router.post('/plan', authMiddleware, async (req, res) => {
+  const session = clean(req.body?.session, 50);
+  if (session.length < 3) return res.status(400).json({ error: 'Give the committee a name of at least 3 letters.' });
+  const problem = dateProblem(req.body?.start, req.body?.end);
+  if (problem) return res.status(400).json({ error: problem });
+  try {
+    const list = await allSessions();
+    const known = list.find((s) => s.label.toLowerCase() === session.toLowerCase());
+    const term = known && !req.body?.start && !req.body?.end ? known.term : termFrom(session, req.body);
+    const current = currentOf(list);
+    const newer = !!current && terms.rank(session) > terms.rank(current.label);
+    res.set('Cache-Control', 'no-store');
+    res.json({
+      session, term, exists: !!known, newer,
+      needs_confirm: !!current && newer && !current.term.expired,
+      current: current ? { label: current.label, term: current.term } : null,
+    });
+  } catch (e) {
+    console.error('Committee plan failed:', e.message);
+    res.status(500).json({ error: 'Could not work out the dates' });
+  }
+});
+
+/**
+ * Launch a new committee. Any name works: a semester ("Winter 2027") or one of your own ("ICT Fest 2027").
+ * body: { session, copyFrom?, scope: "none" | "leaders" | "all", start?, end?, months?, force? }
  */
 router.post('/launch', authMiddleware, async (req, res) => {
   const session = clean(req.body.session, 50);
   const copyFrom = clean(req.body.copyFrom, 50);
   const scope = ['none', 'leaders', 'all'].includes(req.body.scope) ? req.body.scope : 'none';
-  if (!/^(Summer|Winter|Spring|Autumn|Fall|Session|Semester|\d{4})\b/i.test(session) && session.length < 3) {
-    return res.status(400).json({ error: 'Use a name like “Fall 2026” or “Spring 2027”' });
-  }
+  if (session.length < 3) return res.status(400).json({ error: 'Give the committee a name of at least 3 letters.' });
+  const problem = dateProblem(req.body.start, req.body.end);
+  if (problem) return res.status(400).json({ error: problem });
 
   try {
     const existing = await allSessions();
     if (existing.some((s) => s.label.toLowerCase() === session.toLowerCase())) return res.status(409).json({ error: `${session} already exists` });
+
+    // A committee serves six months. Until that term is over, moving FORWARD needs a clear confirmation,
+    // so a mistyped click can never cut a running committee short. Adding an older committee (history) is always allowed.
+    const current = currentOf(existing);
+    const newer = current ? terms.rank(session) > terms.rank(current.label) : false;
+    if (newer && !current.term.expired && !req.body.force) {
+      return res.status(409).json({
+        error: `${current.label} is in term until ${current.term.end} (${current.term.days_left} day${current.term.days_left === 1 ? '' : 's'} left). Confirm to hand over early.`,
+        needs_confirm: true, current: { label: current.label, term: current.term },
+      });
+    }
 
     let copied = 0;
     const toRehome = [];
@@ -78,10 +161,16 @@ router.post('/launch', authMiddleware, async (req, res) => {
         copied += 1;
       }
     }
-    const cur = await siteSettings();
-    const sessions = [...new Set([...(cur.sessions || []), session])];
-    await pool.query("INSERT INTO settings (key, value) VALUES ('site', $1::jsonb) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()", [JSON.stringify({ ...cur, sessions })]);
-    res.status(201).json({ session, copied });
+    // the dates the admin chose, else the semester's own six months (Summer 1 Apr – 30 Sep, Winter 1 Oct – 31 Mar),
+    // even when the committee is launched late: the name and the dates always agree
+    const term = termFrom(session, req.body);
+    await saveSite((cur) => {
+      const all = { ...(cur.terms || {}) };
+      if (copyFrom && !all[copyFrom]) all[copyFrom] = terms.termFor(copyFrom);
+      all[session] = { start: term.start, end: term.end, months: term.months };
+      return { ...cur, sessions: [...new Set([...(cur.sessions || []), session])], terms: all };
+    });
+    res.status(201).json({ session, copied, term });
     rehome(toRehome, session);
   } catch (e) {
     console.error('Launch committee failed:', e.message);
@@ -118,10 +207,7 @@ router.post('/transfer', authMiddleware, async (req, res) => {
       done.push(m.name);
     }
     // make a brand-new semester selectable everywhere
-    const cur = await siteSettings();
-    if (!(cur.sessions || []).includes(toSession)) {
-      await pool.query("INSERT INTO settings (key, value) VALUES ('site', $1::jsonb) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()", [JSON.stringify({ ...cur, sessions: [...(cur.sessions || []), toSession] })]);
-    }
+    await saveSite((cur) => ({ ...cur, sessions: [...new Set([...(cur.sessions || []), toSession])] }));
     res.json({ transferred: done.length, mode, toSession, skipped });
     rehome(toRehome, toSession);
   } catch (e) {
@@ -140,15 +226,71 @@ router.delete('/demo', authMiddleware, async (_req, res) => {
   try { res.json(await removeDemo()); } catch (e) { res.status(500).json({ error: 'Could not remove demo data' }); }
 });
 
-/** Admin: one committee as a ZIP: the list (CSV) and every person's picture in full quality. ?format=original|jpg|png */
+/**
+ * Admin: move one committee's term. Any of these bodies is fine:
+ * { start, end } sets both days by hand, { start } moves the first day and keeps the same length,
+ * { end } moves only the last day, and { months: 6 } extends the end by six more months.
+ */
+router.post('/:session/term', authMiddleware, async (req, res) => {
+  const session = clean(decodeURIComponent(req.params.session), 50);
+  if (!session) return res.status(400).json({ error: 'Choose a committee' });
+  try {
+    const stored = ((await siteSettings()).terms || {})[session] || {};
+    const now = terms.termFor(session, stored);
+    const problem = dateProblem(req.body?.start, req.body?.end);
+    if (problem) return res.status(400).json({ error: problem });
+    let next;
+    if (req.body?.start || req.body?.end) {
+      const first = req.body?.start || now.start;
+      const last = req.body?.end;
+      if (last && String(last) <= String(first)) return res.status(400).json({ error: 'The last day has to be after the first day.' });
+      // a moved first day keeps the same length unless a last day comes with it
+      const same = terms.termFor(session, { start: first, months: now.months });
+      next = terms.termFor(session, { start: same.start, end: last || same.end });
+    } else {
+      const months = Math.min(24, Math.max(1, Number(req.body?.months) || terms.MONTHS));
+      next = terms.termFor(session, { start: now.start, end: terms.extend(now, months) });
+    }
+    await saveTerm(session, next);
+    res.json({ session, term: next });
+  } catch (e) {
+    console.error('Term change failed:', e.message);
+    res.status(500).json({ error: 'Could not change the term' });
+  }
+});
+
+const COMMITTEE_COLS = [
+  ['Name', 'name'], ['Position', 'position'], ['Department', 'department'], ['Batch', 'batch'],
+  ['Session', 'committee_session'], ['Facebook', 'social_fb'], ['GitHub', 'social_gh'], ['LinkedIn', 'social_li'],
+];
+
+/** Admin: one committee as a list. ?format=csv|xlsx */
+router.get('/:session/export', authMiddleware, async (req, res) => {
+  try {
+    const session = clean(decodeURIComponent(req.params.session), 50);
+    const { rows } = await pool.query('SELECT * FROM members WHERE committee_session = $1 AND deleted_at IS NULL ORDER BY display_order', [session]);
+    if (!rows.length) return res.status(404).json({ error: 'No people in this committee' });
+    const xlsx = String(req.query.format).toLowerCase() === 'xlsx';
+    const base = `committee-${safe(session)}-${new Date().toISOString().slice(0, 10)}`;
+    res.set({
+      'Content-Type': xlsx ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' : 'text/csv; charset=utf-8',
+      'Content-Disposition': `attachment; filename="${base}.${xlsx ? 'xlsx' : 'csv'}"`,
+      'Cache-Control': 'no-store',
+    });
+    res.send(xlsx
+      ? await tableToXlsx(`${session} committee`, `${rows.length} people`, COMMITTEE_COLS, rows)
+      : toCsv(COMMITTEE_COLS.map((c) => c[0]), rows.map((r) => COMMITTEE_COLS.map(([, k]) => r[k]))));
+  } catch (e) { console.error('Committee export failed:', e.message); res.status(500).json({ error: 'Could not build the download' }); }
+});
+
+/** Admin: one committee as a ZIP: the list (CSV, Excel) and every person's picture in full quality. ?format=original|jpg|png */
 router.get('/:session/zip', authMiddleware, async (req, res) => {
   try {
     const session = clean(decodeURIComponent(req.params.session), 50);
     const { rows } = await pool.query('SELECT * FROM members WHERE committee_session = $1 AND deleted_at IS NULL ORDER BY display_order', [session]);
     if (!rows.length) return res.status(404).json({ error: 'No people in this committee' });
-    const cols = ['name', 'position', 'department', 'batch', 'committee_session', 'social_fb', 'social_gh', 'social_li'];
-    const csv = toCsv(cols, rows.map((r) => cols.map((c) => r[c])));
-    const entries = [{ name: 'committee.csv', data: csv }, ...rows.filter((r) => r.image_url && !r.image_url.startsWith('data:')).map((r, i) => ({ name: `photos/${String(i + 1).padStart(2, '0')}-${safe(r.position)}-${safe(r.name, `person-${r.id}`)}`, image: r.image_url }))];
+    const csv = toCsv(COMMITTEE_COLS.map((c) => c[0]), rows.map((r) => COMMITTEE_COLS.map(([, k]) => r[k])));
+    const entries = [{ name: 'committee.csv', data: csv }, { name: 'committee.xlsx', data: await tableToXlsx(`${session} committee`, `${rows.length} people`, COMMITTEE_COLS, rows) }, ...rows.filter((r) => r.image_url && !r.image_url.startsWith('data:')).map((r, i) => ({ name: `photos/${String(i + 1).padStart(2, '0')}-${safe(r.position)}-${safe(r.name, `person-${r.id}`)}`, image: r.image_url }))];
     await sendZip(res, `committee-${safe(session)}`, entries, { format: req.query.format });
   } catch (e) { console.error('Committee zip failed:', e.message); if (!res.headersSent) res.status(500).json({ error: 'Could not build the download' }); else res.end(); }
 });
@@ -162,8 +304,11 @@ router.delete('/:session', authMiddleware, async (req, res) => {
   if (!session) return res.status(400).json({ error: 'Choose a committee' });
   try {
     const r = await pool.query('UPDATE members SET deleted_at = NOW() WHERE committee_session = $1 AND deleted_at IS NULL', [session]);
-    const cur = await siteSettings();
-    await pool.query("INSERT INTO settings (key, value) VALUES ('site', $1::jsonb) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()", [JSON.stringify({ ...cur, sessions: (cur.sessions || []).filter((s) => s !== session) })]);
+    await saveSite((cur) => ({
+      ...cur,
+      sessions: (cur.sessions || []).filter((s) => s !== session),
+      terms: Object.fromEntries(Object.entries(cur.terms || {}).filter(([key]) => key !== session)),
+    }));
     res.json({ session, trashed: r.rowCount || 0 });
   } catch (e) {
     console.error('Delete committee failed:', e.message);

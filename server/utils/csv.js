@@ -7,5 +7,5 @@ function cell(v) {
   return `"${s.replace(/"/g, '""')}"`;
 }
 /** rows of values -> CSV text with a UTF-8 BOM (so Excel shows Bangla correctly). */
-const toCsv = (head, rows) => `\uFEFF${[head.map(cell).join(','), ...rows.map((r) => r.map(cell).join(','))].join('\n')}`;
+const toCsv = (head, rows) => `\uFEFF${[head.map(cell).join(','), ...rows.map((r) => r.map(cell).join(','))].join('\r\n')}\r\n`;
 module.exports = { cell, toCsv };

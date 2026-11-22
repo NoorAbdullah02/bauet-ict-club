@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import '../../core/i18n.dart';
 import 'package:go_router/go_router.dart';
@@ -45,6 +47,21 @@ class _AdminCommitteesScreenState extends State<AdminCommitteesScreen> {
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  /// "1 Oct 2026 – 31 Mar 2027 · 129 days left" (or "term finished") from the server's term object.
+  static String _termLine(dynamic raw) {
+    final t = Map<String, dynamic>.from(raw as Map);
+    String d(String? iso) {
+      final v = DateTime.tryParse(iso ?? '');
+      if (v == null) return '—';
+      const m = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      return '${v.day} ${m[v.month - 1]} ${v.year}';
+    }
+
+    final left = (t['days_left'] as num?)?.toInt() ?? 0;
+    final tail = t['expired'] == true ? 'term finished' : '$left day${left == 1 ? '' : 's'} left';
+    return '${d(t['start'] as String?)} – ${d(t['end'] as String?)} · $tail';
   }
 
   Future<void> _launch() async {
@@ -106,7 +123,15 @@ class _AdminCommitteesScreenState extends State<AdminCommitteesScreen> {
                             child: Row(children: [
                               Icon(Icons.groups_rounded, color: p.accent),
                               const SizedBox(width: 12),
-                              Expanded(child: Text('${_rows[i]['label']}', style: bodyStyle(context, weight: FontWeight.w700, size: 16))),
+                              Expanded(
+                                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                  Text(_rows[i]['label'].toString(), style: bodyStyle(context, weight: FontWeight.w700, size: 16)),
+                                  if (_rows[i]['term'] is Map) ...[
+                                    const SizedBox(height: 2),
+                                    Text(_termLine(_rows[i]['term']), style: monoStyle(context, size: 10)),
+                                  ],
+                                ]),
+                              ),
                               if (i == 0) ...[const Tag('Current', color: Color(0xFF34D399)), const SizedBox(width: 8)],
                               Text('${_rows[i]['members']} members', style: monoStyle(context, size: 10.5)),
                             ]),
@@ -131,12 +156,21 @@ class _LaunchSheet extends StatefulWidget {
   State<_LaunchSheet> createState() => _LaunchSheetState();
 }
 
+/// The launch form. The server's plan decides the dates and whether the running committee makes this an early
+/// handover, so the app can never disagree with the website.
 class _LaunchSheetState extends State<_LaunchSheet> {
   final _name = TextEditingController();
+  final _startCtl = TextEditingController();
+  final _endCtl = TextEditingController();
   late String _copyFrom = widget.sessions.isEmpty ? '' : widget.sessions.first;
   String _scope = 'none';
   String? _error;
+  Map<String, dynamic> _plan = const {};
+  Timer? _timer;
+  bool _checking = false;
   bool _busy = false;
+  bool _blocked = false; // an early handover: one confirmation
+  bool _editedDates = false; // the admin typed dates: the server keeps them
 
   static const _scopes = {
     'none': 'Empty committee',
@@ -144,46 +178,157 @@ class _LaunchSheetState extends State<_LaunchSheet> {
     'all': 'Copy everyone',
   };
 
+  static const _months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  static String _fmt(String? iso) {
+    final d = DateTime.tryParse(iso ?? '');
+    if (d == null) return '—';
+    return '${d.day} ${_months[d.month - 1]} ${d.year}';
+  }
+
+  /// Winter 2026 → Summer 2027, Summer 2026 → Winter 2026: the semester that follows the newest committee.
+  String _suggested() {
+    final label = widget.sessions.isEmpty ? '' : widget.sessions.first;
+    final year = int.tryParse((RegExp(r'(20\d{2})').firstMatch(label)?.group(1)) ?? '') ?? DateTime.now().year;
+    if (RegExp(r'winter', caseSensitive: false).hasMatch(label)) return 'Summer ${year + 1}';
+    if (RegExp(r'summer', caseSensitive: false).hasMatch(label)) return 'Winter $year';
+    return '';
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _name.text = _suggested();
+    _name.addListener(_queuePlan);
+    _queuePlan();
+  }
+
   @override
   void dispose() {
+    _timer?.cancel();
     _name.dispose();
+    _startCtl.dispose();
+    _endCtl.dispose();
     super.dispose();
   }
 
-  Future<void> _go() async {
+  void _queuePlan() {
+    _timer?.cancel();
+    if (!mounted) return;
+    setState(() {
+      _error = null;
+      _blocked = false;
+    });
+    if (_name.text.trim().length < 3) {
+      setState(() => _plan = const {});
+      return;
+    }
+    _timer = Timer(const Duration(milliseconds: 350), _askPlan);
+  }
+
+  Future<void> _askPlan() async {
     final name = _name.text.trim();
-    if (name.length < 4) {
-      setState(() => _error = 'Use a name like "Winter 2027"');
+    if (name.length < 3 || !mounted) return;
+    final state = context.read<AppState>();
+    setState(() => _checking = true);
+    try {
+      final plan = await state.api.committeePlan(
+        session: name,
+        start: _editedDates ? _startCtl.text : null,
+        end: _editedDates ? _endCtl.text : null,
+      );
+      if (!mounted) return;
+      final term = plan['term'];
+      setState(() {
+        _plan = plan;
+        if (term is Map && !_editedDates) {
+          _startCtl.text = term['start']?.toString() ?? '';
+          _endCtl.text = term['end']?.toString() ?? '';
+        }
+      });
+    } on ApiException catch (e) {
+      await state.handleAuthError(e);
+      if (mounted) setState(() => _error = e.message);
+    } finally {
+      if (mounted) setState(() => _checking = false);
+    }
+  }
+
+  Future<void> _pickDate(bool first) async {
+    final t = DateTime.tryParse(first ? _startCtl.text : _endCtl.text) ?? DateTime.now();
+    final d = await showDatePicker(context: context, initialDate: t, firstDate: DateTime(2015), lastDate: DateTime(2100));
+    if (d == null || !mounted) return;
+    String two(int v) => v.toString().padLeft(2, '0');
+    setState(() {
+      _editedDates = true;
+      if (first) {
+        _startCtl.text = '${d.year}-${two(d.month)}-${two(d.day)}';
+      } else {
+        _endCtl.text = '${d.year}-${two(d.month)}-${two(d.day)}';
+      }
+    });
+    await _askPlan();
+  }
+
+  Future<void> _go({bool force = false}) async {
+    final name = _name.text.trim();
+    if (name.length < 3) {
+      setState(() => _error = 'Give the committee a name of at least 3 letters');
       return;
     }
     setState(() {
       _busy = true;
       _error = null;
+      _blocked = false;
     });
     final state = context.read<AppState>();
     try {
-      await state.api.launchCommittee(name, _scope == 'none' ? null : _copyFrom, _scope);
+      await state.api.launchCommittee(name, _scope == 'none' ? null : _copyFrom, _scope, force: force, start: _startCtl.text, end: _endCtl.text);
       if (mounted) Navigator.pop(context, true);
     } on ApiException catch (e) {
       await state.handleAuthError(e);
       if (mounted) setState(() => _error = e.message);
+      // only an early handover asks for this (a name that already exists is a plain error)
+      if (mounted && !force && e.needsConfirm) setState(() => _blocked = true);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
   }
 
+  String? get _planError => _error ?? (_plan['exists'] == true ? '${_name.text.trim()} already exists — pick another name.' : null);
+
   @override
   Widget build(BuildContext context) {
     final p = context.pal;
+    final term = _plan['term'] is Map ? Map<String, dynamic>.from(_plan['term'] as Map) : const <String, dynamic>{};
+    final early = _plan['needs_confirm'] == true;
+    final canLaunch = _name.text.trim().length >= 3 && _planError == null;
     return Padding(
       padding: EdgeInsets.fromLTRB(22, 0, 22, MediaQuery.of(context).viewInsets.bottom + 24),
       child: SingleChildScrollView(
         child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text('Launch new committee', style: displayStyle(context, 26)),
           const SizedBox(height: 4),
-          Text('The newest semester becomes the current committee.', style: bodyStyle(context, color: p.muted, size: 13.5)),
+          Text('Any name works. A semester name (Winter 2027) brings its own six months; your own name starts today.', style: bodyStyle(context, color: p.muted, size: 13.5)),
           const SizedBox(height: 18),
-          AppField(controller: _name, label: 'Session (e.g. Winter 2027)', error: _error, icon: Icons.calendar_today_rounded),
+          AppField(controller: _name, label: 'Committee name', error: _planError, icon: Icons.calendar_today_rounded, maxLength: 50),
+          const SizedBox(height: 12),
+          Row(children: [
+            Expanded(child: GestureDetector(onTap: _busy ? null : () => _pickDate(true), child: AbsorbPointer(child: AppField(controller: _startCtl, label: 'First day', icon: Icons.event_rounded)))),
+            const SizedBox(width: 12),
+            Expanded(child: GestureDetector(onTap: _busy ? null : () => _pickDate(false), child: AbsorbPointer(child: AppField(controller: _endCtl, label: 'Last day', icon: Icons.event_available_rounded)))),
+          ]),
+          if (term.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Row(children: [
+              Icon(_checking ? Icons.hourglass_top_rounded : Icons.verified_rounded, size: 14, color: p.tech),
+              const SizedBox(width: 6),
+              Expanded(child: Text('${_fmt(term['start']?.toString())} – ${_fmt(term['end']?.toString())} · ${term['months'] ?? 6} months', style: monoStyle(context, size: 10.5))),
+            ]),
+          ],
+          if (early) ...[
+            const SizedBox(height: 10),
+            Text('The running committee still has time left, so this is an early handover: the server asks for one confirmation.', style: bodyStyle(context, color: p.muted, size: 12.5)),
+          ],
           const SizedBox(height: 14),
           Wrap(spacing: 8, runSpacing: 8, children: [
             for (final e in _scopes.entries) PillChip(label: e.value, selected: _scope == e.key, onTap: () => setState(() => _scope = e.key)),
@@ -192,8 +337,18 @@ class _LaunchSheetState extends State<_LaunchSheet> {
             const SizedBox(height: 14),
             PickerField(label: 'Copy from', value: _copyFrom, options: widget.sessions, icon: Icons.copy_rounded, onChanged: (v) => setState(() => _copyFrom = v)),
           ],
+          if (_blocked) ...[
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: _busy ? null : () => _go(force: true),
+              icon: const Icon(Icons.swap_horiz_rounded, size: 18),
+              label: const Text('Confirm the early handover'),
+            ),
+            const SizedBox(height: 6),
+            Text('The old committee keeps its dates in the history and stays on the Team page.', style: bodyStyle(context, color: p.muted, size: 12)),
+          ],
           const SizedBox(height: 20),
-          GradientButton(label: 'Launch', icon: Icons.rocket_launch_rounded, loading: _busy, onPressed: _go),
+          GradientButton(label: 'Launch', icon: Icons.rocket_launch_rounded, loading: _busy, onPressed: canLaunch ? () => _go() : null),
         ]),
       ),
     );

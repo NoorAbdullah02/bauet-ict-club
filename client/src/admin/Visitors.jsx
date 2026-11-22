@@ -2,8 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import CountUp from 'react-countup';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar, CartesianGrid } from 'recharts';
-import { Eye, Users, CalendarDays, TrendingUp, TrendingDown, Download, Search, Smartphone, Monitor, Tablet, Loader2, Globe } from 'lucide-react';
+import { Eye, Users, CalendarDays, TrendingUp, TrendingDown, Download, FileSpreadsheet, Search, Smartphone, Monitor, Tablet, Loader2, Globe } from 'lucide-react';
 import { api } from '../context/store';
+import { saveFile } from '../lib/download';
 import { Panel, PageTitle, inputCls } from './ui';
 import { Donut, HBars } from './charts';
 import { cn } from '../lib/cn';
@@ -11,6 +12,7 @@ import { cn } from '../lib/cn';
 const tip = { contentStyle: { background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 14, fontSize: 12, color: 'var(--fg)' }, cursor: { stroke: 'var(--border)' } };
 const short = (d) => new Date(`${d}T00:00:00`).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
 const when = (t) => new Date(t).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+const ago = (t) => { const m = Math.max(1, Math.round((Date.now() - new Date(t)) / 60000)); if (m < 60) return `${m}m ago`; const h = Math.round(m / 60); return h < 24 ? `${h}h ago` : `${Math.round(h / 24)}d ago`; };
 const ICON = { Mobile: Smartphone, Tablet, Desktop: Monitor };
 
 function Stat({ icon: Icon, label, value, sub, color, i }) {
@@ -40,19 +42,17 @@ export default function Visitors() {
   const [days, setDays] = useState(7);
   const [q, setQ] = useState('');
   const [err, setErr] = useState('');
+  const [tab, setTab] = useState('overview');
+  const [shown, setShown] = useState(25);
 
   useEffect(() => { api.get('/analytics/summary', { params: { weeks: 8 } }).then((r) => setData(r.data)).catch(() => setErr('Could not load visitor numbers')); }, []);
   useEffect(() => {
     setList(null);
+    setShown(25);
     api.get('/analytics/visitors', { params: { days, q } }).then((r) => setList(r.data)).catch(() => setList({ visitors: [], count: 0 }));
   }, [days, q]);
 
-  const download = async () => {
-    const { data: csv } = await api.get('/analytics/export.csv', { params: { days: Math.max(days, 30) }, responseType: 'blob' });
-    const url = URL.createObjectURL(csv);
-    const a = Object.assign(document.createElement('a'), { href: url, download: `visitors-${new Date().toISOString().slice(0, 10)}.csv` });
-    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000);
-  };
+  const download = (format) => saveFile('/analytics/export', { days: Math.max(days, 30), format }, `visitors-${new Date().toISOString().slice(0, 10)}.${format}`);
 
   const weekly = useMemo(() => (data?.weekly || []).map((w) => ({ ...w, label: short(w.weekStart) })), [data]);
   const daily = useMemo(() => (data?.days || []).map((d) => ({ ...d, label: short(d.day) })), [data]);
@@ -61,11 +61,34 @@ export default function Visitors() {
   if (!data) return <Loader2 className="animate-spin text-muted" />;
   const empty = !data.allTimeViews;
 
+  const tabs = (
+    <div className="flex gap-1 rounded-full bg-alt p-1">
+      {[['overview', 'Overview'], ['raw', 'Raw visits']].map(([k, l]) => (
+        <button key={k} onClick={() => setTab(k)} aria-pressed={tab === k} className={cn('rounded-full px-4 py-1.5 text-xs font-semibold transition', tab === k ? 'bg-surface text-fg shadow-sm' : 'text-fg2')}>{l}</button>
+      ))}
+    </div>
+  );
+
+  if (tab === 'raw') {
+    return (
+      <div>
+        <PageTitle title="Visitors" sub="Charts and totals are in Overview. This tab downloads the raw page views.">{tabs}</PageTitle>
+        <Panel className="p-6">
+          <h3 className="text-lg text-fg">Raw visits</h3>
+          <p className="mt-1 max-w-2xl text-sm leading-6 text-fg2">One row per page view — time, IP address, page, device and referrer — up to 50,000 rows. Bots are not counted.</p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button onClick={() => download('xlsx')} className="btn-primary !px-5 !py-2.5 text-xs"><FileSpreadsheet size={14} /> Download raw visits (Excel)</button>
+            <button onClick={() => download('csv')} className="btn-outline !px-5 !py-2.5 text-xs"><Download size={14} /> Download raw visits (CSV)</button>
+          </div>
+          <p className="mt-3 text-xs text-muted">Includes the last {Math.max(days, 30)} days, even when the Overview range is shorter.</p>
+        </Panel>
+      </div>
+    );
+  }
+
   return (
     <div>
-      <PageTitle title="Visitors" sub="Who opened the website, per day and per week. Bots are not counted.">
-        <button onClick={download} className="flex items-center gap-2 rounded-full border border-line px-5 py-2.5 text-xs font-semibold text-fg2 transition hover:border-tech hover:text-tech"><Download size={14} /> Export CSV</button>
-      </PageTitle>
+      <PageTitle title="Visitors" sub="Who opened the website, per day and per week. Bots are not counted.">{tabs}</PageTitle>
 
       {empty && <Panel className="mb-5 p-5 text-sm text-fg2">No visits yet. Open the public website once, or load the demo data from Settings, and the numbers appear here. Visits are recorded from the moment this version is running.</Panel>}
 
@@ -139,24 +162,30 @@ export default function Visitors() {
           </div>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[640px] text-sm">
-            <thead><tr className="bg-alt/60 text-left font-mono text-[10px] uppercase tracking-wider text-muted"><th className="px-5 py-3">IP address</th><th>Views</th><th>Device</th><th>Main page</th><th>From</th><th>Last seen</th></tr></thead>
+          <table className="w-full min-w-[320px] text-sm">
+            <thead><tr className="bg-alt/60 text-left font-mono text-[10px] uppercase tracking-wider text-muted"><th className="px-5 py-3">IP address</th><th>Views</th><th>Device</th><th className="hidden sm:table-cell">Main page</th><th className="hidden sm:table-cell">From</th><th className="whitespace-nowrap">Last seen</th></tr></thead>
             <tbody>
               {!list ? <tr><td className="p-6 text-muted" colSpan={6}><Loader2 className="animate-spin" /></td></tr>
                 : list.visitors.length === 0 ? <tr><td className="p-6 text-muted" colSpan={6}>No visitors in this period.</td></tr>
-                : list.visitors.map((v) => { const Icon = ICON[v.device] || Monitor; return (
+                : list.visitors.slice(0, shown).map((v) => { const Icon = ICON[v.device] || Monitor; return (
                   <tr key={v.ip} className="border-t border-line hover:bg-alt/40">
                     <td className="px-5 py-2.5 font-mono text-xs text-fg">{v.ip}</td>
                     <td className="font-semibold text-fg">{v.views}</td>
                     <td><span className="flex items-center gap-1.5 text-fg2"><Icon size={14} /> {v.device}</span></td>
-                    <td className="max-w-[10rem] truncate text-fg2">{v.topPage}</td>
-                    <td className="text-fg2">{v.referrer || 'Direct'}</td>
-                    <td className="whitespace-nowrap text-muted">{when(v.lastSeen)}</td>
+                    <td className="hidden max-w-[10rem] truncate text-fg2 sm:table-cell">{v.topPage}</td>
+                    <td className="hidden text-fg2 sm:table-cell">{v.referrer || 'Direct'}</td>
+                    <td className="whitespace-nowrap text-muted"><span className="sm:hidden">{ago(v.lastSeen)}</span><span className="hidden sm:inline">{when(v.lastSeen)}</span></td>
                   </tr>
                 ); })}
             </tbody>
           </table>
         </div>
+        {list && list.visitors.length > 0 && (
+          <div className="flex items-center justify-between gap-3 border-t border-line px-5 py-3 text-xs text-muted">
+            <span>Showing {Math.min(shown, list.visitors.length)} of {list.visitors.length} · the full list is in Raw visits</span>
+            {shown < list.visitors.length && <button onClick={() => setShown((n) => n + 25)} className="font-semibold text-tech hover:underline">Show 25 more</button>}
+          </div>
+        )}
       </Panel>
     </div>
   );

@@ -3,6 +3,7 @@ const path = require('path');
 const PDFDocument = require('pdfkit');
 const { Document, Packer, Paragraph, Table, TableRow, TableCell, TextRun, ImageRun, WidthType, AlignmentType, BorderStyle, ShadingType, Footer, PageNumber } = require('docx');
 const { UPLOAD_DIR } = require('./saveImage');
+const { tableToXlsx } = require('./xlsx');
 
 const TYPE_LABEL = { committee: 'Committee', general: 'General member', ambassador: 'Department ambassador' };
 const STATUS_COLOR = { pending: '#B7791F', approved: '#0E7C5A', rejected: '#C53030' };
@@ -293,4 +294,4 @@ async function tableToDocx(title, sub, cols, rows) {
   }));
 }
 
-module.exports = { toPdf, toDocx, fieldsOf, tableToPdf, tableToDocx };
+module.exports = { toPdf, toDocx, fieldsOf, tableToPdf, tableToDocx, tableToXlsx };

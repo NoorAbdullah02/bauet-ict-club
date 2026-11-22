@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { 
   BadgeCheck, Loader2, Award, Calendar, Share2, Copy, Check, 
   Linkedin, Github, Facebook, Download, ExternalLink, Sparkles, 
-  CreditCard, Shield, Flame, BookOpen, Camera, Zap, CheckCircle2, Cake
+  CreditCard, Shield, Flame, BookOpen, Camera, Zap, CheckCircle2, Cake, Mail, KeyRound
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { api } from '../context/store';
@@ -34,25 +34,67 @@ export default function MemberProfile() {
   const [dobValue, setDobValue] = useState('');
   const [savingDob, setSavingDob] = useState(false);
   const fileInputRef = useRef(null);
+  // changing a photo or a birth date needs proof that it is really you: a code sent to the e-mail you joined with
+  const proofRef = useRef('');
+  const retry = useRef(null);
+  const [verifyOpen, setVerifyOpen] = useState(false);
+  const [vEmail, setVEmail] = useState('');
+  const [vCode, setVCode] = useState('');
+  const [vSent, setVSent] = useState(false);
+  const [vBusy, setVBusy] = useState(false);
+  const [vMsg, setVMsg] = useState('');
+
+  /** Runs a change; when the server asks who you are, it is held until the e-mail code is confirmed, then repeated. */
+  const attempt = async (fn) => {
+    try { await fn(); return true; }
+    catch (err) {
+      if (err.response?.data?.needs_otp) { retry.current = fn; setVerifyOpen(true); setVSent(false); setVMsg(''); return false; }
+      throw err;
+    }
+  };
+
+  const requestCode = async (e) => {
+    if (e) e.preventDefault();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(vEmail.trim())) { setVMsg('Type the e-mail you joined the club with.'); return; }
+    setVBusy(true); setVMsg('');
+    try {
+      const r = await api.post('/card/otp/request', { email: vEmail.trim() });
+      setVSent(true);
+      setVMsg(r.data?.message || 'A 6-digit code is on its way.');
+    } catch (err) {
+      setVMsg(err.response?.data?.error || 'Could not send the code. Try again in a minute.');
+    }
+    setVBusy(false);
+  };
+
+  const confirmCode = async (e) => {
+    e.preventDefault();
+    if (vCode.trim().length < 6) { setVMsg('Type the 6-digit code.'); return; }
+    setVBusy(true); setVMsg('');
+    try {
+      const r = await api.post('/card/otp/verify', { email: vEmail.trim(), code: vCode.trim() });
+      proofRef.current = r.data?.edit || '';
+      setVerifyOpen(false); setVCode(''); setVSent(false);
+      const again = retry.current; retry.current = null;
+      if (again) { try { await again(); } catch (err) { toast.error(err.response?.data?.error || 'Could not save the change'); } }
+      else toast.success('Confirmed. You can change your details now.');
+    } catch (err) {
+      setVMsg(err.response?.data?.error || 'That code is not right, or it has expired.');
+    }
+    setVBusy(false);
+  };
 
   const handleSaveDob = async (e) => {
     if (e) e.preventDefault();
     if (!dobValue) return toast.error('Please choose a date of birth');
     setSavingDob(true);
-    try {
-      await api.patch(`/card/${id}/birthdate`, { code: data.code, birth_date: dobValue });
-      setData((prev) => ({
-        ...prev,
-        member: {
-          ...prev.member,
-          birth_date: dobValue,
-        },
-      }));
+    const save = async () => {
+      await api.patch(`/card/${id}/birthdate`, { code: data.code, proof: proofRef.current || undefined, birth_date: dobValue });
+      setData((prev) => ({ ...prev, member: { ...prev.member, birth_date: dobValue } }));
       setEditingDob(false);
       toast.success('Date of birth updated successfully!');
-    } catch (err) {
-      toast.error(err.response?.data?.error || 'Could not update date of birth');
-    }
+    };
+    try { await attempt(save); } catch (err) { toast.error(err.response?.data?.error || 'Could not update date of birth'); }
     setSavingDob(false);
   };
 
@@ -73,17 +115,12 @@ export default function MemberProfile() {
       fd.append('photo', small);
       const uploadRes = await api.post('/registrations/photo', fd);
       const newUrl = uploadRes.data.url;
-
-      await api.patch(`/card/${id}/photo`, { code: data.code, photo_url: newUrl });
-
-      setData((prev) => ({
-        ...prev,
-        member: {
-          ...prev.member,
-          image_url: newUrl,
-        },
-      }));
-      toast.success('Profile photo updated successfully!');
+      const save = async () => {
+        await api.patch(`/card/${id}/photo`, { code: data.code, proof: proofRef.current || undefined, photo_url: newUrl });
+        setData((prev) => ({ ...prev, member: { ...prev.member, image_url: newUrl } }));
+        toast.success('Profile photo updated successfully!');
+      };
+      await attempt(save);
     } catch (err) {
       toast.error(err.response?.data?.error || 'Could not update profile photo');
     }
@@ -293,6 +330,35 @@ export default function MemberProfile() {
                 </form>
               )}
             </div>
+
+            {/* proof that it is really you (only shown when the server asks for it) */}
+            {verifyOpen && (
+              <form onSubmit={vSent ? confirmCode : requestCode} className="mt-4 rounded-2xl border border-tech/40 bg-tech/5 p-4">
+                <p className="flex items-center gap-2 text-xs font-semibold text-tech"><Shield size={14} /> Confirm it is you</p>
+                <p className="mt-1 text-xs leading-5 text-fg2">
+                  To change your photo or your date of birth, we send a 6-digit code to the e-mail you joined the club with.
+                  A card code alone is public on the Team page, so it is not enough to change anything.
+                </p>
+                {!vSent ? (
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <input type="email" required autoComplete="email" value={vEmail} onChange={(e) => setVEmail(e.target.value)} placeholder="you@gmail.com" aria-label="Your e-mail" className="min-w-0 flex-1 rounded-lg border border-line bg-surface px-2.5 py-1.5 text-xs text-fg outline-none focus:border-tech" />
+                    <button type="submit" disabled={vBusy} className="btn-primary !px-3 !py-1.5 text-xs">
+                      {vBusy ? <Loader2 size={12} className="animate-spin" /> : <Mail size={12} />} Send code
+                    </button>
+                  </div>
+                ) : (
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <input inputMode="numeric" maxLength={6} required value={vCode} onChange={(e) => setVCode(e.target.value.replace(/\D/g, ''))} placeholder="123456" aria-label="6-digit code" className="w-28 rounded-lg border border-line bg-surface px-2.5 py-1.5 text-center font-mono text-xs tracking-[0.2em] text-fg outline-none focus:border-tech" />
+                    <button type="submit" disabled={vBusy} className="btn-primary !px-3 !py-1.5 text-xs">
+                      {vBusy ? <Loader2 size={12} className="animate-spin" /> : <KeyRound size={12} />} Confirm
+                    </button>
+                    <button type="button" onClick={requestCode} disabled={vBusy} className="text-[11px] font-semibold text-tech hover:underline disabled:opacity-50">Send again</button>
+                    <button type="button" onClick={() => { setVerifyOpen(false); setVSent(false); }} className="text-[11px] text-muted hover:underline">Cancel</button>
+                  </div>
+                )}
+                {vMsg && <p role="status" className="mt-2 text-xs text-amber-600">{vMsg}</p>}
+              </form>
+            )}
 
             {/* Bio / About */}
             {m.bio && (

@@ -4,6 +4,7 @@ const pool = require('../config/db');
 const { authMiddleware } = require('../middleware/auth');
 const { fail } = require('../utils/http');
 const { toCsv } = require('../utils/csv');
+const { tableToXlsx } = require('../utils/exporters');
 
 const router = express.Router();
 const limiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 200, standardHeaders: true, legacyHeaders: false, message: { error: 'Too many team sign-ups from this network. Please try again later.' } });
@@ -174,15 +175,25 @@ router.post('/admin/:contestId/unpublish', authMiddleware, async (req, res) => {
   } catch (e) { fail(res, e); }
 });
 
-/** Admin: the teams as a spreadsheet. */
+const TEAM_COLS = [
+  ['Team', 'team_name'], ['Leader', 'leader_name'], ['E-mail', 'email'], ['Phone', 'phone'],
+  ['Members', (t) => (t.members || []).map((m) => [m.name, m.email, m.student_id].filter(Boolean).join(' / '))],
+  ['Status', 'status'], ['Place', 'rank'], ['Score', 'score'], ['Note', 'prize_note'],
+];
+
+/** Admin: the teams as a spreadsheet. ?format=csv|xlsx */
 router.get('/admin/:contestId/export', authMiddleware, async (req, res) => {
   try {
     const c = (await pool.query('SELECT title FROM contests WHERE id = $1 AND deleted_at IS NULL', [Number(req.params.contestId) || 0])).rows[0];
     if (!c) return res.status(404).json({ error: 'Contest not found' });
     const teams = (await pool.query('SELECT * FROM contest_teams WHERE contest_id = $1 AND deleted_at IS NULL ORDER BY rank NULLS LAST, created_at', [Number(req.params.contestId)])).rows;
-    const csv = toCsv(['Team', 'Leader', 'E-mail', 'Phone', 'Members', 'Status', 'Place', 'Score', 'Note'],
-      teams.map((t) => [t.team_name, t.leader_name, t.email, t.phone, (t.members || []).map((m) => [m.name, m.email, m.student_id].filter(Boolean).join(' / ')), t.status, t.rank, t.score, t.prize_note]));
-    res.set({ 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': `attachment; filename="contest-${Number(req.params.contestId)}-teams.csv"` }).send(csv);
+    const value = (t, k) => (typeof k === 'function' ? k(t) : t[k]);
+    if (String(req.query.format).toLowerCase() === 'xlsx') {
+      res.set({ 'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'Content-Disposition': `attachment; filename="contest-${Number(req.params.contestId)}-teams.xlsx"`, 'Cache-Control': 'no-store' });
+      return res.send(await tableToXlsx(`${c.title}: teams`, `${teams.length} teams`, TEAM_COLS, teams));
+    }
+    res.set({ 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': `attachment; filename="contest-${Number(req.params.contestId)}-teams.csv"` });
+    res.send(toCsv(TEAM_COLS.map((col) => col[0]), teams.map((t) => TEAM_COLS.map(([, k]) => value(t, k)))));
   } catch (e) { fail(res, e); }
 });
 

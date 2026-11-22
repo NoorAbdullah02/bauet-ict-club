@@ -4,6 +4,7 @@ const pool = require('../config/db');
 const { authMiddleware } = require('../middleware/auth');
 const { fail } = require('../utils/http');
 const { toCsv } = require('../utils/csv');
+const { tableToXlsx } = require('../utils/exporters');
 
 const router = express.Router();
 
@@ -104,14 +105,23 @@ router.get('/visitors', async (req, res) => {
   } catch (e) { fail(res, e); }
 });
 
-/** All raw visits as CSV (admin only). ?days=30 */
-router.get('/export.csv', async (req, res) => {
+const VISIT_COLS = [['Time', (r) => new Date(r.created_at).toISOString()], ['IP', 'ip'], ['Page', 'path'], ['Device', 'device'], ['Referrer', 'referrer']];
+
+/** All raw visits as CSV or Excel (admin only). ?days=30&format=xlsx */
+const visitsFile = (forced) => async (req, res) => {
   try {
     const days = Math.min(365, Math.max(1, Number(req.query.days) || 30));
     const { rows } = await pool.query(`SELECT created_at, ip, path, device, referrer FROM page_views WHERE ${REAL} AND day >= $1 ORDER BY created_at DESC LIMIT 50000`, [daysAgo(days - 1)]);
-    res.set({ 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': `attachment; filename="visitors-${iso(new Date())}.csv"`, 'Cache-Control': 'no-store' });
-    res.send(toCsv(['time', 'ip', 'page', 'device', 'referrer'], rows.map((r) => [new Date(r.created_at).toISOString(), r.ip, r.path, r.device, r.referrer])));
+    const day = iso(new Date());
+    if ((forced || String(req.query.format)).toLowerCase() === 'xlsx') {
+      res.set({ 'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'Content-Disposition': `attachment; filename="visitors-${day}.xlsx"`, 'Cache-Control': 'no-store' });
+      return res.send(await tableToXlsx('Website visitors', `${days} days`, VISIT_COLS, rows));
+    }
+    res.set({ 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': `attachment; filename="visitors-${day}.csv"`, 'Cache-Control': 'no-store' });
+    return res.send(toCsv(VISIT_COLS.map((c) => c[0]), rows.map((r) => VISIT_COLS.map(([, k]) => (typeof k === 'function' ? k(r) : r[k])))));
   } catch (e) { fail(res, e); }
-});
+};
+router.get('/export', visitsFile());
+router.get('/export.csv', visitsFile('csv'));
 
 module.exports = router;
