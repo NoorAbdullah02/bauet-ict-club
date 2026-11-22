@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
-import { ArrowDown, ArrowUp, Check, Loader2, Maximize2, Minimize2, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, Check, Download, FileSpreadsheet, Loader2, Maximize2, Minimize2, Trash2, X } from 'lucide-react';
 import { api } from '../context/store';
 import { show, isOther } from '../lib/forms';
 import { cn } from '../lib/cn';
+import { saveTableExcel } from '../lib/download';
 
 const ans = (r) => r.answers || { name: r.full_name, student_id: r.student_id, email: r.email, phone: r.phone, department: r.department, batch: r.batch };
 const when = (v) => { const d = new Date(v); return Number.isNaN(+d) ? '' : d.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }); };
@@ -30,8 +31,10 @@ function CellEditor({ field, value, onSave, onCancel }) {
   return <input ref={ref} type={INPUT[field.type] || 'text'} className={cls} value={v} onChange={(e) => setV(e.target.value)} onBlur={done} onKeyDown={key} aria-label={field.label} placeholder={field.type === 'checkbox' ? 'a, b, c' : ''} />;
 }
 
-/** All answers in one spreadsheet-like table: click a column to sort, click a cell to correct it. */
-export default function ResponsesTable({ fields, rows, editUrl, onChange, q }) {
+const cell = (v) => { let s = String(v ?? ''); if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`; return `"${s.replace(/"/g, '""')}"`; };
+
+/** All answers in one spreadsheet-like table: click a column to sort, click a cell to correct it, download what you see. */
+export default function ResponsesTable({ fields, rows, editUrl, onChange, q, system = [], title = 'Responses', fileBase = 'responses', onDelete }) {
   const [sort, setSort] = useState({ key: 'created_at', dir: -1 });
   const [editing, setEditing] = useState(null); // `${rowId}:${fieldId}`
   const [busy, setBusy] = useState(null);
@@ -65,7 +68,9 @@ export default function ResponsesTable({ fields, rows, editUrl, onChange, q }) {
       <thead><tr>
         <th scope="col" className="sticky left-0 top-0 z-20 border-b border-r border-line bg-alt px-3 py-2.5 text-left font-mono text-[10px] text-fg2">#</th>
         {fields.map((f) => head(f.id, f.label))}
+        {system.map((s) => <th key={s.label} scope="col" className="sticky top-0 z-10 border-b border-line bg-alt px-3 py-2.5 text-left font-mono text-[10px] uppercase tracking-[0.12em] text-fg2"><span className="whitespace-nowrap">{s.label}</span></th>)}
         {head('created_at', 'Submitted')}
+        {onDelete && <th scope="col" className="sticky top-0 z-10 border-b border-line bg-alt px-2 py-2.5"><span className="sr-only">Actions</span></th>}
       </tr></thead>
       <tbody>
         {data.map((r, i) => (
@@ -83,7 +88,9 @@ export default function ResponsesTable({ fields, rows, editUrl, onChange, q }) {
                 </td>
               );
             })}
+            {system.map((s) => <td key={s.label} className="max-w-56 border-b border-line px-3 py-2 align-top text-fg2 group-hover:bg-alt"><span className="line-clamp-2 break-words">{s.value(r) || <span className="text-muted/60">—</span>}</span></td>)}
             <td className="whitespace-nowrap border-b border-line px-3 py-2 text-muted group-hover:bg-alt">{when(r.created_at)}</td>
+            {onDelete && <td className="border-b border-line px-2 py-2 group-hover:bg-alt"><button onClick={(e) => { e.stopPropagation(); onDelete(r); }} aria-label="Delete this response" title="Delete this response" className="grid size-7 place-items-center rounded-lg text-muted hover:bg-red-500/10 hover:text-red-500"><Trash2 size={14} /></button></td>}
           </tr>
         ))}
       </tbody>
@@ -91,10 +98,26 @@ export default function ResponsesTable({ fields, rows, editUrl, onChange, q }) {
   );
 
   const box = (cls) => <div className={cn('overflow-auto rounded-2xl border border-line bg-surface', cls)}>{rows.length ? body : null}</div>;
+  const download = (kind) => {
+    const columns = [...fields.map((f) => f.label), ...system.map((s) => s.label), 'Submitted'];
+    const rows = data.map((r) => [...fields.map((f) => show(ans(r)[f.id])), ...system.map((s) => s.value(r)), when(r.created_at)]);
+    const name = `${fileBase}-${rows.length}-rows`;
+    if (kind === 'xlsx') return saveTableExcel({ title, subtitle: `${rows.length} ${rows.length === 1 ? 'row' : 'rows'} · ${columns.length} columns`, columns, rows, filename: `${name}.xlsx` });
+    const csv = `\ufeff${[columns.map(cell).join(','), ...rows.map((line) => line.map(cell).join(','))].join('\r\n')}\r\n`;
+    const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' })), download: `${name}.csv` });
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  };
+
   const bar = (
     <div className="mb-2 flex flex-wrap items-center justify-between gap-2 text-[11px] text-muted">
       <span className="flex items-center gap-1.5"><Check size={12} className="text-emerald-500" /> Click any cell to correct it. Enter saves, Esc cancels. Click a column name to sort.{q ? ' Search filters the rows.' : ''}</span>
-      <button onClick={() => setWide((w) => !w)} className="inline-flex items-center gap-1.5 rounded-lg border border-line px-2.5 py-1.5 font-semibold text-fg2 hover:border-tech hover:text-tech">{wide ? <Minimize2 size={13} /> : <Maximize2 size={13} />}{wide ? 'Close full screen' : 'Full screen'}</button>
+      <span className="flex items-center gap-2">
+        <span className="font-mono">{data.length} row{data.length === 1 ? '' : 's'} · {fields.length + system.length} columns</span>
+        <button onClick={() => download('xlsx')} title="Download exactly these rows as an Excel workbook" className="inline-flex items-center gap-1.5 rounded-lg border border-line px-2.5 py-1.5 font-semibold text-fg2 hover:border-tech hover:text-tech"><FileSpreadsheet size={13} /> Excel</button>
+        <button onClick={() => download('csv')} title="Download exactly these rows as a CSV" className="inline-flex items-center gap-1.5 rounded-lg border border-line px-2.5 py-1.5 font-semibold text-fg2 hover:border-tech hover:text-tech"><Download size={13} /> CSV</button>
+        <button onClick={() => setWide((w) => !w)} className="inline-flex items-center gap-1.5 rounded-lg border border-line px-2.5 py-1.5 font-semibold text-fg2 hover:border-tech hover:text-tech">{wide ? <Minimize2 size={13} /> : <Maximize2 size={13} />}{wide ? 'Close full screen' : 'Full screen'}</button>
+      </span>
     </div>
   );
 

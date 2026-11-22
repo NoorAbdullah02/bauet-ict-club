@@ -132,15 +132,24 @@ async function drawCard({ m, code, qr, width = 1080, site = '', fb = '' }) {
   const qs = 24.5 * u, qx = iw - 10.5 * u - qs, qy = ih - 11.5 * u - qs;
   rr(ctx, qx, qy, qs, qs, 5 * u); ctx.fillStyle = 'rgba(255,255,255,0.88)'; ctx.fill(); ctx.lineWidth = 0.8 * u; ctx.strokeStyle = '#0A1A3F'; ctx.stroke();
   if (qrImg) ctx.drawImage(qrImg, qx + 1.4 * u, qy + 1.4 * u, qs - 2.8 * u, qs - 2.8 * u);
-  ctx.font = COND(800, 2.7 * u); if ('letterSpacing' in ctx) ctx.letterSpacing = `${0.38 * u}px`;
-  const sm = ctx.measureText('SCAN ME').width; ctx.fillStyle = '#DDE2EC'; ctx.fillRect(qx + qs / 2 - sm / 2 - 1.4 * u, qy - 1.9 * u - 1.6 * u, sm + 2.8 * u, 3.6 * u);
-  ctx.fillStyle = '#0A1A3F'; ctx.textAlign = 'center'; ctx.fillText('SCAN ME', qx + qs / 2 + 0.2 * u, qy - 0.3 * u); ctx.textAlign = 'left'; if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
+  // a tab that sits on the QR box itself, so it reads as part of the code and not as a loose label
+  ctx.font = COND(800, 2.6 * u); if ('letterSpacing' in ctx) ctx.letterSpacing = `${0.42 * u}px`;
+  const sm = ctx.measureText('SCAN TO VERIFY').width, tw = sm + 3.4 * u, th = 3.9 * u;
+  // sits on top of the box, never over a module: the code itself must stay scannable
+  rr(ctx, qx + qs / 2 - tw / 2, qy - th, tw, th + 0.6 * u, th / 2); ctx.fillStyle = '#0A1A3F'; ctx.fill();
+  ctx.fillStyle = '#7CF0B2'; ctx.textAlign = 'center'; ctx.fillText('SCAN TO VERIFY', qx + qs / 2 + 0.02 * u, qy - 0.55 * u); ctx.textAlign = 'left'; if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
 
   const nx = 7 * u, nw = qx - 3 * u - nx;
   const name = String(m.name || '').toUpperCase();
-  const nf = name.length > 26 ? 6.6 : name.length > 16 ? 8.6 : 11;
+  // the whole name, never cut: step the size down until two lines hold every word
+  let nf = 11, nlines;
+  for (;;) {
+    ctx.font = COND(700, nf * u);
+    const fit = wrap(ctx, name, nw, 99);
+    if (fit.length <= 2 || nf <= 5.4) { nlines = fit; break; }
+    nf = Math.max(5.4, nf - 0.3);
+  }
   ctx.font = COND(700, nf * u); ctx.fillStyle = '#3B4658';
-  const nlines = wrap(ctx, name, nw, 2);
   const codeY = ih - 11.5 * u;                      // baseline of the member id
   const idY = codeY - 5 * u;                        // label baseline
   const deptY = idY - 5.6 * u;                      // department baseline

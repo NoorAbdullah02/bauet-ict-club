@@ -11,6 +11,16 @@ const call = async (method, url, body, token, raw) => {
   const text = await r.text(); let json = null; try { json = JSON.parse(text); } catch { /* not json */ }
   return { s: r.status, j: json, t: text };
 };
+/** The ready-made forms the website ships, read from the client source so a broken one cannot go unnoticed. */
+function readyTemplates() {
+  const fs = require('fs');
+  const { DEFAULT_FIELDS } = require('../utils/forms');
+  const option = (key) => DEFAULT_FIELDS.find((f) => f.key === key).options;
+  const src = fs.readFileSync(path.join(__dirname, '../../client/src/lib/formTemplates.js'), 'utf8')
+    .replace(/^import .*$/gm, '')
+    .replace('export const TEMPLATES', 'const TEMPLATES');
+  return new Function('BATCH_LIST', 'DEPT_LIST', `${src}\nreturn { TEMPLATES };`)(option('batch'), option('department')).TEMPLATES;
+}
 const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== 'section').map((f) => [f.id,
   f.type === 'email' ? `p${i}@example.com` : f.type === 'phone' ? '01712345678' : f.type === 'number' ? 5 : ['dropdown', 'radio'].includes(f.type) ? (f.options || [])[0] : f.type === 'checkbox' ? [(f.options || [])[0]] : f.type === 'yesno' ? 'Yes' : f.type === 'scale' ? 3 : f.type === 'date' ? '2026-01-01' : f.type === 'time' ? '10:00' : `Person ${i}`]));
 
@@ -196,6 +206,45 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
     ok((await call('POST', `/api/forms/public/${f.slug}`, { _hp: 'bot', answers: {} })).s === 201 && (await call('GET', `/api/forms/${f.id}/responses`, undefined, T)).j.length === 5, 'honeypot saves nothing');
     const csvRaw = await fetch(`${B}/api/forms/${f.id}/export`, { headers: { authorization: `Bearer ${T}` } }); const bytes = new Uint8Array(await csvRaw.arrayBuffer()); ok(csvRaw.status === 200 && bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF, 'CSV export starts with BOM');
     ok((await call('GET', `/api/forms/${f.id}/export`)).s === 401, 'export needs login');
+    ok(new TextDecoder().decode(bytes).includes('\r\n'), 'CSV uses the line endings Excel expects');
+    const formXlsx = await fetch(`${B}/api/forms/${f.id}/export?format=xlsx`, { headers: { authorization: `Bearer ${T}` } });
+    const formZip = new Uint8Array(await formXlsx.arrayBuffer());
+    ok(formXlsx.status === 200 && formZip[0] === 0x50 && formZip[1] === 0x4b && /spreadsheetml/.test(formXlsx.headers.get('content-type') || ''), 'form responses download as a real Excel workbook', formXlsx.status);
+
+    // every question type is stored, returned and exported exactly as it was answered
+    {
+      const all = await call('POST', '/api/forms', { title: 'QA every type' }, T);
+      const everyType = [
+        { id: 'name', key: 'name', type: 'short', label: 'Your name', required: true },
+        { id: 'email', key: 'email', type: 'email', label: 'Email', required: true },
+        { id: 'phone', key: 'phone', type: 'phone', label: 'Mobile' },
+        { id: 'story', type: 'long', label: 'Tell us more' },
+        { id: 'age', type: 'number', label: 'Age' },
+        { id: 'day', type: 'date', label: 'Day' },
+        { id: 'at', type: 'time', label: 'Time' },
+        { id: 'track', type: 'dropdown', label: 'Track', options: ['Web', 'AI'] },
+        { id: 'level', type: 'radio', label: 'Level', options: ['New', 'Pro'] },
+        { id: 'picks', type: 'checkbox', label: 'Picks', options: ['a', 'b', 'c'] },
+        { id: 'agree', type: 'yesno', label: 'Agree' },
+        { id: 'rate', type: 'scale', label: 'Rate', scale: { max: 5 } },
+        { id: 'shot', type: 'photo', label: 'Photo' },
+        { id: 'more', type: 'section', label: 'A heading' },
+      ];
+      const put = await call('PUT', `/api/forms/${all.j.id}`, { reg_form: { title: 'All', unique: 'email', fields: everyType } }, T);
+      ok(put.s === 200 && put.j.reg_form.fields.length === 14, 'a form with every question type can be saved', put.j?.reg_form?.fields?.length);
+      const answers = { name: 'Nusrat জাহান', email: 'all@example.com', phone: '01712345678', story: 'Line one\nLine two', age: 21, day: '2026-12-01', at: '09:30', track: 'AI', level: 'Pro', picks: ['a', 'c'], agree: 'Yes', rate: 4, shot: `/uploads/${'a'.repeat(24)}.jpg` };
+      const sub = await call('POST', `/api/forms/public/${all.j.slug}`, { answers });
+      ok(sub.s === 201, 'every question type is accepted', sub.j);
+      const row = ((await call('GET', `/api/forms/${all.j.id}/responses`, undefined, T)).j || [])[0];
+      const same = row && Object.entries(answers).every(([k, v]) => JSON.stringify(row.answers[k]) === JSON.stringify(v));
+      ok(same, 'every answer comes back exactly as it was sent', row?.answers);
+      const edit = await call('PATCH', `/api/forms/responses/${row?.id}/answers`, { answers: { age: 22 } }, T);
+      ok(edit.s === 200 && edit.j?.answers?.age === 22 && edit.j.answers.story === answers.story && edit.j.answers.picks.join(',') === 'a,c', 'a cell edit keeps every other answer', edit.j?.answers);
+      const csv = await (await fetch(`${B}/api/forms/${all.j.id}/export`, { headers: { authorization: `Bearer ${T}` } })).text();
+      const labels = ['Your name', 'Email', 'Mobile', 'Tell us more', 'Age', 'Day', 'Time', 'Track', 'Level', 'Picks', 'Agree', 'Rate', 'Photo'];
+      ok(labels.every((l) => csv.includes(l)) && csv.includes('Nusrat') && csv.includes('Line one'), 'the spreadsheet download has every question and every answer', csv.slice(0, 160));
+      await call('DELETE', `/api/forms/${all.j.id}`, undefined, T);
+    }
 
     // editing answers like a spreadsheet cell
     const resp = (await call('GET', `/api/forms/${f.id}/responses`, undefined, T)).j; const emailId = fields.find((x) => x.type === 'email').id; const nameId0 = fields.find((x) => x.type === 'short').id;
@@ -247,6 +296,9 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
     ok((await call('GET', '/api/event-registrations/counts')).j[ev.id] === 3, 'public count shows only confirmed seats');
     const evList = (await call('GET', `/api/event-registrations/by-event/${ev.id}`, undefined, T)).j;
     ok((await call('PATCH', `/api/event-registrations/${evList[0].id}/answers`, { answers: { name: 'Edited Person' } }, T)).j?.full_name === 'Edited Person', 'event sign-up edit saved');
+    const evXlsx = await fetch(`${B}/api/event-registrations/export?event=${ev.id}&format=xlsx`, { headers: { authorization: `Bearer ${T}` } });
+    const evZip = new Uint8Array(await evXlsx.arrayBuffer());
+    ok(evXlsx.status === 200 && evZip[0] === 0x50 && evZip[1] === 0x4b && /spreadsheetml/.test(evXlsx.headers.get('content-type') || ''), 'the event list downloads as a real Excel workbook', evXlsx.status);
     const code = okRegs[0]?.j?.ticket;
     ok(!!code && (await call('GET', `/api/event-registrations/ticket/${code}`)).s === 200, 'ticket page data');
     ok((await call('GET', '/api/event-registrations/verify/ZZZZZZZZ')).j?.valid === false, 'unknown certificate is not valid');
@@ -429,6 +481,29 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
     ok((await call('GET', `/api/card/${mem.id}?c=${card.code}`)).j?.verified === true, 'the real card code is verified');
     ok((await call('GET', `/api/card/${mem.id}?c=M${mem.id}-AAAAAA`)).j?.verified === false, 'a made-up card code is not verified');
     ok((await call('GET', '/api/card/99999999')).s === 404, 'card of an unknown member is 404');
+    // changing a card needs proof: its public code must never rewrite someone's photo or birth date
+    ok((await call('PATCH', `/api/card/${mem.id}/birthdate`, { birth_date: '2000-01-02' })).s === 403, 'a birth date cannot be changed without proof');
+    const withPublicCode = await call('PATCH', `/api/card/${mem.id}/birthdate`, { code: card.code, birth_date: '2000-01-02' });
+    ok(withPublicCode.s === 403 && withPublicCode.j?.needs_otp === true, 'the public card code alone cannot change a birth date', withPublicCode.j);
+    ok((await call('PATCH', `/api/card/${mem.id}/birthdate`, { proof: 'made.up', birth_date: '2000-01-02' })).s === 403, 'a made-up proof is refused');
+    ok((await call('PATCH', `/api/card/${mem.id}/photo`, { photo_url: 'https://res.cloudinary.com/someone-else/image/upload/a.jpg' })).s === 400, 'a photo from another Cloudinary account is refused');
+    ok((await call('PATCH', `/api/card/${mem.id}/birthdate`, { birth_date: '2000-01-02' }, T)).s === 200, 'an admin may still correct a birth date');
+    // the card e-mail code: a stranger gets the same answer as a member, and a wrong code changes nothing
+    const stranger = await call('POST', '/api/card/otp/request', { email: 'definitely-not-a-member@example.com' });
+    ok(stranger.s === 200 && !stranger.j?.error, 'asking for a card code for a stranger looks like asking for a member', stranger.j);
+    ok((await call('POST', '/api/card/otp/verify', { email: 'definitely-not-a-member@example.com', code: '123456' })).s === 400, 'a wrong card code is refused');
+
+    // admin downloads: every list as CSV or JSON, admins only
+    ok((await call('GET', '/api/downloads')).s === 401, 'downloading the lists needs a login');
+    const dl = await call('GET', '/api/downloads', undefined, T);
+    ok(dl.s === 200 && Array.isArray(dl.j) && dl.j.some((x) => x.key === 'applications' && typeof x.count === 'number'), 'the download page lists the datasets', dl.j && dl.j.length);
+    const csv = await call('GET', '/api/downloads/members?format=csv', undefined, T);
+    ok(csv.s === 200 && /name/.test(csv.t.split('\n')[0]) && !csv.t.startsWith('<'), 'a list downloads as CSV with a header row', csv.t.slice(0, 120));
+    const dlJson = await call('GET', '/api/downloads/members?format=json', undefined, T);
+    ok(dlJson.s === 200 && Array.isArray(dlJson.j?.data), 'a list downloads as JSON');
+    const ranged = await call('GET', '/api/downloads/applications?format=csv&from=2020-01-01&to=2099-12-31', undefined, T);
+    ok(ranged.s === 200, 'a date range does not break the download', ranged.t.slice(0, 120));
+    ok((await call('GET', '/api/downloads/not-a-list', undefined, T)).s === 404, 'an unknown list is 404');
     ok((await call('POST', `/api/event-registrations/event/${seId}/feedback/send`, {}, T)).s === 409, 'feedback link cannot be sent when email is not set up');
     ok((await call('POST', `/api/event-registrations/event/${seId}/feedback/send`, {})).s === 401, 'sending feedback needs an admin login');
     const html = await (await fetch(`${B}/events/${seId}`)).text();
@@ -541,6 +616,9 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
       ok((await call('PATCH', `/api/contest-teams/admin/team/${idOf('Null Pointers')}`, { rank: 2 }, T)).s === 200, 'and a second place');
       const csvR = await call('GET', `/api/contest-teams/admin/${ct.j.id}/export`, undefined, T);
       ok(csvR.s === 200 && csvR.t.includes('Byte Me') && csvR.t.includes('Mim Akter'), 'the teams export as a spreadsheet');
+      const teamsXlsx = await fetch(`${B}/api/contest-teams/admin/${ct.j.id}/export?format=xlsx`, { headers: { authorization: `Bearer ${T}` } });
+      const teamsZip = new Uint8Array(await teamsXlsx.arrayBuffer());
+      ok(teamsXlsx.status === 200 && teamsZip[0] === 0x50 && /spreadsheetml/.test(teamsXlsx.headers.get('content-type') || ''), 'the teams also download as a real Excel workbook', teamsXlsx.status);
       const p1 = await call('POST', `/api/contest-teams/admin/${ct.j.id}/publish`, undefined, T);
       ok(p1.s === 200 && p1.j.awards_given === 4, 'publishing the results gives points to every team member', p1.j);
       const p2 = await call('POST', `/api/contest-teams/admin/${ct.j.id}/publish`, undefined, T);
@@ -654,6 +732,114 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
       ok(card.s === 200 && card.j.verified === true && card.j.member.name === 'Card Quokka' && card.j.member.position === 'General member' && !JSON.stringify(card.j).includes('@') && !JSON.stringify(card.j).includes('01712345678'), 'the card shows name, type and batch, with no e-mail or phone', card.j);
       ok((await call('GET', `/api/card/${f.j.id}?c=Mr${rid}-AAAAAA`)).s === 404, 'a wrong code shows nothing');
       ok((await call('PATCH', `/api/registrations/${rid}/status`, { status: 'rejected' }, T)).s === 200 && (await call('GET', `/api/card/${f.j.id}?c=${f.j.code}`)).s === 404, 'a card stops working when the approval is withdrawn');
+    }
+
+    // six-month committee terms: a committee serves half a year, then the handover opens
+    {
+      const list = (await call('GET', '/api/committees')).j || [];
+      const shaped = list.length > 0 && list.every((s) => s.term && s.term.months === 6 && /^\d{4}-\d{2}-\d{2}$/.test(s.term.start) && /^\d{4}-\d{2}-\d{2}$/.test(s.term.end) && typeof s.term.days_left === 'number');
+      ok(shaped, 'every committee carries a six-month term', list[0]);
+      const winter = list.find((s) => s.label === 'Winter 2026');
+      ok(winter?.term.start === '2026-10-01' && winter?.term.end === '2027-03-31', 'Winter 2026 runs 1 Oct 2026 – 31 Mar 2027', winter?.term);
+      const summer = list.find((s) => s.label === 'Summer 2027');
+      ok(summer?.term.start === '2027-04-01' && summer?.term.end === '2027-09-30', 'Summer 2027 runs 1 Apr 2027 – 30 Sep 2027', summer?.term);
+      const cur = list.find((s) => s.members > 0);
+      // the plan endpoint is the single source of truth: the dates a launch would get, and the handover rule
+      {
+        const p = await call('POST', '/api/committees/plan', { session: 'Winter 2027' }, T);
+        ok(p.s === 200 && p.j?.term?.start === '2027-10-01' && p.j?.term?.end === '2028-03-31' && p.j?.exists === true, 'the plan endpoint gives a semester its own six months', p.j);
+        const newer = await call('POST', '/api/committees/plan', { session: 'Session 2099' }, T);
+        ok(newer.s === 200 && newer.j?.newer === true && newer.j?.needs_confirm === !!(cur && !cur.term.expired), 'the plan endpoint decides whether a handover needs confirming', newer.j);
+        const back = await call('POST', '/api/committees/plan', { session: 'Spring 2019' }, T);
+        ok(back.s === 200 && back.j?.newer === false && back.j?.needs_confirm === false && back.j?.term?.start === '2019-01-01', 'an older session never needs a confirmation', back.j);
+        const own = await call('POST', '/api/committees/plan', { session: 'ICT Fest Committee', start: '2027-02-01', end: '2027-07-31' }, T);
+        ok(own.s === 200 && own.j?.term?.start === '2027-02-01' && own.j?.term?.end === '2027-07-31' && own.j?.term?.months === 6, 'a name of your own takes the dates the admin picked', own.j);
+        ok((await call('POST', '/api/committees/plan', { session: 'X' }, T)).s === 400, 'a plan needs a real name');
+        ok((await call('POST', '/api/committees/plan', { session: 'New Name', start: '2027-06-01', end: '2027-01-01' }, T)).s === 400, 'a last day before the first day has no plan');
+        ok((await call('POST', '/api/committees/plan', { session: 'Winter 2027' })).s === 401, 'the plan needs an admin login');
+      }
+      // a committee of your own: any name, any dates
+      {
+        const own = await call('POST', '/api/committees/launch', { session: 'ICT Fest Committee', scope: 'none', start: '2027-02-01', end: '2027-07-31' }, T);
+        ok(own.s === 201 && own.j?.term?.start === '2027-02-01' && own.j?.term?.end === '2027-07-31', 'a committee can be launched with a new name and its own dates', own.j);
+        await call('DELETE', '/api/committees/ICT%20Fest%20Committee', undefined, T);
+      }
+      if (cur && !cur.term.expired) {
+        // moving forward is the handover: it needs one confirmation
+        const forward = await call('POST', '/api/committees/launch', { session: 'Session 2099', scope: 'none' }, T);
+        ok(forward.s === 409 && forward.j?.needs_confirm === true && forward.j?.current?.label === cur.label, 'a newer committee waits while the running term still has time left', forward.j);
+        // an older committee is history, so it is added without any confirmation
+        const older = await call('POST', '/api/committees/launch', { session: 'Spring 2019', scope: 'none' }, T);
+        ok(older.s === 201 && older.j?.term?.start === '2019-01-01' && older.j?.term?.end === '2019-06-30', 'an older committee can be added while the term runs, with its own semester dates', older.j);
+        await call('DELETE', '/api/committees/Spring%202019', undefined, T);
+        // a late launch keeps the semester's dates instead of starting today
+        const forced = await call('POST', '/api/committees/launch', { session: 'Session 2099', scope: 'none', force: true }, T);
+        const today = new Date().toISOString().slice(0, 10);
+        ok(forced.s === 201 && forced.j?.term?.start === '2099-01-01' && forced.j?.term?.months === 6 && forced.j?.term?.start !== today, 'a committee launched late still takes its semester dates, not today', forced.j);
+        await call('DELETE', '/api/committees/Session%202099', undefined, T);
+      }
+      if (cur) {
+        const cm = await fetch(`${B}/api/committees/${encodeURIComponent(cur.label)}/export?format=xlsx`, { headers: { authorization: `Bearer ${T}` } });
+        const cmZip = new Uint8Array(await cm.arrayBuffer());
+        ok(cm.status === 200 && cmZip[0] === 0x50 && /spreadsheetml/.test(cm.headers.get('content-type') || ''), 'a committee downloads as a real Excel workbook', cm.status);
+        const ext = await call('POST', `/api/committees/${encodeURIComponent(cur.label)}/term`, { months: 6 }, T);
+        ok(ext.s === 200 && ext.j?.term?.end > cur.term.end && ext.j?.term?.months === 12, 'a term can be extended by six months', ext.j);
+        const back = await call('POST', `/api/committees/${encodeURIComponent(cur.label)}/term`, { end: cur.term.end }, T);
+        ok(back.s === 200 && back.j?.term?.end === cur.term.end && back.j?.term?.months === 6, 'the last day can be set by hand (and the length follows it)', back.j);
+        const both = await call('POST', `/api/committees/${encodeURIComponent(cur.label)}/term`, { start: cur.term.start, end: cur.term.end }, T);
+        ok(both.s === 200 && both.j?.term?.start === cur.term.start && both.j?.term?.end === cur.term.end, 'both days can be set by hand', both.j);
+        const moved = await call('POST', `/api/committees/${encodeURIComponent(cur.label)}/term`, { start: '2019-03-01' }, T);
+        ok(moved.s === 200 && moved.j?.term?.start === '2019-03-01' && moved.j?.term?.months === cur.term.months, 'moving the first day keeps the same length', moved.j);
+        await call('POST', `/api/committees/${encodeURIComponent(cur.label)}/term`, { start: cur.term.start, end: cur.term.end }, T);
+        ok((await call('POST', `/api/committees/${encodeURIComponent(cur.label)}/term`, { end: '1999-01-01' }, T)).s === 400, 'a last day before the first day is refused');
+      }
+      ok((await call('POST', '/api/committees/launch', { session: 'Session 2098', scope: 'none' })).s === 401, 'only an admin can launch a committee');
+    }
+
+    // ---- ready-made form templates ----
+    {
+      const templates = readyTemplates();
+      const keys = new Set(templates.map((t) => t.key));
+      const asked = (t) => t.form.fields.filter((f) => f.type !== 'section').length;
+      let problem = '';
+      for (const t of templates) {
+        const r = await call('POST', '/api/forms', { title: t.name, reg_form: { ...t.form, title: t.name } }, T);
+        if (r.s !== 201) { problem = `${t.key}: HTTP ${r.s} ${r.j?.error || ''}`; break; }
+        const row = r.j.reg_form?.fields ? r.j : (await call('GET', `/api/forms/${r.j.id}`, undefined, T)).j;
+        const got = row.reg_form?.fields?.filter((f) => f.type !== 'section').length;
+        if (got !== asked(t)) { problem = `${t.key}: ${asked(t)} questions saved as ${got}`; break; }
+        await call('DELETE', `/api/forms/${r.j.id}`, undefined, T);
+      }
+      const photos = templates.filter((t) => t.form.fields.some((f) => f.type === 'photo')).length;
+      ok(templates.length >= 25 && keys.size === templates.length, 'ready-made templates ship once each', `${templates.length} templates, ${keys.size} keys`);
+      ok(!problem, 'every ready-made template saves with all of its questions', problem);
+      ok(photos >= 4, 'several templates ask for a photo upload', photos);
+    }
+
+    // ---- Excel downloads ----
+    {
+      const view = await fetch(`${B}/api/exports/table`, {
+        method: 'POST', headers: { authorization: `Bearer ${T}`, 'content-type': 'application/json' },
+        body: JSON.stringify({ title: 'Event sign-ups', subtitle: '2 rows', columns: ['Name', 'Ticket'], rows: [['Nusrat Jahan', 'ABCDE12345'], ['Rafiul Islam', 'QW7RT9YH2K']] }),
+      });
+      const viewZip = new Uint8Array(await view.arrayBuffer());
+      ok(view.status === 200 && viewZip[0] === 0x50 && viewZip[1] === 0x4b && /spreadsheetml/.test(view.headers.get('content-type') || '') && viewZip.length > 1000, 'the rows a table is showing download as a real Excel workbook', view.status);
+      ok((await fetch(`${B}/api/exports/table`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' })).status === 401, 'that workbook needs an admin login');
+      ok((await call('POST', '/api/exports/table', { rows: [['x']] }, T)).s === 400, 'a workbook without columns is refused');
+      const apps = await fetch(`${B}/api/registrations/export?type=all&format=xlsx`, { headers: { authorization: `Bearer ${T}` } });
+      const appsZip = new Uint8Array(await apps.arrayBuffer());
+      ok(apps.status === 200 && appsZip[0] === 0x50 && appsZip[1] === 0x4b, 'applications download as a real Excel workbook', apps.status);
+      const visits = await fetch(`${B}/api/analytics/export?days=30&format=xlsx`, { headers: { authorization: `Bearer ${T}` } });
+      const visitsZip = new Uint8Array(await visits.arrayBuffer());
+      ok(visits.status === 200 && visitsZip[0] === 0x50 && /spreadsheetml/.test(visits.headers.get('content-type') || ''), 'the visitors list downloads as a real Excel workbook', visits.status);
+      const lists = (await call('GET', '/api/downloads', undefined, T)).j;
+      ok(Array.isArray(lists) && lists.length > 0 && lists.every((s) => s.formats.includes('xlsx')), 'every list on the Downloads page offers Excel');
+      const key = lists.find((s) => s.count > 0 && !s.event && !s.form)?.key;
+      if (key) {
+        const one = await fetch(`${B}/api/downloads/${key}?format=xlsx`, { headers: { authorization: `Bearer ${T}` } });
+        const oneZip = new Uint8Array(await one.arrayBuffer());
+        ok(one.status === 200 && oneZip[0] === 0x50 && /spreadsheetml/.test(one.headers.get('content-type') || ''), 'a list downloads as Excel from the Downloads page', one.status);
+      }
     }
 
     // password change

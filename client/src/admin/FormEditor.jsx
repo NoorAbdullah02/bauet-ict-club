@@ -3,18 +3,19 @@ import { Link, useParams, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { motion } from 'framer-motion';
 import {
-  ArrowDown, ArrowLeft, ArrowUp, Check, CircleAlert, Copy, ExternalLink, Eye, GripVertical, Heading, ImagePlus, Loader2, Plus, PlusCircle,
+  ArrowDown, ArrowLeft, ArrowUp, Camera, Check, CircleAlert, Copy, ExternalLink, Eye, GripVertical, Heading, ImagePlus, LayoutTemplate, Loader2, Plus, PlusCircle,
   Settings2, Trash2, Users, X, Wallet, FileText, Palette, Shuffle, SlidersHorizontal, ListChecks, Pencil, Link2, QrCode, Award,
 } from 'lucide-react';
 import useStore, { api } from '../context/store';
 import Select from '../components/Select';
 import DynamicForm from '../components/DynamicForm';
 import PaymentBox from '../components/PaymentBox';
-import { inputCls } from './ui';
+import { inputCls, Drawer, askConfirm } from './ui';
 import QrModal from '../components/QrModal';
 import PdfCanvas from '../components/PdfCanvas';
 import { ResponsesPanel } from './EventRegistrations';
 import { DEFAULT_FIELDS, PRESETS, TYPE_LABELS, PAY_METHODS, hasOptions, newField, uid } from '../lib/forms';
+import { TEMPLATES } from '../lib/formTemplates';
 import { copyText, eventLink } from '../lib/share';
 import { useGateway } from '../lib/pay';
 import { cn } from '../lib/cn';
@@ -276,6 +277,70 @@ function CertPreview({ eventId, cert }) {
   );
 }
 
+const TPL_CATS = [['all', 'All'], ['events', 'Events'], ['club', 'Club'], ['community', 'Community'], ['feedback', 'Feedback'], ['services', 'Services']];
+
+function TemplateQuestions({ t }) {
+  const questions = t.form.fields.filter((f) => f.type !== 'section');
+  const pages = t.form.fields.filter((f) => f.page).length + 1;
+  return (
+    <div className="space-y-4">
+      {t.form.intro && <p className="text-sm leading-6 text-fg2">{t.form.intro}</p>}
+      <div className="flex flex-wrap gap-2 text-[11px] font-semibold text-fg2">
+        <span className="rounded-full border border-line px-2.5 py-1">{questions.length} questions</span>
+        {pages > 1 && <span className="rounded-full border border-line px-2.5 py-1">{pages} pages</span>}
+        {t.form.fields.some((f) => f.type === 'photo') && <span className="rounded-full border border-line px-2.5 py-1">Photo upload</span>}
+      </div>
+      <ol className="space-y-1">
+        {t.form.fields.map((f) => f.type === 'section' ? (
+          <li key={f.id} className="mt-3 flex flex-wrap items-baseline gap-2 rounded-lg bg-alt/70 px-2.5 py-2 text-xs font-semibold text-fg">
+            <span className="font-mono text-[10px] uppercase tracking-wider text-muted">{f.page ? 'New page' : 'Heading'}</span>{f.label}
+          </li>
+        ) : (
+          <li key={f.id} className="flex items-start gap-2 rounded-lg px-2.5 py-1.5 text-xs text-fg2">
+            <span className="min-w-0 flex-1">{f.label}{f.required && <span className="text-red-500"> *</span>}</span>
+            <span className="shrink-0 font-mono text-[10px] uppercase tracking-wider text-muted">{TYPE_LABELS[f.type] || f.type}</span>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
+function TemplateDrawer({ open, onClose, onPick }) {
+  const [cat, setCat] = useState('all');
+  const [picked, setPicked] = useState(null);
+  const close = () => { setPicked(null); onClose(); };
+  useEffect(() => { if (open) setPicked(null); }, [open]);
+  return (
+    <Drawer open={open} title={picked ? picked.name : 'Form templates'} onClose={close}
+      footer={picked
+        ? <><button onClick={() => setPicked(null)} className="btn-outline !px-5 !py-2.5 text-xs"><ArrowLeft size={13} /> All templates</button><button onClick={() => onPick(picked)} className="btn-primary !px-5 !py-2.5 text-xs"><Check size={13} /> Use this template</button></>
+        : <><span className="flex-1 text-xs text-muted">{TEMPLATES.length} templates · tap one to preview its questions</span><button onClick={close} className="btn-outline !px-5 !py-2.5 text-xs">Close</button></>}>
+      {picked ? <TemplateQuestions t={picked} /> : (
+        <>
+          <div className="mb-3 flex flex-wrap gap-1.5">
+            {TPL_CATS.map(([c, l]) => (
+              <button key={c} onClick={() => setCat(c)} className={cn('rounded-full border px-3 py-1.5 text-xs font-semibold transition', cat === c ? 'border-tech bg-tech/10 text-tech' : 'border-line text-fg2 hover:border-tech hover:text-tech')}>{l}</button>
+            ))}
+          </div>
+          <div className="space-y-2">
+            {TEMPLATES.filter((t) => cat === 'all' || t.category === cat).map((t) => (
+              <button key={t.key} onClick={() => setPicked(t)} className="group flex w-full items-start gap-3 rounded-xl border border-line bg-surface p-3 text-left transition hover:border-tech hover:shadow-sm">
+                <span className="mt-0.5 size-2.5 shrink-0 rounded-full" style={{ background: t.color }} />
+                <span className="min-w-0 flex-1">
+                  <span className="flex flex-wrap items-baseline gap-2"><b className="text-sm text-fg">{t.name}</b><span className="font-mono text-[10px] uppercase tracking-wider text-muted">{t.form.fields.filter((x) => x.type !== 'section').length} questions</span></span>
+                  <span className="mt-0.5 block text-xs leading-5 text-fg2">{t.desc}</span>
+                </span>
+                <span className="shrink-0 self-center text-[11px] font-semibold text-tech opacity-0 transition group-hover:opacity-100">Preview →</span>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </Drawer>
+  );
+}
+
 export default function FormEditor({ kind = 'form', eventId }) {
   const gateway = useGateway();
   const routeId = useParams().id;
@@ -301,6 +366,7 @@ export default function FormEditor({ kind = 'form', eventId }) {
     api.post('/short', { path: pagePath }).then((r) => { setShortCode(r.data.code); setAlias(r.data.code); }).catch(() => {});
   }, [pagePath]);
   const [qr, setQr] = useState(false);
+  const [tplOpen, setTplOpen] = useState(false);
   const [sample, setSample] = useState({});
   const [notFound, setNotFound] = useState(false);
   const [formsList, setFormsList] = useState([]); // for "ask for feedback after the event"
@@ -388,6 +454,13 @@ export default function FormEditor({ kind = 'form', eventId }) {
   const patchQ = (qid, p) => edit((d) => ({ ...d, fields: d.fields.map((q) => (q.id === qid ? { ...q, ...p } : q)) }));
   const addQ = (q) => { edit((d) => { const at = activeId ? d.fields.findIndex((x) => x.id === activeId) + 1 : d.fields.length; const n = [...d.fields]; n.splice(at, 0, q); return { ...d, fields: n }; }); setActiveId(q.id); };
   const moveQ = (qid, dir) => edit((d) => { const n = [...d.fields]; const i = n.findIndex((x) => x.id === qid); const j = i + dir; if (j < 0 || j >= n.length) return d; [n[i], n[j]] = [n[j], n[i]]; return { ...d, fields: n }; });
+  const applyTemplate = async (t) => {
+    if (doc.fields.length && !(await askConfirm({ title: `Replace these questions with “${t.name}”?`, message: 'The template questions replace the ones on this page. The form name, link, colour and payment settings stay as they are.', confirmText: 'Use template' }))) return;
+    edit((d) => ({ ...d, heading: d.heading || t.name, intro: t.form.intro || d.intro, confirmation: t.form.confirmation || d.confirmation, unique: t.form.unique || '', fields: clone(t.form.fields) }));
+    setTplOpen(false); setActiveId(null);
+    toast.success('Template added — change any question you like');
+  };
+
   const dropQ = (toId) => { if (dragFrom && dragFrom !== toId) edit((d) => { const n = [...d.fields]; const a = n.findIndex((x) => x.id === dragFrom); const b = n.findIndex((x) => x.id === toId); const [m] = n.splice(a, 1); n.splice(b, 0, m); return { ...d, fields: n }; }); setDragFrom(null); setDragOver(null); setDragId(null); };
 
   const longLink = item ? (kind === 'form' ? `${window.location.origin}/f/${doc?.slug || item.slug}` : eventLink(item.id)) : '';
@@ -410,6 +483,7 @@ export default function FormEditor({ kind = 'form', eventId }) {
             ? <input className="min-w-0 flex-1 bg-transparent font-display text-xl text-fg outline-none focus:border-b focus:border-tech" value={doc.title} maxLength={200} onChange={(e) => patchDoc({ title: e.target.value })} aria-label="Form name" />
             : <div className="min-w-0 flex-1"><div className="truncate font-display text-xl text-fg">{item.title}</div><div className="text-xs text-muted">Registration form for this event</div></div>}
           <span className={cn('flex items-center gap-1.5 text-xs font-medium', sColor)} title={problem || ''}><SIcon size={14} className={status === 'saving' ? 'animate-spin' : ''} /> {sLabel}</span>
+          <button onClick={() => setTplOpen(true)} title="Start from a ready-made form" className="flex items-center gap-1.5 rounded-lg border border-line px-3 py-2 text-xs font-semibold text-fg2 hover:border-tech hover:text-tech"><LayoutTemplate size={14} /> Templates</button>
           <button onClick={() => { setPreview((p) => !p); setTab('questions'); }} className={cn('flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold transition', preview ? 'border-tech bg-tech/10 text-tech' : 'border-line text-fg2 hover:border-tech hover:text-tech')}>{preview ? <Pencil size={14} /> : <Eye size={14} />} {preview ? 'Back to editing' : 'Preview'}</button>
           <button onClick={async () => toast[(await copyText(link)) ? 'success' : 'error']('Link copied')} className="flex items-center gap-1.5 rounded-lg border border-line px-3 py-2 text-xs font-semibold text-fg2 hover:border-tech hover:text-tech"><Link2 size={14} /> Copy link</button>
           <button onClick={() => setQr(true)} className="flex items-center gap-1.5 rounded-lg border border-line px-3 py-2 text-xs font-semibold text-fg2 hover:border-tech hover:text-tech"><QrCode size={14} /> QR code</button>
@@ -427,7 +501,7 @@ export default function FormEditor({ kind = 'form', eventId }) {
               <button onClick={async () => { patchDoc({ open: true }); toast.success((await copyText(link)) ? 'Published. Link copied' : 'Published'); }} className="rounded-lg bg-accent px-3.5 py-1.5 font-semibold text-white">Publish</button></>}
         </div>
         {status === 'invalid' && problem && <p className="mt-2 flex items-center gap-1.5 text-xs text-amber-600"><CircleAlert size={13} /> {problem}. Your changes are saved as soon as this is fixed.</p>}
-        <div className="mt-3 flex gap-1 border-t border-line pt-2">
+        <div className="mt-3 flex flex-wrap items-center gap-1 border-t border-line pt-2">
           {[['questions', Pencil, 'Questions'], ['responses', Users, 'Responses'], ['settings', Settings2, 'Settings']].map(([k, I, l]) => (
             <button key={k} onClick={() => { setTab(k); setPreview(false); }} className={cn('flex items-center gap-1.5 rounded-t-lg border-b-2 px-4 py-2 text-sm font-medium transition', tab === k ? 'border-tech text-tech' : 'border-transparent text-fg2 hover:text-fg')}><I size={15} /> {l}</button>
           ))}
@@ -436,6 +510,8 @@ export default function FormEditor({ kind = 'form', eventId }) {
       </div>
 
       {qr && <QrModal url={link} title={kind === 'form' ? doc.title : item.title} onClose={() => setQr(false)} />}
+
+      <TemplateDrawer open={tplOpen} onClose={() => setTplOpen(false)} onPick={applyTemplate} />
 
       {tab === 'responses' && <div className="mx-auto max-w-3xl"><ResponsesPanel event={{ ...item, reg_form: { ...(item.reg_form || {}), fields: doc.fields, payment: doc.payment?.enabled ? doc.payment : undefined }, capacity: doc.capacity }} kind={kind} /></div>}
 

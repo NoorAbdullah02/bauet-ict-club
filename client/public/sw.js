@@ -1,6 +1,6 @@
 // Small service worker: repeat visits load from the phone's own storage, and a friendly page shows when there is no internet.
 // It never stores /api answers, so events, forms and tickets are always fresh.
-const VERSION = 'v1';
+const VERSION = 'v2';
 const STATIC = `static-${VERSION}`;
 const OFFLINE = '/offline.html';
 
@@ -24,8 +24,8 @@ self.addEventListener('fetch', (e) => {
     e.respondWith(fetch(req).catch(() => caches.match(OFFLINE)));
     return;
   }
-  // hashed build files and logos never change under the same name: serve from storage, fetch once
-  if (url.pathname.startsWith('/assets/') || url.pathname.startsWith('/logos/') || url.pathname === '/favicon.png') {
+  // hashed build files never change under the same name: serve from storage, fetch once
+  if (url.pathname.startsWith('/assets/') || url.pathname === '/favicon.png') {
     e.respondWith(
       caches.open(STATIC).then(async (cache) => {
         const hit = await cache.match(req);
@@ -33,6 +33,17 @@ self.addEventListener('fetch', (e) => {
         const res = await fetch(req);
         if (res.ok) cache.put(req, res.clone());
         return res;
+      })
+    );
+    return;
+  }
+  // logos keep their file name when they are replaced: show the saved copy at once, then refresh it in the background
+  if (url.pathname.startsWith('/logos/')) {
+    e.respondWith(
+      caches.open(STATIC).then(async (cache) => {
+        const hit = await cache.match(req);
+        const fresh = fetch(req).then((res) => { if (res.ok) cache.put(req, res.clone()); return res; }).catch(() => null);
+        return hit || (await fresh) || Response.error();
       })
     );
   }

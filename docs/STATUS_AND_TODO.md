@@ -1,21 +1,31 @@
 # Status and to-do (hand-over)
 
 A snapshot of what exists, what is missing and what should be improved next, so anyone (or any account) can continue from here.
-Last updated: 2026-11-06. **What only the owner can do (keys, accounts, Firebase, payments): [WHAT_YOU_NEED_TO_DO.md](WHAT_YOU_NEED_TO_DO.md).** Everything described as "done" was built and checked as noted; "not verified" means it was not tried in that setting.
+Last updated: 2026-11-22. **What only the owner can do (keys, accounts, Firebase, payments): [WHAT_YOU_NEED_TO_DO.md](WHAT_YOU_NEED_TO_DO.md).** Everything described as "done" was built and checked as noted; "not verified" means it was not tried in that setting.
+
+## 0. 2026-11-22 — code review and the fixes from it
+
+Full report: **[CODE_REVIEW.md](CODE_REVIEW.md)**. Done in this round (`npm --prefix server run qa` → **355 checks pass**, website build and `flutter analyze`/`flutter test` clean):
+
+- **Member cards are safe to change.** A committee member's card code is public (the Team page shows the same person), so it no longer allows anything by itself: changing a photo or a birth date now needs a 6-digit code sent to the e-mail the person joined with (or an admin login). The applicant card, whose code is secret, works as before. `PATCH /api/card/:id/photo` also refuses pictures hosted on any other Cloudinary account.
+- **Points and certificates are matched by identity, never by name.** Two members called "Nusrat Jahan" no longer see each other's certificates (which carried the ticket codes). A committee row now stores `registration_id`, and `student_id` is used where that link is missing. Older rows without either show zeros until an admin links them.
+- **The card e-mail code** lives in the database (`card_otps`), so a restart no longer loses it; 5 tries per code, timing-safe compare, and the same answer for members and strangers (no more "no approved membership found with this email").
+- **Admin → Downloads (new).** One page for every list the club keeps, as CSV (Excel / Google Sheets) or JSON, with optional from/to dates, one event, or one form; plus the full backup button for the main admin. Editors cannot download personal data (`GET /api/downloads`).
+- Small fixes: the dead `birth_date` write in the applications API is gone, `/logos/*` is refreshed in the background by the service worker (it used to stay stale forever), and the review's stale claims in this file and in ROADMAP are corrected.
 
 ## 1. What exists and works
 
 **Website (`client/`, React + Vite + Tailwind)** — live at https://bauet-ict-club.onrender.com
 - Public pages: Home, About, Events (+ one page per event with registration), Notices, Projects, Team (per committee session), Ambassadors, Gallery, Awards, FAQ, Contact, Join (Committee, General, Ambassador), Get the app.
 - Event registration with a form builder, payments (bKash / Nagad / Rocket with transaction ID), waiting list, tickets with QR codes, check-in, certificates, reminders.
-- Admin console (`/admin`): dashboard, applications (approve / reject / select / export PDF, Word, CSV), events and forms studio, inbox, newsletter, committees (launch, transfer people), gallery, notices, projects, FAQ, sponsors, visitors, activity log, trash (20 days), settings, team logins, backup.
+- Admin console (`/admin`): dashboard, applications (cards and a full spreadsheet table, approve / reject / select / export PDF, Word, CSV), events and forms studio, inbox, newsletter, committees (six-month terms with days left and a progress bar, launch, extend, transfer people), gallery, notices, projects, FAQ, sponsors, visitors, activity log, trash (20 days), settings, team logins, backup.
 - Look and feel (this session): animated aurora background and fading grid, calmer see-through 3D globe in the hero, headline spotlight, new footer, committee page with role cards, navbar that fits phones from 320 px, native pickers (`<select>`) on touch devices.
 - Light and dark themes.
 
 **Server (`server/`, Express + PostgreSQL on Neon)**
 - REST API, e-mail through Brevo, photos on Cloudinary, AI chat on Groq, scheduled jobs, rate limits, strict CSP and HSTS.
 - Sign-in security (this session): bcrypt passwords, new password rules (6+ characters, letters and numbers, no common passwords), per-account lockout (5 wrong tries = 15 minutes), optional two-step sign-in with an authenticator app and 8 backup codes, sessions checked against the database on every request (changing the password, deleting a login or "sign out everywhere" ends old sessions at once). Details: [SIGN_IN_SECURITY.md](SIGN_IN_SECURITY.md).
-- `npm --prefix server run qa` runs 96 end-to-end checks on an in-memory database (all pass).
+- `npm --prefix server run qa` runs 355 end-to-end checks on an in-memory database (all pass).
 
 **App (`app/`, Flutter)**
 - Screens: Home, Events (list + a bottom sheet with details), Notices, Team, Ambassadors, Gallery, Awards, Projects, FAQ, About, Contact, Join hub and the three application flows, AI chat, admin (login with two-step code, applications, committees, data tables, visitors, trash, settings).
@@ -60,7 +70,7 @@ Updated 2026-11-06: event page, registration, payment, waiting list, tickets wit
 | Admin: team logins (editors), backup | yes | team logins yes (`admin_team_screen.dart`); backup download no | `server/routes/team.js`, `backup.js` |
 | Admin: launch a new committee, transfer people | yes | yes (launch existed; `admin_transfer_screen.dart`) | `server/routes/committees.js` |
 | Admin: turn two-step sign-in on or off, sign out other devices | yes | yes (`admin_security_screen.dart`) | `server/routes/auth.js` (`/2fa/*`, `/logout-all`) |
-| Push notifications for new events and notices | no | no | needs Firebase Cloud Messaging and a server hook |
+| Push notifications for new events and notices | yes (server hook + admin sender) | yes (`core/push.dart`, Firebase project `bauet-ict-club`) | needs `FIREBASE_SERVICE_ACCOUNT` on Render to actually send |
 
 Rule from the project guide: when a feature changes in one place, change it in all three (server, website, app).
 

@@ -3,7 +3,7 @@
 Everything below is something only the owner can do: it needs your accounts, passwords or phone. The code side is done or waits for these items.
 Tick each box when finished. Never paste a secret into a chat, an issue or a commit. Secrets go only into the Render dashboard or a GitHub secret.
 
-Last updated: 2026-11-06.
+Last updated: 2026-11-22. (2026-11-22: push notifications are built on both sides — only the Firebase service account value below is still needed. Admin → Downloads is new: every list as CSV/JSON. The rest of this page is unchanged.)
 
 ---
 
@@ -40,11 +40,11 @@ Last updated: 2026-11-06.
 ### B3. AI chat
 - [ ] Free key from https://console.groq.com/keys → Render env `GROQ_API_KEY`. (Chat still answers from FAQ and events without it.)
 
-### B4. Push notifications (needs Firebase; not built yet, waiting for you)
-Do these three steps, then tell me "firebase ready". I build the server, the app and the admin "Send notification" box.
-1. [ ] Open https://console.firebase.google.com → create a project (any name, Analytics can be off) → **Add app → Android** → package name exactly `com.bauet.bauet_ict_club` → download **`google-services.json`**.
-2. [ ] Put that file's whole text into a GitHub secret: repository → Settings → Secrets and variables → Actions → New secret → name `GOOGLE_SERVICES_JSON`.
-3. [ ] Firebase → Project settings → **Service accounts** → **Generate new private key** → open the downloaded JSON, copy everything, and put it into the Render env `FIREBASE_SERVICE_ACCOUNT` (one value, the whole JSON). Do not send this file to anyone.
+### B4. Push notifications (the code is ready; only the key is missing)
+The server (`server/utils/push.js`) and the app (`app/lib/core/push.dart`) are built, and the Firebase project `bauet-ict-club` already exists: `app/android/app/google-services.json` is in the repository with the right package name. So step 1 and 2 are effectively done.
+1. [x] Firebase project + Android app `com.bauet.bauet_ict_club` + `google-services.json` in the repository.
+2. [ ] Firebase → Project settings → **Service accounts** → **Generate new private key** → open the downloaded JSON, copy everything, and put it into the Render env `FIREBASE_SERVICE_ACCOUNT` (one value, the whole JSON). Do not send this file to anyone.
+3. [ ] Open Admin → Settings and check that the phone-notification light turns green; install the newest APK and allow notifications.
 
 ### B5. Reminders and weekly digest while the free Render server sleeps
 - [ ] Render env `CRON_SECRET` = 16+ random characters.

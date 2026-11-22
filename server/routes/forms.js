@@ -9,7 +9,7 @@ const forms = require('../utils/forms');
 const ssl = require('../utils/sslcommerz');
 const { serial } = require('../utils/serial');
 const { formalDate } = require('../utils/format');
-const { tableToPdf, tableToDocx } = require('../utils/exporters');
+const { tableToPdf, tableToDocx, tableToXlsx } = require('../utils/exporters');
 const { sendZip, safe } = require('../utils/zipper');
 const { toCsv } = require('../utils/csv');
 
@@ -237,9 +237,16 @@ router.get('/:id/export', async (req, res) => {
   try {
     const t = await table(req.params.id);
     if (!t) return res.status(404).json({ error: 'Form not found' });
-    const format = ['pdf', 'docx'].includes(req.query.format) ? req.query.format : 'csv';
-    const buf = format === 'csv' ? Buffer.from(t.csv) : format === 'pdf' ? await tableToPdf(t.title, t.sub, t.cols, t.rows) : await tableToDocx(t.title, t.sub, t.cols, t.rows);
-    const mime = { csv: 'text/csv; charset=utf-8', pdf: 'application/pdf', docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }[format];
+    const format = ['pdf', 'docx', 'xlsx'].includes(req.query.format) ? req.query.format : 'csv';
+    const buf = format === 'csv' ? Buffer.from(t.csv)
+      : format === 'pdf' ? await tableToPdf(t.title, t.sub, t.cols, t.rows)
+        : format === 'xlsx' ? await tableToXlsx(t.title, t.sub, t.cols, t.rows)
+          : await tableToDocx(t.title, t.sub, t.cols, t.rows);
+    const mime = {
+      csv: 'text/csv; charset=utf-8', pdf: 'application/pdf',
+      docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    }[format];
     res.set({ 'Content-Type': mime, 'Content-Disposition': `attachment; filename="${safe(t.f.title)}-responses.${format}"`, 'Cache-Control': 'no-store' });
     res.send(buf);
   } catch (e) { fail(res, e); }
@@ -250,7 +257,12 @@ router.get('/:id/zip', async (req, res) => {
     const t = await table(req.params.id);
     if (!t) return res.status(404).json({ error: 'Form not found' });
     const nameField = t.fields.find((q) => q.key === 'name') || t.fields[0];
-    const entries = [{ name: 'responses.csv', data: t.csv }, { name: 'responses.pdf', data: await tableToPdf(t.title, t.sub, t.cols, t.rows) }, { name: 'responses.docx', data: await tableToDocx(t.title, t.sub, t.cols, t.rows) }];
+    const entries = [
+      { name: 'responses.csv', data: t.csv },
+      { name: 'responses.xlsx', data: await tableToXlsx(t.title, t.sub, t.cols, t.rows) },
+      { name: 'responses.pdf', data: await tableToPdf(t.title, t.sub, t.cols, t.rows) },
+      { name: 'responses.docx', data: await tableToDocx(t.title, t.sub, t.cols, t.rows) },
+    ];
     t.rows.forEach((r, i) => t.fields.filter((q) => q.type === 'photo').forEach((q) => {
       const url = answersOf(r)[q.id];
       if (url) entries.push({ name: `pictures/${String(i + 1).padStart(3, '0')}-${safe(forms.show(answersOf(r)[nameField?.id]) || `response-${r.id}`)}-${safe(q.label)}`, image: url });

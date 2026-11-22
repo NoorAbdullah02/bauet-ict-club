@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import {
-  BarChart3, Briefcase, Bug, ClipboardList, Code, Copy, CopyPlus, ExternalLink, FilePlus2,
-  GraduationCap, HandHeart, HelpCircle, Laptop, Loader2, Megaphone, Pencil, Plus, Presentation,
-  Search, Shirt, Sparkles, Star, Ticket, Trash2, Trophy, Users
+  BadgeCheck, BarChart3, Briefcase, Bug, Building2, Bus, Camera, ClipboardList, Code, Copy, CopyPlus,
+  ExternalLink, FilePlus2, FlaskConical, Gamepad2, GraduationCap, HandHeart, HelpCircle, Laptop, Loader2,
+  Medal, Megaphone, Mic, Music, PartyPopper, Pencil, Plus, Presentation, RefreshCw, Search, Shirt,
+  Sparkles, Star, Ticket, Trash2, Trophy, Users
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../context/store';
@@ -17,6 +18,8 @@ const ICONS = {
   ticket: Ticket, star: Star, users: Users, hand: HandHeart, trophy: Trophy, poll: BarChart3, help: HelpCircle,
   code: Code, laptop: Laptop, briefcase: Briefcase, megaphone: Megaphone, presentation: Presentation,
   graduation: GraduationCap, sparkles: Sparkles, shirt: Shirt, bug: Bug,
+  mic: Mic, medal: Medal, music: Music, bus: Bus, gamepad: Gamepad2, camera: Camera, party: PartyPopper,
+  building: Building2, renew: RefreshCw, badge: BadgeCheck, flask: FlaskConical,
 };
 
 const CATEGORIES = [
@@ -80,7 +83,7 @@ export default function FormsAdmin() {
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 id="tpl" className="text-lg font-bold text-fg">Ready-made form templates</h2>
-            <p className="text-xs text-fg2">Launch hackathons, recruitment, bootcamps, merchandise orders or surveys in 1 click.</p>
+            <p className="text-xs text-fg2">{TEMPLATES.length} ready-made forms — events, contests, recruitment, services and surveys — in 1 click.</p>
           </div>
           <div className="flex flex-wrap gap-1.5 rounded-xl border border-line bg-surface/80 p-1">
             {CATEGORIES.map((c) => (

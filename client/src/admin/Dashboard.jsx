@@ -4,11 +4,13 @@ import { Plus, Megaphone, FileText } from 'lucide-react';
 import { motion } from 'framer-motion';
 import CountUp from 'react-countup';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, CartesianGrid } from 'recharts';
-import { ClipboardList, Users, Calendar, MessageSquare, Crown, ArrowUpRight, Clock } from 'lucide-react';
+import { ClipboardList, Users, Calendar, MessageSquare, Crown, ArrowUpRight, Clock, CalendarClock } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import useStore from '../context/store';
 import { Panel, PageTitle } from './ui';
 import { Donut, VBars, tally } from './charts';
+import { sessionRank, termLeft } from '../lib/sessions';
+import { formalDate } from '../lib/format';
 import DeanReportModal from './DeanReportModal';
 
 const C = { a: 'var(--accent)', b: 'var(--tech)', c: '#EF6B8A', d: '#F5A524' };
@@ -33,8 +35,11 @@ function Stat({ icon: Icon, label, value, hint, color, i }) {
 const tip = { contentStyle: { background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 14, fontSize: 12, color: 'var(--fg)' }, cursor: { stroke: 'var(--border)' } };
 
 export default function Dashboard() {
-  const { registrations, events, members, messages, user } = useStore(useShallow((s) => ({ registrations: s.registrations, events: s.events, members: s.members, messages: s.messages, user: s.user })));
+  const { registrations, events, members, messages, user, sessions } = useStore(useShallow((s) => ({ registrations: s.registrations, events: s.events, members: s.members, messages: s.messages, user: s.user, sessions: s.sessions })));
   const [reportOpen, setReportOpen] = useState(false);
+  // the committee that is serving now, with what is left of its six months
+  const current = useMemo(() => [...sessions].filter((s) => s.members > 0).sort((a, b) => sessionRank(b.label) - sessionRank(a.label))[0], [sessions]);
+  const fmtDay = (iso) => formalDate(iso, { short: true });
 
   const pending = registrations.filter((r) => r.status === 'pending').length;
   const unread = messages.filter((m) => !m.is_read).length;
@@ -68,6 +73,13 @@ export default function Dashboard() {
             <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-white/70">{new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}</div>
             <h1 className="mt-2 text-3xl text-white sm:text-4xl">Welcome back, {user?.username || 'admin'} 👋</h1>
             <p className="mt-2 max-w-md text-sm text-white/75">{pending > 0 ? `${pending} application${pending > 1 ? 's are' : ' is'} waiting for your review.` : 'You’re all caught up — no applications waiting.'}</p>
+            {current?.term && (
+              <Link to="/admin/data/members" className="mt-4 inline-flex flex-wrap items-center gap-x-2 gap-y-1 rounded-full border border-white/30 bg-white/10 px-3.5 py-1.5 text-[11px] font-semibold text-white transition hover:bg-white/20">
+                <CalendarClock size={12} /> {current.label}
+                <span className={current.term.expired ? 'text-amber-300' : 'text-emerald-300'}>· {termLeft(current.term)}</span>
+                <span className="text-white/60">ends {fmtDay(current.term.end)}</span>
+              </Link>
+            )}
           </div>
           <div className="flex flex-wrap gap-2.5">
             <button type="button" onClick={() => setReportOpen(true)} className="inline-flex items-center gap-2 rounded-full border border-white/40 bg-white/10 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-white/20"><FileText size={15} /> Official Dean/VC Report</button>

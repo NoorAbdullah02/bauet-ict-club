@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Crown, Users, Megaphone, Check, X, Trash2, Download, Loader2, UserCheck, Search, FileText, FileType2, Mail, Phone, Hash, GraduationCap, Building2, User, CalendarDays, Sparkles, Briefcase, ExternalLink, Eye } from 'lucide-react';
+import { Crown, Users, Megaphone, Check, X, Trash2, Download, Loader2, UserCheck, Search, FileSpreadsheet, FileText, FileType2, Mail, Phone, Hash, GraduationCap, Building2, User, CalendarDays, Sparkles, Briefcase, ExternalLink, Eye } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import useStore, { api } from '../context/store';
 import { askConfirm, toastTrashed } from '../admin/ui';
@@ -12,6 +12,7 @@ import { cn } from '../lib/cn';
 import { Donut, HBars, VBars, tally } from '../admin/charts';
 import { POSTS } from '../lib/posts';
 import { saveFile } from '../lib/download';
+import ApplicationsTable from '../admin/ApplicationsTable';
 
 
 const STATUS_STYLE = {
@@ -256,7 +257,7 @@ function Card({ r, selected, onToggle }) {
   );
 }
 
-/** Download the applications that match the current filters as a PDF or Word file. */
+/** Download the applications that match the current filters as a PDF, Word, Excel or CSV file. */
 async function exportDoc(format, { type, status, q, ids }) {
   try {
     const { data } = await api.get('/registrations/export', { params: { format, type, status, q, ids: ids?.join(',') || undefined }, responseType: 'blob' });
@@ -310,6 +311,7 @@ export default function AdminApplications() {
   const [loading, setLoading] = useState(true);
   const [sel, setSel] = useState(() => new Set());
   const [bulkBusy, setBulkBusy] = useState(false);
+  const [view, setView] = useState('cards'); // cards for actions, table for the full sheet
 
   useEffect(() => {
     fetchRegistrations().catch(() => toast.error('Could not load applications')).finally(() => setLoading(false));
@@ -358,7 +360,7 @@ export default function AdminApplications() {
         <div className="flex flex-wrap items-center gap-2">
           <label className="mr-1 flex cursor-pointer items-center gap-2 text-xs text-fg2"><input type="checkbox" checked={allTypes} onChange={(e) => setAllTypes(e.target.checked)} className="accent-[#1F4FD8]" /> All types in PDF/Word</label>
           <button onClick={() => saveFile('/registrations/zip', { type: allTypes ? 'all' : type, status, q }, `applications-${allTypes ? 'all' : type}.zip`)} disabled={!rows.length} title="The list as PDF, Word and CSV plus every applicant's photo in full quality" className="flex items-center gap-2 rounded-lg border border-accent bg-accent/10 px-4 py-2 text-xs font-semibold text-accent hover:bg-accent hover:text-white disabled:opacity-40"><Download size={14} /> ZIP with photos</button>
-          {[['PDF', FileText, () => exportDoc('pdf', { type: allTypes ? 'all' : type, status, q })], ['Word', FileType2, () => exportDoc('docx', { type: allTypes ? 'all' : type, status, q })], ['CSV', Download, () => exportCsv(rows, type)]].map(([label, Icon, fn]) => (
+          {[['PDF', FileText, () => exportDoc('pdf', { type: allTypes ? 'all' : type, status, q })], ['Word', FileType2, () => exportDoc('docx', { type: allTypes ? 'all' : type, status, q })], ['Excel', FileSpreadsheet, () => exportDoc('xlsx', { type: allTypes ? 'all' : type, status, q })], ['CSV', Download, () => exportCsv(rows, type)]].map(([label, Icon, fn]) => (
             <button key={label} onClick={fn} disabled={!rows.length}
               className="flex items-center gap-2 rounded-lg border border-line px-4 py-2 text-xs font-semibold text-fg2 hover:border-tech hover:text-tech disabled:opacity-40">
               <Icon size={14} /> Export {label}
@@ -395,6 +397,12 @@ export default function AdminApplications() {
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name, email, ID"
             className="w-full rounded-full border border-line bg-surface py-2 pl-9 pr-4 text-sm text-fg outline-none focus:border-tech" />
         </div>
+        <div className="flex gap-1 rounded-full bg-alt p-1">
+          {[['cards', 'Cards'], ['table', 'Table']].map(([k, label]) => (
+            <button key={k} onClick={() => setView(k)} aria-pressed={view === k}
+              className={cn('rounded-full px-4 py-1.5 text-xs font-semibold transition', view === k ? 'bg-surface text-fg shadow-sm' : 'text-fg2')}>{label}</button>
+          ))}
+        </div>
       </div>
 
       {rows.length > 0 && (
@@ -422,6 +430,8 @@ export default function AdminApplications() {
 
       {loading ? <Loader2 className="animate-spin text-muted" /> : rows.length === 0 ? (
         <p className="text-sm text-muted">No applications found.</p>
+      ) : view === 'table' ? (
+        <ApplicationsTable rows={rows} q={q} onOpen={(r) => { setQ(r.student_id || r.full_name); setView('cards'); }} />
       ) : (
         <div className="grid gap-4 xl:grid-cols-2">{rows.map((r) => <Card key={r.id} r={r} selected={sel.has(r.id)} onToggle={() => toggle(r.id)} />)}</div>
       )}

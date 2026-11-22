@@ -37,6 +37,15 @@ const upload = { single: () => (req, res, next) => uploader(req, res, (err) => (
   ? res.status(400).json({ error: err.code === 'LIMIT_FILE_SIZE' ? 'Photo must be under 3MB' : 'Upload a JPG or PNG photo' })
   : next())) };
 
+// photos must come from this club's own storage (local uploads) or its own Cloudinary cloud, never from another account
+const CLOUD = String(process.env.CLOUDINARY_CLOUD_NAME || '').trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const photoOk = (u) => {
+  const url = String(u || '').trim();
+  if (!url) return true;
+  if (/^\/uploads\/[a-f0-9]{24}\.(jpg|png|webp)$/.test(url)) return true;
+  return !!CLOUD && new RegExp(`^https://res\\.cloudinary\\.com/${CLOUD}/`).test(url);
+};
+
 const ordinal = (n) => `${n}${[11, 12, 13].includes(n % 100) ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' }[n % 10] || 'th')}`;
 const clean = (v, max) => String(v ?? '').trim().slice(0, max);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -60,7 +69,6 @@ function validate(body) {
     experience: clean(body.experience, 20),
     note: clean(body.note, 600),
     photo_url: clean(body.photo_url, 500),
-    birth_date: null,
   };
 
   if (data.full_name.length < 2 || !/^[\p{L}\p{M}\s.'-]+$/u.test(data.full_name)) errors.full_name = 'Enter your full name';
@@ -71,7 +79,7 @@ function validate(body) {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) errors.email = 'Enter a valid email';
   if (!GENDERS.includes(data.gender)) errors.gender = 'Invalid selection';
 
-  if (data.photo_url && !/^(https:\/\/res\.cloudinary\.com\/|\/uploads\/[a-f0-9]{24}\.(jpg|png|webp)$)/.test(data.photo_url)) errors.photo_url = 'Invalid photo';
+  if (data.photo_url && !photoOk(data.photo_url)) errors.photo_url = 'Invalid photo';
 
   if (type === 'committee') {
     if (data.post.length < 2) errors.post = 'Select the post you are applying for';
@@ -112,11 +120,11 @@ router.post('/', submitLimiter, async (req, res) => {
   try {
     const { rows } = await pool.query(
       `INSERT INTO registrations
-        (type, full_name, student_id, batch, department, phone, email, gender, post, interests, experience, note, photo_url, birth_date)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+        (type, full_name, student_id, batch, department, phone, email, gender, post, interests, experience, note, photo_url)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
        RETURNING id, type, full_name, email, post`,
       [data.type, data.full_name, data.student_id, data.batch, data.department, data.phone, data.email,
-        data.gender, data.post, data.interests, data.experience, data.note, data.photo_url, data.birth_date]
+        data.gender, data.post, data.interests, data.experience, data.note, data.photo_url]
     );
     notify({ ...data, ...rows[0] });
     res.status(201).json({ success: true, registration: rows[0] });
@@ -142,13 +150,26 @@ async function selectRows(src) {
   return { rows, type, status };
 }
 
+const APPLICATION_COLS = [
+  ['Name', 'full_name'], ['Type', 'type'], ['Post', 'post'], ['Student ID', 'student_id'], ['Batch', 'batch'],
+  ['Department', 'department'], ['Gender', 'gender'], ['Phone', 'phone'], ['Email', 'email'],
+  ['Interests', (r) => (Array.isArray(r.interests) ? r.interests.join(', ') : r.interests)],
+  ['Experience', 'experience'], ['Note', 'note'], ['Status', 'status'],
+  ['Applied', (r) => (r.created_at ? new Date(r.created_at).toISOString().slice(0, 16).replace('T', ' ') : '')],
+];
+
 async function buildExport(src) {
-  const format = src.format === 'docx' ? 'docx' : 'pdf';
+  const format = ['csv', 'xlsx', 'docx'].includes(src.format) ? src.format : 'pdf';
   const { rows, type, status } = await selectRows(src);
-  const buffer = await (format === 'docx' ? exporters.toDocx : exporters.toPdf)(rows, { type, status });
+  const title = 'BAUET ICT Club: applications';
+  const sub = `${rows.length} applicant${rows.length === 1 ? '' : 's'} · ${status === 'all' ? 'every status' : status}`;
+  const base = { count: rows.length, format, filename: `applications-${type}-${new Date().toISOString().slice(0, 10)}.${format}` };
+  const sheet = (r) => APPLICATION_COLS.map(([, k]) => (typeof k === 'function' ? k(r) : r[k]));
+  if (format === 'csv') return { ...base, buffer: Buffer.from(toCsv(APPLICATION_COLS.map((c) => c[0]), rows.map(sheet))), mime: 'text/csv; charset=utf-8' };
+  if (format === 'xlsx') return { ...base, buffer: await exporters.tableToXlsx(title, sub, APPLICATION_COLS, rows), mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' };
   return {
-    buffer, count: rows.length, format,
-    filename: `applications-${type}-${new Date().toISOString().slice(0, 10)}.${format}`,
+    ...base,
+    buffer: await (format === 'docx' ? exporters.toDocx : exporters.toPdf)(rows, { type, status }),
     mime: format === 'docx' ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' : 'application/pdf',
   };
 }
@@ -161,6 +182,7 @@ router.get('/zip', authMiddleware, async (req, res) => {
     const csv = toCsv(cols, rows.map((r) => cols.map((c) => r[c])));
     const entries = [
       { name: 'applications.csv', data: csv },
+      { name: 'applications.xlsx', data: await exporters.tableToXlsx('BAUET ICT Club: applications', `${rows.length} applicants`, APPLICATION_COLS, rows) },
       { name: 'applications.pdf', data: await exporters.toPdf(rows, { type, status }) },
       { name: 'applications.docx', data: await exporters.toDocx(rows, { type, status }) },
       ...rows.filter((r) => r.photo_url).map((r) => ({ name: `photos/${r.type}-${safe(r.full_name, `applicant-${r.id}`)}-${safe(r.student_id, r.id)}`, image: r.photo_url })),
@@ -261,9 +283,9 @@ router.post('/:id/select', authMiddleware, async (req, res) => {
     const dup = await client.query('SELECT 1 FROM members WHERE name = $1 AND committee_session = $2 AND position = $3 AND deleted_at IS NULL', [r.full_name, session, position]);
     if (dup.rows.length) { await client.query('ROLLBACK'); return res.status(409).json({ error: 'Already selected for this session and post' }); }
     const member = await client.query(
-      `INSERT INTO members (name, position, department, batch, committee_session, image_url, display_order)
-       VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
-      [r.full_name, position, r.department, r.batch && /^\d+$/.test(r.batch) ? ordinal(Number(r.batch)) : (r.batch || null), session, r.photo_url, order]
+      `INSERT INTO members (name, position, department, batch, committee_session, image_url, display_order, registration_id, student_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
+      [r.full_name, position, r.department, r.batch && /^\d+$/.test(r.batch) ? ordinal(Number(r.batch)) : (r.batch || null), session, r.photo_url, order, r.id, r.student_id || null]
     );
     const updated = await client.query("UPDATE registrations SET status = 'approved' WHERE id = $1 RETURNING *", [r.id]);
     await client.query('COMMIT');

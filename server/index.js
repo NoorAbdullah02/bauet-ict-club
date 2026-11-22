@@ -107,6 +107,8 @@ app.use('/api/short', short.api);
 app.use('/api/team', require('./routes/team'));
 app.use('/api/audit', require('./routes/audit'));
 app.use('/api/backup', require('./routes/backup'));
+app.use('/api/downloads', require('./routes/downloads')); // admin: any list as CSV, Excel or JSON (see Admin → Downloads)
+app.use('/api/exports', require('./routes/exports')); // admin: the rows a table is showing, as an Excel workbook
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/push', require('./routes/push'));
 app.use('/api/upload', authMiddleware, require('./routes/upload'));

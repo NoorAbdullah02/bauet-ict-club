@@ -5,11 +5,12 @@ import 'package:dio/dio.dart';
 import '../core/config.dart';
 
 class ApiException implements Exception {
-  ApiException(this.message, {this.status, this.fields = const {}, this.twoFactor = false});
+  ApiException(this.message, {this.status, this.fields = const {}, this.twoFactor = false, this.needsConfirm = false});
   final String message;
   final int? status;
   final Map<String, String> fields;
   final bool twoFactor; // the server said: this account uses two-step sign-in
+  final bool needsConfirm; // the server wants one explicit confirmation (an early committee handover, not a name clash)
 
   /// True when the server wants the 6-digit authenticator code (or a backup code) to finish signing in.
   bool get needsCode => twoFactor || (status == 401 && message.toLowerCase().contains('code'));
@@ -46,6 +47,7 @@ class Api {
         status: e.response?.statusCode,
         fields: fields,
         twoFactor: data['twoFactor'] == true,
+        needsConfirm: data['needs_confirm'] == true,
       );
     }
     // an answer that is not JSON (for example Render's page while the server restarts)
@@ -294,11 +296,33 @@ class Api {
     return data.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
   }
 
-  Future<void> launchCommittee(String session, String? copyFrom, String scope) => _send(() => _dio.post(
+  Future<void> launchCommittee(String session, String? copyFrom, String scope, {bool force = false, String? start, String? end}) => _send(() => _dio.post(
         '/committees/launch',
-        data: {'session': session, 'copyFrom': copyFrom ?? '', 'scope': scope},
+        data: {
+          'session': session,
+          'copyFrom': copyFrom ?? '',
+          'scope': scope,
+          'force': force,
+          if (start != null && start.isNotEmpty) 'start': start,
+          if (end != null && end.isNotEmpty) 'end': end,
+        },
         options: _auth,
       ));
+
+  /// What launching this name would mean, straight from the server: the dates it would get and whether the
+  /// running committee makes it an early handover. { session, term, exists, newer, needs_confirm, current }
+  Future<Map<String, dynamic>> committeePlan({required String session, String? start, String? end}) async {
+    final data = await _send(() => _dio.post(
+          '/committees/plan',
+          data: {
+            'session': session,
+            if (start != null && start.isNotEmpty) 'start': start,
+            if (end != null && end.isNotEmpty) 'end': end,
+          },
+          options: _auth,
+        ));
+    return data is Map ? Map<String, dynamic>.from(data) : {};
+  }
 
   // ---- demo data ----
   Future<int> demoCount() async {

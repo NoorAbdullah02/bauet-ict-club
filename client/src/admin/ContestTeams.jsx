@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
-import { Check, Download, Loader2, Megaphone, Pencil, Trash2 } from 'lucide-react';
+import { Check, Download, FileSpreadsheet, Loader2, Megaphone, Pencil, Trash2 } from 'lucide-react';
 import { api } from '../context/store';
 import { Drawer, inputCls, askConfirm } from './ui';
 import { saveFile } from '../lib/download';
@@ -55,7 +55,7 @@ export default function ContestTeams({ contest, onClose }) {
     setBusy(false);
   };
   const hide = async () => { try { await api.post(`/contest-teams/admin/${id}/unpublish`); toast.success('Results hidden'); await load(); } catch (ex) { toast.error(ex.response?.data?.error || 'Could not hide'); } };
-  const exportCsv = () => saveFile(`/contest-teams/admin/${id}/export`, {}, `contest-${id}-teams.csv`);
+  const exportTeams = (format) => saveFile(`/contest-teams/admin/${id}/export`, { format }, `contest-${id}-teams.${format}`);
 
   const teams = d?.teams || [];
   return (
@@ -65,7 +65,8 @@ export default function ContestTeams({ contest, onClose }) {
       {d && (
         <>
           <div className="mb-4 flex flex-wrap gap-2">
-            <button onClick={exportCsv} className="btn-outline !px-4 !py-2 text-xs"><Download size={14} /> Spreadsheet</button>
+            <button onClick={() => exportTeams('xlsx')} className="btn-outline !px-4 !py-2 text-xs"><FileSpreadsheet size={14} /> Excel</button>
+            <button onClick={() => exportTeams('csv')} className="btn-outline !px-4 !py-2 text-xs"><Download size={14} /> CSV</button>
             {d.contest.results_published
               ? <button onClick={hide} className="btn-outline !px-4 !py-2 text-xs">Hide the results</button>
               : <button onClick={publish} disabled={busy} className="btn-primary !px-4 !py-2 text-xs">{busy ? <Loader2 size={14} className="animate-spin" /> : <Megaphone size={14} />} Publish results</button>}

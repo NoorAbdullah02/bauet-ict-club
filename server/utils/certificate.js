@@ -260,11 +260,21 @@ async function loadImage(src) {
  * @param {object} o.cert          admin settings: title, theme, organizer, event_kind, note, signer, signer_title, signature_url, second, signer2, signer2_title, signature2_url
  * @param {string} o.code          ticket code (for the QR and the ID)
  * @param {string} o.siteUrl
+ * @param {string|Date} o.issued   the day it was earned (check-in or sending time); defaults to now
  * @param {{president?: string}} o.defaults   used when the second signer is left empty (the current club president)
  */
-async function certificatePdf({ name, event, cert = {}, code, siteUrl, defaults = {} }) {
+async function certificatePdf({ name, event, cert = {}, code, siteUrl, issued, defaults = {} }) {
   const T = THEMES[cert.theme] || THEMES.gold;
-  const doc = new PDFDocument({ size: 'A4', layout: 'landscape', margin: 0, info: { Title: `Certificate: ${name}`, Author: 'BAUET ICT Club' } });
+  const doc = new PDFDocument({
+    size: 'A4', layout: 'landscape', margin: 0,
+    info: {
+      Title: `Certificate: ${name}`,
+      Author: 'BAUET ICT Club',
+      Subject: `${cert.title || 'Certificate of Participation'} — ${event?.title || ''}`,
+      Keywords: `BAUET ICT Club, certificate, ${pretty(code)}, verify: ${siteUrl}/verify/${code}`,
+      Creator: 'BAUET ICT Club certificate maker',
+    },
+  });
   const chunks = [];
   doc.on('data', (c) => chunks.push(c));
   const done = new Promise((resolve) => doc.on('end', () => resolve(Buffer.concat(chunks))));
@@ -394,11 +404,24 @@ async function certificatePdf({ name, event, cert = {}, code, siteUrl, defaults 
   // bottom row: QR | President | seal | Advisor | how to verify. The two signatures are the same distance from the seal.
   const rowY = H - 150;
   const url = `${siteUrl}/verify/${code}`;
-  try { doc.image(await qrPng(url, 300, T.ink), 116, rowY + 12, { width: 50 }); } catch { /* the certificate is still valid without the picture */ }
-  doc.fillColor(T.sub).font('Helvetica').fontSize(6.5).text('Scan to verify', 106, rowY + 66, { width: 70, align: 'center', lineBreak: false });
-  // one quiet line under the seal: where to verify and the certificate ID
   const host = String(siteUrl || '').replace(/^https?:\/\//, '').replace(/\/$/, '');
-  doc.fillColor(T.sub).font('Helvetica').fontSize(6.5).text(`Verify at ${host}/verify  ·  Certificate ID ${pretty(code)}`, 0, H - 47, { width: W, align: 'center', lineBreak: false });
+  const issuedOn = formalDate(issued || new Date());
+  const qs = 58;
+  try { doc.image(await qrPng(url, 360, T.ink), 110, rowY + 8, { width: qs }); } catch { /* the certificate is still valid without the picture */ }
+  doc.fillColor(T.sub).font('Helvetica-Bold').fontSize(6.2).text('SCAN TO VERIFY', 102, rowY + 8 + qs + 3, { width: 74, align: 'center', lineBreak: false, characterSpacing: 0.6 });
+  // one line under the signatures, clear of the border band: the ID, the day it was earned and where anyone can prove it
+  // laid out piece by piece so a long address can never run into the ID text
+  const footY = H - 54, fsz = 7.4, fgap = 15;
+  const parts = [
+    { t: `Certificate ID ${pretty(code)}`, font: 'Helvetica-Bold', fill: T.dark },
+    { t: `Issued ${issuedOn}`, font: 'Helvetica', fill: T.sub },
+    { t: `${host}/verify/${String(pretty(code) || '').toLowerCase()}`, font: 'Helvetica', fill: T.sub },
+  ];
+  const widths = parts.map((p) => { doc.font(p.font).fontSize(fsz); return doc.widthOfString(p.t); });
+  const total = widths.reduce((a, b) => a + b, 0) + fgap * (parts.length - 1);
+  doc.moveTo(cx - total / 2, footY - 7).lineTo(cx + total / 2, footY - 7).lineWidth(0.4).strokeColor(T.accent).stroke();
+  let fx0 = cx - total / 2;
+  parts.forEach((p, i) => { doc.font(p.font).fontSize(fsz).fillColor(p.fill).text(p.t, fx0, footY, { lineBreak: false }); fx0 += widths[i] + fgap; });
   if (cert.show_seal !== false) { laurel(doc, cx, rowY + 34, 49, T); seal3d(doc, cx, rowY + 34, T); }
 
   const signBlock = async (centerX, signer, title, img, sigText) => {

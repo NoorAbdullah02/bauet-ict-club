@@ -5,7 +5,7 @@ const { authMiddleware } = require('../middleware/auth');
 const { fail } = require('../utils/http');
 const mail = require('../utils/mailer');
 const { formalDate, formalTime } = require('../utils/format');
-const { tableToPdf, tableToDocx } = require('../utils/exporters');
+const { tableToPdf, tableToDocx, tableToXlsx } = require('../utils/exporters');
 const forms = require('../utils/forms');
 const { serial } = require('../utils/serial');
 const tickets = require('../utils/tickets');
@@ -61,7 +61,7 @@ const canCancel = (r) => !r.checked_in_at && !r.payment && statusOf(r) !== 'canc
 const certNameOf = (r) => clean(r.cert_name, 80) || clean(r.full_name, 80) || clean(forms.show(answersOf(r)[forms.fieldsOf({ reg_form: r.ev_form })[0]?.id]), 80) || 'Participant';
 /** Defaults for a certificate: the president is Sheikh Noor Abdullah unless the admin types another name. */
 async function certDefaults() { return { president: tickets.DEFAULT_PRESIDENT.name }; }
-const certPdfFor = async (r, ev, base) => tickets.certificatePdf({ name: certNameOf({ ...r, ev_form: ev.reg_form }), event: { title: ev.title, date: ev.date, location: ev.location }, cert: ev.reg_form?.cert || {}, code: r.ticket, siteUrl: base, defaults: await certDefaults() });
+const certPdfFor = async (r, ev, base) => tickets.certificatePdf({ name: certNameOf({ ...r, ev_form: ev.reg_form }), event: { title: ev.title, date: ev.date, location: ev.location }, cert: ev.reg_form?.cert || {}, code: r.ticket, siteUrl: base, issued: r.certificate_sent_at || r.checked_in_at, defaults: await certDefaults() });
 const certOn = (r) => !!r.ev_form?.cert?.enabled && !!r.checked_in_at && statusOf(r) !== 'cancelled';
 const site = (req) => (process.env.PUBLIC_URL || process.env.RENDER_EXTERNAL_URL || `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');
 
@@ -95,7 +95,7 @@ router.get('/certificate/:code', async (req, res) => {
   try {
     const r = await byCode(req.params.code);
     if (!r || !certOn(r)) return res.status(404).json({ error: 'There is no certificate for this code.' });
-    const pdf = await tickets.certificatePdf({ name: certNameOf(r), event: { title: r.ev_title, date: r.ev_date, location: r.ev_location }, cert: r.ev_form.cert, code: r.ticket, siteUrl: site(req), defaults: await certDefaults() });
+    const pdf = await tickets.certificatePdf({ name: certNameOf(r), event: { title: r.ev_title, date: r.ev_date, location: r.ev_location }, cert: r.ev_form.cert, code: r.ticket, siteUrl: site(req), issued: r.certificate_sent_at || r.checked_in_at, defaults: await certDefaults() });
     res.set({ 'Content-Type': 'application/pdf', 'Content-Disposition': `inline; filename="certificate-${r.ticket}.pdf"`, 'Cache-Control': 'no-store' });
     res.send(pdf);
   } catch (e) { fail(res, e); }
@@ -242,13 +242,13 @@ router.get('/by-event/:eventId', async (req, res) => {
   } catch (e) { fail(res, e); }
 });
 
-/** Admin: download the list. ?event=ID&format=csv|pdf|docx */
+/** Admin: download the list. ?event=ID&format=csv|xlsx|pdf|docx */
 router.get('/export', async (req, res) => {
   try {
     const ev = (await pool.query('SELECT * FROM events WHERE id = $1', [req.query.event])).rows[0];
     if (!ev) return res.status(404).json({ error: 'Event not found' });
     const { rows } = await pool.query('SELECT * FROM event_registrations WHERE event_id = $1 AND deleted_at IS NULL ORDER BY created_at ASC', [ev.id]);
-    const format = ['pdf', 'docx'].includes(req.query.format) ? req.query.format : 'csv';
+    const format = ['pdf', 'docx', 'xlsx'].includes(req.query.format) ? req.query.format : 'csv';
     // one column per question of this event's form, then the date
     const withPay = !!ev.reg_form?.payment?.enabled;
     const cols = [
@@ -265,6 +265,7 @@ router.get('/export', async (req, res) => {
       buf = Buffer.from(toCsv(cols.map((c) => c[0]), rows.map((r) => cols.map(([, k]) => (typeof k === 'function' ? k(r) : r[k])))));
       mime = 'text/csv; charset=utf-8';
     } else if (format === 'pdf') { buf = await tableToPdf(title, sub, cols, rows); mime = 'application/pdf'; }
+    else if (format === 'xlsx') { buf = await tableToXlsx(title, sub, cols, rows); mime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'; }
     else { buf = await tableToDocx(title, sub, cols, rows); mime = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'; }
     res.set({ 'Content-Type': mime, 'Content-Disposition': `attachment; filename="${name}"`, 'Cache-Control': 'no-store' });
     res.send(buf);
@@ -290,6 +291,7 @@ router.get('/zip', async (req, res) => {
     const csv = toCsv(cols.map((c) => c[0]), rows.map((r) => cols.map(([, k]) => (typeof k === 'function' ? k(r) : r[k]))));
     const entries = [
       { name: 'registrations.csv', data: csv },
+      { name: 'registrations.xlsx', data: await tableToXlsx(title, sub, cols, rows) },
       { name: 'registrations.pdf', data: await tableToPdf(title, sub, cols, rows) },
       { name: 'registrations.docx', data: await tableToDocx(title, sub, cols, rows) },
     ];

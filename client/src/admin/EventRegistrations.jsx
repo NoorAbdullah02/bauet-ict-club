@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
-import { BadgeCheck, BarChart3, Download, FileText, FileType2, Link2, List, Loader2, Search, Trash2, Users, XCircle } from 'lucide-react';
+import { BadgeCheck, BarChart3, Download, FileSpreadsheet, FileText, FileType2, Link2, List, Loader2, Search, Trash2, Users, XCircle } from 'lucide-react';
 import { api } from '../context/store';
 import { Drawer, inputCls, askConfirm } from './ui';
 import { Donut, HBars } from './charts';
@@ -93,6 +93,13 @@ export function ResponsesPanel({ event, kind = 'event' }) {
 
   const fields = event ? fieldsOf(event).filter((f) => f.type !== 'section') : [];
   const paid = !!event?.reg_form?.payment?.enabled;
+  // the columns that are not questions, so the table and the CSV hold everything at once
+  const system = [
+    ...(isForm ? [] : [{ label: 'Ticket', value: (r) => r.ticket || '' }, { label: 'Seat', value: (r) => (r.waitlisted ? 'Waiting list' : 'Confirmed') }]),
+    ...(paid ? [{ label: 'Payment status', value: (r) => r.pay_status || '' }, { label: 'Transaction ID', value: (r) => r.payment?.trx_id || '' }, { label: 'Amount (BDT)', value: (r) => r.payment?.amount || '' }] : []),
+    { label: 'Checked in', value: (r) => (r.checked_in_at ? formalDate(r.checked_in_at) : '') },
+  ];
+  const fileBase = `${isForm ? 'form' : 'event'}-${event?.id || ''}-responses`;
   const shown = useMemo(() => (rows || []).filter((r) => (payFilter === 'all' || r.pay_status === payFilter) && (!q || `${JSON.stringify(ans(r))} ${r.payment?.trx_id || ''}`.toLowerCase().includes(q.toLowerCase()))), [rows, q, payFilter]);
   const verifiedSum = (rows || []).filter((r) => r.pay_status === 'verified').reduce((n, r) => n + Number(r.payment?.amount || 0), 0);
 
@@ -154,8 +161,8 @@ export function ResponsesPanel({ event, kind = 'event' }) {
 
           <div className="mt-5">
             <div className="mb-2 font-mono text-[10px] uppercase tracking-[0.16em] text-muted">Download the list</div>
-            <div className="grid grid-cols-3 gap-2.5">
-              {[['csv', Download, 'CSV', 'Excel / Sheets', 'text-emerald-500 bg-emerald-500/12'], ['pdf', FileText, 'PDF', 'Print ready', 'text-red-500 bg-red-500/12'], ['docx', FileType2, 'Word', 'Editable', 'text-tech bg-tech/12']].map(([f, I, l, sub, tone]) => (
+            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+              {[['csv', Download, 'CSV', 'Any tool', 'text-emerald-500 bg-emerald-500/12'], ['xlsx', FileSpreadsheet, 'Excel', 'Styled, sortable', 'text-emerald-600 bg-emerald-500/12'], ['pdf', FileText, 'PDF', 'Print ready', 'text-red-500 bg-red-500/12'], ['docx', FileType2, 'Word', 'Editable', 'text-tech bg-tech/12']].map(([f, I, l, sub, tone]) => (
                 <button key={f} disabled={!rows?.length} onClick={() => download(f)} className="group flex flex-col items-center gap-1.5 rounded-2xl border border-line bg-surface px-3 py-4 text-center transition hover:-translate-y-0.5 hover:border-tech hover:shadow-lg disabled:pointer-events-none disabled:opacity-40">
                   <span className={`grid size-10 place-items-center rounded-xl transition group-hover:scale-110 ${tone}`}><I size={18} /></span>
                   <span className="text-sm font-semibold text-fg">{l}</span>
@@ -174,7 +181,7 @@ export function ResponsesPanel({ event, kind = 'event' }) {
               <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-tech to-accent text-white shadow-lg"><Archive size={20} /></span>
               <div className="min-w-0 flex-1">
                 <div className="text-sm font-semibold text-fg">Everything in one download</div>
-                <p className="mt-0.5 text-xs leading-5 text-fg2">The list (CSV, PDF, Word), the event picture and every uploaded picture in full quality, as one ZIP file.</p>
+                <p className="mt-0.5 text-xs leading-5 text-fg2">The list (CSV, Excel, PDF, Word), the event picture and every uploaded picture in full quality, as one ZIP file.</p>
               </div>
             </div>
             <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -192,7 +199,7 @@ export function ResponsesPanel({ event, kind = 'event' }) {
           {tab === 'table' ? (
             <div className="mt-3">
               <div className="relative mb-3"><Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search answers" className={`${inputCls} !pl-9 !py-2 text-xs`} /></div>
-              {rows === null ? <Loader2 className="animate-spin text-muted" /> : <ResponsesTable fields={fields} rows={shown} q={q} editUrl={P.edit} onChange={(row) => setRows((p) => p.map((x) => (x.id === row.id ? { ...x, ...row } : x)))} />}
+              {rows === null ? <Loader2 className="animate-spin text-muted" /> : <ResponsesTable fields={fields} rows={shown} q={q} system={system} title={event.title} fileBase={fileBase} onDelete={remove} editUrl={P.edit} onChange={(row) => setRows((p) => p.map((x) => (x.id === row.id ? { ...x, ...row } : x)))} />}
             </div>
           ) : tab === 'summary' ? (
             <ResponsesSummary fields={fields} rows={rows || []} paid={paid} />
@@ -209,7 +216,7 @@ export function ResponsesPanel({ event, kind = 'event' }) {
                       <div className="min-w-0 flex-1 text-sm">
                         <div className="truncate font-semibold text-fg">{r.full_name || show(ans(r)[fields[0]?.id]) || 'Response'}</div>
                         <dl className="mt-1 space-y-0.5">
-                          {fields.filter((f) => show(ans(r)[f.id]) !== '').slice(0, 14).map((f) => (
+                          {fields.filter((f) => show(ans(r)[f.id]) !== '').map((f) => (
                             <div key={f.id} className="flex gap-2 text-xs"><dt className="w-28 shrink-0 truncate text-muted">{f.label}</dt><dd className="min-w-0 break-words text-fg2">{f.type === 'email' ? <a href={`mailto:${show(ans(r)[f.id])}`} className="text-tech">{show(ans(r)[f.id])}</a> : f.type === 'photo' ? <a href={show(ans(r)[f.id])} target="_blank" rel="noreferrer" className="text-tech underline">Open picture</a> : show(ans(r)[f.id])}</dd></div>
                           ))}
                         </dl>

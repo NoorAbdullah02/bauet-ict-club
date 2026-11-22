@@ -31,9 +31,9 @@ Adding a new managed list (for example Partners or Blog): see [ADD_A_FEATURE.md]
 
 ## A new committee every semester (two per year)
 
-The club has two committees a year: **Summer** and **Winter**. To start the next one:
+The club has two committees a year: **Summer** and **Winter**, each serving a **six-month term** — Summer from 1 April to 30 September, Winter from 1 October to 31 March. *Admin → Committee* shows the running committee, how much of its term is left and a progress bar. The next committee can be launched once that term is over; before then the launch asks for one confirmation, so a running committee is never cut short by a mistyped click. *Extend 6 months* moves the end date when a committee needs more time, and the last day can be set by hand as well. To start the next one:
 
-1. Admin → **Committee** → **Launch new committee**. Pick *Summer* or *Winter* and the year (for example *Winter 2027*).
+1. Admin → **Committee** → **Launch new committee**. The next semester is filled in for you (for example *Winter 2027*) with the exact dates it will cover; you can type a name of your own instead (*ICT Fest 2027*), and set the first and last day before launching. A semester name always takes its own six months, even when it is launched late: *Winter 2026* launched in November still runs 1 October 2026 – 31 March 2027; your own name starts the day the committee is created. Adding an older session (history) is always allowed; only moving forward needs the one confirmation. The form asks `POST /api/committees/plan` for the dates and for that rule, so the website and the app always say the same thing. Any committee's dates can be changed later with **Change dates** (or **Extend 6 months**) on the Committee page.
 2. Choose how to start: *Start empty*, *Keep the leadership* (copies the President and Vice Presidents) or *Copy everyone* from the previous committee.
 3. Fill the rest of the team in any of these ways:
    - **Applications → Select for session** (applicants get an email; you can also change the post they get).
