@@ -185,7 +185,7 @@ export default function CommitteeOverview({ onLaunch, onTransfer, onOpen }) {
       <Drawer open={!!editItem} title={`Edit Committee: ${editItem?.oldLabel || ''}`} onClose={() => setEditItem(null)}
         footer={<>
           <button onClick={() => setEditItem(null)} className="btn-outline !px-5 !py-2.5 text-xs">Cancel</button>
-          <button onClick={saveEdit} disabled={editSaving || !editItem?.label?.trim()} className="btn-primary !px-5 !py-2.5 text-xs disabled:opacity-50">{editSaving ? <Loader2 size={14} className="animate-spin" /> : <Pencil size={14} />} Save changes</button>
+          <button onClick={saveEdit} disabled={editSaving || !editItem?.label?.trim() || (editItem?.start && editItem?.end && editItem.end <= editItem.start)} className="btn-primary !px-5 !py-2.5 text-xs disabled:opacity-50">{editSaving ? <Loader2 size={14} className="animate-spin" /> : <Pencil size={14} />} Save changes</button>
         </>}>
         <div className="space-y-5">
           <p className="text-sm leading-6 text-fg2">Modify committee name, term dates, or toggle current active status.</p>

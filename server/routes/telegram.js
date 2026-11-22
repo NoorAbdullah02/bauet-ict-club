@@ -67,14 +67,23 @@ router.post('/webhook', async (req, res) => {
       if (regId) {
         try {
           const { rows } = await pool.query(
-            "UPDATE registrations SET status = 'approved', updated_at = NOW() WHERE id = $1 AND deleted_at IS NULL RETURNING full_name, student_id, type",
+            "UPDATE registrations SET status = 'approved', updated_at = NOW() WHERE id = $1 AND deleted_at IS NULL RETURNING *",
             [regId]
           );
           if (rows.length) {
-            await answerCallbackQuery(cb.id, `Approved ${rows[0].full_name}!`);
+            const reg = rows[0];
+            try {
+              const mail = require('../utils/mail');
+              const { cardCode } = require('./card');
+              const key = `r${reg.id}`;
+              mail.sendMail({ to: reg.email, ...mail.templates.applicationApproved({ ...reg, card_path: `/card/${key}?c=${cardCode(key)}` }) });
+            } catch (mErr) {
+              console.warn('Telegram approve email delivery failed:', mErr.message);
+            }
+            await answerCallbackQuery(cb.id, `Approved ${reg.full_name}!`);
             await replyTelegram(
               fromChatId,
-              `✅ <b>Application Approved</b>\n• <b>Name:</b> ${rows[0].full_name}\n• <b>Student ID:</b> <code>${rows[0].student_id}</code>\n• <b>Type:</b> ${rows[0].type}`
+              `✅ <b>Application Approved</b>\n• <b>Name:</b> ${reg.full_name}\n• <b>Student ID:</b> <code>${reg.student_id}</code>\n• <b>Type:</b> ${reg.type}\n• <b>Email sent:</b> ${reg.email}`
             );
           } else {
             await answerCallbackQuery(cb.id, 'Application not found or already deleted.');

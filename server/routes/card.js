@@ -44,7 +44,27 @@ const editTokenOk = (token, key) => {
   } catch { return false; }
 };
 const mayEdit = async (req, raw) => {
-  if (editTokenOk(req.body?.proof || req.query?.proof, raw)) return true;
+  const proof = req.body?.proof || req.query?.proof;
+  if (editTokenOk(proof, raw)) return true;
+  if (proof) {
+    try {
+      const [body] = String(proof).split('.');
+      const tokenKey = body.slice(0, body.indexOf(':'));
+      if (tokenKey && editTokenOk(proof, tokenKey)) {
+        if (/^r\d+$/.test(tokenKey) && /^\d+$/.test(raw)) {
+          const regId = Number(tokenKey.slice(1));
+          const memId = Number(raw);
+          const linked = (await pool.query('SELECT id FROM members WHERE id = $1 AND (registration_id = $2 OR LOWER(name) IN (SELECT LOWER(full_name) FROM registrations WHERE id = $2)) AND deleted_at IS NULL', [memId, regId])).rows[0];
+          if (linked) return true;
+        } else if (/^\d+$/.test(tokenKey) && /^r\d+$/.test(raw)) {
+          const memId = Number(tokenKey);
+          const regId = Number(raw.slice(1));
+          const linked = (await pool.query('SELECT id FROM members WHERE id = $1 AND (registration_id = $2 OR LOWER(name) IN (SELECT LOWER(full_name) FROM registrations WHERE id = $2)) AND deleted_at IS NULL', [memId, regId])).rows[0];
+          if (linked) return true;
+        }
+      }
+    } catch {}
+  }
   if (/^r\d+$/.test(raw) && same(String(req.body?.code || req.query?.c || ''), cardCode(raw))) return true;
   return isAdminRequest(req);
 };
@@ -70,14 +90,23 @@ async function identityOf(key) {
     return r ? { email: r.email || '', studentId: r.student_id || '' } : null;
   }
   if (/^a\d+$/.test(raw)) return { email: '', studentId: '' }; // advisors have no attendance record of their own
-  const m = (await pool.query('SELECT registration_id, student_id FROM members WHERE id = $1 AND deleted_at IS NULL', [Number(raw)])).rows[0];
+  const m = (await pool.query('SELECT id, name, registration_id, student_id FROM members WHERE id = $1 AND deleted_at IS NULL', [Number(raw)])).rows[0];
   if (!m) return null;
   let email = '';
+  let studentId = m.student_id || '';
   if (m.registration_id) {
-    const r = (await pool.query('SELECT email FROM registrations WHERE id = $1 AND deleted_at IS NULL', [m.registration_id])).rows[0];
+    const r = (await pool.query('SELECT email, student_id FROM registrations WHERE id = $1 AND deleted_at IS NULL', [m.registration_id])).rows[0];
     email = r?.email || '';
+    if (!studentId && r?.student_id) studentId = r.student_id;
   }
-  return { email, studentId: m.student_id || '' };
+  if (!email && m.name) {
+    const r = (await pool.query("SELECT email, student_id FROM registrations WHERE LOWER(full_name) = LOWER($1) AND deleted_at IS NULL ORDER BY (status = 'approved') DESC, id DESC LIMIT 1", [m.name])).rows[0];
+    if (r) {
+      email = r.email || '';
+      if (!studentId && r.student_id) studentId = r.student_id;
+    }
+  }
+  return { email, studentId };
 }
 
 async function getMemberStats(key) {
@@ -331,14 +360,20 @@ router.patch('/:id/birthdate', patchLimiter, async (req, res) => {
   }
   try {
     if (/^r\d+$/.test(raw)) {
-      const result = await pool.query('UPDATE registrations SET birth_date = $1 WHERE id = $2 AND deleted_at IS NULL RETURNING id, birth_date', [birthDate, Number(raw.slice(1))]);
+      const regId = Number(raw.slice(1));
+      const result = await pool.query('UPDATE registrations SET birth_date = $1 WHERE id = $2 AND deleted_at IS NULL RETURNING id, birth_date', [birthDate, regId]);
       if (!result.rows.length) return res.status(404).json({ error: 'Member not found' });
+      await pool.query('UPDATE members SET birth_date = $1 WHERE (registration_id = $2 OR LOWER(name) IN (SELECT LOWER(full_name) FROM registrations WHERE id = $2)) AND deleted_at IS NULL', [birthDate, regId]).catch(() => {});
       return res.json({ success: true, birth_date: birthDate });
     }
     const memberId = Number(raw);
     if (!Number.isInteger(memberId) || memberId < 1) return res.status(400).json({ error: 'Invalid member ID' });
-    const result = await pool.query('UPDATE members SET birth_date = $1 WHERE id = $2 AND deleted_at IS NULL RETURNING id, birth_date', [birthDate, memberId]);
+    const result = await pool.query('UPDATE members SET birth_date = $1 WHERE id = $2 AND deleted_at IS NULL RETURNING id, birth_date, registration_id', [birthDate, memberId]);
     if (!result.rows.length) return res.status(404).json({ error: 'Member not found' });
+    const m = result.rows[0];
+    if (m.registration_id) {
+      await pool.query('UPDATE registrations SET birth_date = $1 WHERE id = $2 AND deleted_at IS NULL', [birthDate, m.registration_id]).catch(() => {});
+    }
     return res.json({ success: true, birth_date: birthDate });
   } catch (e) { fail(res, e); }
 });
@@ -354,14 +389,20 @@ router.patch('/:id/photo', patchLimiter, async (req, res) => {
   }
   try {
     if (/^r\d+$/.test(raw)) {
-      const result = await pool.query('UPDATE registrations SET photo_url = $1 WHERE id = $2 AND deleted_at IS NULL RETURNING id, photo_url', [photoUrl, Number(raw.slice(1))]);
+      const regId = Number(raw.slice(1));
+      const result = await pool.query('UPDATE registrations SET photo_url = $1 WHERE id = $2 AND deleted_at IS NULL RETURNING id, photo_url', [photoUrl, regId]);
       if (!result.rows.length) return res.status(404).json({ error: 'Member not found' });
+      await pool.query('UPDATE members SET image_url = $1 WHERE (registration_id = $2 OR LOWER(name) IN (SELECT LOWER(full_name) FROM registrations WHERE id = $2)) AND deleted_at IS NULL', [photoUrl, regId]).catch(() => {});
       return res.json({ success: true, image_url: result.rows[0].photo_url });
     }
     const memberId = Number(raw);
     if (!Number.isInteger(memberId) || memberId < 1) return res.status(400).json({ error: 'Invalid member ID' });
-    const result = await pool.query('UPDATE members SET image_url = $1 WHERE id = $2 AND deleted_at IS NULL RETURNING id, image_url', [photoUrl, memberId]);
+    const result = await pool.query('UPDATE members SET image_url = $1 WHERE id = $2 AND deleted_at IS NULL RETURNING id, image_url, registration_id', [photoUrl, memberId]);
     if (!result.rows.length) return res.status(404).json({ error: 'Member not found' });
+    const m = result.rows[0];
+    if (m.registration_id) {
+      await pool.query('UPDATE registrations SET photo_url = $1 WHERE id = $2 AND deleted_at IS NULL', [photoUrl, m.registration_id]).catch(() => {});
+    }
     return res.json({ success: true, image_url: result.rows[0].image_url });
   } catch (e) { fail(res, e); }
 });
