@@ -640,6 +640,26 @@ export default function FormEditor({ kind = 'form', eventId }) {
               <p className="mt-1 text-xs text-muted">People who are checked in at the entrance can download a certificate with a QR code anyone can verify. From the Check-in desk you preview it, correct a name if needed, tick the people you want, and email it to them as a PDF.</p>
               {doc.cert?.enabled && (
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <div className="flex flex-wrap items-center gap-1.5 sm:col-span-2 mb-1">
+                    <span className="text-[11px] font-semibold text-muted mr-1">Quick Presets:</span>
+                    {[
+                      { label: 'Participation', title: 'Certificate of Participation', ribbon: 'This certificate is proudly presented to', theme: 'royal', kind: 'workshop' },
+                      { label: 'Excellence (Gold)', title: 'Certificate of Excellence', ribbon: 'In recognition of outstanding performance presented to', theme: 'gold', kind: 'competition' },
+                      { label: 'Champion', title: 'Certificate of Achievement', ribbon: 'Champion — 1st Place awarded to', theme: 'gold', kind: 'hackathon' },
+                      { label: 'Runner-Up', title: 'Certificate of Achievement', ribbon: 'Runner-Up — 2nd Place awarded to', theme: 'royal', kind: 'hackathon' },
+                      { label: 'Appreciation', title: 'Certificate of Appreciation', ribbon: 'With sincere gratitude presented to', theme: 'emerald', kind: 'seminar' },
+                      { label: 'Volunteer', title: 'Certificate of Appreciation', ribbon: 'For valuable voluntary contribution presented to', theme: 'emerald', kind: 'event' },
+                    ].map((p) => (
+                      <button
+                        key={p.label}
+                        type="button"
+                        onClick={() => patchDoc({ cert: { ...doc.cert, title: p.title, ribbon: p.ribbon, theme: p.theme, event_kind: p.kind } })}
+                        className="rounded-full border border-line bg-alt/60 px-2.5 py-1 text-[11px] font-medium text-fg2 hover:border-tech hover:bg-tech/15 hover:text-tech transition-all"
+                      >
+                        {p.label}
+                      </button>
+                    ))}
+                  </div>
                   <label className="block sm:col-span-2"><span className="mb-1 block font-mono text-[10px] uppercase tracking-wider text-muted">Title</span><input className={inputCls} value={doc.cert.title} maxLength={60} onChange={(e) => patchDoc({ cert: { ...doc.cert, title: e.target.value } })} /></label>
                   <label className="block"><span className="mb-1 block font-mono text-[10px] uppercase tracking-wider text-muted">Colours</span><select className={inputCls} value={doc.cert.theme || 'gold'} onChange={(e) => patchDoc({ cert: { ...doc.cert, theme: e.target.value } })}><option value="gold">Gold (classic)</option><option value="royal">Royal blue</option><option value="emerald">Emerald green</option></select></label>
                   <label className="block"><span className="mb-1 block font-mono text-[10px] uppercase tracking-wider text-muted">Writing of the name</span><select className={inputCls} value={doc.cert.name_font || 'allura'} onChange={(e) => patchDoc({ cert: { ...doc.cert, name_font: e.target.value } })}><option value="allura">Allura (clean, default)</option><option value="alexbrush">Alex Brush (bold swirls)</option><option value="vibes">Great Vibes (large, graceful)</option><option value="pinyon">Pinyon Script (classic)</option><option value="parisienne">Parisienne (wide, light)</option></select></label>
