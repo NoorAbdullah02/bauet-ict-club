@@ -36,6 +36,9 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
     _loadStatus();
   }
 
+  // Demo rows live behind /api/committees, which the server closes to editor logins; the connection
+  // checks stay useful to them, so only the demo card is hidden below.
+
   /// Is email (Brevo), the AI assistant and picture storage connected? Same checks as the website's Settings page.
   Future<void> _loadStatus() async {
     Future<Map<String, dynamic>> safe(String path) async {
@@ -46,7 +49,8 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
       }
     }
 
-    final r = await Future.wait([safe('email/status'), safe('chat/status'), safe('upload/status')]);
+    final r = await Future.wait(
+        [safe('email/status'), safe('chat/status'), safe('upload/status')]);
     if (!mounted) return;
     setState(() {
       _mail = r[0];
@@ -57,6 +61,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
   }
 
   Future<void> _load() async {
+    if (_state.isEditor) return;
     try {
       final c = await _state.api.demoCount();
       if (mounted) {
@@ -91,10 +96,16 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Remove demo data?'),
-        content: const Text('Only the demo rows are deleted. Your real data stays.'),
+        content:
+            const Text('Only the demo rows are deleted. Your real data stays.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(tr('Cancel'))),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Remove', style: TextStyle(color: Color(0xFFEF4444)))),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(tr('Cancel'))),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Remove',
+                  style: TextStyle(color: Color(0xFFEF4444)))),
         ],
       ),
     );
@@ -111,59 +122,97 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
             padding: const EdgeInsets.fromLTRB(12, 8, 12, 40),
             children: [
               Row(children: [
-                IconButton(tooltip: tr('Back'), onPressed: () => context.canPop() ? context.pop() : context.go('/admin'), icon: const Icon(Icons.arrow_back_rounded)),
-                Expanded(child: Text('Settings', style: displayStyle(context, 24))),
+                IconButton(
+                    tooltip: tr('Back'),
+                    onPressed: () =>
+                        context.canPop() ? context.pop() : context.go('/admin'),
+                    icon: const Icon(Icons.arrow_back_rounded)),
+                Expanded(
+                    child: Text('Settings', style: displayStyle(context, 24))),
                 const AdminThemeButton(),
               ]),
               Padding(
                 padding: const EdgeInsets.fromLTRB(8, 12, 8, 0),
                 child: GlassCard(
                   padding: const EdgeInsets.all(18),
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    const CodeLabel('connections'),
-                    const SizedBox(height: 10),
-                    if (!_statusLoaded)
-                      Text('checking...', style: monoStyle(context, color: p.tech, size: 12))
-                    else ...[
-                      _StatusRow(
-                        ok: _mail['configured'] == true && ((_mail['check'] as Map?)?['ok'] != false),
-                        title: _mail['configured'] == true ? 'Email via ${(_mail['provider'] ?? '').toString().toUpperCase()}' : 'Email not set up',
-                        detail: _mail['configured'] == true
-                            ? 'From ${_mail['from']}. Sent ${_mail['sent']}, failed ${_mail['failed']}.${(_mail['check'] as Map?)?['ok'] == false ? ' ${(_mail['check'] as Map)['error']}' : ''}'
-                            : 'Add BREVO_API_KEY and MAIL_FROM to the server .env.',
-                      ),
-                      _StatusRow(
-                        ok: _ai['configured'] == true,
-                        title: _ai['configured'] == true ? 'AI assistant on (${_ai['model']})' : 'AI assistant uses built-in answers',
-                        detail: _ai['configured'] == true ? 'Answered ${_ai['ok']}, fell back ${_ai['failed']}.' : 'Add GROQ_API_KEY to the server .env for full AI answers.',
-                      ),
-                      _StatusRow(
-                        ok: _img['provider'] == 'cloudinary' && _img['ok'] == true,
-                        title: _img['provider'] == 'cloudinary' ? 'Pictures on Cloudinary' : 'Pictures saved on the server',
-                        detail: _img['provider'] == 'cloudinary' ? 'Optimised and removed from Cloudinary when deleted for good.' : 'Add CLOUDINARY_* keys to the server .env.',
-                      ),
-                    ],
-                  ]),
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const CodeLabel('connections'),
+                        const SizedBox(height: 10),
+                        if (!_statusLoaded)
+                          Text('checking...',
+                              style:
+                                  monoStyle(context, color: p.tech, size: 12))
+                        else ...[
+                          _StatusRow(
+                            ok: _mail['configured'] == true &&
+                                ((_mail['check'] as Map?)?['ok'] != false),
+                            title: _mail['configured'] == true
+                                ? 'Email via ${(_mail['provider'] ?? '').toString().toUpperCase()}'
+                                : 'Email not set up',
+                            detail: _mail['configured'] == true
+                                ? 'From ${_mail['from']}. Sent ${_mail['sent']}, failed ${_mail['failed']}.${(_mail['check'] as Map?)?['ok'] == false ? ' ${(_mail['check'] as Map)['error']}' : ''}'
+                                : 'Add BREVO_API_KEY and MAIL_FROM to the server .env.',
+                          ),
+                          _StatusRow(
+                            ok: _ai['configured'] == true,
+                            title: _ai['configured'] == true
+                                ? 'AI assistant on (${_ai['model']})'
+                                : 'AI assistant uses built-in answers',
+                            detail: _ai['configured'] == true
+                                ? 'Answered ${_ai['ok']}, fell back ${_ai['failed']}.'
+                                : 'Add GROQ_API_KEY to the server .env for full AI answers.',
+                          ),
+                          _StatusRow(
+                            ok: _img['provider'] == 'cloudinary' &&
+                                _img['ok'] == true,
+                            title: _img['provider'] == 'cloudinary'
+                                ? 'Pictures on Cloudinary'
+                                : 'Pictures saved on the server',
+                            detail: _img['provider'] == 'cloudinary'
+                                ? 'Optimised and removed from Cloudinary when deleted for good.'
+                                : 'Add CLOUDINARY_* keys to the server .env.',
+                          ),
+                        ],
+                      ]),
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(8, 12, 8, 0),
-                child: GlassCard(
-                  padding: const EdgeInsets.all(18),
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    const CodeLabel('demo data'),
-                    const SizedBox(height: 10),
-                    Text('Sample (demo) rows are not loaded any more. If any are left in the database, this button removes only them: your real data stays.', style: bodyStyle(context, color: p.muted, size: 13.5)),
-                    const SizedBox(height: 12),
-                    if (_error != null)
-                      Text('error: $_error', style: monoStyle(context, color: const Color(0xFFEF4444), size: 11.5))
-                    else
-                      Text(_count == null ? 'checking...' : '$_count demo rows loaded', style: monoStyle(context, color: p.tech, size: 12)),
-                    const SizedBox(height: 16),
-                    GhostButton(label: 'Remove demo data', icon: Icons.delete_sweep_outlined, onPressed: (_count ?? 0) > 0 && !_busy ? _remove : null),
-                  ]),
+              if (!_state.isEditor)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(8, 12, 8, 0),
+                  child: GlassCard(
+                    padding: const EdgeInsets.all(18),
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const CodeLabel('demo data'),
+                          const SizedBox(height: 10),
+                          Text(
+                              'Sample (demo) rows are not loaded any more. If any are left in the database, this button removes only them: your real data stays.',
+                              style: bodyStyle(context,
+                                  color: p.muted, size: 13.5)),
+                          const SizedBox(height: 12),
+                          if (_error != null)
+                            Text('error: $_error',
+                                style: monoStyle(context,
+                                    color: const Color(0xFFEF4444), size: 11.5))
+                          else
+                            Text(
+                                _count == null
+                                    ? 'checking...'
+                                    : '$_count demo rows loaded',
+                                style: monoStyle(context,
+                                    color: p.tech, size: 12)),
+                          const SizedBox(height: 16),
+                          GhostButton(
+                              label: 'Remove demo data',
+                              icon: Icons.delete_sweep_outlined,
+                              onPressed:
+                                  (_count ?? 0) > 0 && !_busy ? _remove : null),
+                        ]),
+                  ),
                 ),
-              ),
             ],
           ),
         ),
@@ -172,9 +221,9 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
   }
 }
 
-
 class _StatusRow extends StatelessWidget {
-  const _StatusRow({required this.ok, required this.title, required this.detail});
+  const _StatusRow(
+      {required this.ok, required this.title, required this.detail});
   final bool ok;
   final String title;
   final String detail;
@@ -185,11 +234,15 @@ class _StatusRow extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Icon(ok ? Icons.check_circle_rounded : Icons.warning_amber_rounded, size: 20, color: ok ? const Color(0xFF34D399) : const Color(0xFFFFC857)),
+        Icon(ok ? Icons.check_circle_rounded : Icons.warning_amber_rounded,
+            size: 20,
+            color: ok ? const Color(0xFF34D399) : const Color(0xFFFFC857)),
         const SizedBox(width: 10),
         Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(title, style: bodyStyle(context, weight: FontWeight.w700, size: 14)),
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(title,
+                style: bodyStyle(context, weight: FontWeight.w700, size: 14)),
             const SizedBox(height: 2),
             Text(detail, style: bodyStyle(context, color: p.muted, size: 12.5)),
           ]),

@@ -45,6 +45,7 @@ export default function Footer() {
   const email = s.email || 'ictclubbauet@gmail.com';
   const phone = s.phone || '01748-269350';
   const fbUrl = s.fb || 'https://www.facebook.com/bauetictclub';
+  const address = settings?.contactAddress || 'Qadirabad Cantonment, Natore';
   const h3 = 'mb-3 flex items-center gap-2 whitespace-nowrap font-mono text-[10px] uppercase tracking-[0.22em] text-white/50 before:h-px before:w-4 before:bg-[#7CF0B2]/70';
   const contact = 'group !flex items-start gap-3 text-white/80 transition hover:text-white';
   const chip = 'mt-0.5 grid size-7 shrink-0 place-items-center rounded-lg bg-white/10 text-[#7CF0B2] transition group-hover:bg-[#7CF0B2]/20';
@@ -64,7 +65,7 @@ export default function Footer() {
         <div className="flex flex-col items-start justify-between gap-5 border-b border-white/12 px-6 py-7 sm:px-10 md:flex-row md:items-center md:py-8">
           <div>
             <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-[#7CF0B2]">Build with us</p>
-            <h2 className="mt-2 max-w-xl text-2xl font-semibold leading-tight sm:text-[1.9rem]">Ready to turn ideas into <span className="bg-gradient-to-r from-[#8DB2FF] via-[#38C8F0] to-[#7CF0B2] bg-clip-text text-transparent">real projects?</span></h2>
+            <h2 className="mt-2 max-w-xl text-2xl font-semibold leading-tight sm:text-[1.9rem]">{settings?.footerCta || <>Ready to turn ideas into <span className="bg-gradient-to-r from-[#8DB2FF] via-[#38C8F0] to-[#7CF0B2] bg-clip-text text-transparent">real projects?</span></>}</h2>
           </div>
           <div className="flex flex-wrap gap-3">
             <Link to="/join" className="group inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-[#0A1A4A] shadow-lg transition hover:-translate-y-0.5 hover:shadow-[0_10px_30px_rgba(124,240,178,0.4)]">Join the club <ArrowUpRight size={15} className="transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5" /></Link>
@@ -88,7 +89,7 @@ export default function Footer() {
               <span className="h-7 w-px bg-slate-200" />
               <Logo kind="club" height={42} className="!filter-none" />
             </div>
-            <p className="mt-4 max-w-xs text-[13px] leading-6 text-white/70">Bangladesh Army University of Engineering &amp; Technology, Rajshahi. A community of students who learn, build and lead in technology.</p>
+            <p className="mt-4 max-w-xs text-[13px] leading-6 text-white/70">{settings?.footerAbout || 'Bangladesh Army University of Engineering & Technology, Rajshahi. A community of students who learn, build and lead in technology.'}</p>
             <div className="mt-4 flex gap-2.5">
               <a href={fbUrl} target="_blank" rel="noopener noreferrer" aria-label="Facebook" className={social}><Facebook size={16} /></a>
               {(s.li || s.linkedin) && <a href={s.li || s.linkedin} target="_blank" rel="noopener noreferrer" aria-label="LinkedIn" className={social}><Linkedin size={16} /></a>}
@@ -115,7 +116,7 @@ export default function Footer() {
               <li><a href={fbUrl} target="_blank" rel="noopener noreferrer" className={contact}><span className={chip}><Facebook size={14} /></span><span className="pt-0.5">fb.com/bauetictclub</span></a></li>
               <li><a href={`mailto:${email}`} className={contact}><span className={chip}><Mail size={14} /></span><span className="min-w-0 break-words pt-0.5 [overflow-wrap:anywhere]">{email}</span></a></li>
               <li><a href={`tel:${phone}`} className={contact}><span className={chip}><Phone size={14} /></span><span className="pt-0.5">{phone}</span></a></li>
-              <li><a href="https://maps.google.com/?q=BAUET+Qadirabad+Cantonment+Natore" target="_blank" rel="noopener noreferrer" className={contact}><span className={chip}><MapPin size={14} /></span><span className="pt-0.5">Qadirabad Cantonment, Natore</span></a></li>
+              <li><a href={`https://maps.google.com/?q=${encodeURIComponent(`BAUET, ${address}`)}`} target="_blank" rel="noopener noreferrer" className={contact}><span className={chip}><MapPin size={14} /></span><span className="pt-0.5">{address}</span></a></li>
             </ul>
           </div>
         </div>

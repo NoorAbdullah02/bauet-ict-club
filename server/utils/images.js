@@ -8,8 +8,10 @@ const { saveImage, cloudinaryReady, detect } = require('./saveImage');
 const MAX = Math.min(4000, Math.max(800, Number(process.env.IMAGE_MAX_WIDTH) || 2400));
 const auto = { quality: 'auto:good' };
 const KINDS = {
-  avatar: { folder: 'bauet-ict-club/people', transformation: [{ width: 1200, height: 1200, crop: 'fill', gravity: 'face' }, auto], tags: ['avatar'] },
-  applicant: { folder: 'bauet-ict-club/applicants', transformation: [{ width: 1000, height: 1000, crop: 'fill', gravity: 'face' }, auto], tags: ['applicant'] },
+  // The editor already crops and sizes the picture, so these only cap it for safety: 'limit' fits inside the box and
+  // never upscales, so a 500 px photo the person chose stays 500 px instead of becoming a fixed 1200 px square again.
+  avatar: { folder: 'bauet-ict-club/people', transformation: [{ width: 2000, height: 2000, crop: 'limit' }, auto], tags: ['avatar'] },
+  applicant: { folder: 'bauet-ict-club/applicants', transformation: [{ width: 1600, height: 1600, crop: 'limit' }, auto], tags: ['applicant'] },
   cover: { folder: 'bauet-ict-club/covers', transformation: [{ width: MAX, crop: 'limit' }, auto], tags: ['cover'] },
   logo: { folder: 'bauet-ict-club/logos', transformation: [{ width: 1200, crop: 'limit' }, auto], tags: ['logo'] },
 };

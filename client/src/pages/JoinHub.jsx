@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Crown, Users, Megaphone, ArrowUpRight, Check } from 'lucide-react';
 import Backdrop3D from '../components/Backdrop3D';
+import useStore from '../context/store';
 
 const DOORS = [
   { to: '/join/committee', icon: Crown, tag: 'Lead the club', title: 'Committee Member', text: 'Apply for an executive post. If you’re selected for the session, your photo and role go live on the Team page.',
@@ -13,16 +14,17 @@ const DOORS = [
 ];
 
 export default function JoinHub() {
+  const settings = useStore((s) => s.settings);
   return (
     <div className="relative min-h-screen overflow-hidden pb-24 pt-36">
       <Backdrop3D variant="orbs" className="absolute inset-x-0 top-0 h-[36rem] opacity-80 [mask-image:linear-gradient(to_bottom,black_30%,transparent)]" />
       <div className="container relative">
         <div className="mx-auto mb-16 max-w-2xl text-center">
-          <div className="section-tag">Applications open</div>
+          <div className="section-tag">{settings?.joinTag || 'Applications open'}</div>
           <h1 className="text-[clamp(2.8rem,7vw,5.5rem)] leading-[0.98] text-fg">
-            Join <span className="bg-clip-text text-transparent grad-anim" style={{ backgroundImage: 'var(--grad-text)' }}>our club.</span>
+            {settings?.joinTitle || <>Join <span className="bg-clip-text text-transparent grad-anim" style={{ backgroundImage: 'var(--grad-text)' }}>our club.</span></>}
           </h1>
-          <p className="mt-6 text-base leading-8 text-fg2">Two ways in. Pick the one that fits — each has its own page and its own application.</p>
+          <p className="mt-6 text-base leading-8 text-fg2">{settings?.joinDesc || 'Two ways in. Pick the one that fits — each has its own page and its own application.'}</p>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-3">

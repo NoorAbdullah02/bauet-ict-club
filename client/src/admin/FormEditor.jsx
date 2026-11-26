@@ -14,7 +14,7 @@ import { inputCls, Drawer, askConfirm } from './ui';
 import QrModal from '../components/QrModal';
 import PdfCanvas from '../components/PdfCanvas';
 import { ResponsesPanel } from './EventRegistrations';
-import { DEFAULT_FIELDS, PRESETS, TYPE_LABELS, PAY_METHODS, hasOptions, newField, uid } from '../lib/forms';
+import { DEFAULT_FIELDS, PRESETS, TYPE_LABELS, PAY_METHODS, hasOptions, newField, uid, themeStyle } from '../lib/forms';
 import { TEMPLATES } from '../lib/formTemplates';
 import { copyText, eventLink } from '../lib/share';
 import { useGateway } from '../lib/pay';
@@ -368,6 +368,7 @@ export default function FormEditor({ kind = 'form', eventId }) {
   const [qr, setQr] = useState(false);
   const [tplOpen, setTplOpen] = useState(false);
   const [sample, setSample] = useState({});
+  const [sampleErrors, setSampleErrors] = useState({}); // preview validation messages, like the public form shows
   const [notFound, setNotFound] = useState(false);
   const [formsList, setFormsList] = useState([]); // for "ask for feedback after the event"
   const [sendingFb, setSendingFb] = useState(false);
@@ -484,7 +485,7 @@ export default function FormEditor({ kind = 'form', eventId }) {
             : <div className="min-w-0 flex-1"><div className="truncate font-display text-xl text-fg">{item.title}</div><div className="text-xs text-muted">Registration form for this event</div></div>}
           <span className={cn('flex items-center gap-1.5 text-xs font-medium', sColor)} title={problem || ''}><SIcon size={14} className={status === 'saving' ? 'animate-spin' : ''} /> {sLabel}</span>
           <button onClick={() => setTplOpen(true)} title="Start from a ready-made form" className="flex items-center gap-1.5 rounded-lg border border-line px-3 py-2 text-xs font-semibold text-fg2 hover:border-tech hover:text-tech"><LayoutTemplate size={14} /> Templates</button>
-          <button onClick={() => { setPreview((p) => !p); setTab('questions'); }} className={cn('flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold transition', preview ? 'border-tech bg-tech/10 text-tech' : 'border-line text-fg2 hover:border-tech hover:text-tech')}>{preview ? <Pencil size={14} /> : <Eye size={14} />} {preview ? 'Back to editing' : 'Preview'}</button>
+          <button onClick={() => { setPreview((p) => !p); setTab('questions'); setSampleErrors({}); }} className={cn('flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold transition', preview ? 'border-tech bg-tech/10 text-tech' : 'border-line text-fg2 hover:border-tech hover:text-tech')}>{preview ? <Pencil size={14} /> : <Eye size={14} />} {preview ? 'Back to editing' : 'Preview'}</button>
           <button onClick={async () => toast[(await copyText(link)) ? 'success' : 'error']('Link copied')} className="flex items-center gap-1.5 rounded-lg border border-line px-3 py-2 text-xs font-semibold text-fg2 hover:border-tech hover:text-tech"><Link2 size={14} /> Copy link</button>
           <button onClick={() => setQr(true)} className="flex items-center gap-1.5 rounded-lg border border-line px-3 py-2 text-xs font-semibold text-fg2 hover:border-tech hover:text-tech"><QrCode size={14} /> QR code</button>
           <a href={longLink} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 rounded-lg bg-accent px-3.5 py-2 text-xs font-semibold text-white"><ExternalLink size={14} /> Open</a>
@@ -522,9 +523,12 @@ export default function FormEditor({ kind = 'form', eventId }) {
             <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-alt px-3 py-2 text-xs text-fg2"><span>Preview: this is what people see. Nothing here is saved.</span><button onClick={() => setPreview(false)} className="inline-flex items-center gap-1 font-semibold text-tech"><Pencil size={12} /> Back to editing</button></div>
             <h2 className="text-3xl text-fg">{doc.heading || (kind === 'form' ? doc.title : item.title)}</h2>
             {doc.intro && <p className="mt-3 whitespace-pre-line text-fg2">{doc.intro}</p>}
-            <div className="mt-6"><DynamicForm fields={previewFields} values={sample} onChange={(k, v) => setSample((s) => ({ ...s, [k]: v }))} /></div>
-            {doc.payment?.enabled && doc.payment.methods?.length > 0 && <div className="mt-5"><PaymentBox setting={{ ...doc.payment, numbers: doc.payment.numbers || {} }} value={{}} onChange={() => {}} /></div>}
-            <button className="btn-primary mt-6 w-full justify-center" type="button">Submit</button>
+            <div className="mt-6" style={themeStyle(doc.theme)}>
+              <DynamicForm fields={previewFields} values={sample} errors={sampleErrors} onPageError={setSampleErrors} onChange={(k, v) => { setSample((s) => ({ ...s, [k]: v })); setSampleErrors((x) => ({ ...x, [k]: undefined })); }}>
+                {doc.payment?.enabled && doc.payment.methods?.length > 0 && <PaymentBox setting={{ ...doc.payment, numbers: doc.payment.numbers || {} }} value={{}} onChange={() => {}} />}
+                <button className="btn-primary w-full justify-center" type="button">Submit</button>
+              </DynamicForm>
+            </div>
           </div>
         </div>
       ) : (

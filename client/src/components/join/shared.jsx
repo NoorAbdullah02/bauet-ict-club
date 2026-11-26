@@ -94,6 +94,8 @@ export function useApplication(type, extra, extraRules) {
   const baseErrors = (f) => {
     const e = {};
     if (f.full_name.trim().length < 2) e.full_name = 'Enter your full name';
+    // the server only accepts letters, spaces and . ' - : say so here instead of a vague "enter your name" after a round trip
+    else if (!/^[\p{L}\p{M}\s.'-]+$/u.test(f.full_name.trim())) e.full_name = 'Use letters only (no numbers or symbols)';
     if (f.student_id.trim().length < 2) e.student_id = 'Student ID is required';
     if (!f.batch) e.batch = 'Select your batch';
     if (!f.department) e.department = 'Select your department';

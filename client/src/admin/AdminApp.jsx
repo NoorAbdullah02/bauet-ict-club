@@ -24,6 +24,7 @@ import Activity from './Activity';
 import Downloads from './Downloads';
 import Logo from '../components/Logo';
 import { cn } from '../lib/cn';
+import { isEditor, isMainAdmin } from './roles';
 
 const NAV = [
   ['Overview', [['/admin', LayoutDashboard, 'Dashboard', true], ['/admin/visitors', Eye, 'Visitors']]],
@@ -50,7 +51,7 @@ function Sidebar({ badges, onNavigate }) {
           <div key={group}>
             <div className="mb-2 px-3 font-mono text-[10px] uppercase tracking-[0.22em] text-muted">{group}</div>
             <ul className="space-y-1">
-              {items.filter(([to]) => user?.role !== 'editor' || !['/admin/trash', '/admin/activity', '/admin/downloads'].includes(to)).map(([to, Icon, label, end, badge]) => (
+              {items.filter(([to]) => (to !== '/admin/activity' || isMainAdmin(user)) && (!isEditor(user) || !['/admin/trash', '/admin/downloads', '/admin/newsletter'].includes(to))).map(([to, Icon, label, end, badge]) => (
                 <li key={to}>
                   <NavLink to={to} end={end} onClick={onNavigate}
                     className={({ isActive }) => cn('group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors', isActive ? 'text-white' : 'text-fg2 hover:bg-accent/8 hover:text-fg')}>

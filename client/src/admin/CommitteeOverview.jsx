@@ -3,6 +3,7 @@ import toast from 'react-hot-toast';
 import { Rocket, ArrowRightLeft, Trash2, Users, CalendarPlus, UserPlus, ClipboardList, Star, CalendarClock, CalendarCheck, AlertTriangle, PlusCircle, CalendarRange, FileSpreadsheet, Loader2, Pencil } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import useStore from '../context/store';
+import { canDelete } from './roles';
 import { sessionRank, termLeft } from '../lib/sessions';
 import { Panel, Drawer, askConfirm, inputCls } from './ui';
 import { cn } from '../lib/cn';
@@ -23,6 +24,7 @@ const spanDays = (a, b) => (a && b && b > a ? Math.round((new Date(`${b}T00:00:0
 /** Every committee at a glance (newest first) with its six-month term, plus the four steps to start a new one. */
 export default function CommitteeOverview({ onLaunch, onTransfer, onOpen }) {
   const sessions = useStore((s) => s.sessions);
+  const user = useStore((s) => s.user);
   const remove = useStore((s) => s.deleteCommittee);
   const updateTerm = useStore((s) => s.updateCommitteeTerm);
   const setCurrentCommittee = useStore((s) => s.setCurrentCommittee);
@@ -172,7 +174,7 @@ export default function CommitteeOverview({ onLaunch, onTransfer, onOpen }) {
                   )}
                   <button disabled={!s.members} onClick={() => saveFile(`/committees/${encodeURIComponent(s.label)}/export`, { format: 'xlsx' }, `committee-${s.label.replace(/\s+/g, '-')}.xlsx`)} title="The people list as an Excel workbook" className="flex items-center gap-1 rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-fg2 transition hover:border-tech hover:text-tech disabled:opacity-40"><FileSpreadsheet size={12} /> Excel</button>
                   <button disabled={!s.members} onClick={() => saveFile(`/committees/${encodeURIComponent(s.label)}/zip`, {}, `committee-${s.label.replace(/\s+/g, '-')}.zip`)} title="List and every picture in full quality" className="rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-fg2 transition hover:border-tech hover:text-tech disabled:opacity-40">Download</button>
-                  <button disabled={busy === s.label} onClick={() => del(s)} aria-label={`Delete ${s.label}`} className="ml-auto grid size-8 place-items-center rounded-lg text-fg2 transition hover:bg-red-500/10 hover:text-red-500 disabled:opacity-50"><Trash2 size={15} /></button>
+                  {canDelete(user) && <button disabled={busy === s.label} onClick={() => del(s)} aria-label={`Delete ${s.label}`} className="ml-auto grid size-8 place-items-center rounded-lg text-fg2 transition hover:bg-red-500/10 hover:text-red-500 disabled:opacity-50"><Trash2 size={15} /></button>}
                 </div>
               </div>
             ))}

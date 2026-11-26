@@ -13,8 +13,13 @@ function useLite() {
   );
 }
 
-/** Very weak devices never download the 3D bundle (about 800 kB) at all. */
-const weakDevice = () => typeof navigator !== 'undefined' && ((navigator.hardwareConcurrency || 8) <= 2 || (navigator.deviceMemory || 8) <= 2 || !!navigator.connection?.saveData);
+/** Very weak devices — or a slow mobile connection — never download the 3D bundle (about 800 kB) at all. */
+const weakDevice = () => typeof navigator !== 'undefined' && (
+  (navigator.hardwareConcurrency || 8) <= 2 ||
+  (navigator.deviceMemory || 8) <= 2 ||
+  !!navigator.connection?.saveData ||
+  /(^|-)2g$|(^|-)3g$/.test(navigator.connection?.effectiveType || '')
+);
 
 /** Lazy, WebGL-guarded 3D canvas that pauses rendering when scrolled out of view. */
 export default function Backdrop3D({ variant = 'orbs', className }) {

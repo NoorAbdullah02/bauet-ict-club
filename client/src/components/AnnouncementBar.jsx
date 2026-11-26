@@ -9,6 +9,7 @@ import { useT } from '../lib/i18n';
 export default function AnnouncementBar() {
   const t = useT();
   const { events, notices } = useStore(useShallow((s) => ({ events: s.events, notices: s.notices })));
+  const settings = useStore((s) => s.settings);
   const [dismissed, setDismissed] = useState(true);
 
   useEffect(() => {
@@ -31,7 +32,7 @@ export default function AnnouncementBar() {
     ? `${t('Upcoming')}: ${nextEvent.title}`
     : pinnedNotice
       ? pinnedNotice.title
-      : t('Applications are open for Spring 2026 session!');
+      : (settings?.announcementText || t('Applications are open for Spring 2026 session!'));
   const link = nextEvent ? `/events/${nextEvent.id}` : pinnedNotice ? '/notices' : '/join';
   const cta = nextEvent ? t('Register now') : pinnedNotice ? t('View notice') : t('Apply now');
   const badgeLabel = nextEvent ? t('Upcoming') : pinnedNotice ? t('Notice') : t('Active');

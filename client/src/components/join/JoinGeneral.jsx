@@ -6,6 +6,7 @@ import Backdrop3D from '../Backdrop3D';
 import { Field, PhotoDrop, inputCls, useApplication, DEPARTMENTS, BATCHES } from './shared';
 import { cn } from '../../lib/cn';
 import CheckEmailNote from '../CheckEmailNote';
+import useStore from '../../context/store';
 
 const INTERESTS = [
   'Web Development', 'AI & ML', 'Competitive Programming', 'Cyber Security', 'Robotics & IoT', 'App Development',
@@ -23,6 +24,7 @@ const rules = (f) => (f.interests.length ? {} : { interests: 'Pick at least one 
 export default function JoinGeneral() {
   const app = useApplication('general', { interests: [], experience: '' }, rules);
   const { form, errors, set, patch, onPhoto, uploading, busy, done, submit, reset } = app;
+  const settings = useStore((s) => s.settings);
 
   const toggle = (i) => patch('interests', form.interests.includes(i) ? form.interests.filter((x) => x !== i) : [...form.interests, i].slice(0, 8));
 
@@ -37,12 +39,12 @@ export default function JoinGeneral() {
         <div className="mx-auto mb-14 max-w-2xl text-center">
           <Link to="/join" className="mb-6 inline-flex items-center gap-1.5 text-xs text-fg2 hover:text-accent"><ArrowLeft size={13} /> All ways to join</Link><br />
           <span className="inline-flex items-center gap-2 rounded-full bg-tech/10 px-4 py-1.5 font-mono text-[11px] uppercase tracking-[0.2em] text-tech">
-            <Users size={13} /> General membership
+            <Users size={13} /> {settings?.joinGeneralTag || 'General membership'}
           </span>
           <h2 className="mt-6 text-[clamp(2.4rem,5.5vw,4rem)] leading-[1] text-fg">
-            Become a member in <span className="italic text-accent">two minutes.</span>
+            {settings?.joinGeneralTitle || <>Become a member in <span className="italic text-accent">two minutes.</span></>}
           </h2>
-          <p className="mt-5 text-base leading-8 text-fg2">No election, no pressure — tell us what you love and we’ll bring you into the community.</p>
+          <p className="mt-5 text-base leading-8 text-fg2">{settings?.joinGeneralDesc || 'No election, no pressure — tell us what you love and we’ll bring you into the community.'}</p>
         </div>
 
         <div className="mx-auto grid max-w-5xl gap-6 lg:grid-cols-[1fr_1.4fr]">

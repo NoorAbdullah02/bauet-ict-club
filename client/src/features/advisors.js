@@ -9,7 +9,7 @@ export default {
     { key: 'department', label: 'Department', type: 'text' },
     { key: 'email', label: 'E-mail (optional)', type: 'text' },
     { key: 'phone', label: 'Phone (optional)', type: 'text' },
-    { key: 'image_url', label: 'Photo', type: 'image', kind: 'cover' },
+    { key: 'image_url', label: 'Photo (a square photo shows best on the card)', type: 'image', kind: 'avatar' },
     { key: 'sort_order', label: 'Order (1 shows first)', type: 'number' },
   ],
   cols: ['name', 'designation', 'department'],

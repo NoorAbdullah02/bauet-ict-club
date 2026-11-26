@@ -41,7 +41,7 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
         let b = {}; try { b = JSON.parse(raw); } catch { /* not json */ }
         const to = b.to?.[0]?.email || '';
         const att = (b.attachment || [])[0];
-        mails.push({ to, subject: b.subject, file: att?.name || '', bytes: att ? Buffer.from(att.content, 'base64').length : 0, pdf: att ? Buffer.from(att.content, 'base64').subarray(0, 5).toString() : '' });
+        mails.push({ to, subject: b.subject, html: b.htmlContent || '', text: b.textContent || '', file: att?.name || '', bytes: att ? Buffer.from(att.content, 'base64').length : 0, pdf: att ? Buffer.from(att.content, 'base64').subarray(0, 5).toString() : '' });
         if (to === 'e1@example.com') { res.statusCode = 400; return res.end(JSON.stringify({ message: 'invalid recipient' })); }
         if (to === 'e2@example.com' && mailLimit) { res.statusCode = 429; return res.end(JSON.stringify({ message: 'Daily sending limit reached' })); }
         res.statusCode = 201; return res.end(JSON.stringify({ messageId: `<${mails.length}@qa>` }));
@@ -69,7 +69,7 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
   });
   await new Promise((r) => gw.listen(0, '127.0.0.1', r));
   const GW = `http://127.0.0.1:${gw.address().port}`;
-  const srv = spawn(process.execPath, [path.join(__dirname, 'harness.js')], { env: { ...process.env, GROQ_API_KEY: '', QA_BREVO_KEY: 'qa-brevo-key', MAIL_FROM: 'club@example.org', ADMIN_NOTIFY_EMAIL: '', BREVO_API_BASE: GW, QA_PORT: PORT, SSLCOMMERZ_STORE_ID: 'qa_store', SSLCOMMERZ_STORE_PASSWD: 'qa_pass', SSLCOMMERZ_BASE: GW, REMOTIVE_URL: `${GW}/remotive`, REMOTEOK_URL: `${GW}/remoteok` }, stdio: 'ignore' });
+  const srv = spawn(process.execPath, [path.join(__dirname, 'harness.js')], { env: { ...process.env, GROQ_API_KEY: '', QA_BREVO_KEY: 'qa-brevo-key', MAIL_FROM: 'club@example.org', ADMIN_NOTIFY_EMAIL: 'owner@qa-club.dev', BREVO_API_BASE: GW, QA_PORT: PORT, SSLCOMMERZ_STORE_ID: 'qa_store', SSLCOMMERZ_STORE_PASSWD: 'qa_pass', SSLCOMMERZ_BASE: GW, REMOTIVE_URL: `${GW}/remotive`, REMOTEOK_URL: `${GW}/remoteok` }, stdio: 'ignore' });
   try {
     for (let i = 0; i < 60; i++) { try { if ((await fetch(`${B}/api/health`)).ok) break; } catch { /* booting */ } await new Promise((r) => setTimeout(r, 1000)); }
 
@@ -855,6 +855,36 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
     ok((await call('POST', '/api/auth/change-password', { current: 'Qa-Pass-12345', next: 'short' }, T)).s === 400, 'short new password refused');
     ok((await call('POST', '/api/auth/change-password', { current: 'Qa-Pass-12345', next: 'Another-Pass-99' }, T)).s === 200, 'password changed');
     ok((await call('POST', '/api/auth/login', { username: 'admin', password: 'Another-Pass-99' })).s === 200, 'new password works');
+
+    // ---- forgotten password: the link that is actually e-mailed resets the password ----
+    {
+      XFF = '10.9.9.9';
+      const resetMails = () => mails.filter((m) => m.to === 'owner@qa-club.dev' && /Reset the admin password/.test(m.subject));
+      const before = resetMails().length;
+      const f = await call('POST', '/api/auth/forgot', { username: '  Owner@QA-Club.DEV ' });
+      ok(f.s === 200, 'forgot accepts the e-mail address of the account', f.j);
+      let mail;
+      for (let i = 0; i < 25 && !mail; i++) { mail = resetMails()[before]; if (!mail) await new Promise((r) => setTimeout(r, 100)); }
+      ok(!!mail && !!mail.html, 'the reset link is e-mailed to the address on the account', mail?.to);
+      // browsers decode HTML entities in an href, so the test does the same
+      const link = (/href="([^"]+)"/.exec(mail?.html || '')?.[1] || '').replace(/&amp;/g, '&');
+      const url = (() => { try { return new URL(link); } catch { return null; } })();
+      const token = url?.searchParams.get('reset') || '';
+      ok(url?.pathname === '/admin' && url?.searchParams.get('u') === 'admin' && token.length > 20, 'the link opens the admin page with the real user name in it', link.replace(token, '<token>'));
+      ok((await call('POST', '/api/auth/reset', { token: 'not-the-token', username: 'admin', password: 'Reset-Pass-2026' })).s === 400, 'a wrong reset token is refused');
+      ok((await call('POST', '/api/auth/reset', { token, username: 'admin', password: 'short' })).s === 400, 'the reset form refuses a weak password');
+      ok((await call('POST', '/api/auth/reset', { token, username: 'admin', password: 'Reset-Pass-2026' })).s === 200, 'the e-mailed link sets a new password');
+      ok((await call('GET', '/api/auth/me', undefined, T)).s === 401, 'resetting ends the old sessions');
+      ok((await call('POST', '/api/auth/reset', { token, username: 'admin', password: 'Other-Pass-2026' })).s === 400, 'the same reset link cannot be used twice');
+      const nl = await call('POST', '/api/auth/login', { username: 'admin', password: 'Reset-Pass-2026' });
+      ok(nl.s === 200 && !!nl.j?.token, 'the new password works');
+      T = nl.j?.token;
+      const n0 = resetMails().length;
+      const unknown = await call('POST', '/api/auth/forgot', { username: 'nobody@qa-club.dev' });
+      await new Promise((r) => setTimeout(r, 300));
+      ok(unknown.s === 200 && resetMails().length === n0, 'an unknown account gets the same answer and no mail');
+      XFF = '';
+    }
   } catch (e) { failed++; console.log('  CRASH', e); }
   srv.kill();
   gw.close();

@@ -45,6 +45,9 @@ class _ClubAppState extends State<ClubApp> {
   void initState() {
     super.initState();
     _router = buildRouter(context.read<AppState>());
+    // A shared link can open any page directly (#/team, #/events/12), so the content is loaded
+    // here — once, for every entry point — instead of only by the splash screen.
+    context.read<AppState>().ensureLoaded();
     Push.start(context.read<AppState>(), _router); // not awaited: the app never waits for notifications
     UpdateCheck.run(context.read<AppState>().api, _messenger); // asks the website if a newer app exists
   }

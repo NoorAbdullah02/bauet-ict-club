@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../core/forms.dart';
@@ -21,14 +22,24 @@ class _VerifyScreenState extends State<VerifyScreen> {
   late final AppState _state = context.read<AppState>();
   Map<String, dynamic>? _r;
   String? _error;
+  final _codeCtrl = TextEditingController();
+
+  bool get _manual => widget.code.trim().isEmpty;
 
   @override
   void initState() {
     super.initState();
-    _load();
+    if (!_manual) _load();
+  }
+
+  @override
+  void dispose() {
+    _codeCtrl.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
+    if (widget.code.trim().isEmpty) return;
     setState(() => _error = null);
     try {
       final r = await _state.api.verifyCertificate(widget.code);
@@ -38,13 +49,44 @@ class _VerifyScreenState extends State<VerifyScreen> {
     }
   }
 
+  void _go(String raw) {
+    final clean = raw.trim().toUpperCase();
+    if (clean.isEmpty) return;
+    context.push('/verify/${Uri.encodeComponent(clean)}');
+  }
+
   @override
   Widget build(BuildContext context) {
     final p = context.pal;
     final r = _r;
     final valid = r != null && r['valid'] == true;
     Widget body;
-    if (_error != null) {
+    if (_manual) {
+      body = Center(
+        child: GlassCard(
+          padding: const EdgeInsets.all(22),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Icon(Icons.qr_code_2_rounded, size: 48, color: p.accent),
+            const SizedBox(height: 10),
+            Text('Check a certificate', style: displayStyle(context, 22)),
+            const SizedBox(height: 6),
+            Text('Type the code printed under the QR on the certificate.', textAlign: TextAlign.center, style: bodyStyle(context, color: p.muted)),
+            const SizedBox(height: 14),
+            TextField(
+              controller: _codeCtrl,
+              textCapitalization: TextCapitalization.characters,
+              decoration: const InputDecoration(hintText: 'Certificate code', border: OutlineInputBorder()),
+              onSubmitted: _go,
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(onPressed: () => _go(_codeCtrl.text), child: const Text('Check it')),
+            ),
+          ]),
+        ),
+      );
+    } else if (_error != null) {
       body = ErrorState(message: _error!, onRetry: _load);
     } else if (r == null) {
       body = const Center(child: CircularProgressIndicator());

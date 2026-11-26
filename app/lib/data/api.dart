@@ -230,10 +230,11 @@ class Api {
     await _send(() => _dio.post('/auth/signup/verify', data: {'email': email, 'code': code}));
   }
 
-  /// Asks the server to e-mail a one-time password-reset link to the club address. The answer is the same whether the account exists or not.
-  Future<String> forgotPassword(String username) async {
-    final data = await _send(() => _dio.post('/auth/forgot', data: {'username': username}));
-    return data is Map && data['message'] != null ? data['message'].toString() : 'A reset link was sent to the club e-mail address.';
+  /// Asks the server to e-mail a one-time password-reset link to the address on that account (username or e-mail accepted).
+  /// The answer is the same whether the account exists or not.
+  Future<String> forgotPassword(String usernameOrEmail) async {
+    final data = await _send(() => _dio.post('/auth/forgot', data: {'username': usernameOrEmail}));
+    return data is Map && data['message'] != null ? data['message'].toString() : 'A reset link was sent to the e-mail address on that account.';
   }
 
   Future<Map<String, dynamic>> login(String username, String password, {String? code}) async {
@@ -461,6 +462,24 @@ class Api {
   /// A member who joined through the application form finds their own card: { id, code, path }.
   Future<Map<String, dynamic>> findMyCard(String email, String studentId) async =>
       _map(await _send(() => _dio.post('/card/find', data: {'email': email, 'student_id': studentId})));
+
+  /// Sends a 6-digit code to the e-mail the member joined with (needed to change a photo or birth date).
+  Future<void> cardOtpRequest(String email, Object? memberId) =>
+      _send(() => _dio.post('/card/otp/request', data: {'email': email, if (memberId != null) 'memberId': memberId}));
+
+  /// Checks that 6-digit code; the answer holds the short-lived `edit` proof for card changes.
+  Future<String> cardOtpVerify(String email, String code) async {
+    final d = _map(await _send(() => _dio.post('/card/otp/verify', data: {'email': email, 'code': code})));
+    return (d['edit'] ?? '').toString();
+  }
+
+  /// Saves a new profile photo for the member who proved the code: body { code, proof, photo_url }.
+  Future<void> setCardPhoto(Object id, {required String code, required String photoUrl, String? proof}) =>
+      _send(() => _dio.patch('/card/$id/photo', data: {'code': code, if (proof != null && proof.isNotEmpty) 'proof': proof, 'photo_url': photoUrl}));
+
+  /// Saves a birth date (for the automatic birthday wish): body { code, proof, birth_date }.
+  Future<void> setCardBirthdate(Object id, {required String code, required String date, String? proof}) =>
+      _send(() => _dio.patch('/card/$id/birthdate', data: {'code': code, if (proof != null && proof.isNotEmpty) 'proof': proof, 'birth_date': date}));
 
   /// Remote jobs read from Remotive and Remote OK: { enabled, jobs: [...], sources: [...] }.
   Future<Map<String, dynamic>> remoteJobs() async => _map(await _send(() => _dio.get('/remote-jobs')));

@@ -31,9 +31,11 @@ export default function SiteLayout() {
     <>
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[100] focus:rounded-lg focus:bg-surface focus:px-4 focus:py-2 focus:text-sm focus:text-fg focus:shadow-lg">Skip to content</a>
       <Navbar />
-      {!OWN_H1.has(pathname) && TITLES[pathname] && <h1 className="sr-only">{TITLES[pathname]}</h1>}
       <motion.main id="main" tabIndex={-1} key={pathname} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.22, ease: 'easeOut' }}>
-          <Suspense fallback={<div className="grid min-h-[70vh] place-items-center"><span className="size-8 animate-spin rounded-full border-2 border-line border-t-accent" /></div>}>
+          {/* the page name for screen readers; inside <main> so every page has one landmark that holds its heading */}
+          {!OWN_H1.has(pathname) && TITLES[pathname] && <h1 className="sr-only">{TITLES[pathname]}</h1>}
+          {/* reserve the full first screen while a page chunk loads, so the footer does not jump (layout shift) when the page appears */}
+          <Suspense fallback={<div className="grid min-h-[calc(100vh-var(--nav-height))] place-items-center"><span className="size-8 animate-spin rounded-full border-2 border-line border-t-accent" /></div>}>
             <Outlet />
           </Suspense>
       </motion.main>

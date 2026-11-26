@@ -138,13 +138,17 @@ class _JoinCommitteeScreenState extends State<JoinCommitteeScreen> {
   @override
   Widget build(BuildContext context) {
     final p = context.pal;
+    final s = context.watch<AppState>().settings;
     return Scaffold(
       body: AuroraBackground(
         child: SafeArea(
           child: _done
               ? const JoinSuccess(title: 'Application sent!', message: 'Thank you for applying. The committee will review your application and contact you soon.')
               : Column(children: [
-                  Padding(padding: const EdgeInsets.fromLTRB(16, 8, 20, 0), child: const JoinTopBar(title: 'Committee application', eyebrow: 'Executive committee')),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 20, 0),
+                    child: JoinTopBar(title: s.pageText('joinCommitteeTitle', 'Committee application'), eyebrow: s.pageText('joinCommitteeTag', 'Executive committee')),
+                  ),
                   const Padding(padding: EdgeInsets.fromLTRB(20, 14, 20, 0), child: PromptLine('apply --role=committee')),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(20, 16, 20, 6),

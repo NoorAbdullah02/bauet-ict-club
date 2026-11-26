@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { Check, Download, FileSpreadsheet, Loader2, Megaphone, Pencil, Trash2 } from 'lucide-react';
-import { api } from '../context/store';
+import useStore, { api } from '../context/store';
 import { Drawer, inputCls, askConfirm } from './ui';
+import { canDelete } from './roles';
 import { saveFile } from '../lib/download';
 
 const membersToText = (ms) => (ms || []).map((m) => [m.name, m.email, m.student_id].filter(Boolean).join(', ')).join('\n');
@@ -34,6 +35,7 @@ export default function ContestTeams({ contest, onClose }) {
   const [d, setD] = useState(null);
   const [busy, setBusy] = useState(false);
   const [editing, setEditing] = useState(null);
+  const user = useStore((s) => s.user);
   const id = contest?.id;
   const load = () => api.get(`/contest-teams/admin/${id}`).then((r) => setD(r.data)).catch(() => setD(false));
   useEffect(() => { setD(null); if (id) load(); }, [id]);
@@ -83,7 +85,7 @@ export default function ContestTeams({ contest, onClose }) {
                     {(t.members || []).length > 0 && <div className="mt-1 text-xs text-muted">{t.members.map((m) => [m.name, m.student_id].filter(Boolean).join(' ')).join(', ')}</div>}
                   </div>
                   <button onClick={() => setEditing(editing === t.id ? null : t.id)} aria-label="Edit team details" title="Edit team details" className="grid size-8 shrink-0 place-items-center rounded-lg text-fg2 hover:bg-tech/10 hover:text-tech"><Pencil size={14} /></button>
-                  <button onClick={() => remove(t)} aria-label="Remove team" className="grid size-8 shrink-0 place-items-center rounded-lg text-fg2 hover:bg-red-500/10 hover:text-red-500"><Trash2 size={14} /></button>
+                  {canDelete(user) && <button onClick={() => remove(t)} aria-label="Remove team" className="grid size-8 shrink-0 place-items-center rounded-lg text-fg2 hover:bg-red-500/10 hover:text-red-500"><Trash2 size={14} /></button>}
                 </div>
                 {editing === t.id && <TeamEdit team={t} onCancel={() => setEditing(null)} onSave={async (body) => { if (await patch(t, body)) { setEditing(null); toast.success('Team saved'); } }} />}
                 <div className="mt-3 grid grid-cols-3 gap-2">

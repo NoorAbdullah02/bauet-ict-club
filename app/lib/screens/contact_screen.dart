@@ -102,7 +102,7 @@ class _ContactScreenState extends State<ContactScreen> {
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       padding: kPagePadding,
       children: [
-        const SectionHeader(eyebrow: 'Say hello', title: 'Contact us', subtitle: 'Questions, ideas or collaborations - we reply fast.').stagger(0),
+        SectionHeader(eyebrow: s.pageText('contactTag', 'Say hello'), title: s.pageText('contactTitle', 'Contact us'), subtitle: s.pageText('contactDesc', 'Questions, ideas or collaborations - we reply fast.')).stagger(0),
         const SizedBox(height: 20),
         if (s.email.isNotEmpty) action(Icons.mail_rounded, 'Email', s.email, () => openUrl(context, 'mailto:${s.email}')).stagger(1),
         if (s.phone.isNotEmpty) action(Icons.call_rounded, 'Phone', s.phone, () => openUrl(context, 'tel:${s.phone}')).stagger(2),

@@ -118,7 +118,7 @@ export default function Select({ value = '', onChange, children, className, disa
     <>
       <button ref={btn} type="button" id={id} disabled={disabled} role="combobox" aria-haspopup="listbox" aria-expanded={open} aria-controls={`${uid}-list`} aria-label={ariaLabel}
         onClick={(e) => { e.preventDefault(); if (!disabled) setOpen((o) => !o); }} onKeyDown={onKeyDown}
-        className={cn(className, 'flex cursor-pointer items-center justify-between gap-3 text-left disabled:cursor-not-allowed disabled:opacity-60', open && '!border-tech !ring-4 !ring-tech/15')}>
+        className={cn(className, 'flex min-w-0 max-w-full cursor-pointer items-center justify-between gap-3 text-left disabled:cursor-not-allowed disabled:opacity-60', open && '!border-tech !ring-4 !ring-tech/15')}>
         <span className={cn('min-w-0 flex-1 truncate', isPlaceholder && 'text-muted')}>{current?.label || ' '}</span>
         <ChevronDown size={16} className={cn('shrink-0 text-muted transition-transform duration-300', open && 'rotate-180 text-tech')} />
       </button>

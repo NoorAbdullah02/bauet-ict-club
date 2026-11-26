@@ -1,6 +1,6 @@
 const pool = require('../config/db');
 
-const DEMO_TABLES = ['events', 'notices', 'members', 'achievements', 'registrations', 'gallery', 'posts', 'messages', 'projects', 'subscribers', 'page_views', 'point_awards'];
+const DEMO_TABLES = ['events', 'notices', 'members', 'achievements', 'registrations', 'gallery', 'posts', 'messages', 'projects', 'subscribers', 'page_views', 'point_awards', 'advisors', 'contests', 'jobs', 'resources', 'sponsors', 'testimonials'];
 const SESSION = 'Winter 2026';
 
 const day = (offset) => new Date(Date.now() + offset * 864e5).toISOString().slice(0, 10);
@@ -97,6 +97,37 @@ const PROJECTS = [
   ['Smart Notice Bot', 'Sends new university notices to students automatically.', 'Node.js, Telegram API', 'Active', 'Open for members', false],
   ['Autonomous Rover', 'IoT-enabled obstacle-avoiding surveillance rover built with ESP32.', 'C++, ESP32, FreeRTOS', 'In progress', 'Robotics wing', true],
 ];
+const ADVISORS = [
+  ['Dr. Md. Anwar Hossain', 'Chief Advisor', 'Professor', 'ICE', 'demo.anwar@example.com', '01712000100', 1],
+  ['Ms. Nusrat Jahan', 'Assistant Advisor', 'Assistant Professor', 'CSE', 'demo.nusrat@example.com', '01712000101', 2],
+  ['Mr. Kamrul Hasan', 'Co-Advisor', 'Lecturer', 'EEE', 'demo.kamrul@example.com', '01712000102', 3],
+];
+const CONTESTS = [
+  ['Hackathon 2026: Code for Change', '24 hours, teams of 3–4, real campus problems.', 'Teams of 3–4\nOne laptop per team\nOpen to all departments', 'BDT 30,000 + crests', 'BAUET Main Auditorium', 30, 20, 3, 4, 'open'],
+  ['Intra-University Programming Contest', 'ICPC-style individual contest: 8 problems in 3 hours.', 'Solo contest\nC++ / Java / Python\nNo internet', 'BDT 10,000 + certificates', 'CSE Lab 1', 45, 40, 1, 1, 'open'],
+  ['Capture The Flag 2025', 'Beginner-friendly security challenge with 20 flags.', 'Teams of 2\nKali Linux allowed', 'Crest + certificates', 'CSE Lab 3', -20, -30, 2, 2, 'finished'],
+];
+const JOBS = [
+  ['Junior Flutter Developer', 'Nexus Soft', 'Job', 'On-site', 'Dhaka', '15,000–25,000 BDT / month', 'Build and ship Flutter screens with a small product team. Fresh graduates welcome.', 'https://example.com/apply', null, 30, true],
+  ['Data Science Intern', 'Brain Station 23', 'Internship', 'Hybrid', 'Dhaka', 'Stipend 8,000 BDT', 'Three-month internship: Python, pandas and dashboards with the analytics team.', null, 'hr@example.com', 21, false],
+  ['Remote Frontend Freelancer', 'Club alumni network', 'Freelance', 'Remote', 'Anywhere', 'Project based', 'React work for small business sites. A short portfolio is required.', 'https://example.com/freelance', null, 45, false],
+];
+const RESOURCES = [
+  ['React basics — workshop slides', 'Hooks, state and a small project from the web workshop.', 'Web', 'Slides', 'https://example.com/react-slides', true],
+  ['Git & GitHub cheat sheet', 'The commands we use every day, on one page.', 'Career', 'Notes', 'https://example.com/git', false],
+  ['Competitive programming starter set', 'Twenty problems in increasing difficulty, with hints.', 'Programming', 'Tutorial', 'https://example.com/cp', true],
+  ['Intro to machine learning (video)', 'The recorded AI & ML seminar with the guest speakers.', 'AI', 'Video', 'https://example.com/ml', false],
+];
+const TESTIMONIALS = [
+  ['Sazzad Hossain', 'Software Engineer @ Tech Co.', 'ICE 7th Batch (Ex-President)', 'BAUET ICT Club gave me the foundation, the teamwork experience, and the real-world engineering mindset that directly landed me my dream tech job.', 5, 1],
+  ['Fariha Tasnim', 'AI Researcher & Data Scientist', 'CSE 8th Batch (Ex-VP Technical)', 'The collaborative hackathons and peer coding circles turned textbook theory into working machine learning prototypes.', 5, 2],
+  ['Tanvir Ahmed', 'DevOps & Cloud Architect', 'EEE 9th Batch (Executive Alum)', 'From organising national programming contests to shipping production projects, the leadership skills I learned here are unmatched.', 5, 3],
+];
+const SPONSORS = [
+  ['Tech Partner Ltd', 'https://example.com', 'Gold', 1],
+  ['Cloud Host BD', 'https://example.com', 'Silver', 2],
+  ['Campus Cafe', 'https://example.com', 'Bronze', 3],
+];
 const SUBSCRIBERS = ['demo.reader1@example.com', 'demo.reader2@example.com', 'demo.reader3@example.com', 'demo.reader4@example.com'];
 const MESSAGES = [
   ['Samiul Islam', 'demo.samiul@example.com', 'How can I join?', 'Hello, I am in 1st year ICE. How can I become a member and when is the next workshop?'],
@@ -146,6 +177,24 @@ async function loadDemo() {
   }
   for (const [i, [title, summary, tech, status, team, featured]] of PROJECTS.entries()) {
     await pool.query('INSERT INTO projects (title, summary, tech, status, team, image_url, featured, is_demo) VALUES ($1,$2,$3,$4,$5,$6,$7,true)', [title, summary, tech, status, team, scene(PROJECT_ART[i % PROJECT_ART.length], title, i), featured]);
+  }
+  for (const [i, [name, designation, rank_title, department, email, phone, sort_order]] of ADVISORS.entries()) {
+    await pool.query('INSERT INTO advisors (name, designation, rank_title, department, email, phone, image_url, sort_order, is_demo) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,true)', [name, designation, rank_title, department, email, phone, avatar(name, i + 1), sort_order]);
+  }
+  for (const [i, [title, description, rules, prize, location, startIn, deadlineIn, teamMin, teamMax, status]] of CONTESTS.entries()) {
+    await pool.query('INSERT INTO contests (title, description, rules, prize, location, start_date, deadline, team_min, team_max, status, image_url, is_demo) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,true)', [title, description, rules, prize, location, day(startIn), day(deadlineIn), teamMin, teamMax, status, scene('trophy', title, i)]);
+  }
+  for (const [i, [title, company, kind, work_mode, location, salary, description, apply_url, apply_email, deadlineIn, featured]] of JOBS.entries()) {
+    await pool.query('INSERT INTO jobs (title, company, kind, work_mode, location, salary, description, apply_url, apply_email, deadline, image_url, featured, is_demo) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,true)', [title, company, kind, work_mode, location, salary, description, apply_url, apply_email, day(deadlineIn), scene('code', title, i), featured]);
+  }
+  for (const [i, [title, description, category, kind, url, featured]] of RESOURCES.entries()) {
+    await pool.query('INSERT INTO resources (title, description, category, kind, url, featured, is_demo) VALUES ($1,$2,$3,$4,$5,$6,true)', [title, description, category, kind, url, featured]);
+  }
+  for (const [i, [name, role, batch, quote, rating, sort_order]] of TESTIMONIALS.entries()) {
+    await pool.query('INSERT INTO testimonials (name, role, batch, quote, rating, image_url, sort_order, is_demo) VALUES ($1,$2,$3,$4,$5,$6,$7,true)', [name, role, batch, quote, rating, avatar(name, i + 2), sort_order]);
+  }
+  for (const [i, [name, website, tier, sort_order]] of SPONSORS.entries()) {
+    await pool.query('INSERT INTO sponsors (name, website, logo_url, tier, sort_order, is_demo) VALUES ($1,$2,$3,$4,$5,true)', [name, website, scene('stage', name, i), tier, sort_order]);
   }
   for (const email of SUBSCRIBERS) await pool.query('INSERT INTO subscribers (email, is_demo) VALUES ($1,true)', [email]);
   for (const [name, email, subject, message] of MESSAGES) {

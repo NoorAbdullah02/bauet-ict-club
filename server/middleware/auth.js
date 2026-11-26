@@ -1,5 +1,6 @@
+const path = require('path');
 const jwt = require('jsonwebtoken');
-require('dotenv').config({ path: '../.env' });
+require('dotenv').config({ path: path.join(__dirname, '..', '..', '.env') }); // works from any current directory
 
 if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
   throw new Error('JWT_SECRET must be set in production (see .env.example)');

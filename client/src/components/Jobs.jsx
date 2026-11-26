@@ -8,7 +8,7 @@ import { useT } from '../lib/i18n';
 import { formalDate } from '../lib/format';
 import { cn } from '../lib/cn';
 
-const KIND_TONE = { Job: 'bg-accent/10 text-accent', Internship: 'bg-emerald-500/12 text-emerald-600', 'Part-time': 'bg-amber-500/12 text-amber-600', Freelance: 'bg-violet-500/12 text-violet-600', Training: 'bg-sky-500/12 text-sky-600' };
+const KIND_TONE = { Job: 'bg-accent/10 text-accent', Internship: 'bg-emerald-500/12 text-emerald-600', 'Part-time': 'bg-amber-500/12 text-amber-600', Freelance: 'bg-violet-600 text-white', Training: 'bg-sky-500/12 text-sky-600' };
 const todayDhaka = () => new Date(Date.now() + 6 * 3600e3).toISOString().slice(0, 10);
 /** days left to apply: null = no deadline, negative = closed */
 export const daysLeft = (d) => (d ? Math.round((new Date(`${String(d).slice(0, 10)}T00:00:00Z`) - new Date(`${todayDhaka()}T00:00:00Z`)) / 864e5) : null);
@@ -105,7 +105,7 @@ export default function Jobs() {
   const [kind, setKind] = useState('All');
   const [q, setQ] = useState('');
   const [open, setOpen] = useState(null);
-  useEffect(() => { useStore.getState().fetchList('jobs'); }, []);
+  useEffect(() => { useStore.getState().fetchList('jobs').catch(() => {}); }, []);
   const kinds = useMemo(() => ['All', ...new Set(items.map((j) => j.kind).filter(Boolean))], [items]);
   const list = useMemo(() => items
     .filter((j) => (kind === 'All' || j.kind === kind) && (!q || `${j.title} ${j.company} ${j.location} ${j.description} ${j.kind}`.toLowerCase().includes(q.toLowerCase())))
@@ -148,8 +148,8 @@ export default function Jobs() {
                     <span className="min-w-0 flex-1">
                       <span className="flex flex-wrap items-center gap-2">
                         <span className={cn('rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide', KIND_TONE[j.kind] || KIND_TONE.Job)}>{j.kind || 'Job'}</span>
-                        {j.featured && !closed && <span className="rounded-full bg-amber-400/20 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-600">Featured</span>}
-                        {closed && <span className="rounded-full bg-slate-500/15 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-600">Closed</span>}
+                        {j.featured && !closed && <span className="rounded-full bg-amber-700 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">Featured</span>}
+                        {closed && <span className="rounded-full bg-slate-600 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">Closed</span>}
                       </span>
                       <span className="mt-1.5 block text-lg font-semibold text-fg">{j.title}</span>
                       <span className="mt-0.5 block text-sm text-fg2">{[j.company, j.work_mode].filter(Boolean).join(' · ')}</span>

@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import { Plus, Pencil, Trash2, Search, Loader2, Save, Rocket, ArrowRightLeft, Link2, Users, ClipboardList, ScanLine } from 'lucide-react';
 import useStore from '../context/store';
 import { TYPES } from './config';
+import { canDelete } from './roles';
 import LaunchCommittee from './LaunchCommittee';
 import TransferPeople from './TransferPeople';
 import CommitteeOverview from './CommitteeOverview';
@@ -26,6 +27,7 @@ export default function DataView({ type }) {
   const cfg = TYPES[type];
   const store = useStore.getState();
   const items = useStore((s) => s[type]) || [];
+  const user = useStore((s) => s.user);
   const [q, setQ] = useState('');
   const [drawer, setDrawer] = useState(null);
   const [params, setParams] = useSearchParams();
@@ -94,7 +96,7 @@ export default function DataView({ type }) {
       {type === 'contests' && <button onClick={() => setContestTeams(item)} aria-label="Teams and results" title="Teams and results" className="grid size-8 place-items-center rounded-lg text-fg2 hover:bg-tech/15 hover:text-tech"><Users size={14} /></button>}
       {type === 'events' && <button onClick={() => setRegEvent(item)} aria-label="See registrations" title="See who registered" className="grid size-8 place-items-center rounded-lg text-fg2 hover:bg-tech/15 hover:text-tech"><Users size={14} /></button>}
       <button onClick={() => openEdit(item)} aria-label="Edit" className="grid size-8 place-items-center rounded-lg text-fg2 hover:bg-tech/15 hover:text-tech"><Pencil size={14} /></button>
-      <button onClick={() => remove(item)} aria-label="Delete" className="grid size-8 place-items-center rounded-lg text-fg2 hover:bg-red-500/15 hover:text-red-500"><Trash2 size={14} /></button>
+      {canDelete(user) && <button onClick={() => remove(item)} aria-label="Delete" className="grid size-8 place-items-center rounded-lg text-fg2 hover:bg-red-500/15 hover:text-red-500"><Trash2 size={14} /></button>}
                     
     </div>
   );
@@ -111,12 +113,13 @@ export default function DataView({ type }) {
     <div>
       <PageTitle title={`${cfg.name}s`} sub={`${items.length} total`}>
         <div className="relative"><Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search…" className={`${inputCls} !w-56 !rounded-full !py-2 pl-9`} /></div>
-        {type === 'members' && <button onClick={() => setTransferring(true)} className="flex items-center gap-2 rounded-full border border-line px-5 py-2.5 text-xs font-semibold text-fg2 transition hover:border-tech hover:text-tech"><ArrowRightLeft size={14} /> Transfer people</button>}
-        {type === 'members' && <button onClick={() => setLaunching(true)} className="flex items-center gap-2 rounded-full border border-accent px-5 py-2.5 text-xs font-semibold text-accent transition hover:bg-accent hover:text-white"><Rocket size={14} /> Launch new committee</button>}
+        {canDelete(user) && type === 'members' && <button onClick={() => setTransferring(true)} className="flex items-center gap-2 rounded-full border border-line px-5 py-2.5 text-xs font-semibold text-fg2 transition hover:border-tech hover:text-tech"><ArrowRightLeft size={14} /> Transfer people</button>}
+        {canDelete(user) && type === 'members' && <button onClick={() => setLaunching(true)} className="flex items-center gap-2 rounded-full border border-accent px-5 py-2.5 text-xs font-semibold text-accent transition hover:bg-accent hover:text-white"><Rocket size={14} /> Launch new committee</button>}
         <button onClick={openAdd} className="btn-primary !px-5 !py-2.5 text-xs"><Plus size={15} /> Add {cfg.name}</button>
       </PageTitle>
 
-      {type === 'members' && <CommitteeOverview onLaunch={() => setLaunching(true)} onTransfer={(label) => { setTransferFrom(label); setTransferring(true); }} onOpen={(label) => setQ(label)} />}
+      {/* terms, launching, moving and exports all live behind /api/committees, which editors may not use */}
+      {canDelete(user) && type === 'members' && <CommitteeOverview onLaunch={() => setLaunching(true)} onTransfer={(label) => { setTransferFrom(label); setTransferring(true); }} onOpen={(label) => setQ(label)} />}
 
       <Panel className="overflow-hidden">
         {rows.length === 0 ? <p className="p-12 text-center text-sm text-muted">Nothing here yet.</p> : (

@@ -1,5 +1,5 @@
 import { useEffect, lazy, Suspense } from 'react';
-import { Routes, Route, useLocation } from 'react-router-dom';
+import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import Lenis from 'lenis';
 import { Toaster } from 'react-hot-toast';
 import { useShallow } from 'zustand/react/shallow';
@@ -53,7 +53,10 @@ export default function App() {
 
   useEffect(() => {
     fetchAll();
-    // warm the page chunk while the browser is idle so route changes feel instant
+    // warm the page chunk while the browser is idle so route changes feel instant,
+    // but never on a slow or metered connection (it is a 218 kB download)
+    const conn = navigator.connection;
+    if (conn?.saveData || /(^|-)2g$|(^|-)3g$/.test(conn?.effectiveType || '')) return undefined;
     const warm = () => import('./pages/Pages');
     const id = 'requestIdleCallback' in window ? requestIdleCallback(warm, { timeout: 2500 }) : setTimeout(warm, 1500);
     return () => ('cancelIdleCallback' in window ? cancelIdleCallback(id) : clearTimeout(id));
@@ -182,6 +185,8 @@ export default function App() {
           <Route path="join/general" element={<JoinGeneralPage />} />
           <Route path="join/ambassador" element={<JoinAmbassadorPage />} />
           <Route path="ambassadors" element={<AmbassadorsPage />} />
+          {/* common misspellings and old links land on the right page instead of a 404 */}
+          {[['faqs', '/faq'], ['faq-1', '/faq'], ['event', '/events'], ['notice', '/notices'], ['project', '/projects'], ['resource', '/resources'], ['contest', '/contests'], ['job', '/jobs'], ['job/remote', '/jobs/remote'], ['member', '/team'], ['members', '/team'], ['advisors', '/team'], ['sponsors', '/about'], ['about-us', '/about'], ['contact-us', '/contact'], ['join-us', '/join'], ['login', '/admin'], ['signin', '/admin'], ['admin/login', '/admin']].map(([from, to]) => <Route key={from} path={from} element={<Navigate to={to} replace />} />)}
           <Route path="*" element={<NotFound />} />
         </Route>
         <Route path="/admin/*" element={<Suspense fallback={<Fallback />}><AdminApp /></Suspense>} />

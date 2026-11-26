@@ -114,6 +114,7 @@ class _JoinGeneralScreenState extends State<JoinGeneralScreen> {
   @override
   Widget build(BuildContext context) {
     final p = context.pal;
+    final s = context.watch<AppState>().settings;
     return Scaffold(
       body: AuroraBackground(
         child: SafeArea(
@@ -123,7 +124,7 @@ class _JoinGeneralScreenState extends State<JoinGeneralScreen> {
                   keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 40),
                   children: [
-                    const JoinTopBar(title: 'General membership', eyebrow: 'Be a member'),
+                    JoinTopBar(title: s.pageText('joinGeneralTitle', 'General membership'), eyebrow: s.pageText('joinGeneralTag', 'Be a member')),
                     const SizedBox(height: 14),
                     const PromptLine('apply --role=member --free'),
                     const SizedBox(height: 14),

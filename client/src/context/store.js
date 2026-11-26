@@ -1,10 +1,15 @@
 import { create } from 'zustand';
 import axios from 'axios';
 
-export const api = axios.create({ baseURL: '/api' });
+// localStorage throws when a browser blocks storage ("block all cookies", some in-app webviews): never let that break the site
+export const readLS = (k) => { try { return localStorage.getItem(k); } catch { return null; } };
+const writeLS = (k, v) => { try { localStorage.setItem(k, v); } catch { /* storage blocked: the value lasts until reload */ } };
+const dropLS = (k) => { try { localStorage.removeItem(k); } catch { /* storage blocked */ } };
+
+export const api = axios.create({ baseURL: '/api', timeout: 30000 }); // a request that never answers must not leave a spinner forever (downloads set their own longer timeout)
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('bauet-token');
+  const token = readLS('bauet-token');
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
@@ -12,9 +17,9 @@ api.interceptors.request.use((config) => {
 // 'light' | 'dark' | 'system' (follows the phone or computer setting)
 const media = typeof window !== 'undefined' && window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
 const resolveTheme = (t) => (t === 'system' ? (media && media.matches ? 'dark' : 'light') : t === 'dark' ? 'dark' : 'light');
-const savedTheme = (() => { try { const t = localStorage.getItem('bauet-theme'); return t === 'dark' || t === 'system' ? t : 'light'; } catch { return 'light'; } })();
+const savedTheme = (() => { const t = readLS('bauet-theme'); return t === 'dark' || t === 'system' ? t : 'light'; })();
 
-const savedLang = (() => { try { return localStorage.getItem('bauet-lang') === 'bn' ? 'bn' : 'en'; } catch { return 'en'; } })();
+const savedLang = (() => (readLS('bauet-lang') === 'bn' ? 'bn' : 'en'))();
 if (typeof document !== 'undefined') document.documentElement.setAttribute('lang', savedLang);
 
 const useStore = create((set, get) => ({
@@ -45,9 +50,9 @@ const useStore = create((set, get) => ({
     document.documentElement.setAttribute('lang', l);
     set({ lang: l });
   },
-  adminTheme: localStorage.getItem('bauet-admin-theme') || 'light',
+  adminTheme: readLS('bauet-admin-theme') || 'light',
   setAdminTheme: (adminTheme) => {
-    localStorage.setItem('bauet-admin-theme', adminTheme);
+    writeLS('bauet-admin-theme', adminTheme);
     set({ adminTheme });
   },
 
@@ -275,24 +280,24 @@ const useStore = create((set, get) => ({
 
   login: async (username, password, code) => {
     const res = await api.post('/auth/login', { username, password, ...(code ? { code } : {}) });
-    localStorage.setItem('bauet-token', res.data.token);
+    writeLS('bauet-token', res.data.token);
     set({ user: res.data.user });
     return res.data;
   },
 
   logout: () => {
-    localStorage.removeItem('bauet-token');
+    dropLS('bauet-token');
     set({ user: null });
   },
 
   checkAuth: async () => {
-    const token = localStorage.getItem('bauet-token');
+    const token = readLS('bauet-token');
     if (!token) return;
     try {
       const res = await api.get('/auth/me');
       set({ user: res.data });
     } catch {
-      localStorage.removeItem('bauet-token');
+      dropLS('bauet-token');
     }
   },
 

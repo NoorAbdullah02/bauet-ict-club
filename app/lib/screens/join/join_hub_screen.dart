@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
 import '../../core/theme.dart';
+import '../../state/app_state.dart';
 import '../../widgets/coder.dart';
 import '../../widgets/common.dart';
 
@@ -12,10 +14,11 @@ class JoinHubScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = context.pal;
+    final s = context.watch<AppState>().settings;
     return ListView(
       padding: kPagePadding,
       children: [
-        const SectionHeader(eyebrow: 'Membership', title: 'Join the club', subtitle: 'Pick the path that fits you. You can apply in under two minutes.').stagger(0),
+        SectionHeader(eyebrow: s.pageText('joinTag', 'Membership'), title: s.pageText('joinTitle', 'Join the club'), subtitle: s.pageText('joinDesc', 'Pick the path that fits you. You can apply in under two minutes.')).stagger(0),
         const SizedBox(height: 14),
         const PromptLine('join --list  # pick a path').stagger(1),
         const SizedBox(height: 18),

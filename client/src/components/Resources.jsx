@@ -12,7 +12,7 @@ export default function Resources() {
   const items = useStore(useShallow((s) => s.resources)) || [];
   const [cat, setCat] = useState('All');
   const [q, setQ] = useState('');
-  useEffect(() => { useStore.getState().fetchList('resources'); }, []);
+  useEffect(() => { useStore.getState().fetchList('resources').catch(() => {}); }, []);
   const cats = useMemo(() => ['All', ...new Set(items.map((r) => r.category).filter(Boolean))], [items]);
   const list = items.filter((r) => (cat === 'All' || r.category === cat) && (!q || `${r.title} ${r.description} ${r.category} ${r.kind}`.toLowerCase().includes(q.toLowerCase())));
 

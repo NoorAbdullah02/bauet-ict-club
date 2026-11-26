@@ -43,6 +43,10 @@ class _EventsScreenState extends State<EventsScreen> {
         physics: const AlwaysScrollableScrollPhysics(),
         children: [
           const SectionHeader(eyebrow: 'Calendar', title: 'Events', subtitle: 'Workshops, contests and meetups.').stagger(0),
+          if (state.weeklySessions.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            _WeeklySessionsCard(list: state.weeklySessions),
+          ],
           const SizedBox(height: 12),
           Align(
             alignment: Alignment.centerLeft,
@@ -158,6 +162,60 @@ class EventCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Weekly practice sessions (programming, web, ...) from Admin → Content → Weekly session.
+class _WeeklySessionsCard extends StatelessWidget {
+  const _WeeklySessionsCard({required this.list});
+  final List<WeeklySession> list;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.pal;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
+      decoration: BoxDecoration(
+        color: p.surface,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: p.line),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Icon(Icons.repeat_rounded, size: 15, color: p.tech),
+          const SizedBox(width: 7),
+          Text(tr('WEEKLY SESSIONS'), style: monoStyle(context, size: 10.5, color: p.tech, weight: FontWeight.w600)),
+        ]),
+        const SizedBox(height: 10),
+        for (final s in list)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Container(
+                width: 62,
+                padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+                decoration: BoxDecoration(color: p.tech.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(10)),
+                child: Text(s.day.isEmpty ? tr('Weekly') : s.day.toUpperCase(), textAlign: TextAlign.center, style: monoStyle(context, size: 9.5, color: p.tech, weight: FontWeight.w600)),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(s.title, style: bodyStyle(context, size: 14, weight: FontWeight.w600)),
+                  const SizedBox(height: 2),
+                  Text(
+                    [s.topic, s.time, s.place].where((x) => x.isNotEmpty).join(' · '),
+                    style: bodyStyle(context, size: 12, color: p.muted),
+                  ),
+                  if (s.note.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(s.note, style: bodyStyle(context, size: 12, color: p.muted)),
+                  ],
+                ]),
+              ),
+            ]),
+          ),
+      ]),
     );
   }
 }

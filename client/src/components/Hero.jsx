@@ -39,6 +39,7 @@ function Stat({ value, label }) {
 export default function Hero() {
   const t = useT();
   const { events, members } = useStore(useShallow((s) => ({ events: s.events, members: s.members })));
+  const settings = useStore((s) => s.settings);
   const root = useRef(null);
 
   const { scrollYProgress } = useScroll({ target: root, offset: ['start start', 'end start'] });
@@ -52,6 +53,10 @@ export default function Hero() {
     { value: 30, label: 'Projects' },
     { value: 5, label: 'Years' },
   ];
+
+  // an admin can replace the rotating lines with their own (one per line)
+  const customLines = (settings?.heroTaglines || '').split('\n').map((l) => l.trim()).filter(Boolean);
+  const sequence = customLines.length ? customLines.flatMap((line) => [line, 1800]) : TAGLINES;
 
   return (
     <section id="home" ref={root} className="relative flex min-h-screen items-center overflow-hidden">
@@ -75,8 +80,8 @@ export default function Hero() {
         <motion.div {...rise(0.1)}
           className="chip-live mx-auto mb-8 inline-flex items-center gap-2 rounded-full border border-line bg-surface/60 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.18em] text-tech backdrop-blur">
           <GraduationCap size={14} />
-          <span className="max-sm:hidden">Bangladesh Army University of Engineering &amp; Technology</span>
-          <span className="sm:hidden">BAUET</span>
+          <span className="max-sm:hidden">{settings?.heroCampus || 'Bangladesh Army University of Engineering & Technology'}</span>
+          <span className="sm:hidden">{settings?.heroShort || 'BAUET'}</span>
         </motion.div>
 
         <motion.h1 initial={{ opacity: 0, y: 26, filter: 'blur(14px)', scale: 0.96 }} animate={{ opacity: 1, y: 0, filter: 'blur(0px)', scale: 1 }}
@@ -89,11 +94,11 @@ export default function Hero() {
 
         <motion.div {...rise(0.5)}
           className="mx-auto mt-8 min-h-[3.25rem] sm:min-h-[2.25rem] h-auto text-lg text-fg2 sm:text-xl">
-          <TypeAnimation sequence={TAGLINES} wrapper="span" speed={55} deletionSpeed={70} repeat={Infinity} cursor />
+          <TypeAnimation sequence={sequence} wrapper="span" speed={55} deletionSpeed={70} repeat={Infinity} cursor />
         </motion.div>
 
         <motion.p {...rise(0.65)} className="mt-3 font-mono text-xs tracking-wider text-muted">
-          Bangladesh · Est. 2019
+          {settings?.heroEstablished || 'Bangladesh · Est. 2019'}
         </motion.p>
 
         <motion.div {...rise(0.8)} className="mt-10 flex flex-wrap justify-center gap-3">

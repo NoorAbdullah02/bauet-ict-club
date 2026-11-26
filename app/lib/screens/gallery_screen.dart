@@ -21,6 +21,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
     final p = context.pal;
+    final s = state.settings;
     final cats = ['All', ...state.gallery.map((g) => g.category).where((c) => c.isNotEmpty).toSet()];
     final active = cats.contains(_cat) ? _cat : 'All';
     final items = state.gallery.where((g) => active == 'All' || g.category == active).toList();
@@ -35,7 +36,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
             sliver: SliverToBoxAdapter(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                const SectionHeader(eyebrow: 'Moments', title: 'Gallery', subtitle: 'Snapshots from our events and workshops.').stagger(0),
+                SectionHeader(eyebrow: s.pageText('galleryTag', 'Moments'), title: s.pageText('galleryTitle', 'Gallery'), subtitle: s.pageText('galleryDesc', 'Snapshots from our events and workshops.')).stagger(0),
                 const SizedBox(height: 18),
                 SizedBox(
                   height: 42,

@@ -7,12 +7,13 @@ import {
   Sparkles, Star, Ticket, Trash2, Trophy, Users
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { api } from '../context/store';
+import useStore, { api } from '../context/store';
 import { Panel, Drawer, inputCls, askConfirm } from './ui';
 import { copyText, shortLink } from '../lib/share';
 import { formalDate } from '../lib/format';
 import { TEMPLATES } from '../lib/formTemplates';
 import { cn } from '../lib/cn';
+import { canDelete } from './roles';
 
 const ICONS = {
   ticket: Ticket, star: Star, users: Users, hand: HandHeart, trophy: Trophy, poll: BarChart3, help: HelpCircle,
@@ -33,6 +34,7 @@ const CATEGORIES = [
 
 /** Admin → Forms: start from a ready-made form or a blank one, share the link, read the responses, copy or delete your forms. */
 export default function FormsAdmin() {
+  const user = useStore((s) => s.user);
   const [forms, setForms] = useState(null);
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState('');
@@ -153,7 +155,7 @@ export default function FormsAdmin() {
                     <button onClick={() => navigate(`/admin/forms/${f.id}`)} className="flex items-center gap-1.5 rounded-lg bg-accent px-3.5 py-2 text-xs font-semibold text-white"><Pencil size={13} /> Edit</button>
                     <button onClick={() => navigate(`/admin/forms/${f.id}?tab=responses`)} className="flex items-center gap-1.5 rounded-lg border border-line px-3.5 py-2 text-xs font-semibold text-fg2 hover:border-tech hover:text-tech"><Users size={13} /> Responses</button>
                     <button onClick={() => copy(f)} disabled={!!busy} aria-label="Make a copy" title="Make a copy" className="ml-auto grid size-9 place-items-center rounded-lg text-fg2 hover:bg-tech/10 hover:text-tech disabled:opacity-50">{busy === `copy${f.id}` ? <Loader2 size={15} className="animate-spin" /> : <CopyPlus size={15} />}</button>
-                    <button onClick={() => remove(f)} aria-label="Delete form" title="Delete" className="grid size-9 place-items-center rounded-lg text-fg2 hover:bg-red-500/10 hover:text-red-500"><Trash2 size={15} /></button>
+                    {canDelete(user) && <button onClick={() => remove(f)} aria-label="Delete form" title="Delete" className="grid size-9 place-items-center rounded-lg text-fg2 hover:bg-red-500/10 hover:text-red-500"><Trash2 size={15} /></button>}
                   </div>
                 </Panel>
               );

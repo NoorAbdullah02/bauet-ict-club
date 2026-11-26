@@ -355,15 +355,28 @@ class PillChip extends StatelessWidget {
   }
 }
 
+/// "Ms. Nusrat Jahan" -> "NJ": the first letters of the first two name words, skipping titles.
+/// The website's people photos use the same rule, so a missing photo looks the same on both.
+String initialsOf(String name) {
+  const titles = {'mr', 'mr.', 'mrs', 'mrs.', 'ms', 'ms.', 'dr', 'dr.', 'prof', 'prof.', 'md', 'md.', 'engr', 'engr.'};
+  final words = name.trim().split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
+  final names = words.where((w) => !titles.contains(w.toLowerCase())).toList();
+  final pick = (names.isEmpty ? words : names).take(2);
+  return pick.map((w) => w.characters.first.toUpperCase()).join();
+}
+
 /// Network image with shimmer placeholder + graceful error.
 class NetImage extends StatelessWidget {
-  const NetImage(this.url, {super.key, this.fit = BoxFit.cover, this.radius = 0, this.width, this.height, this.fallbackLabel});
+  const NetImage(this.url, {super.key, this.fit = BoxFit.cover, this.radius = 0, this.width, this.height, this.fallbackLabel, this.alignment = Alignment.center});
   final String url;
   final BoxFit fit;
   final double radius;
   final double? width;
   final double? height;
   final String? fallbackLabel;
+
+  /// Which part of the picture stays visible when [fit] crops it (circle photos of people use a little above the middle).
+  final Alignment alignment;
 
   @override
   Widget build(BuildContext context) {
@@ -374,7 +387,7 @@ class NetImage extends StatelessWidget {
           alignment: Alignment.center,
           decoration: BoxDecoration(gradient: LinearGradient(colors: [p.accent.withValues(alpha: 0.35), p.tech.withValues(alpha: 0.35)])),
           child: fallbackLabel != null && fallbackLabel!.isNotEmpty
-              ? Text(fallbackLabel!.characters.first.toUpperCase(), style: displayStyle(context, 28, color: Colors.white))
+              ? FittedBox(fit: BoxFit.scaleDown, child: Text(initialsOf(fallbackLabel!), style: displayStyle(context, 28, color: Colors.white)))
               : Icon(Icons.image_outlined, color: p.fg.withValues(alpha: 0.5)),
         );
     final Widget img = url.isEmpty
@@ -382,6 +395,7 @@ class NetImage extends StatelessWidget {
         : CachedNetworkImage(
             imageUrl: url,
             fit: fit,
+            alignment: alignment,
             width: width,
             height: height,
             memCacheWidth: width != null ? (width! * 2).round().clamp(120, 1200) : 720,

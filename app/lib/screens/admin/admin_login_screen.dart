@@ -77,7 +77,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
     if (_user.text.trim().isEmpty) {
       setState(() {
         _resetNote = null;
-        _error = 'Type your username first, then press Forgot password.';
+        _error = 'Type your username or e-mail first, then press Forgot password.';
       });
       return;
     }

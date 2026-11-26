@@ -177,6 +177,30 @@ class FaqItem {
   final int order;
 }
 
+/// A weekly club session (programming practice, web development...), shown on the Events screen.
+class WeeklySession {
+  WeeklySession.fromJson(Map<String, dynamic> j)
+      : id = _i(j['id']),
+        title = _s(j['title']),
+        topic = _s(j['topic']),
+        day = _s(j['day']),
+        time = _s(j['time']),
+        place = _s(j['place']),
+        note = _s(j['note']),
+        order = _i(j['sort_order']),
+        active = j['active'] == null ? true : _b(j['active']);
+
+  final int id;
+  final String title;
+  final String topic;
+  final String day;
+  final String time;
+  final String place;
+  final String note;
+  final int order;
+  final bool active;
+}
+
 class Sponsor {
   Sponsor.fromJson(Map<String, dynamic> j)
       : id = _i(j['id']),
@@ -227,7 +251,20 @@ class SiteSettings {
     this.fb = '',
     this.email = '',
     this.phone = '',
-  });
+    Map<String, String> texts = const {},
+  }) : _texts = texts;
+
+  /// The headings an admin can change on the website (Settings → Page headings).
+  static const pageKeys = [
+    'aboutTag', 'aboutTitle', 'aboutWhatWeDo', 'aboutWhatWeDoSub',
+    'galleryTag', 'galleryTitle', 'galleryDesc',
+    'teamTag', 'teamTitle', 'teamDesc', 'teamAdvisorsTag', 'teamAdvisors',
+    'joinTag', 'joinTitle', 'joinDesc',
+    'joinCommitteeTag', 'joinCommitteeTitle', 'joinCommitteeDesc',
+    'joinGeneralTag', 'joinGeneralTitle', 'joinGeneralDesc',
+    'joinAmbassadorTag', 'joinAmbassadorTitle', 'joinAmbassadorDesc',
+    'contactTag', 'contactTitle', 'contactDesc',
+  ];
 
   factory SiteSettings.fromJson(Map<String, dynamic> j) {
     final social = j['socialLinks'] is Map ? Map<String, dynamic>.from(j['socialLinks'] as Map) : <String, dynamic>{};
@@ -239,6 +276,7 @@ class SiteSettings {
       fb: _s(social['fb']),
       email: _s(social['email']),
       phone: _s(social['phone']),
+      texts: {for (final k in pageKeys) if (j[k] is String) k: j[k] as String},
     );
   }
 
@@ -249,6 +287,13 @@ class SiteSettings {
   final String fb;
   final String email;
   final String phone;
+  final Map<String, String> _texts;
+
+  /// A heading an admin set on the website, or [fallback] while it is still blank.
+  String pageText(String key, String fallback) {
+    final v = _texts[key]?.trim();
+    return v == null || v.isEmpty ? fallback : v;
+  }
 }
 
 class Registration {

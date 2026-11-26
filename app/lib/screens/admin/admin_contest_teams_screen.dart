@@ -185,7 +185,8 @@ class _AdminContestTeamsScreenState extends State<AdminContestTeamsScreen> {
                     Row(children: [
                       Expanded(child: Text('${t['team_name']}', style: bodyStyle(context, weight: FontWeight.w700, size: 16))),
                       IconButton(tooltip: 'Edit team', onPressed: () => _editTeam(t), icon: Icon(Icons.edit_outlined, color: p.accent)),
-                      IconButton(tooltip: 'Remove team', onPressed: () => _remove(t), icon: const Icon(Icons.delete_outline_rounded, color: Color(0xFFEF4444))),
+                      if (!_state.isEditor)
+                        IconButton(tooltip: 'Remove team', onPressed: () => _remove(t), icon: const Icon(Icons.delete_outline_rounded, color: Color(0xFFEF4444))),
                     ]),
                     Text('${t['leader_name']} · ${t['email']}${'${t['phone'] ?? ''}'.isNotEmpty ? ' · ${t['phone']}' : ''}', style: bodyStyle(context, size: 12.5, color: p.muted)),
                     if (t['members'] is List && (t['members'] as List).isNotEmpty) Text((t['members'] as List).whereType<Map>().map((m) => '${m['name']}').join(', '), style: bodyStyle(context, size: 12.5, color: p.muted)),

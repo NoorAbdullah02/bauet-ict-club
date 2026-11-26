@@ -23,9 +23,9 @@ function ResetPanel({ mode, setMode, username, setUsername }) {
 
   const ask = async (e) => {
     e.preventDefault(); setErr(''); setMsg('');
-    if (!username.trim()) { setErr('Type your username first.'); return; }
+    if (!username.trim()) { setErr('Type your username or e-mail first.'); return; }
     setBusy(true);
-    try { const r = await api.post('/auth/forgot', { username: username.trim() }); setMsg(r.data?.message || 'A reset link was sent to the club e-mail address.'); }
+    try { const r = await api.post('/auth/forgot', { username: username.trim() }); setMsg(r.data?.message || 'A reset link was sent to the e-mail address on that account.'); }
     catch (ex) { setErr(ex?.response?.status === 429 ? 'Too many requests. Wait a few minutes and try again.' : ex?.response?.data?.error || 'The server did not answer. It may be waking up. Wait a minute and try again.'); }
     setBusy(false);
   };
@@ -43,7 +43,7 @@ function ResetPanel({ mode, setMode, username, setUsername }) {
       <div className="mb-6 text-center">
         <div className="mx-auto mb-4 grid size-14 place-items-center rounded-2xl bg-tech/10 text-tech">{mode === 'reset' ? <KeyRound size={26} /> : <Mail size={26} />}</div>
         <h1 className="text-[1.6rem] leading-tight text-fg">{done ? 'Password changed' : mode === 'reset' ? 'Choose a new password' : 'Forgot your password?'}</h1>
-        <p className="mt-1.5 text-sm text-fg2">{done ? 'You can sign in with the new password now.' : mode === 'reset' ? '6 or more characters, with letters and numbers or symbols.' : 'We e-mail a one-time link to the e-mail address this account was made with. The link works for 30 minutes.'}</p>
+        <p className="mt-1.5 text-sm text-fg2">{done ? 'You can sign in with the new password now.' : mode === 'reset' ? '6 or more characters, with letters and numbers or symbols.' : 'Type the username or e-mail this account was made with. We e-mail a one-time link there, and it works for 30 minutes.'}</p>
       </div>
       {done ? (
         <button type="button" onClick={() => setMode('in')} className="btn-primary w-full !py-3.5"><Lock size={15} /> Go to sign in</button>
@@ -62,8 +62,8 @@ function ResetPanel({ mode, setMode, username, setUsername }) {
         </form>
       ) : (
         <form onSubmit={ask} noValidate>
-          <label className="mb-2 block"><span className="mb-1.5 block font-mono text-[11px] uppercase tracking-[0.14em] text-fg2">Username</span>
-            <span className="relative block"><input className={field} value={username} onChange={(e) => setUsername(e.target.value)} autoCapitalize="none" spellCheck={false} />
+          <label className="mb-2 block"><span className="mb-1.5 block font-mono text-[11px] uppercase tracking-[0.14em] text-fg2">Username or e-mail</span>
+            <span className="relative block"><input className={field} value={username} onChange={(e) => setUsername(e.target.value)} autoCapitalize="none" autoComplete="username" spellCheck={false} placeholder="editor or you@example.com" />
               <User size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted peer-focus:text-tech" /></span></label>
           {msg && <p role="status" className="mt-4 flex items-start gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-2.5 text-sm text-emerald-600"><CheckCircle2 size={16} className="mt-0.5 shrink-0" /> {msg}</p>}
           {err && <p role="alert" className="mt-4 flex items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-3.5 py-2.5 text-sm text-red-500"><AlertCircle size={16} className="shrink-0" /> {err}</p>}

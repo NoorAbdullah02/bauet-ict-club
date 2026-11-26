@@ -23,7 +23,7 @@ export default function Contact() {
     { icon: Mail, label: 'Email', value: s.email || 'ictclubbauet@gmail.com', href: `mailto:${s.email || 'ictclubbauet@gmail.com'}` },
     { icon: Facebook, label: 'Facebook Page', value: 'fb.com/bauetictclub', href: s.fb || 'https://www.facebook.com/bauetictclub' },
     { icon: Phone, label: 'Phone', value: s.phone || '01748-269350', href: `tel:${s.phone || '01748-269350'}` },
-    { icon: MapPin, label: 'Location', value: 'BAUET, Qadirabad Cantonment, Natore, Rajshahi' },
+    { icon: MapPin, label: 'Location', value: settings?.contactAddress || 'BAUET, Qadirabad Cantonment, Natore, Rajshahi' },
     { icon: Globe, label: 'Website', value: s.website || 'bauet.ac.bd', href: `https://${s.website || 'bauet.ac.bd'}` },
   ];
 
@@ -55,9 +55,9 @@ export default function Contact() {
     <section id="contact" className="section" ref={ref}>
       <div className="container">
         <motion.div className="section-header" initial="hidden" animate={inView ? 'visible' : 'hidden'} variants={fadeUp} custom={0}>
-          <div className="section-tag">Get In Touch</div>
-          <h2 className="section-title">Contact Us</h2>
-          <p className="section-desc">Have a question or want to collaborate?</p>
+          <div className="section-tag">{settings?.contactTag || 'Get In Touch'}</div>
+          <h2 className="section-title">{settings?.contactTitle || 'Contact Us'}</h2>
+          <p className="section-desc">{settings?.contactDesc || 'Have a question or want to collaborate?'}</p>
           <div className="divider" />
         </motion.div>
 

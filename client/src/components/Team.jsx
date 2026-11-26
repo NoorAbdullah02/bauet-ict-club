@@ -27,8 +27,11 @@ const CORE_POSITIONS = ['General Secretary', 'Asst. General Secretary', 'Joint S
 const isLeader = (p) => /^((Vice President|VP)\b|President)/i.test(p);
 const isCore = (p) => CORE_POSITIONS.includes(p) || (/Secretary|Treasurer/.test(p) && !/^Executive/.test(p));
 
-function getInitials(name) {
-  return name.split(' ').filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase();
+function getInitials(name = '') {
+  // Skip titles so "Ms. Nusrat Jahan" reads "NJ", the same rule the app uses.
+  const words = name.split(/\s+/).filter(Boolean);
+  const names = words.filter(w => !/^(mr|mrs|ms|dr|prof|md|engr)\.?$/i.test(w));
+  return (names.length ? names : words).slice(0, 2).map(w => w[0]).join('').toUpperCase();
 }
 
 function getIcon(pos) {
@@ -38,22 +41,31 @@ function getIcon(pos) {
   return Award;
 }
 
+/** A round portrait. The picture is kept sharp (2-3x the drawn size) and framed a little above the middle, so a tall photo does not show only a chin.
+ *  If the picture cannot be loaded the initials take its place instead of an empty circle. */
 function Avatar({ person, size = 48, ring }) {
+  const [failed, setFailed] = useState(false);
+  const src = person.image_url ? thumb(person.image_url, Math.round(size * 3)) : '';
   return (
     <div style={{
+      position: 'relative', overflow: 'hidden',
       width: size, height: size, borderRadius: '50%', margin: ring ? '0 auto' : 0, flexShrink: 0,
-      background: person.image_url ? `url(${thumb(person.image_url, 420)}) center/cover no-repeat` : 'linear-gradient(135deg, var(--accent), var(--tech))',
+      background: 'linear-gradient(135deg, var(--accent), var(--tech))',
       display: 'grid', placeItems: 'center', color: '#fff', fontWeight: 700, fontSize: size * 0.36,
       fontFamily: 'var(--font-display)',
       boxShadow: ring ? '0 0 0 3px rgba(255,255,255,0.15), 0 0 40px rgba(var(--accent-rgb),0.5)' : 'none',
     }}>
-      {!person.image_url && getInitials(person.name)}
+      {src && !failed
+        ? <img src={src} alt="" loading="lazy" decoding="async" onError={() => setFailed(true)}
+            style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 30%' }} />
+        : getInitials(person.name)}
     </div>
   );
 }
 
 /** The club's advisors (teachers who guide the club), shown above the committee. */
 function AdvisorsPanel({ advisors }) {
+  const settings = useStore((s) => s.settings);
   const list = (advisors || []).filter((a) => a.active !== false);
   if (!list.length) return null;
   const chief = list.find((a) => /chief/i.test(a.designation || ''));
@@ -63,8 +75,8 @@ function AdvisorsPanel({ advisors }) {
       style={{ position: 'relative', width: big ? 'min(100%, 380px)' : 'min(100%, 280px)', background: 'var(--bg-surface)', border: big ? '1px solid rgba(var(--accent-rgb),0.45)' : '1px solid var(--border)', borderRadius: 24, overflow: 'hidden', textAlign: 'center', boxShadow: big ? 'var(--shadow-lg)' : 'var(--shadow-md)' }}>
       <div style={{ height: big ? 6 : 4, background: 'linear-gradient(90deg,#35D989,#38C8F0,#8B5CF6,#FF6B8A)' }} />
       <div style={{ padding: big ? '30px 22px 24px' : '22px 16px 18px' }}>
-        <div style={{ padding: 3, width: big ? 148 : 100, height: big ? 148 : 100, margin: '0 auto', borderRadius: '50%', background: 'linear-gradient(135deg,#35D989,#38C8F0,#8B5CF6)' }}>
-          <Avatar person={a} size={big ? 142 : 94} />
+        <div style={{ padding: 4, width: big ? 164 : 112, height: big ? 164 : 112, margin: '0 auto', borderRadius: '50%', background: 'linear-gradient(135deg,#35D989,#38C8F0,#8B5CF6)', boxShadow: '0 10px 26px rgba(56,200,240,0.28)' }}>
+          <Avatar person={a} size={big ? 156 : 104} />
         </div>
         <span className="badge badge-tech" style={{ display: 'inline-block', marginTop: 14 }}>{a.designation || 'Advisor'}</span>
         <h3 style={{ fontSize: big ? 24 : 18, marginTop: 8, color: 'var(--fg)', lineHeight: 1.2 }}>{a.name}</h3>
@@ -80,8 +92,8 @@ function AdvisorsPanel({ advisors }) {
   return (
     <section aria-label="Advisors" style={{ marginBottom: 40 }}>
       <div style={{ textAlign: 'center', marginBottom: 20 }}>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 11, color: 'var(--tech)', textTransform: 'uppercase', letterSpacing: 3, fontWeight: 700 }}><GraduationCap size={15} /> Our advisors</span>
-        <h2 style={{ fontSize: 'clamp(1.5rem,3vw,2.1rem)', marginTop: 6, color: 'var(--fg)' }}>Guided by experience</h2>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 11, color: 'var(--tech)', textTransform: 'uppercase', letterSpacing: 3, fontWeight: 700 }}><GraduationCap size={15} /> {settings?.teamAdvisorsTag || 'Our advisors'}</span>
+        <h2 style={{ fontSize: 'clamp(1.5rem,3vw,2.1rem)', marginTop: 6, color: 'var(--fg)' }}>{settings?.teamAdvisors || 'Guided by experience'}</h2>
       </div>
       {chief && <div style={{ display: 'flex', justifyContent: 'center', marginBottom: others.length ? 18 : 0 }}>{card(chief, 0, true)}</div>}
       {others.length > 0 && <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 18 }}>{others.map((a, i) => card(a, i + 1, false))}</div>}
@@ -224,6 +236,7 @@ function useSessions(dbMembers, currentSessionLabel) {
 }
 
 export default function Team() {
+  const settings = useStore((s) => s.settings);
   const advisors = useStore((s) => s.advisors);
   const dbMembersAll = useStore((s) => s.members);
   const storeSessions = useStore((s) => s.sessions);
@@ -277,9 +290,9 @@ export default function Team() {
     return (
       <section id="team" className="section">
         <div className="container" style={{ textAlign: 'center' }}>
-          <div className="section-tag">Our People</div>
-          <h2 className="section-title">Executive Committee</h2>
-          <p className="section-desc">The executive committee will be announced here soon.</p>
+          <div className="section-tag">{settings?.teamTag || 'Our People'}</div>
+          <h2 className="section-title">{settings?.teamTitle || 'Executive Committee'}</h2>
+          <p className="section-desc">{settings?.teamDesc || 'The executive committee will be announced here soon.'}</p>
         </div>
       </section>
     );
@@ -305,19 +318,19 @@ export default function Team() {
           border: 1px solid rgba(255,255,255,0.16); backdrop-filter: blur(8px);
           transition: transform 0.4s var(--ease), border-color 0.3s, box-shadow 0.4s; }
         .vp-card:hover { transform: translateY(-5px); border-color: rgba(var(--tech-rgb),0.7); box-shadow: 0 18px 44px rgba(0,0,0,0.35), 0 0 30px rgba(var(--tech-rgb),0.2); }
-        .vp-name { margin-top: 12px; font-size: 16px; font-weight: 700; color: #fff; font-family: var(--font-display); line-height: 1.25; }
-        .vp-role { display: inline-block; margin-top: 8px; padding: 4px 12px; border-radius: 999px; font-size: 10px; font-weight: 700;
-          letter-spacing: 1.2px; text-transform: uppercase; color: #fff; background: linear-gradient(120deg, rgba(31,79,216,0.85), rgba(14,159,110,0.85)); }
+        .vp-name { margin-top: 12px; font-size: 17px; font-weight: 700; color: #fff; font-family: var(--font-display); line-height: 1.25; }
+        .vp-role { display: inline-block; margin-top: 8px; max-width: 100%; padding: 5px 12px; border-radius: 10px; font-size: 11px; font-weight: 700;
+          letter-spacing: 0.3px; line-height: 1.35; color: #fff; background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.22); }
       `}</style>
 
       <div className="container">
         <motion.div initial={{ opacity: 0, y: 30 }} animate={inView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.6 }}
           style={{ textAlign: 'center', marginBottom: 44 }}>
           <div className="section-tag" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-            Our People
+            {settings?.teamTag || 'Our People'}
           </div>
-          <h2 className="section-title">Executive Committee</h2>
-          <p className="section-desc">The dedicated team driving innovation at BAUET ICT Club</p>
+          <h2 className="section-title">{settings?.teamTitle || 'Executive Committee'}</h2>
+          <p className="section-desc">{settings?.teamDesc || 'The dedicated team driving innovation at BAUET ICT Club'}</p>
           <div className="divider" />
         </motion.div>
 
@@ -366,28 +379,28 @@ export default function Team() {
               }}>
                 <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 60% 80% at 50% 0%, rgba(var(--accent-rgb),0.28), transparent 70%)', pointerEvents: 'none' }} />
                 <div style={{ position: 'relative' }}>
-                  <div style={{ fontSize: 10, color: 'var(--tech)', textTransform: 'uppercase', letterSpacing: 3, fontWeight: 700, marginBottom: 18 }}>
-                    Leadership
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginBottom: 22 }}>
+                    <span style={{ height: 1, width: 44, background: 'rgba(255,255,255,0.22)' }} />
+                    <span style={{ fontSize: 11.5, color: 'var(--tech)', textTransform: 'uppercase', letterSpacing: 3, fontWeight: 700 }}>Leadership</span>
+                    <span style={{ height: 1, width: 44, background: 'rgba(255,255,255,0.22)' }} />
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'center', gap: 28, flexWrap: 'wrap', marginBottom: committee.vps.length ? 26 : 0 }}>
                     {committee.presidents.map((p) => (
                       <div key={p.name}>
-                        <Avatar person={p} size={92} ring />
-                        <div style={{ fontSize: 22, fontWeight: 700, color: '#fff', fontFamily: 'var(--font-display)', marginTop: 12, marginBottom: 4 }}>{p.name}</div>
-                        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: 2, fontWeight: 600 }}>{p.title}</div>
+                        <Avatar person={p} size={100} ring />
+                        <div style={{ fontSize: 24, fontWeight: 700, color: '#fff', fontFamily: 'var(--font-display)', marginTop: 14 }}>{p.name}</div>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', marginTop: 8, padding: '5px 14px', borderRadius: 999, background: 'rgba(255,255,255,0.14)', border: '1px solid rgba(255,255,255,0.28)', fontSize: 11, fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', color: '#fff' }}>{p.title}</div>
                       </div>
                     ))}
                   </div>
                   {committee.vps.length > 0 && committee.presidents.length > 0 && <div className="lead-link" />}
                   <div className="vp-row">
-                    {committee.vps.map((vp, i) => (
-                      <motion.div key={vp.name + vp.title} className="vp-card"
-                        initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-                        transition={{ duration: 0.5, delay: i * 0.1, ease: [0.16, 1, 0.3, 1] }}>
+                    {committee.vps.map((vp) => (
+                      <div key={vp.name + vp.title} className="vp-card">
                         <Avatar person={vp} size={68} ring />
                         <div className="vp-name">{vp.name}</div>
                         <div className="vp-role">{vp.title || 'Vice President'}</div>
-                      </motion.div>
+                      </div>
                     ))}
                   </div>
                 </div>

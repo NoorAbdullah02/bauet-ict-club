@@ -11,7 +11,7 @@ const HIGHLIGHT_VIDEOS = [
     duration: '2:15',
     embedId: 'dQw4w9WgXcQ', // Can be replaced with actual club channel video ID
     youtubeUrl: 'https://www.youtube.com',
-    thumbnail: 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=1200&q=80',
+    thumbnail: 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=720&q=70',
     description: 'A glimpse into the energy, collaborative hackathons, and creative projects at BAUET ICT Club.',
   },
   {
@@ -21,7 +21,7 @@ const HIGHLIGHT_VIDEOS = [
     duration: '3:40',
     embedId: 'L_LUpnjgPso',
     youtubeUrl: 'https://www.youtube.com',
-    thumbnail: 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?auto=format&fit=crop&w=1200&q=80',
+    thumbnail: 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?auto=format&fit=crop&w=720&q=70',
     description: '36 hours of non-stop code, engineering prototypes, and high-stakes pitch presentations.',
   },
   {
@@ -31,7 +31,7 @@ const HIGHLIGHT_VIDEOS = [
     duration: '4:10',
     embedId: 'fJ9rUzIMcZQ',
     youtubeUrl: 'https://www.youtube.com',
-    thumbnail: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=1200&q=80',
+    thumbnail: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=720&q=70',
     description: 'Hands-on sessions led by industry alumni and faculty advisors on state-of-the-art tech.',
   },
 ];

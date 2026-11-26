@@ -7,7 +7,7 @@ import { qrDataUrl } from '../lib/qr';
 export default function QrModal({ url, title, onClose }) {
   const [img, setImg] = useState('');
   const [big, setBig] = useState('');
-  useEffect(() => { qrDataUrl(url, 420).then(setImg); qrDataUrl(url, 1600).then(setBig); }, [url]);
+  useEffect(() => { qrDataUrl(url, 420).then(setImg).catch(() => {}); qrDataUrl(url, 1600).then(setBig).catch(() => {}); }, [url]);
   useEffect(() => { const k = (e) => e.key === 'Escape' && onClose(); window.addEventListener('keydown', k); return () => window.removeEventListener('keydown', k); }, [onClose]);
   return createPortal(
     <div className="fixed inset-0 z-[370] grid place-items-center bg-black/60 p-4" onClick={onClose} role="dialog" aria-label="QR code">
