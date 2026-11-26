@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/downloads.dart';
 import '../../core/i18n.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -90,6 +91,15 @@ class _AdminVisitorsScreenState extends State<AdminVisitorsScreen> {
                 Row(children: [
                   IconButton(tooltip: tr('Back'), onPressed: () => context.canPop() ? context.pop() : context.go('/admin'), icon: const Icon(Icons.arrow_back_rounded)),
                   Expanded(child: Text('Visitors', style: displayStyle(context, 24))),
+                  PopupMenuButton<String>(
+                    tooltip: 'Download raw visits',
+                    icon: const Icon(Icons.download_rounded),
+                    onSelected: (f) => downloadAndShare(context, _state.api, '/analytics/export', 'visitors-${DateTime.now().toIso8601String().substring(0, 10)}.$f', query: {'days': 30, 'format': f}),
+                    itemBuilder: (_) => const [
+                      PopupMenuItem(value: 'xlsx', child: Text('Raw visits (Excel)')),
+                      PopupMenuItem(value: 'csv', child: Text('Raw visits (CSV)')),
+                    ],
+                  ),
                   const AdminThemeButton(),
                   IconButton(tooltip: tr('Refresh'), onPressed: _load, icon: const Icon(Icons.refresh_rounded)),
                 ]),

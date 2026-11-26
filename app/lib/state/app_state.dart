@@ -56,6 +56,7 @@ class AppState extends ChangeNotifier {
   List<FaqItem> faqs = [];
   List<Sponsor> sponsors = [];
   List<Advisor> advisors = [];
+  List<WeeklySession> weeklySessions = [];
   SiteSettings settings = const SiteSettings();
 
   bool loading = true;
@@ -66,7 +67,17 @@ class AppState extends ChangeNotifier {
   String? error;
 
   String? adminName;
+
+  /// What the server says this login may do: 'superadmin' (main admin), 'admin' or 'editor'.
+  /// It is read from /auth/me at sign-in and refreshed on every start, so a demotion applies at once.
+  String? adminRole;
+
   bool get isAdmin => api.token != null;
+  bool get isSuperAdmin => adminRole == 'superadmin';
+
+  /// Editors may add and edit content and forms. The server keeps deleting, the trash, the activity log,
+  /// downloads, committees, team logins, e-mail tools and backups for the main admin.
+  bool get isEditor => adminRole == 'editor';
 
   Future<void> init() async {
     api.wake(); // wake the (free, sleeping) server while the app starts; not awaited
@@ -77,12 +88,30 @@ class AppState extends ChangeNotifier {
       themeMode = t == 'dark' ? ThemeMode.dark : t == 'system' ? ThemeMode.system : ThemeMode.light;
       api.token = _prefs?.getString('token');
       adminName = _prefs?.getString('admin');
+      adminRole = _prefs?.getString('admin_role');
       adminDark = _prefs?.getBool('admin_dark') ?? false;
       pushOn = _prefs?.getBool('push') ?? true;
       final saved = _prefs?.getStringList('push_topics');
       if (saved != null) pushTopics = saved.where(pushTopicNames.contains).toSet();
     } catch (_) {
       // Storage unavailable: continue with defaults.
+    }
+    if (api.token != null) _refreshAdmin(); // not awaited: the first screen must not wait for it
+  }
+
+  /// Asks the server who this login is now (a role can have changed since the last visit) and ends a session
+  /// the server no longer accepts.
+  Future<void> _refreshAdmin() async {
+    try {
+      final me = await api.authGet('/auth/me');
+      adminName = (me['username'] ?? adminName)?.toString();
+      final role = me['role']?.toString();
+      if (role != null && role.isNotEmpty) adminRole = role;
+      await _prefs?.setString('admin', adminName ?? '');
+      await _prefs?.setString('admin_role', adminRole ?? '');
+      notifyListeners();
+    } on ApiException catch (e) {
+      if (e.status == 401) await logout();
     }
   }
 
@@ -141,6 +170,18 @@ class AppState extends ChangeNotifier {
     }
   }
 
+  Future<void>? _loadingNow;
+
+  /// Loads the public content once, whoever opens the app first: the splash, a shared deep
+  /// link (#/team) or the admin area. A running load is reused, and a finished one is not
+  /// started again — screens can call this freely.
+  Future<void> ensureLoaded({bool fresh = false}) {
+    if (loadedOnce) return Future<void>.value();
+    // Screens call this from initState; loadAll() sets `loading` and notifies straight away, which
+    // would mark the provider dirty while it is still mounting. Start on the next microtask instead.
+    return _loadingNow ??= Future<void>.microtask(() => loadAll(fresh: fresh)).whenComplete(() => _loadingNow = null);
+  }
+
   Future<void> loadAll({bool fresh = true}) async {
     loading = true;
     error = null;
@@ -181,6 +222,7 @@ class AppState extends ChangeNotifier {
       faqs = rows('faqs', FaqItem.fromJson)..sort((a, b) => a.order.compareTo(b.order));
       sponsors = rows('sponsors', Sponsor.fromJson)..sort((a, b) => a.order.compareTo(b.order));
       advisors = rows('advisors', Advisor.fromJson).where((a) => a.active).toList()..sort((a, b) => a.order.compareTo(b.order));
+      weeklySessions = rows('weekly_sessions', WeeklySession.fromJson).where((s) => s.active).toList()..sort((a, b) => a.order.compareTo(b.order));
       final st = boot['settings'];
       if (st is Map) {
         final map = Map<String, dynamic>.from(st);
@@ -207,6 +249,7 @@ class AppState extends ChangeNotifier {
       guard(() async => faqs = (await _fetch('faqs', FaqItem.fromJson, fresh: fresh))..sort((a, b) => a.order.compareTo(b.order))),
       guard(() async => sponsors = (await _fetch('sponsors', Sponsor.fromJson, fresh: fresh))..sort((a, b) => a.order.compareTo(b.order))),
       guard(() async => advisors = (await _fetch('advisors', Advisor.fromJson, fresh: fresh)).where((a) => a.active).toList()..sort((a, b) => a.order.compareTo(b.order))),
+      guard(() async => weeklySessions = (await _fetch('weekly_sessions', WeeklySession.fromJson, fresh: fresh)).where((s) => s.active).toList()..sort((a, b) => a.order.compareTo(b.order))),
       guard(() async => settings = SiteSettings.fromJson(await _fetchSettings(fresh: fresh))),
     ]);
     error = firstError;
@@ -269,16 +312,22 @@ class AppState extends ChangeNotifier {
     if (token.isEmpty) throw ApiException('Login failed');
     api.token = token;
     // the very next request must work too; if the server refuses the session, say so here instead of bouncing back to this screen
+    Map<String, dynamic>? me;
     try {
-      await api.adminCall('GET', '/auth/me', query: {'_': DateTime.now().millisecondsSinceEpoch});
+      final r = await api.adminCall('GET', '/auth/me', query: {'_': DateTime.now().millisecondsSinceEpoch});
+      if (r is Map) me = Map<String, dynamic>.from(r);
     } on ApiException catch (e) {
       api.token = null;
       throw ApiException('You typed the right details, but the server did not accept the session (${e.status ?? 'no answer'}): ${e.message}');
     }
     onStage?.call('Signed in. Opening the admin area…');
-    adminName = res['user'] is Map ? (res['user']['username'] ?? username).toString() : username;
+    final user = res['user'];
+    adminName = (me?['username'] ?? (user is Map ? user['username'] : null) ?? username).toString();
+    final role = me?['role'] ?? (user is Map ? user['role'] : null);
+    if (role != null && role.toString().isNotEmpty) adminRole = role.toString();
     await _prefs?.setString('token', token);
     await _prefs?.setString('admin', adminName ?? '');
+    await _prefs?.setString('admin_role', adminRole ?? '');
     notifyListeners();
   }
 
@@ -293,14 +342,18 @@ class AppState extends ChangeNotifier {
   Future<void> logout() async {
     api.token = null;
     adminName = null;
+    adminRole = null;
     await _prefs?.remove('token');
     await _prefs?.remove('admin');
+    await _prefs?.remove('admin_role');
     notifyListeners();
   }
 
   /// Called when an admin request returns 401/403 (expired token).
   Future<void> handleAuthError(Object e) async {
-    if (e is ApiException && (e.status == 401 || e.status == 403)) {
+    // 401 means the session is gone. A 403 is the server saying "your login may not do this" (an editor
+    // pressing delete, a main-admin-only page): that must show its message, never sign the person out.
+    if (e is ApiException && e.status == 401) {
       signOutNote = e.message; // shown once on the sign-in screen, so a sign-out is never silent
       await logout();
     }

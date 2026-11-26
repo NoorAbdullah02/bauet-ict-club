@@ -135,7 +135,7 @@ export default function EventDetail() {
             </div>
           </motion.article>
 
-          <motion.aside initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.1 }} className="min-w-0 lg:sticky lg:top-24 lg:self-start">
+          <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.1 }} className="min-w-0 lg:sticky lg:top-24 lg:self-start">
             <div className="rounded-3xl border border-line bg-surface p-6 shadow-[var(--shadow-md)]">
               <div className="mb-4 flex items-center gap-3"><span className="grid size-11 place-items-center rounded-2xl bg-accent/10 text-accent"><Ticket size={20} /></span><div><h2 className="text-xl text-fg">Register</h2><p className="text-xs text-muted">{closed ? 'Registration is closed' : payCfg ? `Fee ${payCfg.amount} BDT · takes a minute` : 'Free · takes a minute'}</p></div></div>
 
@@ -179,7 +179,7 @@ export default function EventDetail() {
                 </form>
               )}
             </div>
-          </motion.aside>
+          </motion.div>
         </div>
       </div>
     </section>

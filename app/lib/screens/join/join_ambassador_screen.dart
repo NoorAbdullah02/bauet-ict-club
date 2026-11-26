@@ -97,6 +97,7 @@ class _JoinAmbassadorScreenState extends State<JoinAmbassadorScreen> {
   @override
   Widget build(BuildContext context) {
     final p = context.pal;
+    final s = context.watch<AppState>().settings;
     return Scaffold(
       body: AuroraBackground(
         child: SafeArea(
@@ -106,7 +107,7 @@ class _JoinAmbassadorScreenState extends State<JoinAmbassadorScreen> {
                   keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 40),
                   children: [
-                    const JoinTopBar(title: 'Department ambassador', eyebrow: 'Be the voice'),
+                    JoinTopBar(title: s.pageText('joinAmbassadorTitle', 'Department ambassador'), eyebrow: s.pageText('joinAmbassadorTag', 'Be the voice')),
                     const SizedBox(height: 14),
                     const PromptLine('apply --role=ambassador').stagger(0),
                     const SizedBox(height: 18),

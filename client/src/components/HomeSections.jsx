@@ -40,6 +40,7 @@ function Head({ tag, title, to, cta }) {
 export default function HomeSections() {
   const t = useT();
   const { events, notices, members } = useStore(useShallow((s) => ({ events: s.events, notices: s.notices, members: s.members })));
+  const settings = useStore((s) => s.settings);
   const upcoming = [...events].sort((a, b) => new Date(a.date) - new Date(b.date)).slice(0, 3);
   const pinned = [...notices].sort((a, b) => Number(b.pinned) - Number(a.pinned)).slice(0, 3);
 
@@ -48,9 +49,9 @@ export default function HomeSections() {
       <section className="section !pb-6">
         <div className="container grid items-center gap-12 lg:grid-cols-[1fr_1.1fr] [&>*]:min-w-0">
           <div>
-            <div className="section-tag !mb-4">the club, in code</div>
-            <h2 className="text-[clamp(2.2rem,5vw,3.6rem)] leading-[1.02] text-fg">Born in the terminal. <span className="bg-clip-text text-transparent grad-anim" style={{ backgroundImage: 'var(--grad-text)' }}>Built for builders.</span></h2>
-            <p className="mt-5 max-w-md text-base leading-8 text-fg2">We write code, break things, ship projects and win contests together. If you think in <code className="rounded bg-accent/10 px-1.5 py-0.5 font-mono text-[0.85em] text-accent">for</code> loops and late-night commits — you belong here.</p>
+            <div className="section-tag !mb-4">{settings?.homeIntroTag || 'the club, in code'}</div>
+            <h2 className="text-[clamp(2.2rem,5vw,3.6rem)] leading-[1.02] text-fg">{settings?.homeIntroTitle || <>Born in the terminal. <span className="bg-clip-text text-transparent grad-anim" style={{ backgroundImage: 'var(--grad-text)' }}>Built for builders.</span></>}</h2>
+            <p className="mt-5 max-w-md text-base leading-8 text-fg2">{settings?.homeIntroText || <>We write code, break things, ship projects and win contests together. If you think in <code className="rounded bg-accent/10 px-1.5 py-0.5 font-mono text-[0.85em] text-accent">for</code> loops and late-night commits — you belong here.</>}</p>
             <div className="prompt-line mt-6"><b>$</b> git log --oneline | head -3<br /><span className="text-tech">a1f9c2d</span> won national hackathon 2025<br /><span className="text-tech">7be03aa</span> 100+ open-source contributions<br /><span className="text-tech">3c8d41e</span> best university tech club award</div>
           </div>
           <CodeWindow />

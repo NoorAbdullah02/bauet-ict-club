@@ -9,6 +9,7 @@ import '../screens/achievements_screen.dart';
 import '../screens/admin/admin_applications_screen.dart';
 import '../screens/admin/admin_activity_screen.dart';
 import '../screens/admin/admin_checkin_screen.dart';
+import '../screens/admin/admin_downloads_screen.dart';
 import '../screens/admin/admin_forms_screen.dart';
 import '../screens/admin/admin_inbox_screen.dart';
 import '../screens/admin/admin_insights_screen.dart';
@@ -32,6 +33,7 @@ import '../screens/contact_screen.dart';
 import '../screens/event_detail_screen.dart';
 import '../screens/events_screen.dart';
 import '../screens/member_card_screen.dart';
+import '../screens/member_profile_screen.dart';
 import '../screens/public_form_screen.dart';
 import '../screens/search_screen.dart';
 import '../screens/ticket_screen.dart';
@@ -144,6 +146,10 @@ GoRouter buildRouter(AppState state) {
       GoRoute(path: '/tickets', pageBuilder: (c, s) => _slide(s, const MyTicketsScreen())),
       GoRoute(path: '/ticket/:code', pageBuilder: (c, s) => _slide(s, TicketScreen(code: s.pathParameters['code'] ?? ''))),
       GoRoute(path: '/verify/:code', pageBuilder: (c, s) => _slide(s, VerifyScreen(code: s.pathParameters['code'] ?? ''))),
+      GoRoute(path: '/verify', pageBuilder: (c, s) => _slide(s, const VerifyScreen(code: ''))),
+      GoRoute(path: '/certificate/:code', pageBuilder: (c, s) => _slide(s, VerifyScreen(code: s.pathParameters['code'] ?? ''))),
+      GoRoute(path: '/member/:id', pageBuilder: (c, s) => _slide(s, MemberProfileScreen(memberId: s.pathParameters['id'] ?? '', code: s.uri.queryParameters['c']))),
+      GoRoute(path: '/profile/:id', pageBuilder: (c, s) => _slide(s, MemberProfileScreen(memberId: s.pathParameters['id'] ?? '', code: s.uri.queryParameters['c']))),
       GoRoute(path: '/f/:slug', pageBuilder: (c, s) => _slide(s, PublicFormScreen(slug: s.pathParameters['slug'] ?? ''))),
       GoRoute(path: '/chat', pageBuilder: (c, s) => _slide(s, const ChatScreen())),
       GoRoute(path: '/admin/signup', pageBuilder: (c, s) => _slide(s, _admin(const AdminSignupScreen()))),
@@ -163,6 +169,7 @@ GoRouter buildRouter(AppState state) {
       GoRoute(path: '/admin/activity', pageBuilder: (c, s) => _slide(s, _admin(const AdminActivityScreen()))),
       GoRoute(path: '/admin/team', pageBuilder: (c, s) => _slide(s, _admin(const AdminTeamScreen()))),
       GoRoute(path: '/admin/newsletter', pageBuilder: (c, s) => _slide(s, _admin(const AdminNewsletterScreen()))),
+      GoRoute(path: '/admin/downloads', pageBuilder: (c, s) => _slide(s, _admin(const AdminDownloadsScreen()))),
       GoRoute(path: '/admin/inbox', pageBuilder: (c, s) => _slide(s, _admin(const AdminInboxScreen()))),
       GoRoute(path: '/admin/links', pageBuilder: (c, s) => _slide(s, _admin(const AdminLinksScreen()))),
       GoRoute(path: '/admin/transfer', pageBuilder: (c, s) => _slide(s, _admin(const AdminTransferScreen()))),

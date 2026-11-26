@@ -1,14 +1,15 @@
 import 'dart:io';
-import '../core/i18n.dart';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 
+import '../core/i18n.dart';
 import '../core/theme.dart';
 import '../core/utils.dart';
 
@@ -16,11 +17,13 @@ import '../core/utils.dart';
 class EditState {
   int quarter = 0; // 90 degree turns
   bool flip = false;
+  bool flipY = false;
   double zoom = 1;
   Offset pan = Offset.zero;
   double brightness = 0; // -0.4 .. 0.4
   double contrast = 1; // 0.6 .. 1.6
   double saturation = 1; // 0 .. 2
+  double tilt = 0; // straighten, in degrees (-15 .. 15)
 
   ui.ColorFilter get filter {
     const lr = 0.2126, lg = 0.7152, lb = 0.0722;
@@ -37,30 +40,48 @@ class EditState {
 
 Size _turned(ui.Image i, int quarter) => quarter.isOdd ? Size(i.height.toDouble(), i.width.toDouble()) : Size(i.width.toDouble(), i.height.toDouble());
 
-/// How far the picture may be moved before the crop frame would show empty space.
-Offset _maxPan(ui.Image i, Size frame, EditState s) {
+/// How far the picture is turned on screen: the quarter turns plus the straighten slider.
+double _angle(EditState s) => s.quarter * math.pi / 2 + s.tilt * math.pi / 180;
+
+/// Smallest scale at which the turned and straightened picture covers every corner of the frame.
+double _cover(ui.Image i, Size frame, EditState s) {
   final r = _turned(i, s.quarter);
-  final base = math.max(frame.width / r.width, frame.height / r.height);
-  final k = base * s.zoom;
-  return Offset(math.max(0, (r.width * k - frame.width) / 2), math.max(0, (r.height * k - frame.height) / 2));
+  final a = s.tilt * math.pi / 180;
+  final c = math.cos(a).abs(), n = math.sin(a).abs();
+  return math.max((frame.width * c + frame.height * n) / r.width, (frame.width * n + frame.height * c) / r.height);
 }
 
+/// How far the picture can still slide along its own (straightened) axes before a frame corner would show.
+Offset _room(ui.Image i, Size frame, EditState s) {
+  final r = _turned(i, s.quarter);
+  final k = _cover(i, frame, s) * s.zoom;
+  final a = s.tilt * math.pi / 180;
+  final c = math.cos(a).abs(), n = math.sin(a).abs();
+  return Offset(
+    math.max(0, k * r.width / 2 - (frame.width / 2) * c - (frame.height / 2) * n),
+    math.max(0, k * r.height / 2 - (frame.width / 2) * n - (frame.height / 2) * c),
+  );
+}
+
+/// Pan is clamped along the picture's own axes, so the straightened picture always covers all four corners.
 Offset _clampPan(ui.Image i, Size frame, EditState s) {
-  final m = _maxPan(i, frame, s);
-  return Offset(s.pan.dx.clamp(-m.dx, m.dx), s.pan.dy.clamp(-m.dy, m.dy));
+  final a = s.tilt * math.pi / 180;
+  final c = math.cos(a), n = math.sin(a);
+  final m = _room(i, frame, s);
+  final w1 = (s.pan.dx * c + s.pan.dy * n).clamp(-m.dx, m.dx);
+  final w2 = (-s.pan.dx * n + s.pan.dy * c).clamp(-m.dy, m.dy);
+  return Offset(w1 * c - w2 * n, w1 * n + w2 * c);
 }
 
 /// Draws the edited picture into a [frame]-sized area (white behind, in case the picture has see-through parts).
 void paintEdit(Canvas canvas, Size frame, ui.Image image, EditState s) {
   canvas.drawRect(Offset.zero & frame, Paint()..color = Colors.white);
-  final r = _turned(image, s.quarter);
-  final base = math.max(frame.width / r.width, frame.height / r.height);
-  final k = base * s.zoom;
+  final k = _cover(image, frame, s) * s.zoom;
   canvas.save();
   canvas.clipRect(Offset.zero & frame);
   canvas.translate(frame.width / 2 + s.pan.dx, frame.height / 2 + s.pan.dy);
-  canvas.rotate(s.quarter * math.pi / 2);
-  canvas.scale(s.flip ? -k : k, k);
+  canvas.rotate(_angle(s));
+  canvas.scale(s.flip ? -k : k, s.flipY ? -k : k);
   canvas.drawImage(image, Offset(-image.width / 2, -image.height / 2), Paint()..colorFilter = s.filter..filterQuality = FilterQuality.high);
   canvas.restore();
 }
@@ -81,8 +102,10 @@ Uint8List _encodeJpeg((Uint8List, int, int, int) a) {
   return Uint8List.fromList(img.encodeJpg(im, quality: a.$4));
 }
 
-const List<(String, double?)> _kShapes = [('Free', null), ('1:1', 1), ('4:3', 4 / 3), ('16:9', 16 / 9), ('3:4', 3 / 4)];
+const List<(String, int, int)> _kShapes = [('1:1', 1, 1), ('4:3', 4, 3), ('16:9', 16, 9), ('3:4', 3, 4)];
 const List<(String, int)> _kSizes = [('Small', 640), ('Medium', 1000), ('Large', 1600), ('HD', 2400)];
+/// Whole degrees show without a decimal, halves with one ("6°", "7.5°").
+String _deg(double v) => '${v % 1 == 0 ? v.round() : v.toStringAsFixed(1)}°';
 const List<(String, double, double, double)> _kLooks = [
   ('Original', 0, 1, 1),
   ('Vivid', 0.02, 1.12, 1.45),
@@ -118,7 +141,11 @@ class _ImageEditorScreenState extends State<ImageEditorScreen> {
   late int _size = widget.maxSide;
   String _look = 'Original';
   bool _saving = false;
+  double _quality = 0.85; // JPEG quality, 50 .. 100 %, the same starting point as the website editor
   Size _frame = const Size(300, 300);
+  final TextEditingController _wCtrl = TextEditingController(text: '4'); // custom shape, typed as W : H
+  final TextEditingController _hCtrl = TextEditingController(text: '3');
+  int _shapeW = 4, _shapeH = 3;
 
   @override
   void initState() {
@@ -140,11 +167,49 @@ class _ImageEditorScreenState extends State<ImageEditorScreen> {
     }
   }
 
-  void _touch() => setState(() => _tick++);
+  @override
+  void dispose() {
+    _wCtrl.dispose();
+    _hCtrl.dispose();
+    super.dispose();
+  }
+
+  /// The pan is kept inside what the current zoom and angle can cover, so no empty space ever shows.
+  void _touch() {
+    final image = _image;
+    if (image != null) _s.pan = _clampPan(image, _frame, _s);
+    setState(() => _tick++);
+  }
+
+  void _pickShape(int w, int h) {
+    if (w < 1 || h < 1) return;
+    _wCtrl.text = '$w';
+    _hCtrl.text = '$h';
+    setState(() {
+      _shapeW = w;
+      _shapeH = h;
+      _shape = w / h;
+      _s.pan = Offset.zero;
+      _tick++;
+    });
+  }
+
+  /// Typing in one box keeps the other box as it is and never moves the caret.
+  void _typeShape({int? w, int? h}) {
+    final nw = w ?? _shapeW, nh = h ?? _shapeH;
+    if (nw < 1 || nh < 1) return;
+    setState(() {
+      _shapeW = nw;
+      _shapeH = nh;
+      _shape = nw / nh;
+      _s.pan = Offset.zero;
+      _tick++;
+    });
+  }
 
   double get _frameAspect {
-    final i = _image!;
-    return _shape ?? (_turned(i, _s.quarter).width / _turned(i, _s.quarter).height);
+    final t = _turned(_image!, _s.quarter);
+    return _shape ?? t.width / t.height;
   }
 
   void _apply(Offset delta, double zoom) {
@@ -173,7 +238,7 @@ class _ImageEditorScreenState extends State<ImageEditorScreen> {
       final out = await pic.toImage(outW, outH);
       final data = await out.toByteData(format: ui.ImageByteFormat.rawRgba);
       if (data == null) throw StateError('no data');
-      final jpg = await compute(_encodeJpeg, (data.buffer.asUint8List(), outW, outH, 88));
+      final jpg = await compute(_encodeJpeg, (data.buffer.asUint8List(), outW, outH, (_quality * 100).round()));
       if (mounted) Navigator.of(context).pop(jpg);
     } catch (_) {
       if (mounted) {
@@ -187,11 +252,13 @@ class _ImageEditorScreenState extends State<ImageEditorScreen> {
     _s
       ..quarter = 0
       ..flip = false
+      ..flipY = false
       ..zoom = 1
       ..pan = Offset.zero
       ..brightness = 0
       ..contrast = 1
-      ..saturation = 1;
+      ..saturation = 1
+      ..tilt = 0;
     _look = 'Original';
     _shape = widget.aspect;
     _touch();
@@ -272,8 +339,12 @@ class _ImageEditorScreenState extends State<ImageEditorScreen> {
               _s.pan = Offset.zero;
               _touch();
             }),
-            _tool(Icons.flip_rounded, 'Flip', () {
+            _tool(Icons.flip_rounded, 'Mirror', () {
               _s.flip = !_s.flip;
+              _touch();
+            }),
+            _tool(Icons.flip_camera_android_rounded, 'Upside down', () {
+              _s.flipY = !_s.flipY;
               _touch();
             }),
             _tool(Icons.zoom_out_map_rounded, 'Fit', () {
@@ -284,11 +355,26 @@ class _ImageEditorScreenState extends State<ImageEditorScreen> {
           ]),
           if (widget.aspect == null) ...[
             _label('Shape'),
-            Wrap(spacing: 8, children: [for (final o in _kShapes) ChoiceChip(label: Text(o.$1 == 'Free' ? 'Original' : o.$1), selected: _shape == o.$2, onSelected: (_) => setState(() {
-                  _shape = o.$2;
-                  _s.pan = Offset.zero;
-                  _tick++;
-                }))]),
+            Wrap(spacing: 8, children: [
+              ChoiceChip(label: const Text('Original'), selected: _shape == null, onSelected: (_) => setState(() {
+                    _shape = null;
+                    _s.pan = Offset.zero;
+                    _tick++;
+                  })),
+              for (final o in _kShapes)
+                ChoiceChip(
+                  label: Text('${o.$2}:${o.$3}'),
+                  selected: _shape != null && (_shape! - o.$2 / o.$3).abs() < 0.001,
+                  onSelected: (_) => _pickShape(o.$2, o.$3),
+                ),
+            ]),
+            Wrap(crossAxisAlignment: WrapCrossAlignment.center, spacing: 8, runSpacing: 6, children: [
+              const Text('Custom shape', style: TextStyle(color: Colors.white54, fontSize: 12)),
+              _shapeField(_wCtrl, 'Shape width', (n) => _typeShape(w: n)),
+              const Text(':', style: TextStyle(color: Colors.white54)),
+              _shapeField(_hCtrl, 'Shape height', (n) => _typeShape(h: n)),
+              const Text('(for example 5 : 2)', style: TextStyle(color: Colors.white38, fontSize: 11)),
+            ]),
           ],
           _label('Look'),
           Wrap(spacing: 8, runSpacing: 4, children: [
@@ -302,14 +388,52 @@ class _ImageEditorScreenState extends State<ImageEditorScreen> {
                 _touch();
               }),
           ]),
+          _slider('Straighten', _s.tilt, -15, 15, (v) => _s.tilt = v, clearLook: false, divisions: 60, shown: _deg(_s.tilt)),
           _slider('Brightness', _s.brightness, -0.4, 0.4, (v) => _s.brightness = v),
           _slider('Contrast', _s.contrast, 0.6, 1.6, (v) => _s.contrast = v),
           _slider('Colour', _s.saturation, 0, 2, (v) => _s.saturation = v),
           _label('Size'),
-          Wrap(spacing: 8, children: [for (final o in _kSizes) ChoiceChip(label: Text('${o.$1} · ${o.$2}px'), selected: _size == o.$2, onSelected: (_) => setState(() => _size = o.$2))]),
+          Wrap(spacing: 8, runSpacing: 4, children: [
+            for (final o in _kSizes) ChoiceChip(label: Text('${o.$1} · ${o.$2}px'), selected: _size == o.$2, onSelected: (_) => setState(() => _size = o.$2)),
+            ActionChip(
+              avatar: const Icon(Icons.straighten_rounded, size: 16),
+              label: Text(_kSizes.any((o) => o.$2 == _size) ? 'Custom px' : 'Custom · $_size px'),
+              onPressed: _customSize,
+            ),
+          ]),
+          _label('Quality'),
+          Row(children: [
+            Expanded(
+              child: Slider(value: _quality, min: 0.5, max: 1, divisions: 10, label: '${(_quality * 100).round()}%', onChanged: (v) => setState(() => _quality = v)),
+            ),
+            SizedBox(width: 46, child: Text('${(_quality * 100).round()}%', textAlign: TextAlign.end, style: const TextStyle(color: Colors.white70, fontSize: 13))),
+          ]),
         ]),
       ),
     ]);
+  }
+
+  /// Any long side the person wants, from 160 px to 4000 px (the same range as the website editor).
+  Future<void> _customSize() async {
+    final ctrl = TextEditingController(text: '$_size');
+    final picked = await showDialog<int>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Custom size'),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          keyboardType: TextInputType.number,
+          decoration: const InputDecoration(labelText: 'Long side in pixels (max 4000)', suffixText: 'px'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, int.tryParse(ctrl.text.trim())), child: const Text('Use this size')),
+        ],
+      ),
+    );
+    ctrl.dispose();
+    if (picked != null && mounted) setState(() => _size = picked.clamp(160, 4000));
   }
 
   Widget _label(String t) => Padding(padding: const EdgeInsets.only(top: 14, bottom: 6), child: Text(t.toUpperCase(), style: const TextStyle(color: Colors.white54, fontSize: 11, letterSpacing: 1.2)));
@@ -320,14 +444,39 @@ class _ImageEditorScreenState extends State<ImageEditorScreen> {
         child: Padding(padding: const EdgeInsets.all(8), child: Column(mainAxisSize: MainAxisSize.min, children: [Icon(icon, color: Colors.white), const SizedBox(height: 4), Text(label, style: const TextStyle(color: Colors.white70, fontSize: 11))])),
       );
 
-  Widget _slider(String label, double v, double lo, double hi, void Function(double) set) => Row(children: [
+  Widget _slider(String label, double v, double lo, double hi, void Function(double) set, {bool clearLook = true, int? divisions, String? shown}) => Row(children: [
         SizedBox(width: 84, child: Text(label, style: const TextStyle(color: Colors.white70, fontSize: 13))),
-        Expanded(child: Slider(value: v.clamp(lo, hi), min: lo, max: hi, onChanged: (x) {
+        Expanded(child: Slider(value: v.clamp(lo, hi), min: lo, max: hi, divisions: divisions, onChanged: (x) {
           set(x);
-          _look = '';
+          if (clearLook) _look = '';
           _touch();
         })),
+        if (shown != null) SizedBox(width: 46, child: Text(shown, textAlign: TextAlign.end, style: const TextStyle(color: Colors.white70, fontSize: 13))),
       ]);
+
+  Widget _shapeField(TextEditingController c, String label, ValueChanged<int> onSet) => SizedBox(
+        width: 62,
+        child: Semantics(
+          label: label,
+          child: TextField(
+            controller: c,
+            keyboardType: TextInputType.number,
+            textAlign: TextAlign.center,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(2)],
+            style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+            decoration: InputDecoration(
+              isDense: true,
+              filled: true,
+              fillColor: const Color(0xFF0B0F1C),
+              contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
+              counterText: '',
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Colors.white24)),
+              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Colors.white70)),
+            ),
+            onChanged: (v) => onSet(int.tryParse(v) ?? 0),
+          ),
+        ),
+      );
 }
 
 /// Pick a picture (gallery or camera), let the person edit it, and save the result as a JPEG in the phone's temp folder.

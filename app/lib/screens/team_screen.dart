@@ -22,6 +22,7 @@ class _TeamScreenState extends State<TeamScreen> {
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
     final p = context.pal;
+    final s = state.settings;
 
     final sessions = state.teamMembers.map((m) => m.session).where((s) => s.isNotEmpty).toSet().toList()
       ..sort((a, b) => sessionRank(b).compareTo(sessionRank(a)));
@@ -50,7 +51,7 @@ class _TeamScreenState extends State<TeamScreen> {
         padding: kPagePadding,
         physics: const AlwaysScrollableScrollPhysics(),
         children: [
-          const SectionHeader(eyebrow: 'The people', title: 'Executive committee', subtitle: 'The team that runs BAUET ICT Club.').stagger(0),
+          SectionHeader(eyebrow: s.pageText('teamTag', 'The people'), title: s.pageText('teamTitle', 'Executive committee'), subtitle: s.pageText('teamDesc', 'The team that runs BAUET ICT Club.')).stagger(0),
           const SizedBox(height: 18),
           if (state.advisors.isNotEmpty) ...[
             _AdvisorsSection(advisors: state.advisors),
@@ -76,6 +77,12 @@ class _TeamScreenState extends State<TeamScreen> {
             const EmptyState(icon: Icons.groups_outlined, title: 'No members yet')
           else ...[
             if (leaders.isNotEmpty) ...[
+              Row(children: [
+                Icon(Icons.workspace_premium_rounded, size: 16, color: p.tech),
+                const SizedBox(width: 8),
+                Text('LEADERSHIP', style: monoStyle(context, size: 11, color: p.tech)),
+              ]),
+              const SizedBox(height: 12),
               for (var i = 0; i < leaders.length; i++)
                 Padding(padding: const EdgeInsets.only(bottom: 16), child: _LeaderCard(member: leaders[i]).stagger(i)),
             ],
@@ -97,7 +104,7 @@ class _LeaderCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = context.pal;
     return GestureDetector(
-      onTap: () => context.push('/card/${member.id}'),
+      onTap: () => context.push('/member/${member.id}'),
       child: Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(32),
@@ -113,12 +120,20 @@ class _LeaderCard extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(3),
           decoration: BoxDecoration(shape: BoxShape.circle, gradient: p.brand),
-          child: ClipOval(child: SizedBox(width: 92, height: 92, child: NetImage(member.imageUrl, fallbackLabel: member.name))),
+          child: ClipOval(child: SizedBox(width: 92, height: 92, child: NetImage(member.imageUrl, fallbackLabel: member.name, alignment: _faceFrame))),
         ),
         const SizedBox(width: 18),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Tag(member.position, color: p.tech),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: p.tech.withValues(alpha: 0.14),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: p.tech.withValues(alpha: 0.35)),
+              ),
+              child: Text(member.position, maxLines: 2, style: bodyStyle(context, size: 11.5, weight: FontWeight.w600, color: p.tech, height: 1.25)),
+            ),
             const SizedBox(height: 10),
             Text(member.name, style: displayStyle(context, 22)),
             const SizedBox(height: 4),
@@ -131,6 +146,10 @@ class _LeaderCard extends StatelessWidget {
     ));
   }
 }
+
+/// Circle photos of people: keep the frame a little above the middle so a tall picture shows the face, not the chin
+/// (the website uses the same rule).
+const Alignment _faceFrame = Alignment(0, -0.35);
 
 String _meta(Member m) => [m.department, if (m.batch.isNotEmpty) 'Batch ${m.batch}'].where((e) => e.isNotEmpty).join(' · ');
 
@@ -167,7 +186,7 @@ class _MemberCard extends StatelessWidget {
     final p = context.pal;
     return GlassCard(
       padding: const EdgeInsets.all(14),
-      onTap: () => context.push('/card/${member.id}'),
+      onTap: () => context.push('/member/${member.id}'),
       child: Column(children: [
         Expanded(
           child: AspectRatio(
@@ -175,7 +194,7 @@ class _MemberCard extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.all(2.5),
               decoration: BoxDecoration(shape: BoxShape.circle, gradient: p.brand),
-              child: ClipOval(child: NetImage(member.imageUrl, fallbackLabel: member.name)),
+              child: ClipOval(child: NetImage(member.imageUrl, fallbackLabel: member.name, alignment: _faceFrame)),
             ),
           ),
         ),
@@ -226,10 +245,11 @@ class _AdvisorsSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = context.pal;
+    final s = context.watch<AppState>().settings;
     final chief = advisors.where((a) => a.designation.toLowerCase().contains('chief')).cast<Advisor?>().firstWhere((_) => true, orElse: () => null);
     final others = advisors.where((a) => a != chief).toList();
     Widget card(Advisor a, bool big) => GestureDetector(
-          onTap: () => context.push('/card/a${a.id}'),
+                      onTap: () => context.push('/member/a${a.id}'),
           child: Container(
             width: big ? 270 : 210,
             padding: EdgeInsets.fromLTRB(14, big ? 20 : 16, 14, 14),
@@ -247,8 +267,8 @@ class _AdvisorsSection extends StatelessWidget {
                 decoration: const BoxDecoration(shape: BoxShape.circle, gradient: LinearGradient(colors: [Color(0xFF35D989), Color(0xFF38C8F0), Color(0xFF8B5CF6)])),
                 child: ClipOval(
                   child: a.imageUrl.isEmpty
-                      ? Container(color: const Color(0xFF0B2A78), alignment: Alignment.center, child: Text(a.name.trim().isEmpty ? '?' : a.name.trim()[0].toUpperCase(), style: displayStyle(context, big ? 40 : 30, color: Colors.white)))
-                      : NetImage(a.imageUrl, fit: BoxFit.cover),
+                      ? Container(color: const Color(0xFF0B2A78), alignment: Alignment.center, child: Text(a.name.trim().isEmpty ? '?' : initialsOf(a.name), style: displayStyle(context, big ? 40 : 30, color: Colors.white)))
+                      : NetImage(a.imageUrl, fit: BoxFit.cover, alignment: _faceFrame),
                 ),
               ),
               const SizedBox(height: 10),
@@ -264,10 +284,10 @@ class _AdvisorsSection extends StatelessWidget {
       Row(children: [
         Icon(Icons.school_rounded, size: 16, color: p.tech),
         const SizedBox(width: 8),
-        Text('OUR ADVISORS', style: monoStyle(context, size: 11, color: p.tech)),
+        Text(s.pageText('teamAdvisorsTag', 'Our advisors').toUpperCase(), style: monoStyle(context, size: 11, color: p.tech)),
       ]),
       const SizedBox(height: 4),
-      Text('Guided by experience', style: displayStyle(context, 24)),
+      Text(s.pageText('teamAdvisors', 'Guided by experience'), style: displayStyle(context, 24)),
       const SizedBox(height: 14),
       if (chief != null) Center(child: card(chief, true)),
       if (chief != null && others.isNotEmpty) const SizedBox(height: 14),

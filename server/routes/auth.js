@@ -102,22 +102,28 @@ const forgotLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 6, standardHead
 const resetLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 20, standardHeaders: true, legacyHeaders: false, message: { error: 'Too many attempts. Try again in a few minutes.' } });
 
 router.post('/forgot', forgotLimiter, async (req, res) => {
-  const username = typeof req.body?.username === 'string' ? req.body.username.trim().slice(0, 100) : '';
-  const same = { ok: true, message: 'If this account exists, a reset link was sent to the e-mail address of this account. It works once, for 30 minutes.' };
+  // people type either their user name or their e-mail here: both find the account
+  const typed = typeof req.body?.username === 'string' ? req.body.username.trim().slice(0, 200) : '';
+  const same = { ok: true, message: 'If this account exists, a reset link was sent to the e-mail address on that account. It works once, for 30 minutes.' };
+  const mailer = require('../utils/mailer');
+  // honest answer instead of a silent "sent": without a mail provider the link can never arrive
+  if (!mailer.provider()) return res.status(503).json({ error: 'E-mail is not set up on the server yet, so the reset link cannot be sent. Ask the main admin to set BREVO_API_KEY and MAIL_FROM.' });
   try {
-    if (!username) return res.json(same);
-    const { rows } = await pool.query('SELECT id, email, reset_expires FROM admins WHERE LOWER(username) = LOWER($1) LIMIT 1', [username]);
+    if (!typed) return res.json(same);
+    const { rows } = await pool.query('SELECT id, username, email, reset_expires FROM admins WHERE LOWER(username) = LOWER($1) OR LOWER(email) = LOWER($1) LIMIT 1', [typed]);
     const admin = rows[0];
     // one e-mail per account every 2 minutes, so nobody can fill the inbox
     const recent = admin?.reset_expires && new Date(admin.reset_expires).getTime() - RESET_MINUTES * 60000 > Date.now() - 2 * 60000;
     if (admin && !recent) {
       const token = crypto.randomBytes(32).toString('base64url');
       await pool.query('UPDATE admins SET reset_hash = $1, reset_expires = $2 WHERE id = $3', [resetHash(token), new Date(Date.now() + RESET_MINUTES * 60000), admin.id]);
-      const mailer = require('../utils/mailer');
-      const link = `${mailer.siteUrl()}/admin?reset=${encodeURIComponent(token)}&u=${encodeURIComponent(username)}`;
+      // the link must carry the real user name, even when an e-mail address was typed above
+      const link = `${mailer.siteUrl()}/admin?reset=${encodeURIComponent(token)}&u=${encodeURIComponent(admin.username)}`;
       const t = mailer.templates.adminReset(link, RESET_MINUTES);
       // the link goes to the e-mail address this account signed up with; an older account without one uses ADMIN_NOTIFY_EMAIL
-      mailer.sendMail({ to: admin.email || mailer.adminAddress(), subject: t.subject, html: t.html, text: t.text });
+      if (!mailer.sendMail({ to: admin.email || mailer.adminAddress(), subject: t.subject, html: t.html, text: t.text })) {
+        console.warn(`Password reset mail for admin ${admin.id} was not queued (missing or unusable e-mail address).`);
+      }
     }
     res.json(same);
   } catch (e) { fail(res, e); }

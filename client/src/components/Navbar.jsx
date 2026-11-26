@@ -107,7 +107,7 @@ export default function Navbar() {
       <div className="scroll-progress" />
       <motion.header initial={{ y: -90 }} animate={{ y: 0 }} transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
         className="fixed inset-x-0 top-0 z-[100] flex justify-center px-3 pt-3">
-        <nav className={cn('flex w-full max-w-6xl items-center justify-between rounded-full border px-3 py-2 pl-4 transition-all duration-500',
+        <nav className={cn('site-nav flex w-full items-center justify-between rounded-full border px-3 py-2 pl-4 transition-all duration-500',
           scrolled ? 'border-line bg-[var(--glass)] shadow-[var(--shadow-lg)] backdrop-blur-xl backdrop-saturate-150' : 'border-transparent bg-transparent')}>
           <Link to="/" className="nav-logo flex shrink-0 items-center" aria-label="BAUET ICT Club home"><Logo kind="club" height={42} priority /></Link>
 
@@ -137,14 +137,14 @@ export default function Navbar() {
               <Search size={16} />
               <kbd className="hidden xl:inline-block font-mono text-[10px] text-muted tracking-tight">Ctrl K</kbd>
             </button>
-            <a href="https://www.facebook.com/bauetictclub" target="_blank" rel="noopener noreferrer" className={cn(iconBtn, 'max-sm:hidden hover:border-[#1877F2] hover:text-[#1877F2]')} aria-label="Official Facebook Page" title="BAUET ICT Club on Facebook">
+            <a href="https://www.facebook.com/bauetictclub" target="_blank" rel="noopener noreferrer" className={cn(iconBtn, 'hidden xl:grid hover:border-[#1877F2] hover:text-[#1877F2]')} aria-label="Official Facebook Page" title="BAUET ICT Club on Facebook">
               <Facebook size={16} />
             </a>
             <button onClick={() => setTheme(nextTheme)} className={iconBtn} aria-label={`${themeLabel}. Press to change`} title={`${themeLabel}. Press to change`}>
               {theme === 'dark' ? <Moon size={16} /> : theme === 'system' ? <Monitor size={16} /> : <Sun size={16} />}
             </button>
-            <Link to="/app" className={cn(iconBtn, 'max-sm:hidden')} aria-label="Download the app" title="Download the app"><Download size={16} /></Link>
-            <Link to="/admin" onMouseEnter={() => import("../admin/AdminApp")} className={cn(iconBtn, 'max-sm:hidden')} aria-label="Admin"><Shield size={16} /></Link>
+            <Link to="/app" className={cn(iconBtn, 'hidden xl:grid')} aria-label="Download the app" title="Download the app"><Download size={16} /></Link>
+            <Link to="/admin" onMouseEnter={() => import("../admin/AdminApp")} className={cn(iconBtn, 'hidden xl:grid')} aria-label="Admin"><Shield size={16} /></Link>
             <Link to="/join" className="btn-join"><span>{t('Join us')}</span><i><ArrowRight size={14} /></i></Link>
             <button onClick={() => setMobileOpen((o) => !o)} className={cn(iconBtn, 'lg:hidden')} aria-label="Menu">
               {mobileOpen ? <X size={18} /> : <Menu size={18} />}

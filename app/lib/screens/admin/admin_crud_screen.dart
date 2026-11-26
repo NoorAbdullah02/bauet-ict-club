@@ -49,6 +49,9 @@ const Map<String, TableSpec> kTables = {
       FieldSpec('image_url', 'Image', FieldKind.image),
       FieldSpec('description', 'Description', FieldKind.multiline),
       FieldSpec('featured', 'Featured', FieldKind.boolean),
+      FieldSpec('reg_open', 'Registration open', FieldKind.boolean),
+      FieldSpec('capacity', 'Seats (0 = unlimited)', FieldKind.number),
+      FieldSpec('reg_url', 'Own registration form link (optional)'),
       FieldSpec('publish_at', 'When to publish', FieldKind.publish),
     ],
   ),
@@ -231,6 +234,38 @@ const Map<String, TableSpec> kTables = {
       FieldSpec('logo_url', 'Logo', FieldKind.image),
       FieldSpec('tier', 'Tier'),
       FieldSpec('sort_order', 'Sort order', FieldKind.number),
+    ],
+  ),
+  'weekly_sessions': TableSpec(
+    title: 'Weekly sessions',
+    titleKey: 'title',
+    subtitleKey: 'day',
+    icon: Icons.schedule_rounded,
+    fields: [
+      FieldSpec('title', 'Session name', FieldKind.text, true),
+      FieldSpec('topic', 'Topic (for example Web development)'),
+      FieldSpec('day', 'Day (for example Saturday)'),
+      FieldSpec('time', 'Time (for example 4:00 PM)'),
+      FieldSpec('place', 'Place'),
+      FieldSpec('note', 'Note'),
+      FieldSpec('sort_order', 'Order (1 shows first)', FieldKind.number),
+      FieldSpec('active', 'Show on the website and app', FieldKind.boolean),
+    ],
+  ),
+  'testimonials': TableSpec(
+    title: 'Testimonials',
+    titleKey: 'name',
+    subtitleKey: 'role',
+    icon: Icons.format_quote_rounded,
+    fields: [
+      FieldSpec('name', 'Name', FieldKind.text, true),
+      FieldSpec('role', 'Role (for example Alumni, CSE)'),
+      FieldSpec('batch', 'Batch'),
+      FieldSpec('quote', 'What they said', FieldKind.multiline, true),
+      FieldSpec('rating', 'Stars', FieldKind.choice, false, ['5', '4', '3', '2', '1']),
+      FieldSpec('image_url', 'Photo', FieldKind.image),
+      FieldSpec('sort_order', 'Order (1 shows first)', FieldKind.number),
+      FieldSpec('active', 'Show on the website and app', FieldKind.boolean),
     ],
   ),
   'subscribers': TableSpec(
@@ -439,7 +474,7 @@ class _AdminCrudScreenState extends State<AdminCrudScreen> {
                             spec: spec,
                             row: _rows[i],
                             onTap: () => spec.readOnly ? _view(_rows[i]) : _openForm(_rows[i]),
-                            onDelete: () => _delete(_rows[i]),
+                            onDelete: _state.isEditor ? null : () => _delete(_rows[i]),
                             extra: widget.table == 'events'
                                 ? IconButton(tooltip: 'Sign-up form, payment, certificate', onPressed: () => context.push('/admin/event-form/${_rows[i]['id']}'), icon: Icon(Icons.edit_note_rounded, color: p.accent, size: 24))
                                 : widget.table == 'contests'
@@ -464,7 +499,7 @@ class _RowTile extends StatelessWidget {
   final TableSpec spec;
   final Map<String, dynamic> row;
   final VoidCallback onTap;
-  final VoidCallback onDelete;
+  final VoidCallback? onDelete; // null for an editor login: the server does not let them delete
 
   @override
   Widget build(BuildContext context) {
@@ -494,7 +529,8 @@ class _RowTile extends StatelessWidget {
           ]),
         ),
         if (extra != null) extra!,
-        IconButton(tooltip: tr('Delete'), onPressed: onDelete, icon: const Icon(Icons.delete_outline_rounded, color: Color(0xFFEF4444), size: 22)),
+        if (onDelete != null)
+          IconButton(tooltip: tr('Delete'), onPressed: onDelete, icon: const Icon(Icons.delete_outline_rounded, color: Color(0xFFEF4444), size: 22)),
       ]),
     );
   }
@@ -544,7 +580,9 @@ class _RowFormState extends State<_RowForm> {
     for (final f in widget.spec.fields) {
       final v = widget.row?[f.key];
       if (f.kind == FieldKind.boolean) {
-        _bools[f.key] = v == true;
+                                // "active" and "registration open" default to on: a new item, or an old row saved
+                        // before that column existed (NULL), must not be stored as off by accident.
+                        _bools[f.key] = v == true || (v == null && (f.key == 'active' || f.key == 'reg_open'));
       } else {
         _ctrl[f.key] = TextEditingController(text: _display(v, f.kind));
       }
@@ -652,7 +690,7 @@ class _RowFormState extends State<_RowForm> {
                           controller: _ctrl[f.key]!,
                           label: f.label + (f.required ? ' *' : ''),
                           error: _errors[f.key],
-                          kind: widget.table == 'members' ? 'avatar' : (f.key == 'logo_url' ? 'logo' : 'cover'),
+                          kind: ['members', 'advisors', 'testimonials'].contains(widget.table) ? 'avatar' : (f.key == 'logo_url' ? 'logo' : 'cover'),
                         )
                   : f.kind == FieldKind.date
                       ? GestureDetector(

@@ -60,6 +60,7 @@ class ExportMenu extends StatelessWidget {
       icon: const Icon(Icons.download_rounded),
       onSelected: onPick,
       itemBuilder: (_) => const [
+        PopupMenuItem(value: 'xlsx', child: Text('Excel workbook (XLSX)')),
         PopupMenuItem(value: 'csv', child: Text('Spreadsheet (CSV)')),
         PopupMenuItem(value: 'pdf', child: Text('PDF')),
         PopupMenuItem(value: 'docx', child: Text('Word')),

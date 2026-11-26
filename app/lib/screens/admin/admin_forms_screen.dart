@@ -153,15 +153,16 @@ class _AdminFormsScreenState extends State<AdminFormsScreen> {
                       icon: Icon(f['is_open'] == false ? Icons.lock_open_rounded : Icons.lock_outline_rounded, size: 16),
                       label: Text(f['is_open'] == false ? 'Open' : 'Close'),
                     ),
-                    TextButton.icon(
-                      onPressed: () async {
-                        if (await confirmAction(context, title: 'Delete this form?', message: 'It goes to the Trash with its responses.', confirmText: 'Delete', danger: true)) {
-                          await _act(() async { await _state.api.adminCall('DELETE', '/forms/${f['id']}'); }, 'Moved to Trash');
-                        }
-                      },
-                      icon: const Icon(Icons.delete_outline_rounded, size: 16),
-                      label: Text(tr('Delete')),
-                    ),
+                    if (!_state.isEditor)
+                      TextButton.icon(
+                        onPressed: () async {
+                          if (await confirmAction(context, title: 'Delete this form?', message: 'It goes to the Trash with its responses.', confirmText: 'Delete', danger: true)) {
+                            await _act(() async { await _state.api.adminCall('DELETE', '/forms/${f['id']}'); }, 'Moved to Trash');
+                          }
+                        },
+                        icon: const Icon(Icons.delete_outline_rounded, size: 16),
+                        label: Text(tr('Delete')),
+                      ),
                   ]),
                 ]),
               ),
@@ -1011,19 +1012,20 @@ class _AdminFormResponsesScreenState extends State<AdminFormResponsesScreen> {
                   Row(children: [
                     Text('${r['created_at'] ?? ''}'.replaceFirst('T', ' ').split('.').first, style: monoStyle(context, size: 10.5, color: p.muted)),
                     const Spacer(),
-                    TextButton.icon(
-                      onPressed: () async {
-                        if (!await confirmAction(context, title: 'Delete this response?', confirmText: 'Delete', danger: true)) return;
-                        try {
-                          await _state.api.adminCall('DELETE', '/forms/responses/${r['id']}');
-                          await _load();
-                        } on ApiException catch (e) {
-                          if (context.mounted) showSnack(context, e.message, error: true);
-                        }
-                      },
-                      icon: const Icon(Icons.delete_outline_rounded, size: 16),
-                      label: Text(tr('Delete')),
-                    ),
+                    if (!_state.isEditor)
+                      TextButton.icon(
+                        onPressed: () async {
+                          if (!await confirmAction(context, title: 'Delete this response?', confirmText: 'Delete', danger: true)) return;
+                          try {
+                            await _state.api.adminCall('DELETE', '/forms/responses/${r['id']}');
+                            await _load();
+                          } on ApiException catch (e) {
+                            if (context.mounted) showSnack(context, e.message, error: true);
+                          }
+                        },
+                        icon: const Icon(Icons.delete_outline_rounded, size: 16),
+                        label: Text(tr('Delete')),
+                      ),
                   ]),
                 ]),
               ),

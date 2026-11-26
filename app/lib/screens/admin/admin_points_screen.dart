@@ -200,7 +200,8 @@ class _AdminPointsScreenState extends State<AdminPointsScreen> {
                       ]),
                     ),
                     IconButton(tooltip: 'Edit award', onPressed: () => _editAward(a), icon: Icon(Icons.edit_outlined, color: p.accent)),
-                    IconButton(tooltip: 'Remove award', onPressed: () => _undo((a['id'] as num).toInt()), icon: const Icon(Icons.delete_outline_rounded, color: Color(0xFFEF4444))),
+                    if (!_state.isEditor)
+                      IconButton(tooltip: 'Remove award', onPressed: () => _undo((a['id'] as num).toInt()), icon: const Icon(Icons.delete_outline_rounded, color: Color(0xFFEF4444))),
                   ]),
                 ),
               ),

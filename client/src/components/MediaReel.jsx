@@ -13,7 +13,7 @@ const CURATED_MOMENTS = [
     title: 'National Hackathon Championship',
     category: 'Competition',
     date: '2025',
-    image_url: 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=1200&q=80',
+    image_url: 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=720&q=70',
     description: 'Teams collaborating overnight, solving real-world challenges.',
   },
   {
@@ -21,7 +21,7 @@ const CURATED_MOMENTS = [
     title: 'Robotics & Embedded Systems Lab',
     category: 'Robotics',
     date: '2025',
-    image_url: 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?auto=format&fit=crop&w=1200&q=80',
+    image_url: 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?auto=format&fit=crop&w=720&q=70',
     description: 'Hands-on hardware prototyping and IoT development.',
   },
   {
@@ -29,7 +29,7 @@ const CURATED_MOMENTS = [
     title: 'AI & Machine Learning Workshop',
     category: 'Workshop',
     date: '2025',
-    image_url: 'https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=1200&q=80',
+    image_url: 'https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=720&q=70',
     description: 'Deep dive into modern neural architectures and practical LLM fine-tuning.',
   },
   {
@@ -37,7 +37,7 @@ const CURATED_MOMENTS = [
     title: 'Competitive Programming Bootcamp',
     category: 'Coding',
     date: '2025',
-    image_url: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=1200&q=80',
+    image_url: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=720&q=70',
     description: 'Algorithmic problem solving and ICPC preparation sessions.',
   },
   {
@@ -45,7 +45,7 @@ const CURATED_MOMENTS = [
     title: 'Annual Tech Summit & Project Expo',
     category: 'Exhibition',
     date: '2025',
-    image_url: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1200&q=80',
+    image_url: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=720&q=70',
     description: 'Showcasing student-engineered innovations to industry leaders.',
   },
   {
@@ -53,7 +53,7 @@ const CURATED_MOMENTS = [
     title: 'Cyber Security & Ethical Hacking Drill',
     category: 'Security',
     date: '2025',
-    image_url: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=1200&q=80',
+    image_url: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=720&q=70',
     description: 'Capture-the-flag competitions and defense strategy workshops.',
   },
   {
@@ -61,7 +61,7 @@ const CURATED_MOMENTS = [
     title: 'Web & Mobile Dev Masterclass',
     category: 'Development',
     date: '2025',
-    image_url: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=1200&q=80',
+    image_url: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=720&q=70',
     description: 'Full-stack software engineering with modern toolchains.',
   },
   {
@@ -69,10 +69,13 @@ const CURATED_MOMENTS = [
     title: 'Club Orientation & Grand Reception',
     category: 'Community',
     date: '2025',
-    image_url: 'https://images.unsplash.com/photo-1511578314322-379afb476865?auto=format&fit=crop&w=1200&q=80',
+    image_url: 'https://images.unsplash.com/photo-1511578314322-379afb476865?auto=format&fit=crop&w=720&q=70',
     description: 'Welcoming the new generation of tech pioneers to BAUET ICT Club.',
   },
 ];
+
+/** Cards load a small picture; the lightbox opens the same one larger (only when a visitor opens it). */
+const bigPhoto = (url) => (url?.includes('images.unsplash.com') ? url.replace('w=720&q=70', 'w=1400&q=80') : url);
 
 export default function MediaReel() {
   const t = useT();
@@ -248,7 +251,7 @@ export default function MediaReel() {
               {/* Lightbox Image */}
               <div className="relative aspect-[16/10] max-h-[70vh] w-full overflow-hidden bg-black/50">
                 <img
-                  src={activePhoto.image_url}
+                  src={bigPhoto(activePhoto.image_url)}
                   alt={activePhoto.title}
                   className="size-full object-contain"
                 />

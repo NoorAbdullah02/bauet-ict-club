@@ -8,3 +8,8 @@ build/
 .idea/
 .claude/
 server/uploads/
+
+# local QA / browser screenshots
+/*.png
+/*.jpg
+/screenshots/

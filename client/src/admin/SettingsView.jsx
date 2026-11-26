@@ -7,6 +7,8 @@ import { Panel, PageTitle, inputCls, askConfirm } from './ui';
 import ServiceStatus from './ServiceStatus';
 import Security from './Security';
 import { api } from '../context/store';
+import { copyText } from '../lib/share';
+import { isEditor, isMainAdmin } from './roles';
 
 function PasswordPanel() {
   const [v, setV] = useState({ current: '', next: '', again: '' });
@@ -97,7 +99,7 @@ function TwoFactorPanel() {
           <p className="text-sm text-fg2">Save these 8 backup codes somewhere safe (a password manager or paper). Each works once if you lose your phone. They are shown only now.</p>
           <div className="grid grid-cols-2 gap-2 rounded-xl border border-line bg-bg p-3 font-mono text-sm text-fg">{codes.map((c) => <span key={c}>{c}</span>)}</div>
           <div className="flex gap-2">
-            <button onClick={() => navigator.clipboard?.writeText(codes.join('\n')).then(() => toast.success('Copied'))} className="btn-outline !px-5 !py-2.5 text-xs">Copy</button>
+            <button onClick={async () => { const ok = await copyText(codes.join('\n')); toast[ok ? 'success' : 'error'](ok ? 'Copied' : 'Could not copy — select the codes and copy them by hand'); }} className="btn-outline !px-5 !py-2.5 text-xs">Copy</button>
             <button onClick={() => { setCodes([]); setStep('idle'); }} className="btn-primary !px-5 !py-2.5 text-xs">I saved them</button>
           </div>
         </div>
@@ -178,15 +180,38 @@ function PushPanel() {
 
 const FIELDS = [['heroTitle', 'Hero title', 'text'], ['heroSub', 'Hero subtitle', 'text'], ['aboutText', 'About text', 'textarea'], ['mission', 'Mission', 'textarea'], ['vision', 'Vision', 'textarea'], ['goal', 'Goal', 'textarea']];
 
+// The rest of the words on the public site. An empty box keeps the built-in wording.
+const EXTRA = [
+  ['heroShort', 'Hero badge (short)', 'text'], ['heroCampus', 'Hero badge (full)', 'text'],
+  ['heroEstablished', 'Line under the hero headline', 'text'], ['heroTaglines', 'Rotating taglines (one per line)', 'textarea'],
+  ['homeIntroTag', 'Home intro label', 'text'], ['homeIntroTitle', 'Home intro headline', 'text'], ['homeIntroText', 'Home intro paragraph', 'textarea'],
+  ['footerCta', 'Footer call-to-action headline', 'text'], ['footerAbout', 'Footer about text', 'textarea'],
+  ['contactAddress', 'Club address', 'text'], ['announcementText', 'Announcement ribbon text (when no event or notice is pinned)', 'textarea'],
+];
+
+// Headings on the About, Gallery, Team, Join and Contact pages.
+const PAGES = [
+  ['aboutTag', 'About label'], ['aboutTitle', 'About headline'], ['aboutWhatWeDo', 'About — “What we do” headline'], ['aboutWhatWeDoSub', 'About — “What we do” line'],
+  ['galleryTag', 'Gallery label'], ['galleryTitle', 'Gallery headline'], ['galleryDesc', 'Gallery line'],
+  ['teamTag', 'Team label'], ['teamTitle', 'Team headline'], ['teamDesc', 'Team line'], ['teamAdvisorsTag', 'Advisors label'], ['teamAdvisors', 'Advisors headline'],
+  ['joinTag', 'Join hub label'], ['joinTitle', 'Join hub headline'], ['joinDesc', 'Join hub line'],
+  ['joinCommitteeTag', 'Committee application label'], ['joinCommitteeTitle', 'Committee application headline'], ['joinCommitteeDesc', 'Committee application line'],
+  ['joinGeneralTag', 'General member label'], ['joinGeneralTitle', 'General member headline'], ['joinGeneralDesc', 'General member line'],
+  ['joinAmbassadorTag', 'Ambassador label'], ['joinAmbassadorTitle', 'Ambassador headline'], ['joinAmbassadorDesc', 'Ambassador line'],
+  ['contactTag', 'Contact label'], ['contactTitle', 'Contact headline'], ['contactDesc', 'Contact line'],
+];
+
 export default function SettingsView() {
   const { settings, updateSettings } = useStore(useShallow((s) => ({ settings: s.settings, updateSettings: s.updateSettings })));
   const user = useStore((s) => s.user);
+  const editor = isEditor(user);
   const [f, setF] = useState(null);
   const [busy, setBusy] = useState(false);
   const [demo, setDemo] = useState(null);
   const [demoBusy, setDemoBusy] = useState(false);
   const { demoStatus, loadDemo, removeDemo } = useStore(useShallow((s) => ({ demoStatus: s.demoStatus, loadDemo: s.loadDemo, removeDemo: s.removeDemo })));
-  useEffect(() => { demoStatus().then(setDemo).catch(() => setDemo(0)); }, []);
+  // demo data lives behind /api/committees, which the server closes to editors
+  useEffect(() => { if (!editor) demoStatus().then(setDemo).catch(() => setDemo(0)); }, [editor]);
 
   const toggleDemo = async () => {
     if (demo > 0 && !(await askConfirm({ title: 'Remove all demo data?', message: 'Only the sample events, notices, committee, ambassadors and applications are deleted. Your real data is not touched.', confirmText: 'Remove demo data', danger: true }))) return;
@@ -221,16 +246,39 @@ export default function SettingsView() {
         </Panel>
         <Panel className="space-y-4 self-start p-6 xl:col-start-2">
           <h3 className="text-xl text-fg">Contact & social</h3>
-          {[['fb', 'Facebook URL'], ['email', 'Email'], ['phone', 'Phone']].map(([k, label]) => (
+          {[['fb', 'Facebook URL'], ['email', 'Email'], ['phone', 'Phone'], ['website', 'Website'], ['li', 'LinkedIn URL'], ['gh', 'GitHub URL'], ['yt', 'YouTube URL']].map(([k, label]) => (
             <label key={k} className="block"><span className="mb-1.5 block font-mono text-[11px] uppercase tracking-[0.14em] text-fg2">{label}</span>
               <input className={inputCls} value={f.socialLinks?.[k] || ''} onChange={(e) => setF({ ...f, socialLinks: { ...f.socialLinks, [k]: e.target.value } })} /></label>
           ))}
         </Panel>
+        <Panel className="space-y-4 p-6 xl:col-span-2">
+          <div>
+            <h3 className="text-xl text-fg">Home page, footer and ribbon</h3>
+            <p className="mt-1 text-sm text-fg2">The remaining words on the public site. Leave a box empty to keep the built-in wording.</p>
+          </div>
+          {EXTRA.map(([k, label, type]) => (
+            <label key={k} className="block"><span className="mb-1.5 block font-mono text-[11px] uppercase tracking-[0.14em] text-fg2">{label}</span>
+              {type === 'textarea' ? <textarea className={`${inputCls} min-h-24 resize-y`} value={f[k] || ''} onChange={(e) => setF({ ...f, [k]: e.target.value })} />
+                : <input className={inputCls} value={f[k] || ''} onChange={(e) => setF({ ...f, [k]: e.target.value })} />}</label>
+          ))}
+        </Panel>
+        <Panel className="space-y-4 p-6 xl:col-span-2">
+          <div>
+            <h3 className="text-xl text-fg">Page headings</h3>
+            <p className="mt-1 text-sm text-fg2">About, Gallery, Team, Join and Contact. Leave a box empty to keep the built-in wording.</p>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {PAGES.map(([k, label]) => (
+              <label key={k} className="block"><span className="mb-1.5 block font-mono text-[11px] uppercase tracking-[0.14em] text-fg2">{label}</span>
+                <input className={inputCls} value={f[k] || ''} onChange={(e) => setF({ ...f, [k]: e.target.value })} /></label>
+            ))}
+          </div>
+        </Panel>
         <ServiceStatus />
         <PasswordPanel />
         <TwoFactorPanel />
-        {['superadmin', 'admin'].includes(user?.role) && <PushPanel />}
-        {user?.role === 'superadmin' && <Security />}
+        {!editor && <PushPanel />}
+        {isMainAdmin(user) && <Security />}
         {demo > 0 && (
         <Panel className="self-start p-6 xl:col-start-2">
           <div className="flex items-start gap-4">

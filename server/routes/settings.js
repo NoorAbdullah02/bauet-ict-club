@@ -4,9 +4,22 @@ const { authMiddleware } = require('../middleware/auth');
 
 const router = express.Router();
 
-const TEXT_KEYS = ['heroTitle', 'heroSub', 'aboutText', 'mission', 'vision', 'goal'];
-const SOCIAL_KEYS = ['fb', 'email', 'phone', 'website'];
-const clip = (v, n) => String(v ?? '').slice(0, n);
+const TEXT_KEYS = [
+  'heroTitle', 'heroSub', 'aboutText', 'mission', 'vision', 'goal',
+  'heroShort', 'heroCampus', 'heroEstablished', 'heroTaglines',
+  'homeIntroTag', 'homeIntroTitle', 'homeIntroText',
+  'footerCta', 'footerAbout', 'contactAddress', 'announcementText',
+  'aboutTag', 'aboutTitle', 'aboutWhatWeDo', 'aboutWhatWeDoSub',
+  'galleryTag', 'galleryTitle', 'galleryDesc',
+  'teamTag', 'teamTitle', 'teamDesc', 'teamAdvisorsTag', 'teamAdvisors',
+  'joinTag', 'joinTitle', 'joinDesc',
+  'joinCommitteeTag', 'joinCommitteeTitle', 'joinCommitteeDesc',
+  'joinGeneralTag', 'joinGeneralTitle', 'joinGeneralDesc',
+  'joinAmbassadorTag', 'joinAmbassadorTitle', 'joinAmbassadorDesc',
+  'contactTag', 'contactTitle', 'contactDesc',
+];
+const SOCIAL_KEYS = ['fb', 'email', 'phone', 'website', 'li', 'gh', 'yt'];
+const clip = (v, n) => String(v ?? '').trim().slice(0, n); // a box holding only spaces counts as empty
 
 // Public: the site-wide content block (stored as one JSONB row, key = 'site')
 router.get('/', async (_req, res) => {

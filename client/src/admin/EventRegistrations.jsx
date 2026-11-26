@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { BadgeCheck, BarChart3, Download, FileSpreadsheet, FileText, FileType2, Link2, List, Loader2, Search, Trash2, Users, XCircle } from 'lucide-react';
-import { api } from '../context/store';
+import useStore, { api } from '../context/store';
 import { Drawer, inputCls, askConfirm } from './ui';
 import { Donut, HBars } from './charts';
 import { formalDate } from '../lib/format';
 import { eventLink, copyText } from '../lib/share';
 import { fieldsOf, show, isOther } from '../lib/forms';
 import { cn } from '../lib/cn';
+import { canDelete } from './roles';
 import Select from '../components/Select';
 import { saveFile, IMAGE_FORMATS } from '../lib/download';
 import { Archive, Table2 } from 'lucide-react';
@@ -73,6 +74,7 @@ function EventInsights({ id }) {
 }
 
 export function ResponsesPanel({ event, kind = 'event' }) {
+  const user = useStore((s) => s.user);
   const isForm = kind === 'form';
   const P = isForm ? {
     list: (id) => `/forms/${id}/responses`, file: (id) => `/forms/${id}/export`, zip: (id) => `/forms/${id}/zip`, edit: (rid) => `/forms/responses/${rid}/answers`, pay: (rid) => `/forms/responses/${rid}/payment`, del: (rid) => `/forms/responses/${rid}`,
@@ -199,7 +201,7 @@ export function ResponsesPanel({ event, kind = 'event' }) {
           {tab === 'table' ? (
             <div className="mt-3">
               <div className="relative mb-3"><Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search answers" className={`${inputCls} !pl-9 !py-2 text-xs`} /></div>
-              {rows === null ? <Loader2 className="animate-spin text-muted" /> : <ResponsesTable fields={fields} rows={shown} q={q} system={system} title={event.title} fileBase={fileBase} onDelete={remove} editUrl={P.edit} onChange={(row) => setRows((p) => p.map((x) => (x.id === row.id ? { ...x, ...row } : x)))} />}
+              {rows === null ? <Loader2 className="animate-spin text-muted" /> : <ResponsesTable fields={fields} rows={shown} q={q} system={system} title={event.title} fileBase={fileBase} onDelete={canDelete(user) ? remove : undefined} editUrl={P.edit} onChange={(row) => setRows((p) => p.map((x) => (x.id === row.id ? { ...x, ...row } : x)))} />}
             </div>
           ) : tab === 'summary' ? (
             <ResponsesSummary fields={fields} rows={rows || []} paid={paid} />
@@ -223,7 +225,7 @@ export function ResponsesPanel({ event, kind = 'event' }) {
                         <div className="mt-1 flex flex-wrap items-center gap-x-3 font-mono text-[10px] uppercase tracking-wider text-muted"><span>{formalDate(r.created_at)}</span>{r.ticket && <span>ticket {r.ticket}</span>}{r.checked_in_at && <span className="text-emerald-600">checked in</span>}{r.waitlisted && <span className="rounded-full bg-sky-500/15 px-2 py-0.5 font-semibold text-sky-600">waiting list</span>}</div>
                       </div>
                       {r.waitlisted && <button onClick={() => promote(r)} className="rounded-lg bg-sky-500/10 px-2.5 py-1.5 text-xs font-semibold text-sky-600 transition hover:bg-sky-500/20">Give a seat</button>}
-                      <button onClick={() => remove(r)} aria-label="Remove this sign-up" className="grid size-8 place-items-center rounded-lg text-fg2 transition hover:bg-red-500/10 hover:text-red-500"><Trash2 size={14} /></button>
+                      {canDelete(user) && <button onClick={() => remove(r)} aria-label="Remove this sign-up" className="grid size-8 place-items-center rounded-lg text-fg2 transition hover:bg-red-500/10 hover:text-red-500"><Trash2 size={14} /></button>}
                     </div>
                     {r.payment && (
                       <div className="mt-3 rounded-xl bg-alt p-3 text-xs">

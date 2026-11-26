@@ -27,7 +27,60 @@ class _AdminSiteTextsScreenState extends State<AdminSiteTextsScreen> {
     ('vision', 'Vision', true),
     ('goal', 'Goal', true),
   ];
-  static const _links = [('fb', 'Facebook link', Icons.facebook_rounded), ('email', 'E-mail', Icons.mail_outline_rounded), ('phone', 'Phone', Icons.phone_outlined), ('website', 'Website', Icons.language_rounded)];
+  // the rest of the words on the public site; an empty box keeps the built-in wording
+  static const _more = [
+    ('heroShort', 'Hero badge, short', false),
+    ('heroCampus', 'Hero badge, full', false),
+    ('heroEstablished', 'Line under the hero headline', false),
+    ('heroTaglines', 'Rotating taglines (one per line)', true),
+    ('homeIntroTag', 'Home intro label', false),
+    ('homeIntroTitle', 'Home intro headline', false),
+    ('homeIntroText', 'Home intro paragraph', true),
+    ('footerCta', 'Footer call-to-action headline', false),
+    ('footerAbout', 'Footer about text', true),
+    ('contactAddress', 'Club address', false),
+    ('announcementText', 'Announcement ribbon text (when no event or notice is pinned)', true),
+  ];
+  // headings on the About, Gallery, Team, Join and Contact pages
+  static const _pages = [
+    ('aboutTag', 'About label', false),
+    ('aboutTitle', 'About headline', false),
+    ('aboutWhatWeDo', 'About — “What we do” headline', false),
+    ('aboutWhatWeDoSub', 'About — “What we do” line', false),
+    ('galleryTag', 'Gallery label', false),
+    ('galleryTitle', 'Gallery headline', false),
+    ('galleryDesc', 'Gallery line', false),
+    ('teamTag', 'Team label', false),
+    ('teamTitle', 'Team headline', false),
+    ('teamDesc', 'Team line', false),
+    ('teamAdvisorsTag', 'Advisors label', false),
+    ('teamAdvisors', 'Advisors headline', false),
+    ('joinTag', 'Join hub label', false),
+    ('joinTitle', 'Join hub headline', false),
+    ('joinDesc', 'Join hub line', false),
+    ('joinCommitteeTag', 'Committee application label', false),
+    ('joinCommitteeTitle', 'Committee application headline', false),
+    ('joinCommitteeDesc', 'Committee application line', false),
+    ('joinGeneralTag', 'General member label', false),
+    ('joinGeneralTitle', 'General member headline', false),
+    ('joinGeneralDesc', 'General member line', false),
+    ('joinAmbassadorTag', 'Ambassador label', false),
+    ('joinAmbassadorTitle', 'Ambassador headline', false),
+    ('joinAmbassadorDesc', 'Ambassador line', false),
+    ('contactTag', 'Contact label', false),
+    ('contactTitle', 'Contact headline', false),
+    ('contactDesc', 'Contact line', false),
+  ];
+  static const _all = [..._texts, ..._more, ..._pages];
+  static const _links = [
+    ('fb', 'Facebook link', Icons.facebook_rounded),
+    ('email', 'E-mail', Icons.mail_outline_rounded),
+    ('phone', 'Phone', Icons.phone_outlined),
+    ('website', 'Website', Icons.language_rounded),
+    ('li', 'LinkedIn link', Icons.link_rounded),
+    ('gh', 'GitHub link', Icons.link_rounded),
+    ('yt', 'YouTube link', Icons.link_rounded),
+  ];
   final Map<String, TextEditingController> _c = {};
   bool _loading = true;
   bool _busy = false;
@@ -36,7 +89,7 @@ class _AdminSiteTextsScreenState extends State<AdminSiteTextsScreen> {
   @override
   void initState() {
     super.initState();
-    for (final t in _texts) {
+    for (final t in _all) {
       _c[t.$1] = TextEditingController();
     }
     for (final l in _links) {
@@ -59,7 +112,7 @@ class _AdminSiteTextsScreenState extends State<AdminSiteTextsScreen> {
       final d = await _state.api.adminCall('GET', '/settings', query: {'_': DateTime.now().millisecondsSinceEpoch});
       final m = d is Map ? Map<String, dynamic>.from(d) : <String, dynamic>{};
       final soc = m['socialLinks'] is Map ? Map<String, dynamic>.from(m['socialLinks'] as Map) : <String, dynamic>{};
-      for (final t in _texts) {
+      for (final t in _all) {
         _c[t.$1]!.text = '${m[t.$1] ?? ''}';
       }
       for (final l in _links) {
@@ -78,7 +131,7 @@ class _AdminSiteTextsScreenState extends State<AdminSiteTextsScreen> {
     setState(() => _busy = true);
     try {
       final body = <String, dynamic>{
-        for (final t in _texts) t.$1: _c[t.$1]!.text.trim(),
+        for (final t in _all) t.$1: _c[t.$1]!.text.trim(),
         'socialLinks': {for (final l in _links) l.$1: _c['social_${l.$1}']!.text.trim()},
       };
       await _state.api.adminCall('PUT', '/settings', data: body);
@@ -113,6 +166,32 @@ class _AdminSiteTextsScreenState extends State<AdminSiteTextsScreen> {
               const SizedBox(height: 12),
               for (final t in _texts) ...[
                 AppField(controller: _c[t.$1]!, label: t.$2, icon: t.$3 ? Icons.notes_rounded : Icons.title_rounded, maxLines: t.$3 ? 5 : 1, keyboard: t.$3 ? TextInputType.multiline : null),
+                const SizedBox(height: 12),
+              ],
+            ]),
+          ),
+          const SizedBox(height: 14),
+          GlassCard(
+            padding: const EdgeInsets.all(16),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('Home page, footer and ribbon', style: bodyStyle(context, weight: FontWeight.w800)),
+              Text('Leave a box empty to keep the built-in wording.', style: bodyStyle(context, size: 12.5, color: p.muted)),
+              const SizedBox(height: 12),
+              for (final t in _more) ...[
+                AppField(controller: _c[t.$1]!, label: t.$2, icon: t.$3 ? Icons.notes_rounded : Icons.title_rounded, maxLines: t.$3 ? 5 : 1, keyboard: t.$3 ? TextInputType.multiline : null),
+                const SizedBox(height: 12),
+              ],
+            ]),
+          ),
+          const SizedBox(height: 14),
+          GlassCard(
+            padding: const EdgeInsets.all(16),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('Page headings', style: bodyStyle(context, weight: FontWeight.w800)),
+              Text('About, Gallery, Team, Join and Contact. Leave a box empty to keep the built-in wording.', style: bodyStyle(context, size: 12.5, color: p.muted)),
+              const SizedBox(height: 12),
+              for (final t in _pages) ...[
+                AppField(controller: _c[t.$1]!, label: t.$2, icon: Icons.title_rounded),
                 const SizedBox(height: 12),
               ],
             ]),

@@ -526,6 +526,22 @@ body.admin-mode .cursor-glow { display: none; }
 @media (prefers-reduced-motion: reduce) { .hero-ict { animation: none; } }
 
 
+/* the header bar: the compact width on laptops, then a little wider on big desktop screens (up to 1400px, never more) */
+.site-nav { max-width: max(72rem, min(87.5rem, 74vw)); }
+/* while the install banner is open, the floating chat button and panel sit above it instead of behind it */
+@media (max-width: 639px) {
+  html.install-banner .chat-fab { bottom: 7rem; }
+  html.install-banner .chat-panel { bottom: 10.5rem; }
+}
+
+/* on very wide screens the links sit exactly in the middle of the bar instead of drifting left */
+@media (min-width: 1880px) {
+  .site-nav { display: grid; grid-template-columns: 1fr auto 1fr; column-gap: 1rem; }
+  .site-nav > .nav-logo { justify-self: start; }
+  .site-nav > ul { justify-self: center; }
+  .site-nav > .nav-actions { justify-self: end; }
+}
+
 /* small phones: the logo and the buttons share one row without ever touching */
 @media (max-width: 420px) {
   header nav { padding-left: 10px !important; padding-right: 6px !important; }

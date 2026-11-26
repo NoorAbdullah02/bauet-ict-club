@@ -15,7 +15,7 @@ export const statusLabel = (c) => (c.status === 'open' && c.deadline && String(c
 export default function Contests() {
   const t = useT();
   const list = useStore(useShallow((s) => s.contests)) || [];
-  useEffect(() => { useStore.getState().fetchList('contests'); }, []);
+  useEffect(() => { useStore.getState().fetchList('contests').catch(() => {}); }, []);
   return (
     <section className="section">
       <div className="container">

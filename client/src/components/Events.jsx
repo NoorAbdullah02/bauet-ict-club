@@ -7,7 +7,7 @@ import { Calendar, MapPin, Clock, Share2, CalendarPlus, Facebook, MessageCircle,
 import EventCalendar from './EventCalendar';
 import { useShallow } from 'zustand/react/shallow';
 import { useT } from '../lib/i18n';
-import useStore from '../context/store';
+import useStore, { api } from '../context/store';
 import { downloadIcs, eventStart } from '../lib/ics';
 import { eventLink, shareLinks, copyText, nativeShare } from '../lib/share';
 import { Link as RouterLink } from 'react-router-dom';
@@ -47,6 +47,7 @@ export default function Events() {
   const [picked, setPicked] = useState(false);
   const [view, setView] = useState('list'); // list | calendar
   const [shareOpen, setShareOpen] = useState(null);
+  const [sessions, setSessions] = useState([]); // weekly practice sessions, from Admin → Content → Weekly session
   const [ref, inView] = useInView({ threshold: 0.05, triggerOnce: true });
 
   const today = new Date().toISOString().slice(0, 10);
@@ -60,6 +61,11 @@ export default function Events() {
   const pastN = events.length - upcomingN;
   // if nothing is coming up, open on the past events instead of an empty page
   useEffect(() => { if (!picked && events.length && upcomingN === 0) setWhen('past'); }, [events.length, upcomingN, picked]);
+  useEffect(() => {
+    api.get('/weekly_sessions')
+      .then((r) => setSessions((Array.isArray(r.data) ? r.data : []).filter((s) => s.active !== false)))
+      .catch(() => setSessions([]));
+  }, []);
 
   // semester chips only list semesters that have events in the chosen tab
   const semesters = useMemo(() => [...new Set(events.filter((e) => when === 'all' || (when === 'upcoming' ? dayOf(e.date) >= today : dayOf(e.date) < today)).map((e) => semOf(e.date)))].sort((x, y) => semRank(y) - semRank(x)), [events, when, today]);
@@ -87,6 +93,33 @@ export default function Events() {
           <p className="section-desc">{t('Workshops, hackathons, seminars, and competitions')}</p>
           <div className="divider" />
         </motion.div>
+
+        {sessions.length > 0 && (
+          <motion.div initial="hidden" animate={inView ? 'visible' : 'hidden'} variants={fadeUp} custom={1} style={{ marginBottom: 36 }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', flexWrap: 'wrap', gap: 12, marginBottom: 14 }}>
+              <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.35rem', margin: 0 }}>{t('Weekly sessions')}</h3>
+              <span style={{ fontSize: 13, color: 'var(--fg-muted)' }}>{t('Practice together every week — programming, web and more')}</span>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(260px, 100%), 1fr))', gap: 14 }}>
+              {sessions.map((s) => (
+                <div key={s.id} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '16px 18px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                    <span className="badge badge-tech">{s.topic || t('Session')}</span>
+                    {s.day && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--accent)' }}>{s.day}</span>}
+                  </div>
+                  <h4 style={{ fontFamily: 'var(--font-display)', fontSize: '1.05rem', margin: '10px 0 6px' }}>{s.title}</h4>
+                  {(s.time || s.place) && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, fontSize: 13, color: 'var(--fg-muted)' }}>
+                      {s.time && <span><Clock size={13} style={{ display: 'inline', verticalAlign: -2, marginRight: 4 }} />{s.time}</span>}
+                      {s.place && <span><MapPin size={13} style={{ display: 'inline', verticalAlign: -2, marginRight: 4 }} />{s.place}</span>}
+                    </div>
+                  )}
+                  {s.note && <p style={{ marginTop: 8, fontSize: 13, lineHeight: 1.55, color: 'var(--fg-secondary)' }}>{s.note}</p>}
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
 
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'center', alignItems: 'center', marginBottom: 20 }}>
           <div role="tablist" aria-label="Which events" style={{ display: 'inline-flex', padding: 4, borderRadius: 999, background: 'var(--bg-alt)', border: '1px solid var(--border)' }}>

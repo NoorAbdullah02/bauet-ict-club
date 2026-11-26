@@ -113,7 +113,8 @@ class _AdminInboxScreenState extends State<AdminInboxScreen> {
                       label: const Text('Reply'),
                     ),
                     TextButton.icon(onPressed: () => _read(m, m['is_read'] != true), icon: Icon(m['is_read'] == true ? Icons.mark_email_unread_outlined : Icons.done_all_rounded, size: 16), label: Text(m['is_read'] == true ? 'Mark unread' : 'Mark read')),
-                    TextButton.icon(onPressed: () => _delete(m), icon: const Icon(Icons.delete_outline_rounded, size: 16), label: Text(tr('Delete'))),
+                    if (!_state.isEditor)
+                      TextButton.icon(onPressed: () => _delete(m), icon: const Icon(Icons.delete_outline_rounded, size: 16), label: Text(tr('Delete'))),
                   ]),
                 ]),
               ),

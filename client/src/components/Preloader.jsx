@@ -14,7 +14,7 @@ export default function Preloader() {
   return (
     <AnimatePresence>
       {show && (
-        <motion.div className="preloader" exit={{ clipPath: 'inset(0 0 100% 0)' }} transition={{ duration: 0.45, ease: [0.76, 0, 0.24, 1] }}>
+        <motion.div className="preloader" exit={{ y: '-100%' }} transition={{ duration: 0.45, ease: [0.76, 0, 0.24, 1] }}>
           <div className="text-center">
             <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }} className="flex justify-center"><Logo kind="club" height={96} priority /></motion.div>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="preloader-mark mt-5">&gt; booting bauet-ict-club…</motion.div>

@@ -13,6 +13,7 @@ import { Donut, HBars, VBars, tally } from '../admin/charts';
 import { POSTS } from '../lib/posts';
 import { saveFile } from '../lib/download';
 import ApplicationsTable from '../admin/ApplicationsTable';
+import { canDelete } from '../admin/roles';
 
 
 const STATUS_STYLE = {
@@ -50,6 +51,7 @@ function Tile({ icon: Icon, label, children, wide }) {
 
 /** Everything about one applicant in a pop-up, with the same actions as the card. */
 function ApplicantModal({ r, onClose, onApprove, onReject, onTrash, onPick, busy }) {
+  const user = useStore((s) => s.user);
   const [zoom, setZoom] = useState(false); // full-screen photo viewer
   useEffect(() => {
     const k = (e) => e.key === 'Escape' && (zoom ? setZoom(false) : onClose());
@@ -105,7 +107,7 @@ function ApplicantModal({ r, onClose, onApprove, onReject, onTrash, onPick, busy
             ? <button disabled={busy} onClick={onPick} className="flex items-center gap-1.5 rounded-lg bg-accent px-4 py-2 text-xs font-semibold text-white disabled:opacity-40"><UserCheck size={14} /> Select for session</button>
             : <button disabled={busy || r.status === 'approved'} onClick={onApprove} className="flex items-center gap-1.5 rounded-lg bg-emerald-500 px-4 py-2 text-xs font-semibold text-white disabled:opacity-40"><Check size={14} /> Approve</button>}
           <button disabled={busy || r.status === 'rejected'} onClick={onReject} className="flex items-center gap-1.5 rounded-lg bg-amber-500/15 px-4 py-2 text-xs font-semibold text-amber-600 disabled:opacity-40"><X size={14} /> Reject</button>
-          <button disabled={busy} onClick={onTrash} className="ml-auto flex items-center gap-1.5 rounded-lg bg-red-500/10 px-4 py-2 text-xs font-semibold text-red-600"><Trash2 size={14} /> Trash</button>
+          {canDelete(user) && <button disabled={busy} onClick={onTrash} className="ml-auto flex items-center gap-1.5 rounded-lg bg-red-500/10 px-4 py-2 text-xs font-semibold text-red-600"><Trash2 size={14} /> Trash</button>}
         </div>
       </motion.div>
       {zoom && r.photo_url && (
@@ -125,6 +127,7 @@ function ApplicantModal({ r, onClose, onApprove, onReject, onTrash, onPick, busy
 
 function Card({ r, selected, onToggle }) {
   const { setRegistrationStatus, setRegistrationPost, deleteRegistration, selectRegistration } = useStore(useShallow((s) => ({ setRegistrationStatus: s.setRegistrationStatus, setRegistrationPost: s.setRegistrationPost, deleteRegistration: s.deleteRegistration, selectRegistration: s.selectRegistration })));
+  const user = useStore((s) => s.user);
   const sessions = useStore((st) => st.sessions);
   const currentSessionName = useMemo(() => {
     const cur = sessions.find((s) => s.is_current);
@@ -189,7 +192,7 @@ function Card({ r, selected, onToggle }) {
   const inputCls = 'w-full rounded-lg border border-line bg-bg px-3 py-2 text-sm text-fg outline-none focus:border-tech';
 
   return (
-    <div className={cn('relative rounded-2xl border bg-surface p-5 transition', selected ? 'border-accent ring-2 ring-accent/30' : 'border-line')}>
+    <div className={cn('relative min-w-0 rounded-2xl border bg-surface p-5 transition', selected ? 'border-accent ring-2 ring-accent/30' : 'border-line')}>
       <label className="absolute right-4 top-4 cursor-pointer" title="Select for bulk actions">
         <input type="checkbox" checked={selected} onChange={onToggle} aria-label={`Select ${r.full_name}`} className="size-4 cursor-pointer accent-[#1F4FD8]" />
       </label>
@@ -280,10 +283,10 @@ function Card({ r, selected, onToggle }) {
           className="flex items-center gap-1.5 rounded-lg bg-amber-500/10 px-3 py-1.5 text-xs font-semibold text-amber-600 disabled:opacity-40">
           <X size={13} /> Reject
         </button>
-        <button disabled={busy} onClick={trash}
+        {canDelete(user) && <button disabled={busy} onClick={trash}
           className="ml-auto flex items-center gap-1.5 rounded-lg bg-red-500/10 px-3 py-1.5 text-xs font-semibold text-red-600">
           <Trash2 size={13} /> Trash
-        </button>
+        </button>}
       </div>
     </div>
   );
@@ -334,6 +337,7 @@ function Insights({ rows }) {
 }
 
 export default function AdminApplications() {
+  const user = useStore((s) => s.user);
   const { registrations, fetchRegistrations } = useStore(useShallow((s) => ({ registrations: s.registrations, fetchRegistrations: s.fetchRegistrations })));
   const [type, setType] = useState('committee');
   const [status, setStatus] = useState('all');
@@ -448,7 +452,7 @@ export default function AdminApplications() {
               <span className="hidden h-5 w-px bg-line sm:block" />
               {type === 'general' && <button disabled={bulkBusy} onClick={() => bulk('approve')} className="flex items-center gap-1.5 rounded-lg bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-600 disabled:opacity-40"><Check size={13} /> Approve</button>}
               <button disabled={bulkBusy} onClick={() => bulk('reject')} className="flex items-center gap-1.5 rounded-lg bg-amber-500/10 px-3 py-1.5 text-xs font-semibold text-amber-600 disabled:opacity-40"><X size={13} /> Reject</button>
-              <button disabled={bulkBusy} onClick={() => bulk('trash')} className="flex items-center gap-1.5 rounded-lg bg-red-500/10 px-3 py-1.5 text-xs font-semibold text-red-600 disabled:opacity-40"><Trash2 size={13} /> Trash</button>
+              {canDelete(user) && <button disabled={bulkBusy} onClick={() => bulk('trash')} className="flex items-center gap-1.5 rounded-lg bg-red-500/10 px-3 py-1.5 text-xs font-semibold text-red-600 disabled:opacity-40"><Trash2 size={13} /> Trash</button>}
               <button onClick={() => exportDoc('pdf', { type, status, q, ids: picked.map((r) => r.id) })} className="flex items-center gap-1.5 rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-fg2 hover:border-tech hover:text-tech"><FileText size={13} /> PDF</button>
               <button onClick={() => saveFile('/registrations/zip', { type, status, q, ids: picked.map((r) => r.id).join(',') }, 'applications-selected.zip')} className="flex items-center gap-1.5 rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-fg2 hover:border-tech hover:text-tech"><Download size={13} /> ZIP + photos</button>
               <button onClick={() => exportDoc('docx', { type, status, q, ids: picked.map((r) => r.id) })} className="flex items-center gap-1.5 rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-fg2 hover:border-tech hover:text-tech"><FileType2 size={13} /> Word</button>

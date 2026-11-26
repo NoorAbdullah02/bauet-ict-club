@@ -7,6 +7,7 @@ import Backdrop3D from '../Backdrop3D';
 import { Field, PhotoDrop, inputCls, useApplication, POSTS, DEPARTMENTS, BATCHES } from './shared';
 import { cn } from '../../lib/cn';
 import CheckEmailNote from '../CheckEmailNote';
+import useStore from '../../context/store';
 
 const STEPS = [
   { icon: ScrollText, t: 'Apply', d: 'Fill the form & upload your photo' },
@@ -36,6 +37,7 @@ const rules = (f) => {
 export default function JoinCommittee() {
   const app = useApplication('committee', { post: '' }, rules);
   const { form, errors, set, onPhoto, uploading, busy, done, submit, validate, reset } = app;
+  const settings = useStore((s) => s.settings);
   const [step, setStep] = useState(0);
 
   const next = () => {
@@ -56,14 +58,13 @@ export default function JoinCommittee() {
           <br />
           {isWide() && <Backdrop3D variant="committee" className="pointer-events-none absolute -right-6 top-0 hidden h-72 w-72 opacity-80 lg:block" />}
           <span className="inline-flex items-center gap-2 rounded-full border border-line bg-surface/50 px-4 py-1.5 font-mono text-[11px] uppercase tracking-[0.2em] text-tech backdrop-blur">
-            <Crown size={13} /> Committee applications
+            <Crown size={13} /> {settings?.joinCommitteeTag || 'Committee applications'}
           </span>
           <h2 className="mt-6 text-[clamp(2.6rem,6vw,4.6rem)] leading-[0.98] text-fg">
-            Lead the club.<br />
-            <span className="bg-clip-text text-transparent" style={{ backgroundImage: 'var(--grad-text)' }}>Shape the session.</span>
+            {settings?.joinCommitteeTitle || <>Lead the club.<br /><span className="bg-clip-text text-transparent" style={{ backgroundImage: 'var(--grad-text)' }}>Shape the session.</span></>}
           </h2>
           <p className="mt-6 max-w-md text-base leading-8 text-fg2">
-            Apply for a post on the executive committee. Selected members are published on our Team page with their photo and role for the session.
+            {settings?.joinCommitteeDesc || 'Apply for a post on the executive committee. Selected members are published on our Team page with their photo and role for the session.'}
           </p>
 
           {/* quick facts */}

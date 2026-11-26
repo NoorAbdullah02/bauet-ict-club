@@ -14,6 +14,7 @@ const fadeUp = {
 
 export default function Gallery() {
   const { gallery } = useStore(useShallow((s) => ({ gallery: s.gallery })));
+  const settings = useStore((s) => s.settings);
   const [lightbox, setLightbox] = useState(null);
   const [filter, setFilter] = useState('all');
   const [ref, inView] = useInView({ threshold: 0.05, triggerOnce: true });
@@ -76,9 +77,9 @@ export default function Gallery() {
     <section id="gallery" className="section section-alt min-h-[70vh]" ref={ref}>
       <div className="container">
         <motion.div className="section-header" initial="hidden" animate={inView ? 'visible' : 'hidden'} variants={fadeUp} custom={0}>
-          <div className="section-tag">Visual Stories</div>
-          <h2 className="section-title">Gallery &amp; Moments</h2>
-          <p className="section-desc">Snapshots of innovation, teamwork, and tech milestones at BAUET</p>
+          <div className="section-tag">{settings?.galleryTag || 'Visual Stories'}</div>
+          <h2 className="section-title">{settings?.galleryTitle || 'Gallery & Moments'}</h2>
+          <p className="section-desc">{settings?.galleryDesc || 'Snapshots of innovation, teamwork, and tech milestones at BAUET'}</p>
           <div className="divider" />
         </motion.div>
 

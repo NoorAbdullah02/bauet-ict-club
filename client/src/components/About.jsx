@@ -37,8 +37,8 @@ export default function About() {
     <section id="about" className="section" ref={ref}>
       <div className="container">
         <motion.div className="section-header" initial="hidden" animate={state} variants={fadeUp} custom={0}>
-          <div className="section-tag">Who We Are</div>
-          <h2 className="section-title">About Our Club</h2>
+          <div className="section-tag">{settings?.aboutTag || 'Who We Are'}</div>
+          <h2 className="section-title">{settings?.aboutTitle || 'About Our Club'}</h2>
           <p className="section-desc">{settings?.aboutText}</p>
           <div className="divider" />
         </motion.div>
@@ -66,8 +66,8 @@ export default function About() {
 
         <motion.div initial="hidden" animate={state} variants={fadeUp} custom={4} className="mb-8 flex items-end justify-between gap-4">
           <div>
-            <h3 className="text-3xl text-fg">What We Do</h3>
-            <p className="mt-1 text-sm text-muted">Activities that shape future tech leaders</p>
+            <h3 className="text-3xl text-fg">{settings?.aboutWhatWeDo || 'What We Do'}</h3>
+            <p className="mt-1 text-sm text-muted">{settings?.aboutWhatWeDoSub || 'Activities that shape future tech leaders'}</p>
           </div>
           <span className="hidden h-px flex-1 bg-line sm:block" />
         </motion.div>

@@ -15,7 +15,7 @@ import '../../widgets/form_widgets.dart';
 import '../event_detail_screen.dart';
 import 'admin_widgets.dart';
 
-/// Sign-in security: two-step sign-in with an authenticator app (and backup codes), and sign out of other devices.
+/// Sign-in security: change the password, two-step sign-in with an authenticator app (and backup codes), and sign out of other devices.
 class AdminSecurityScreen extends StatefulWidget {
   const AdminSecurityScreen({super.key});
 
@@ -39,6 +39,13 @@ class _AdminSecurityScreenState extends State<AdminSecurityScreen> {
   bool _busy = false;
   String? _fieldError;
 
+  // change own password
+  final _oldPw = TextEditingController();
+  final _newPw = TextEditingController();
+  final _againPw = TextEditingController();
+  bool _pwBusy = false;
+  String? _pwError;
+
   @override
   void initState() {
     super.initState();
@@ -49,6 +56,9 @@ class _AdminSecurityScreenState extends State<AdminSecurityScreen> {
   void dispose() {
     _password.dispose();
     _code.dispose();
+    _oldPw.dispose();
+    _newPw.dispose();
+    _againPw.dispose();
     super.dispose();
   }
 
@@ -121,6 +131,39 @@ class _AdminSecurityScreenState extends State<AdminSecurityScreen> {
         showSnack(context, 'Two-step sign-in is off');
       });
 
+  /// Changes the password of the signed-in admin (the server checks the current one, ends every other
+  /// session and hands this device a fresh token, exactly like the website's Settings → Change password).
+  Future<void> _changePassword() async {
+    FocusManager.instance.primaryFocus?.unfocus();
+    final current = _oldPw.text;
+    final next = _newPw.text;
+    if (current.isEmpty || next.isEmpty) {
+      setState(() => _pwError = 'Enter your current and new password');
+      return;
+    }
+    if (next != _againPw.text) {
+      setState(() => _pwError = 'The two new passwords do not match');
+      return;
+    }
+    setState(() {
+      _pwBusy = true;
+      _pwError = null;
+    });
+    try {
+      final r = await _state.api.authPost('/auth/change-password', {'current': current, 'next': next});
+      await _state.replaceToken((r['token'] ?? '').toString());
+      if (!mounted) return;
+      _oldPw.clear();
+      _newPw.clear();
+      _againPw.clear();
+      showSnack(context, 'Password changed. Other devices were signed out.');
+    } on ApiException catch (e) {
+      if (mounted) setState(() => _pwError = e.message);
+    } finally {
+      if (mounted) setState(() => _pwBusy = false);
+    }
+  }
+
   Future<void> _signOutOthers() async {
     final ok = await confirmAction(context, title: 'Sign out everywhere?', message: 'Every other phone and computer is signed out at once. This one stays signed in.', confirmText: 'Sign out others');
     if (!ok) return;
@@ -153,13 +196,45 @@ class _AdminSecurityScreenState extends State<AdminSecurityScreen> {
                 GlassCard(
                   padding: const EdgeInsets.all(18),
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text('Full backup', style: displayStyle(context, 18)),
+                    Text('Change password', style: displayStyle(context, 18)),
                     const SizedBox(height: 6),
-                    Text('One ZIP with every table (main admin only). Keep it somewhere safe.', style: bodyStyle(context, size: 13, color: p.muted)),
+                    Text(
+                      'At least 6 characters, with letters and numbers. Every other device is signed out; this one stays signed in.',
+                      style: bodyStyle(context, size: 13, color: p.muted),
+                    ),
+                    const SizedBox(height: 14),
+                    AppField(controller: _oldPw, label: 'Current password', obscure: true, icon: Icons.lock_outline_rounded),
                     const SizedBox(height: 12),
-                    GhostButton(label: 'Download backup', icon: Icons.backup_rounded, onPressed: () => downloadAndShare(context, _state.api, '/backup', 'bauet-ict-backup.zip')),
+                    AppField(controller: _newPw, label: 'New password', obscure: true, icon: Icons.key_rounded),
+                    const SizedBox(height: 12),
+                    AppField(
+                      controller: _againPw,
+                      label: 'Repeat new password',
+                      obscure: true,
+                      icon: Icons.key_rounded,
+                      textInputAction: TextInputAction.done,
+                      onSubmitted: _pwBusy ? null : _changePassword,
+                    ),
+                    if (_pwError != null)
+                      Padding(padding: const EdgeInsets.only(top: 10), child: Text(_pwError!, style: bodyStyle(context, size: 13, color: const Color(0xFFEF4444)))),
+                    const SizedBox(height: 14),
+                    GradientButton(label: 'Change password', icon: Icons.key_rounded, loading: _pwBusy, onPressed: _pwBusy ? null : _changePassword),
                   ]),
                 ),
+                // the server's /backup route is main-admin only, so editors and admins do not see the button
+                if (_state.isSuperAdmin) ...[
+                  const SizedBox(height: 14),
+                  GlassCard(
+                    padding: const EdgeInsets.all(18),
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text('Full backup', style: displayStyle(context, 18)),
+                      const SizedBox(height: 6),
+                      Text('One ZIP with every table (main admin only). Keep it somewhere safe.', style: bodyStyle(context, size: 13, color: p.muted)),
+                      const SizedBox(height: 12),
+                      GhostButton(label: 'Download backup', icon: Icons.backup_rounded, onPressed: () => downloadAndShare(context, _state.api, '/backup', 'bauet-ict-backup.zip')),
+                    ]),
+                  ),
+                ],
                 const SizedBox(height: 14),
                 GlassCard(
                   padding: const EdgeInsets.all(18),

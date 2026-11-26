@@ -6,9 +6,11 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import '../core/config.dart';
 import '../core/my_tickets.dart';
 import '../core/theme.dart';
 import '../core/utils.dart';
+import '../data/api.dart';
 import '../models/models.dart';
 import '../state/app_state.dart';
 import '../widgets/coder.dart';
@@ -16,6 +18,92 @@ import '../widgets/common.dart';
 import '../widgets/countdown.dart';
 import '../widgets/newsletter.dart';
 import 'events_screen.dart';
+
+/// "Voices of Impact": quotes from alumni and members, added in Admin → Content → Testimonials.
+class _TestimonialsStrip extends StatefulWidget {
+  const _TestimonialsStrip();
+
+  @override
+  State<_TestimonialsStrip> createState() => _TestimonialsStripState();
+}
+
+class _TestimonialsStripState extends State<_TestimonialsStrip> {
+  List<Map<String, dynamic>> _items = const [];
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final rows = await context.read<AppState>().api.list('testimonials');
+      if (!mounted) return;
+      setState(() => _items = rows.where((r) => r['active'] != false).toList());
+    } on ApiException {
+      // no testimonials (or offline): the section stays out of the page
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_items.isEmpty) return const SizedBox.shrink();
+    final p = context.pal;
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 20),
+        child: SectionHeader(eyebrow: 'Voices of Impact', title: 'What our alumni and members say'),
+      ),
+      const SizedBox(height: 12),
+      SizedBox(
+        height: 200,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          itemCount: _items.length,
+          separatorBuilder: (_, __) => const SizedBox(width: 12),
+          itemBuilder: (_, i) {
+            final t = _items[i];
+            final name = '${t['name'] ?? 'Member'}'.trim();
+            final photo = '${t['image_url'] ?? ''}'.trim();
+            final rating = (t['rating'] is num ? (t['rating'] as num).toInt() : 5).clamp(1, 5);
+            return SizedBox(
+              width: 300,
+              child: GlassCard(
+                padding: const EdgeInsets.all(16),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Row(children: List.generate(rating, (_) => const Icon(Icons.star_rounded, size: 14, color: Color(0xFFF5A524)))),
+                  const SizedBox(height: 8),
+                  Expanded(child: Text('\u201c${t['quote'] ?? ''}\u201d', maxLines: 4, overflow: TextOverflow.ellipsis, style: bodyStyle(context, size: 13))),
+                  const SizedBox(height: 10),
+                  Row(children: [
+                    CircleAvatar(
+                      radius: 16,
+                      backgroundColor: p.alt,
+                      backgroundImage: photo.isEmpty ? null : NetworkImage(AppConfig.resolve(photo)),
+                      child: photo.isEmpty ? Text(name.isEmpty ? '?' : name[0], style: displayStyle(context, 14, color: p.accent)) : null,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Text(name, maxLines: 1, overflow: TextOverflow.ellipsis, style: bodyStyle(context, weight: FontWeight.w700, size: 13)),
+                        if ('${t['role'] ?? ''}'.isNotEmpty)
+                          Text('${t['role']}', maxLines: 1, overflow: TextOverflow.ellipsis, style: bodyStyle(context, size: 11, color: p.tech)),
+                        if ('${t['batch'] ?? ''}'.isNotEmpty)
+                          Text('${t['batch']}', maxLines: 1, overflow: TextOverflow.ellipsis, style: monoStyle(context, size: 9.5, color: p.muted)),
+                      ]),
+                    ),
+                  ]),
+                ]),
+              ),
+            );
+          },
+        ),
+      ),
+    ]);
+  }
+}
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -257,6 +345,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 ),
               ),
             ),
+          const SizedBox(height: 28),
+          const _TestimonialsStrip(),
           const SizedBox(height: 28),
           const Padding(padding: EdgeInsets.symmetric(horizontal: 20), child: NewsletterBox()),
           const SizedBox(height: 14),

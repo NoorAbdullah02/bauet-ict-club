@@ -4,6 +4,8 @@ const { sendBackupToTelegram } = require('../utils/backupTelegram');
 
 const router = express.Router();
 
+const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
 const baseSiteUrl = () => {
   const u = process.env.PUBLIC_URL || 'https://bauet-ict-club.onrender.com';
   return u.replace(/\/+$/, '');
@@ -62,6 +64,39 @@ router.post('/webhook', async (req, res) => {
     if (authorizedChatId && fromChatId !== authorizedChatId) return;
 
     const data = String(cb.data || '');
+
+    // Approving changes a real person's status and sends them mail, so ask once before doing it.
+    if (data.startsWith('ask:')) {
+      const regId = Number(data.split(':')[1]);
+      if (regId) {
+        try {
+          const { rows } = await pool.query(
+            "SELECT full_name, student_id, type FROM registrations WHERE id = $1 AND status = 'pending' AND deleted_at IS NULL",
+            [regId]
+          );
+          if (!rows.length) {
+            await answerCallbackQuery(cb.id, 'That application is no longer pending.');
+          } else {
+            const r = rows[0];
+            await answerCallbackQuery(cb.id, 'Confirm below');
+            await replyTelegram(
+              fromChatId,
+              `Approve <b>${esc(r.full_name)}</b> (<code>${esc(r.student_id)}</code>, ${esc(r.type)})?\n\nThis sends them an approval email and a member card. It cannot be undone from here.`,
+              [[{ text: '✅ Yes, approve', callback_data: `appr:${regId}` }, { text: '↩ Cancel', callback_data: 'none' }]]
+            );
+          }
+        } catch (err) {
+          await answerCallbackQuery(cb.id, 'Could not check that application.');
+        }
+      }
+      return;
+    }
+
+    if (data === 'none') {
+      await answerCallbackQuery(cb.id, 'Nothing changed.');
+      return;
+    }
+
     if (data.startsWith('appr:')) {
       const regId = Number(data.split(':')[1]);
       if (regId) {
@@ -169,7 +204,7 @@ router.post('/webhook', async (req, res) => {
         const itemMsg = `• <b>${r.full_name}</b> (<code>${r.student_id}</code>)\n  Role: ${r.type}${r.post ? ` · ${r.post}` : ''} | Dept: ${r.department}`;
         const inlineKeyboard = [
           [
-            { text: '✅ Approve', callback_data: `appr:${r.id}` },
+            { text: '✅ Approve', callback_data: `ask:${r.id}` },
             { text: '🔗 View in Admin', url: `${baseSiteUrl()}/admin/applications` },
           ],
         ];
@@ -274,6 +309,12 @@ router.post('/webhook', async (req, res) => {
     if (!result.ok) {
       await replyTelegram(chatId, `❌ Backup failed: ${result.error}`);
     }
+    return;
+  }
+
+  // anything else that looks like a command gets pointed at the guide instead of silence
+  if (command.startsWith('/')) {
+    await replyTelegram(chatId, `🤔 I do not know <code>${esc(command)}</code>. Send /help to see everything I can do.`);
   }
 });
 

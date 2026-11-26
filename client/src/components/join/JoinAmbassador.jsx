@@ -6,6 +6,7 @@ import Backdrop3D from '../Backdrop3D';
 import { Field, PhotoDrop, inputCls, useApplication, BATCHES } from './shared';
 import { cn } from '../../lib/cn';
 import CheckEmailNote from '../CheckEmailNote';
+import useStore from '../../context/store';
 
 const DEPTS = [
   ['ICE', 'Information & Communication'],
@@ -23,6 +24,7 @@ const rules = (f) => (f.photo_url ? {} : { photo_url: 'A profile photo is requir
 
 export default function JoinAmbassador() {
   const { form, errors, set, patch, onPhoto, uploading, busy, done, submit, reset } = useApplication('ambassador', {}, rules);
+  const settings = useStore((s) => s.settings);
 
   return (
     <div className="relative min-h-screen overflow-hidden pb-24 pt-32">
@@ -30,9 +32,9 @@ export default function JoinAmbassador() {
       <div className="container relative grid items-start gap-12 lg:grid-cols-[0.85fr_1.15fr]">
         <div className="lg:sticky lg:top-28">
           <Link to="/join" className="mb-6 inline-flex items-center gap-1.5 text-xs text-fg2 hover:text-accent"><ArrowLeft size={13} /> All ways to join</Link>
-          <div className="section-tag !mb-4 !justify-start">Department ambassador</div>
-          <h1 className="text-[clamp(2.6rem,6vw,4.4rem)] leading-[1] text-fg">Represent your <span className="bg-clip-text text-transparent grad-anim" style={{ backgroundImage: 'var(--grad-text)' }}>department.</span></h1>
-          <p className="mt-6 max-w-md text-base leading-8 text-fg2">Ambassadors connect the club with every department. Selected ambassadors are listed on the Ambassadors page with their photo.</p>
+          <div className="section-tag !mb-4 !justify-start">{settings?.joinAmbassadorTag || 'Department ambassador'}</div>
+          <h1 className="text-[clamp(2.6rem,6vw,4.4rem)] leading-[1] text-fg">{settings?.joinAmbassadorTitle || <>Represent your <span className="bg-clip-text text-transparent grad-anim" style={{ backgroundImage: 'var(--grad-text)' }}>department.</span></>}</h1>
+          <p className="mt-6 max-w-md text-base leading-8 text-fg2">{settings?.joinAmbassadorDesc || 'Ambassadors connect the club with every department. Selected ambassadors are listed on the Ambassadors page with their photo.'}</p>
           <ul className="mt-8 space-y-3">
             {ROLE.map((r) => <li key={r} className="flex items-start gap-3 text-sm text-fg2"><span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-tech/15 text-tech"><Check size={12} /></span>{r}</li>)}
           </ul>

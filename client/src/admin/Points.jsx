@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Award, Check, Loader2, Pencil, Trash2, X } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { api } from '../context/store';
+import useStore, { api } from '../context/store';
 import { Panel, PageTitle, inputCls } from './ui';
+import { canDelete } from './roles';
 
 /** Points: who has how many, and a form to give (or take back) extra points. */
 export default function Points() {
+  const user = useStore((s) => s.user);
   const [d, setD] = useState(null);
   const [f, setF] = useState({ email: '', name: '', points: '10', reason: '' });
   const [busy, setBusy] = useState(false);
@@ -59,7 +61,7 @@ export default function Points() {
                   <button onClick={() => setEdit(null)} aria-label="Cancel" className="grid size-8 place-items-center rounded-lg text-fg2 hover:bg-alt"><X size={15} /></button></>) : (<><span className={`w-14 font-display text-lg ${a.points > 0 ? 'text-emerald-600' : 'text-red-500'}`}>{a.points > 0 ? '+' : ''}{a.points}</span>
                   <span className="min-w-0 flex-1"><span className="block truncate text-sm text-fg">{a.reason}</span><span className="block truncate text-xs text-muted">{a.name || a.email}</span></span>
                   <button onClick={() => setEdit({ id: a.id, points: a.points, reason: a.reason })} aria-label="Edit this award" className="grid size-8 place-items-center rounded-lg text-fg2 hover:bg-tech/10 hover:text-tech"><Pencil size={14} /></button>
-                  <button onClick={() => undo(a.id)} aria-label="Remove this award" className="grid size-8 place-items-center rounded-lg text-fg2 hover:bg-red-500/10 hover:text-red-500"><Trash2 size={14} /></button></>)}</li>
+                  {canDelete(user) && <button onClick={() => undo(a.id)} aria-label="Remove this award" className="grid size-8 place-items-center rounded-lg text-fg2 hover:bg-red-500/10 hover:text-red-500"><Trash2 size={14} /></button>}</>)}</li>
               ))}</ul>
             )}
           </Panel>

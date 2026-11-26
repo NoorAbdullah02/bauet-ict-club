@@ -13,6 +13,9 @@ export default defineConfig({
         manualChunks(id) {
           if (!id.includes('node_modules')) return;
           if (/[\\/]framer-motion|motion-dom|motion-utils/.test(id)) return 'motion';
+          // tiny shared helpers: without their own chunk Rollup parks them inside the
+          // admin charts chunk, which then drags all of recharts onto the public home page
+          if (/[\\/](clsx|tailwind-merge)[\\/]/.test(id)) return 'ui';
           if (/[\\/](recharts|d3-[a-z-]+|victory-vendor|recharts-scale|decimal\.js-light|internmap)[\\/]/.test(id)) return 'charts'; // admin only
           if (/[\\/](react|react-dom|scheduler|react-router|react-router-dom)[\\/]/.test(id)) return 'react';
         },
