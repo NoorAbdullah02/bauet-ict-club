@@ -50,8 +50,11 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
+      # pinned to the version the app is developed and verified on: a newer stable flags
+      # teardown-time frame callbacks in widget tests that this version does not
       - uses: subosito/flutter-action@v2
         with:
+          flutter-version: "3.47.9"
           channel: stable
           cache: true
       # adds the Android project files the repository does not keep; existing files (manifest, network config) are left alone
