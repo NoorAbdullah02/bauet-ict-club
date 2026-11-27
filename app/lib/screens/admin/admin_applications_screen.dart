@@ -350,7 +350,11 @@ class _AdminApplicationsScreenState extends State<AdminApplicationsScreen> {
                     else if (_error != null)
                       ErrorState(message: _error!, onRetry: _load)
                     else if (list.isEmpty)
-                      const EmptyState(icon: Icons.inbox_rounded, title: 'No applications')
+                      EmptyState(
+                        icon: _query.trim().isNotEmpty ? Icons.search_off_rounded : Icons.inbox_rounded,
+                        title: _query.trim().isNotEmpty ? 'No matching applications' : 'No applications',
+                        message: _query.trim().isNotEmpty ? 'Try another name, student ID or keyword.' : null,
+                      )
                     else
                       for (var i = 0; i < list.length; i++)
                         Padding(
