@@ -313,7 +313,12 @@ router.post('/:id/select', authMiddleware, async (req, res) => {
     mail.sendMail({ to: r.email, ...mail.templates.applicationSelected({ ...r, card_path: cardPath }, position, session) });
     res.json({ registration: updated.rows[0], member: member.rows[0] });
     // the team picture lives in this committee's own Cloudinary folder; until the copy is ready the application photo link works
-    cloneImage(r.photo_url, 'committees', session).then((next) => next && next !== r.photo_url && pool.query('UPDATE members SET image_url = $1 WHERE id = $2', [next, member.rows[0].id])).catch(() => {});
+    cloneImage(r.photo_url, 'committees', session).then(async (next) => {
+      if (next && next !== r.photo_url) {
+        await pool.query('UPDATE members SET image_url = $1 WHERE id = $2', [next, member.rows[0].id]);
+        require('../utils/dataVersion').bump();
+      }
+    }).catch(() => {});
   } catch (e) {
     await client.query('ROLLBACK').catch(() => {});
     fail(res, e);

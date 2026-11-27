@@ -284,7 +284,11 @@ class AppState extends ChangeNotifier {
       guard(() async => sponsors = (await _fetch('sponsors', Sponsor.fromJson, fresh: fresh))..sort((a, b) => a.order.compareTo(b.order))),
       guard(() async => advisors = (await _fetch('advisors', Advisor.fromJson, fresh: fresh)).where((a) => a.active).toList()..sort((a, b) => a.order.compareTo(b.order))),
       guard(() async => weeklySessions = (await _fetch('weekly_sessions', WeeklySession.fromJson, fresh: fresh)).where((s) => s.active).toList()..sort((a, b) => a.order.compareTo(b.order))),
-      guard(() async => testimonials = (await _fetch('testimonials', (m) => m, fresh: fresh)).where((r) => r['active'] != false).toList()),
+      () async {
+        try {
+          testimonials = (await _fetch('testimonials', (m) => m, fresh: fresh)).where((r) => r['active'] != false).toList();
+        } catch (_) {}
+      }(),
       guard(() async => settings = SiteSettings.fromJson(await _fetchSettings(fresh: fresh))),
     ]);
     error = firstError;

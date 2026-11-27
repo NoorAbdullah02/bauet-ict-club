@@ -150,8 +150,9 @@ router.post('/webhook', async (req, res) => {
           );
           if (rows.length) {
             const reg = rows[0];
+            require('../utils/dataVersion').bump();
             try {
-              const mail = require('../utils/mail');
+              const mail = require('../utils/mailer');
               const { cardCode } = require('./card');
               const key = `r${reg.id}`;
               mail.sendMail({ to: reg.email, ...mail.templates.applicationApproved({ ...reg, card_path: `/card/${key}?c=${cardCode(key)}` }) });

@@ -23,6 +23,7 @@ async function rehome(items, session) {
         const next = await cloneImage(it.url, 'committees', session);
         if (next && next !== it.url) {
           await pool.query('UPDATE members SET image_url = $1 WHERE id = $2', [next, it.id]);
+          require('../utils/dataVersion').bump();
           if (it.removeOld) await destroyImage(it.url); // only deleted when no other committee still uses it
         }
       } catch (e) { console.warn('Picture copy failed:', e.message); }
