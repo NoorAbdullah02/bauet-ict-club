@@ -1,7 +1,7 @@
 const express = require('express');
 const { fail } = require('../utils/http');
 const mail = require('../utils/mailer');
-const { notifyAdmin } = require('../utils/adminAlert');
+const { notifyAdmin, esc } = require('../utils/adminAlert');
 const rateLimit = require('express-rate-limit');
 const pool = require('../config/db');
 const { authMiddleware } = require('../middleware/auth');
@@ -34,7 +34,7 @@ router.post('/', contactLimiter, async (req, res) => {
     mail.sendMail({ to: email, ...mail.templates.contactAck(m) });
     notifyAdmin({
       title: '💬 New Contact Message',
-      description: `<b>${name}</b> sent a message: ${subject || '(No Subject)'}`,
+      description: `<b>${esc(name)}</b> sent a message: ${esc(subject || '(No Subject)')}`,
       path: '/admin/messages',
       fields: [
         ['From', email],
