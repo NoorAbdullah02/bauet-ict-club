@@ -248,6 +248,7 @@ class SiteSettings {
     this.mission = '',
     this.vision = '',
     this.goal = '',
+    this.currentSession = '',
     this.fb = '',
     this.email = '',
     this.phone = '',
@@ -273,6 +274,7 @@ class SiteSettings {
       mission: _s(j['mission']),
       vision: _s(j['vision']),
       goal: _s(j['goal']),
+      currentSession: _s(j['current_session']),
       fb: _s(social['fb']),
       email: _s(social['email']),
       phone: _s(social['phone']),
@@ -284,6 +286,9 @@ class SiteSettings {
   final String mission;
   final String vision;
   final String goal;
+
+  /// The committee an admin marked as running now (Settings → Committees); empty when none is marked.
+  final String currentSession;
   final String fb;
   final String email;
   final String phone;

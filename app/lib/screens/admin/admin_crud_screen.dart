@@ -567,7 +567,17 @@ class _RowFormState extends State<_RowForm> {
     try {
       final rows = await context.read<AppState>().api.committees();
       final labels = rows.map((c) => (c['label'] ?? '').toString()).where((s) => s.isNotEmpty).toList();
-      if (mounted) setState(() => _sessions = labels);
+      var marked = '';
+      for (final c in rows) {
+        if (c['is_current'] == true) marked = (c['label'] ?? '').toString();
+      }
+      if (!mounted) return;
+      setState(() {
+        _sessions = labels;
+        // a new member joins the committee an admin marked current, not simply the newest one
+        final field = _ctrl['committee_session'];
+        if (widget.row == null && field != null && field.text.trim().isEmpty && marked.isNotEmpty) field.text = marked;
+      });
     } on ApiException catch (_) {
       // keep the free list empty; existing value stays selectable
     }

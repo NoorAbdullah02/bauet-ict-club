@@ -163,6 +163,8 @@ app.use('/api/notices', createCrudRouter('notices', { scheduled: true, orderBy: 
   onCreate: (r) => { if (!r.expiry_date || String(r.expiry_date).slice(0, 10) >= new Date().toISOString().slice(0, 10)) notifySubscribers('notice', { title: r.title, summary: r.content, path: '/notices' }); } }));
 app.use('/api/members', createCrudRouter('members', {
   orderBy: 'display_order', orderDir: 'ASC', columns: COLS.members, imageCols: ['image_url'], auth: authMiddleware,
+  // a changed photo must show on the member's card and certificate too, not only on the Team page
+  onSave: require('./utils/people').syncPersonPicture,
   // one President and two Vice Presidents per session; everything else can have several people
   validate: async (data, old) => {
     if (data.display_order == null || data.display_order === 99) data.display_order = positionRank(data.position);

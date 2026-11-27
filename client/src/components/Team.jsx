@@ -241,12 +241,16 @@ export default function Team() {
   const dbMembersAll = useStore((s) => s.members);
   const storeSessions = useStore((s) => s.sessions);
   const fetchSessions = useStore((s) => s.fetchSessions);
+  const fetchMembers = useStore((s) => s.fetchList);
 
   useEffect(() => {
     if (!storeSessions || storeSessions.length === 0) {
       fetchSessions().catch(() => {});
     }
   }, [storeSessions, fetchSessions]);
+
+  // an admin may have changed a photo or a post since the page was first opened: revalidate on every visit
+  useEffect(() => { fetchMembers('members').catch(() => {}); }, [fetchMembers]);
 
   const currentSessionLabel = useMemo(() => {
     const cur = (storeSessions || []).find((s) => s.is_current);

@@ -159,6 +159,11 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
       {
         const r = (await call('POST', '/api/chat/tool', { name: 'club_counts' }, T)).j?.result || {};
         ok(r.members >= 1 && r.events >= 1 && typeof r.gallery === 'number', 'assistant tools read the database directly', r);
+      ok((await call('GET', '/api/telegram/status')).s === 401, 'telegram status needs an admin login');
+      {
+        const tg = (await call('GET', '/api/telegram/status', undefined, T)).j || {};
+        ok(typeof tg.configured === 'boolean' && typeof tg.chatIdSet === 'boolean' && tg.token === undefined && tg.chatId === undefined, 'telegram status reports the bot and webhook without leaking secrets', tg);
+      }
         const cse = (await call('POST', '/api/chat/tool', { name: 'find_committee', args: { department: 'CSE', limit: 3 } }, T)).j?.result || [];
         ok(Array.isArray(cse) && cse.length >= 1 && !JSON.stringify(cse).includes('@'), 'assistant tools search public committee rows without leaking e-mails', cse.slice(0, 2));
       }
@@ -509,6 +514,12 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
     const stranger = await call('POST', '/api/card/otp/request', { email: 'definitely-not-a-member@example.com' });
     ok(stranger.s === 200 && !stranger.j?.error, 'asking for a card code for a stranger looks like asking for a member', stranger.j);
     ok((await call('POST', '/api/card/otp/verify', { email: 'definitely-not-a-member@example.com', code: '123456' })).s === 400, 'a wrong card code is refused');
+    // the code table repairs itself, and an admin can see its health without any secret being exposed
+    ok((await call('GET', '/api/card/health')).s === 401, 'the card health check needs an admin login');
+    {
+      const h = (await call('GET', '/api/card/health', undefined, T)).j || {};
+      ok(h.otpTable?.ok === true && typeof h.otpTable.rows === 'number' && h.lastError === null, 'the e-mail code table is reachable and healthy', h);
+    }
 
     // admin downloads: every list as CSV or JSON, admins only
     ok((await call('GET', '/api/downloads')).s === 401, 'downloading the lists needs a login');
@@ -749,6 +760,23 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
       ok(card.s === 200 && card.j.verified === true && card.j.member.name === 'Card Quokka' && card.j.member.position === 'General member' && !JSON.stringify(card.j).includes('@') && !JSON.stringify(card.j).includes('01712345678'), 'the card shows name, type and batch, with no e-mail or phone', card.j);
       ok((await call('GET', `/api/card/${f.j.id}?c=Mr${rid}-AAAAAA`)).s === 404, 'a wrong code shows nothing');
       ok((await call('PATCH', `/api/registrations/${rid}/status`, { status: 'rejected' }, T)).s === 200 && (await call('GET', `/api/card/${f.j.id}?c=${f.j.code}`)).s === 404, 'a card stops working when the approval is withdrawn');
+    }
+
+    // one person lives in two rows: a photo changed on the Team page must reach the card and the certificate
+    {
+      const apply = await call('POST', '/api/registrations', { type: 'committee', full_name: 'Photo Porcupine', student_id: 'PP2307', batch: '23', department: 'CSE', phone: '01712340000', email: 'photoporcupine@example.com', interests: ['Web Development'], experience: 'Beginner', post: 'General Member', photo_url: '/uploads/aaaaaaaaaaaaaaaaaaaaaaaa.webp' });
+      ok(apply.s === 201, 'a committee application can be sent', apply.j);
+      const rid = apply.j.registration.id;
+      const sel = await call('POST', `/api/registrations/${rid}/select`, { session: 'Summer 2026', position: 'General Member' }, T);
+      ok(sel.s === 200 && sel.j.member?.registration_id === rid, 'the applicant is selected into the committee', sel.j?.error);
+      const pic = 'https://res.cloudinary.com/demo/image/upload/v1234/photo-porcupine.webp';
+      ok((await call('PUT', `/api/members/${sel.j.member.id}`, { image_url: pic }, T)).s === 200, 'an admin changes the photo of a team member');
+      await new Promise((r) => setTimeout(r, 80));
+      const regs = (await call('GET', '/api/registrations', undefined, T)).j || [];
+      const reg = regs.find((r) => r.id === rid);
+      ok(reg?.photo_url === pic, 'the new photo reaches the application row the card and certificate read', reg?.photo_url);
+      const members = (await call('GET', '/api/members')).j || [];
+      ok(members.find((m) => m.name === 'Photo Porcupine')?.image_url === pic, 'and the Team page keeps the same photo');
     }
 
     // six-month committee terms: a committee serves half a year, then the handover opens

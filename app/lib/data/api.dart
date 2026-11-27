@@ -297,6 +297,19 @@ class Api {
     return data.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
   }
 
+  /// Mark a committee as the one running now (POST /committees/set-current).
+  Future<void> setCurrentCommittee(String session) =>
+      _send(() => _dio.post('/committees/set-current', data: {'session': session}, options: _auth));
+
+  /// Rename a committee, change its term or mark it current (POST /committees/:session/edit).
+  Future<void> editCommittee(String session, {required String name, String? start, String? end, bool? isCurrent}) =>
+      _send(() => _dio.post('/committees/${Uri.encodeComponent(session)}/edit', data: {
+            'session': name,
+            'start': start ?? '',
+            'end': end ?? '',
+            if (isCurrent != null) 'is_current': isCurrent,
+          }, options: _auth));
+
   Future<void> launchCommittee(String session, String? copyFrom, String scope, {bool force = false, String? start, String? end}) => _send(() => _dio.post(
         '/committees/launch',
         data: {

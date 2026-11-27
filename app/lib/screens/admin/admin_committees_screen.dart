@@ -64,6 +64,33 @@ class _AdminCommitteesScreenState extends State<AdminCommitteesScreen> {
     return '${d(t['start'] as String?)} – ${d(t['end'] as String?)} · $tail';
   }
 
+  /// Mark a committee as the running one (the same call the website's Committees card makes).
+  Future<void> _setCurrent(Map<String, dynamic> row) async {
+    final label = '${row['label']}';
+    try {
+      await _state.api.setCurrentCommittee(label);
+      if (mounted) showSnack(context, '$label is now the current committee');
+      await _load();
+      await _state.loadAll();
+    } on ApiException catch (e) {
+      await _state.handleAuthError(e);
+      if (mounted) showSnack(context, e.message, error: true);
+    }
+  }
+
+  Future<void> _edit(Map<String, dynamic> row) async {
+    final ok = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => _EditSheet(row: row),
+    );
+    if (ok == true) {
+      if (mounted) showSnack(context, 'Committee updated');
+      await _load();
+      await _state.loadAll();
+    }
+  }
+
   Future<void> _launch() async {
     final labels = _rows.map((r) => '${r['label']}').toList();
     final ok = await showModalBottomSheet<bool>(
@@ -132,8 +159,25 @@ class _AdminCommitteesScreenState extends State<AdminCommitteesScreen> {
                                   ],
                                 ]),
                               ),
-                              if (i == 0) ...[const Tag('Current', color: Color(0xFF34D399)), const SizedBox(width: 8)],
-                              Text('${_rows[i]['members']} members', style: monoStyle(context, size: 10.5)),
+                              Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                                Row(mainAxisSize: MainAxisSize.min, children: [
+                                  if (_rows[i]['is_current'] == true) ...[
+                                    const Tag('Current', color: Color(0xFF34D399)),
+                                    const SizedBox(width: 4),
+                                  ],
+                                  PopupMenuButton<String>(
+                                    tooltip: 'Committee actions',
+                                    padding: EdgeInsets.zero,
+                                    icon: const Icon(Icons.more_vert_rounded, size: 20),
+                                    onSelected: (v) => v == 'edit' ? _edit(_rows[i]) : _setCurrent(_rows[i]),
+                                    itemBuilder: (_) => [
+                                      const PopupMenuItem(value: 'edit', child: Text('Edit committee')),
+                                      if (_rows[i]['is_current'] != true) const PopupMenuItem(value: 'current', child: Text('Set as current')),
+                                    ],
+                                  ),
+                                ]),
+                                Text('${_rows[i]['members']} members', style: monoStyle(context, size: 10.5)),
+                              ]),
                             ]),
                           ).stagger(i),
                         ),
@@ -349,6 +393,117 @@ class _LaunchSheetState extends State<_LaunchSheet> {
           ],
           const SizedBox(height: 20),
           GradientButton(label: 'Launch', icon: Icons.rocket_launch_rounded, loading: _busy, onPressed: canLaunch ? () => _go() : null),
+        ]),
+      ),
+    );
+  }
+}
+
+/// Edit a committee: rename it, move its term or mark it as the one running now. Mirrors the website's
+/// Edit committee sheet so both admin surfaces save the same fields.
+class _EditSheet extends StatefulWidget {
+  const _EditSheet({required this.row});
+  final Map<String, dynamic> row;
+
+  @override
+  State<_EditSheet> createState() => _EditSheetState();
+}
+
+class _EditSheetState extends State<_EditSheet> {
+  late final TextEditingController _name = TextEditingController(text: '${widget.row['label']}');
+  late final TextEditingController _start;
+  late final TextEditingController _end;
+  late bool _current = widget.row['is_current'] == true;
+  bool _busy = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    final term = widget.row['term'] is Map ? Map<String, dynamic>.from(widget.row['term'] as Map) : const <String, dynamic>{};
+    _start = TextEditingController(text: '${term['start'] ?? ''}');
+    _end = TextEditingController(text: '${term['end'] ?? ''}');
+  }
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _start.dispose();
+    _end.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pick(bool first) async {
+    final t = DateTime.tryParse(first ? _start.text : _end.text) ?? DateTime.now();
+    final d = await showDatePicker(context: context, initialDate: t, firstDate: DateTime(2015), lastDate: DateTime(2100));
+    if (d == null || !mounted) return;
+    String two(int v) => v.toString().padLeft(2, '0');
+    setState(() {
+      final iso = '${d.year}-${two(d.month)}-${two(d.day)}';
+      if (first) {
+        _start.text = iso;
+      } else {
+        _end.text = iso;
+      }
+      _error = null;
+    });
+  }
+
+  Future<void> _save() async {
+    final name = _name.text.trim();
+    if (name.length < 3) {
+      setState(() => _error = 'Give the committee a name of at least 3 letters');
+      return;
+    }
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    final state = context.read<AppState>();
+    try {
+      await state.api.editCommittee('${widget.row['label']}', name: name, start: _start.text.trim(), end: _end.text.trim(), isCurrent: _current);
+      if (mounted) Navigator.pop(context, true);
+    } on ApiException catch (e) {
+      await state.handleAuthError(e);
+      if (mounted) setState(() => _error = e.message);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.pal;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(22, 0, 22, MediaQuery.of(context).viewInsets.bottom + 24),
+      child: SingleChildScrollView(
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('Edit committee', style: displayStyle(context, 26)),
+          const SizedBox(height: 4),
+          Text('Rename the session, move its six-month term, or make it the one shown as current.', style: bodyStyle(context, color: p.muted, size: 13.5)),
+          const SizedBox(height: 18),
+          AppField(controller: _name, label: 'Committee name', icon: Icons.calendar_today_rounded, maxLength: 50),
+          const SizedBox(height: 12),
+          Row(children: [
+            Expanded(child: GestureDetector(onTap: _busy ? null : () => _pick(true), child: AbsorbPointer(child: AppField(controller: _start, label: 'First day', icon: Icons.event_rounded)))),
+            const SizedBox(width: 12),
+            Expanded(child: GestureDetector(onTap: _busy ? null : () => _pick(false), child: AbsorbPointer(child: AppField(controller: _end, label: 'Last day', icon: Icons.event_available_rounded)))),
+          ]),
+          const SizedBox(height: 8),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            value: _current,
+            activeThumbColor: p.accent,
+            onChanged: _busy ? null : (v) => setState(() => _current = v),
+            title: Text('Set as current committee', style: bodyStyle(context, weight: FontWeight.w600, size: 14)),
+            subtitle: Text('The Team page opens on this session.', style: bodyStyle(context, color: p.muted, size: 12)),
+          ),
+          if (_error != null) ...[
+            const SizedBox(height: 6),
+            Text(_error!, style: monoStyle(context, color: const Color(0xFFEF4444), size: 12)),
+          ],
+          const SizedBox(height: 16),
+          GradientButton(label: 'Save changes', icon: Icons.check_rounded, loading: _busy, onPressed: _busy ? null : _save),
         ]),
       ),
     );

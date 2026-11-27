@@ -27,6 +27,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
   Map<String, dynamic> _mail = {};
   Map<String, dynamic> _ai = {};
   Map<String, dynamic> _img = {};
+  Map<String, dynamic> _tg = {};
   bool _statusLoaded = false;
 
   @override
@@ -49,13 +50,18 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
       }
     }
 
-    final r = await Future.wait(
-        [safe('email/status'), safe('chat/status'), safe('upload/status')]);
+    final r = await Future.wait([
+      safe('email/status'),
+      safe('chat/status'),
+      safe('upload/status'),
+      safe('telegram/status'),
+    ]);
     if (!mounted) return;
     setState(() {
       _mail = r[0];
       _ai = r[1];
       _img = r[2];
+      _tg = r[3];
       _statusLoaded = true;
     });
   }
@@ -173,6 +179,24 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                             detail: _img['provider'] == 'cloudinary'
                                 ? 'Optimised and removed from Cloudinary when deleted for good.'
                                 : 'Add CLOUDINARY_* keys to the server .env.',
+                          ),
+                          _StatusRow(
+                            ok: _tg['ok'] == true,
+                            title: _tg['configured'] != true
+                                ? 'Telegram bot not set up'
+                                : _tg['chatIdSet'] != true
+                                    ? 'Telegram bot on, chat id missing'
+                                    : ((_tg['webhook'] as Map?)?['set'] == true
+                                        ? 'Telegram bot connected'
+                                        : 'Telegram bot on, webhook not set'),
+                            detail: _tg['configured'] != true
+                                ? 'Add TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID to the server .env.'
+                                : _tg['chatIdSet'] != true
+                                    ? 'Add TELEGRAM_CHAT_ID so alerts know which chat to use.'
+                                    : (((_tg['webhook'] as Map?)?['lastError'] ??
+                                                (_tg['webhook'] as Map?)?['error'])
+                                            ?.toString() ??
+                                        'Admin alerts, application notices and /backup work in your chat.'),
                           ),
                         ],
                       ]),
