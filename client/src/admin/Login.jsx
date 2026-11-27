@@ -227,13 +227,14 @@ export default function Login() {
   };
 
   return (
-    <div className="relative grid min-h-screen place-items-center overflow-hidden px-4 py-10">
+    <div className="relative grid min-h-screen place-items-center overflow-hidden px-4 pb-10 pt-24 sm:px-6 sm:pb-10 sm:pt-20">
       <Backdrop3D variant="hero" className="absolute inset-0 opacity-60" />
       <div className="pointer-events-none absolute -left-32 top-10 size-[26rem] rounded-full bg-accent/20 blur-[110px]" />
       <div className="pointer-events-none absolute -right-28 bottom-0 size-[24rem] rounded-full bg-tech/20 blur-[110px]" />
       <Link to="/" className="absolute left-5 top-5 z-10 flex items-center gap-2 rounded-full border border-line bg-[var(--glass)] px-4 py-2 text-sm text-fg2 backdrop-blur transition hover:border-accent hover:text-accent"><ArrowLeft size={15} /> Back to site</Link>
 
-      <motion.div initial={{ opacity: 0, y: 30, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }} className="relative z-10 w-full max-w-[26rem]">
+      {/* min-w-0: without it a narrow phone widens the grid track past the screen and the card is clipped on the right */}
+      <motion.div initial={{ opacity: 0, y: 30, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }} className="relative z-10 w-full min-w-0 max-w-[26rem]">
         {/* soft gradient frame */}
         <div className="absolute -inset-px rounded-[34px] opacity-70 blur-[1px]" style={{ background: 'linear-gradient(135deg, var(--accent), transparent 40%, var(--tech))' }} />
         {mode === 'signup' ? <SignupPanel setMode={setMode} /> : mode !== 'in' ? <ResetPanel mode={mode} setMode={setMode} username={f.username} setUsername={(v) => setF({ ...f, username: v })} /> : (
