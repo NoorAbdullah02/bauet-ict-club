@@ -24,9 +24,12 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 const isProd = process.env.NODE_ENV === 'production';
+const publicSite = (process.env.PUBLIC_URL || '').trim().replace(/\/+$/, '');
+const isHttps = /^https:\/\//i.test(publicSite || process.env.RENDER_EXTERNAL_URL || '');
 if (process.env.TRUST_PROXY) app.set('trust proxy', Number(process.env.TRUST_PROXY) || process.env.TRUST_PROXY); // behind Render/Railway/Nginx: real client IP for rate limits
 
-// the SPA is served by this server in production, so a strict CSP applies to it
+// the SPA is served by this server in production, so a strict CSP applies to it.
+// Only force HTTPS upgrade / HSTS when PUBLIC_URL (or Render) actually uses https://, so raw HTTP VPS IPs still work.
 app.use(helmet({
   crossOriginEmbedderPolicy: false,
   crossOriginResourcePolicy: { policy: 'cross-origin' }, // uploaded photos are embedded by the site/app
@@ -44,9 +47,10 @@ app.use(helmet({
       'frame-ancestors': ["'none'"],
       'base-uri': ["'self'"],
       'form-action': ["'self'"],
+      'upgrade-insecure-requests': isHttps ? [] : null,
     },
   },
-  hsts: isProd ? { maxAge: 31536000, includeSubDomains: true } : false,
+  hsts: (isProd && isHttps) ? { maxAge: 31536000, includeSubDomains: true } : false,
   referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
 }));
 app.use(compression({ threshold: 512 }));
@@ -55,7 +59,8 @@ app.use(compression({ threshold: 512 }));
 const defaultOrigins = [
   'https://bauetictclub.eu.org',
   'https://www.bauetictclub.eu.org',
-  'https://bauet-ict-club.onrender.com'
+  'https://bauet-ict-club.onrender.com',
+  ...(publicSite ? [publicSite] : []),
 ];
 const allowed = [...new Set([...defaultOrigins, ...(process.env.CORS_ORIGINS || '').split(',').map((o) => o.trim()).filter(Boolean)])];
 app.use(cors({
