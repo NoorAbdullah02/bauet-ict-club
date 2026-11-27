@@ -204,9 +204,13 @@ class _AdminApplicationsScreenState extends State<AdminApplicationsScreen> {
 
   Future<void> _select(Registration r) async {
     var sessions = _state.members.map((m) => m.session).where((s) => s.isNotEmpty).toSet().toList();
+    var marked = '';
     try {
       final rows = await _state.api.committees();
       final labels = rows.map((c) => (c['label'] ?? '').toString()).where((s) => s.isNotEmpty).toList();
+      for (final c in rows) {
+        if (c['is_current'] == true) marked = (c['label'] ?? '').toString();
+      }
       if (labels.isNotEmpty) sessions = labels;
     } on ApiException catch (_) {
       // fall back to sessions known from the public members list
@@ -216,7 +220,7 @@ class _AdminApplicationsScreenState extends State<AdminApplicationsScreen> {
     final result = await showModalBottomSheet<(String, String)>(
       context: context,
       isScrollControlled: true,
-      builder: (ctx) => _SelectSheet(reg: r, sessions: sessions),
+      builder: (ctx) => _SelectSheet(reg: r, sessions: sessions, initial: marked),
     );
     final isAmb = r.type == 'ambassador';
     if (result == null) return;
@@ -478,16 +482,20 @@ class _Line extends StatelessWidget {
 
 /// Bottom sheet: choose committee session + post, returns (session, post).
 class _SelectSheet extends StatefulWidget {
-  const _SelectSheet({required this.reg, required this.sessions});
+  const _SelectSheet({required this.reg, required this.sessions, this.initial = ''});
   final Registration reg;
   final List<String> sessions;
+
+  /// The session an admin marked current; the first suggestion is that one, not just the newest.
+  final String initial;
 
   @override
   State<_SelectSheet> createState() => _SelectSheetState();
 }
 
 class _SelectSheetState extends State<_SelectSheet> {
-  late final TextEditingController _session = TextEditingController(text: widget.sessions.isEmpty ? '' : widget.sessions.first);
+  late final TextEditingController _session = TextEditingController(
+      text: widget.initial.isNotEmpty ? widget.initial : (widget.sessions.isEmpty ? '' : widget.sessions.first));
   bool get _amb => widget.reg.type == 'ambassador';
   late String _post = _amb ? kAmbassadorPost : (kCommitteePosts.contains(widget.reg.post) ? widget.reg.post : kCommitteePosts.first);
   String? _error;

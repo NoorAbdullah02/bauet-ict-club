@@ -23,6 +23,7 @@ function createCrudRouter(table, opts = {}) {
   const auth = opts.auth;
   const validate = opts.validate; // async (data, existingRow|null) => error string | null
   const onCreate = opts.onCreate; // (row) => void, runs after a successful create (e.g. email subscribers)
+  const onSave = opts.onSave; // (row) => void | Promise, runs after every create/update (e.g. keeping a photo in sync)
   const scheduled = !!opts.scheduled; // events and notices can be drafts or scheduled
   const guard = auth ? [auth] : [];
   const readGuard = opts.readAuth && auth ? [auth] : []; // private lists (e.g. subscriber emails) need a login to read
@@ -78,6 +79,7 @@ function createCrudRouter(table, opts = {}) {
         created = { ...created, pending_notify: true };
       }
       res.status(201).json(created);
+      if (onSave) Promise.resolve().then(() => onSave(created)).catch((e) => console.warn(`${table} onSave failed:`, e.message));
       if (onCreate && !(scheduled && isHidden(created))) try { onCreate(rows[0]); } catch (e) { console.warn(`${table} onCreate failed:`, e.message); }
     } catch (e) {
       console.error(`${table} insert failed:`, e.message);
@@ -103,6 +105,7 @@ function createCrudRouter(table, opts = {}) {
         [...keys.map((k) => data[k]), req.params.id]
       );
       res.json(rows[0]);
+      if (onSave) Promise.resolve().then(() => onSave(rows[0])).catch((e) => console.warn(`${table} onSave failed:`, e.message));
       // the replaced picture would otherwise stay on Cloudinary forever
       imageCols.forEach((c) => { if (old[c] && old[c] !== rows[0][c]) destroyImage(old[c]); });
     } catch (e) {

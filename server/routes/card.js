@@ -3,7 +3,8 @@ const crypto = require('crypto');
 const rateLimit = require('express-rate-limit');
 const pool = require('../config/db');
 const { fail } = require('../utils/http');
-const { isAdminRequest } = require('../middleware/auth');
+const { ensureCardOtpTable } = require('../utils/cardOtp');
+const { isAdminRequest, authMiddleware } = require('../middleware/auth');
 const mail = require('../utils/mailer');
 
 const router = express.Router();
@@ -188,6 +189,21 @@ async function keyForEmail(email, memberId = null) {
   return byName.length >= 1 ? String(byName[0].id) : null;
 }
 
+let lastOtpError = null;
+
+/** Admin-only: is the code table usable, and what went wrong the last time a code was asked for? Never a secret. */
+router.get('/health', authMiddleware, async (_req, res) => {
+  let table = { ok: false };
+  try {
+    await ensureCardOtpTable();
+    const { rows } = await pool.query('SELECT COUNT(*)::int AS n FROM card_otps');
+    table = { ok: true, rows: Number(rows[0]?.n || 0) };
+  } catch (e) {
+    table = { ok: false, error: String(e.message || 'Could not read the code table').slice(0, 200) };
+  }
+  res.json({ otpTable: table, lastError: lastOtpError, checkedAt: new Date().toISOString() });
+});
+
 router.post('/otp/request', findLimiter, async (req, res) => {
   const email = String(req.body?.email || '').trim().toLowerCase().slice(0, 100);
   const memberId = Number(req.body?.memberId) || null;
@@ -202,6 +218,9 @@ router.post('/otp/request', findLimiter, async (req, res) => {
     message: 'If this e-mail belongs to an approved member, a 6-digit code is on its way.',
   };
   try {
+    // a database that just came up, or one made by an older version, is repaired first; if the repair
+    // itself cannot run (an embedded test database, a locked-down role) the existing table is used as-is
+    await ensureCardOtpTable().catch(() => {});
     const prev = (await pool.query('SELECT sent_at FROM card_otps WHERE email = $1', [email])).rows[0];
     if (prev && Date.now() - new Date(prev.sent_at).getTime() < RESEND_SECONDS * 1000) {
       return res.status(429).json({ error: `Please wait ${RESEND_SECONDS} seconds before asking for another code`, retryAfter: RESEND_SECONDS });
@@ -209,9 +228,11 @@ router.post('/otp/request', findLimiter, async (req, res) => {
     const key = await keyForEmail(email, memberId);
     if (!key) return res.json(generic);
     const code = String(crypto.randomInt(100000, 1000000));
+    // replace instead of ON CONFLICT: an older database may not carry the unique e-mail key that
+    // ON CONFLICT needs, and a fresh code must never be blocked by a row left from yesterday
+    await pool.query('DELETE FROM card_otps WHERE email = $1', [email]);
     await pool.query(
-      `INSERT INTO card_otps (email, code_hash, member_key, attempts, sent_at, expires_at) VALUES ($1,$2,$3,0,NOW(),$4)
-       ON CONFLICT (email) DO UPDATE SET code_hash = EXCLUDED.code_hash, member_key = EXCLUDED.member_key, attempts = 0, sent_at = NOW(), expires_at = EXCLUDED.expires_at`,
+      'INSERT INTO card_otps (email, code_hash, member_key, attempts, sent_at, expires_at) VALUES ($1,$2,$3,0,NOW(),$4)',
       [email, codeHash(email, code), key, new Date(Date.now() + OTP_MINUTES * 60000)]
     );
     mail.deliver({ to: email, ...mail.templates.cardOtp(code, OTP_MINUTES) });
@@ -231,7 +252,11 @@ router.post('/otp/request', findLimiter, async (req, res) => {
     }
 
     res.json(generic);
-  } catch (e) { fail(res, e); }
+  } catch (e) {
+    lastOtpError = { at: new Date().toISOString(), code: e.code || null, message: String(e.message || '').slice(0, 200) };
+    console.error('Card code request failed:', e.code || '', e.message);
+    fail(res, e);
+  }
 });
 
 router.post('/otp/verify', findLimiter, async (req, res) => {
@@ -240,6 +265,7 @@ router.post('/otp/verify', findLimiter, async (req, res) => {
   const bad = { error: 'That code is not right, or it has expired. Ask for a new one.' };
   if (!email || !code) return res.status(400).json({ error: 'E-mail and the 6-digit code are required' });
   try {
+    await ensureCardOtpTable().catch(() => {});
     const row = (await pool.query('SELECT * FROM card_otps WHERE email = $1', [email])).rows[0];
     if (!row || new Date(row.expires_at) < new Date() || row.attempts >= OTP_TRIES || code.length !== 6) {
       if (row && row.attempts >= OTP_TRIES) await pool.query('DELETE FROM card_otps WHERE email = $1', [email]);
@@ -285,7 +311,13 @@ router.get('/:id', async (req, res) => {
       const id = Number(raw.slice(1));
       const code = cardCode(raw);
       if (!same(given, code)) return res.status(404).json({ error: 'Member not found' });
-      const r = (await pool.query("SELECT id, type, full_name, email, student_id, department, batch, post, photo_url, interests, experience, note, birth_date, created_at FROM registrations WHERE id = $1 AND status = 'approved' AND deleted_at IS NULL", [id])).rows[0];
+      const r = (await pool.query(
+        `SELECT r.id, r.type, r.full_name, r.email, r.student_id, r.department, r.batch, r.post, r.photo_url, r.interests, r.experience, r.note, r.birth_date, r.created_at,
+                m.image_url AS member_image
+           FROM registrations r LEFT JOIN members m ON m.registration_id = r.id AND m.deleted_at IS NULL
+          WHERE r.id = $1 AND r.status = 'approved' AND r.deleted_at IS NULL`,
+        [id]
+      )).rows[0];
       if (!r) return res.status(404).json({ error: 'Member not found' });
       const stats = await getMemberStats(raw);
       return res.set('Cache-Control', 'no-store').json({
@@ -296,7 +328,7 @@ router.get('/:id', async (req, res) => {
           department: r.department,
           batch: r.batch,
           session: `Member since ${new Date(r.created_at).getFullYear()}`,
-          image_url: r.photo_url || null,
+          image_url: r.photo_url || r.member_image || null,
           birth_date: r.birth_date ? new Date(r.birth_date).toISOString().slice(0, 10) : null,
           current: true,
           bio: r.note || '',
@@ -320,7 +352,14 @@ router.get('/:id', async (req, res) => {
     }
     const id = Number(raw);
     if (!Number.isInteger(id) || id < 1) return res.status(404).json({ error: 'Member not found' });
-    const m = (await pool.query('SELECT id, name, position, department, batch, committee_session, image_url, social_fb, social_gh, social_li, active, birth_date FROM members WHERE id = $1 AND deleted_at IS NULL', [id])).rows[0];
+    // one person, one picture: the member row wins, and the application it came from fills a blank
+    const m = (await pool.query(
+      `SELECT m.id, m.name, m.position, m.department, m.batch, m.committee_session, m.social_fb, m.social_gh, m.social_li, m.active, m.birth_date,
+              COALESCE(CASE WHEN m.image_url = '' THEN NULL ELSE m.image_url END, r.photo_url) AS image_url
+         FROM members m LEFT JOIN registrations r ON r.id = m.registration_id AND r.deleted_at IS NULL
+        WHERE m.id = $1 AND m.deleted_at IS NULL`,
+      [id]
+    )).rows[0];
     if (!m) return res.status(404).json({ error: 'Member not found' });
     const code = cardCode(String(m.id));
     const stats = await getMemberStats(String(m.id));

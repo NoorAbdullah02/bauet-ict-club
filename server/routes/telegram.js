@@ -1,5 +1,6 @@
 const express = require('express');
 const pool = require('../config/db');
+const { authMiddleware } = require('../middleware/auth');
 const { sendBackupToTelegram } = require('../utils/backupTelegram');
 
 const router = express.Router();
@@ -53,6 +54,44 @@ async function answerCallbackQuery(callbackQueryId, text) {
     });
   } catch {}
 }
+
+let statusCache = { at: 0, value: null };
+
+/**
+ * Admin-only connection check for the Settings page: is the bot token, the chat id and the live webhook in place?
+ * The token and chat id never leave the server — only whether each is set, plus Telegram's own webhook health.
+ */
+router.get('/status', authMiddleware, async (_req, res) => {
+  const token = process.env.TELEGRAM_BOT_TOKEN?.trim();
+  const chatId = process.env.TELEGRAM_CHAT_ID?.trim();
+  if (!token) return res.json({ configured: false, chatIdSet: !!chatId, webhook: { set: false }, ok: false });
+  if (statusCache.value && Date.now() - statusCache.at < 60_000) return res.json(statusCache.value);
+
+  let webhook = { set: false };
+  try {
+    const r = await fetch(`https://api.telegram.org/bot${token}/getWebhookInfo`, { signal: AbortSignal.timeout(6000) });
+    const body = await r.json().catch(() => ({}));
+    if (body.ok) {
+      const info = body.result || {};
+      webhook = {
+        set: !!info.url,
+        // the webhook path is a bearer secret, so only the host is reported
+        host: info.url ? (() => { try { return new URL(info.url).host; } catch { return ''; } })() : '',
+        pending: Number(info.pending_update_count || 0),
+        lastError: info.last_error_message ? String(info.last_error_message).slice(0, 200) : null,
+        lastErrorAt: info.last_error_date ? new Date(info.last_error_date * 1000).toISOString() : null,
+      };
+    } else {
+      webhook = { set: false, error: 'Telegram rejected the bot token' };
+    }
+  } catch {
+    webhook = { set: false, error: 'Telegram did not answer' };
+  }
+
+  const value = { configured: true, chatIdSet: !!chatId, webhook, ok: !!chatId && webhook.set && !webhook.lastError };
+  statusCache = { at: Date.now(), value };
+  res.json(value);
+});
 
 router.post('/webhook', async (req, res) => {
   res.status(200).json({ ok: true }); // Telegram expects quick 200 OK

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../core/theme.dart';
 import '../core/utils.dart';
+import '../data/api.dart';
 import '../models/models.dart';
 import '../state/app_state.dart';
 import '../widgets/common.dart';
@@ -16,7 +17,32 @@ class TeamScreen extends StatefulWidget {
 }
 
 class _TeamScreenState extends State<TeamScreen> {
+  late final AppState _state = context.read<AppState>();
   String? _session;
+  String? _currentSession;
+
+  @override
+  void initState() {
+    super.initState();
+    // the admin-marked session from /api/settings, refined by is_current from /api/committees
+    _currentSession = _state.settings.currentSession;
+    _loadCurrent();
+    // an admin may have changed a photo or a post since the app was opened: refresh quietly, no spinner
+    _state.reloadMembers();
+  }
+
+  Future<void> _loadCurrent() async {
+    try {
+      final rows = await _state.api.committees();
+      String? marked;
+      for (final r in rows) {
+        if (r['is_current'] == true && '${r['label']}'.trim().isNotEmpty) marked = '${r['label']}';
+      }
+      if (marked != null && mounted) setState(() => _currentSession = marked);
+    } on ApiException catch (_) {
+      // keep the session from settings, and the newest one as the last resort
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -26,7 +52,11 @@ class _TeamScreenState extends State<TeamScreen> {
 
     final sessions = state.teamMembers.map((m) => m.session).where((s) => s.isNotEmpty).toSet().toList()
       ..sort((a, b) => sessionRank(b).compareTo(sessionRank(a)));
-    final active = (_session != null && sessions.contains(_session)) ? _session : (sessions.isEmpty ? null : sessions.first);
+    final active = (_session != null && sessions.contains(_session))
+        ? _session
+        : (_currentSession != null && sessions.contains(_currentSession))
+            ? _currentSession
+            : (sessions.isEmpty ? null : sessions.first);
 
     List<Member> pick(bool Function(Member) test) =>
         state.teamMembers.where((m) => (active == null || m.session == active) && test(m)).toList()..sort((a, b) => a.order.compareTo(b.order));
