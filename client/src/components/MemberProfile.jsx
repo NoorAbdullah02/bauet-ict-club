@@ -1,11 +1,8 @@
 import { useEffect, useState, useRef } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { 
-  BadgeCheck, Loader2, Award, Calendar, Share2, Copy, Check, 
-  Linkedin, Github, Facebook, Download, ExternalLink, Sparkles, 
-  CreditCard, Shield, Flame, BookOpen, Camera, Zap, CheckCircle2, Cake, Mail, KeyRound
-} from 'lucide-react';
+import { BadgeCheck, Loader2, Award, Calendar, Share2, Copy, Check, Download, ExternalLink, Sparkles, CreditCard, Shield, Flame, BookOpen, Camera, Zap, CheckCircle2, Cake, Mail, KeyRound } from 'lucide-react';
+import { Facebook, Github, Linkedin } from '../lib/brandIcons';
 import toast from 'react-hot-toast';
 import { api } from '../context/store';
 import { formalDate } from '../lib/format';

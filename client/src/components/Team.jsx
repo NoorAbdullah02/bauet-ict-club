@@ -2,7 +2,8 @@ import { useState, useMemo, useEffect } from 'react';
 import { thumb, portrait } from '../lib/img';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { Users, Facebook, Github, Linkedin, Shield, Star, Crown, Award, ChevronRight, IdCard, GraduationCap, Mail } from 'lucide-react';
+import { Users, Shield, Star, Crown, Award, ChevronRight, IdCard, GraduationCap, Mail } from 'lucide-react';
+import { Facebook, Github, Linkedin } from '../lib/brandIcons';
 import { useInView } from 'react-intersection-observer';
 import useStore from '../context/store';
 
