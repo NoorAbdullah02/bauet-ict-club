@@ -56,6 +56,10 @@ jobs:
           cache: true
       # adds the Android project files the repository does not keep; existing files (manifest, network config) are left alone
       - run: flutter create . --org com.bauet --project-name bauet_ict_club --platforms android
+      # the newest Flutter refuses any Android Gradle Plugin older than the one it ships with,
+      # so lift the generated project to the version the tool asks for
+      - name: Match the Android Gradle Plugin the tool wants
+        run: python3 ../tools/android_agp.py android
       # the permanent club key (GitHub secrets ANDROID_KEYSTORE_*): a new APK then installs OVER an older one. Without the secrets nothing changes.
       - name: Sign with the permanent club key
         env:
