@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
-import { Rocket, ArrowRightLeft, Trash2, Users, CalendarPlus, UserPlus, ClipboardList, Star, CalendarClock, CalendarCheck, AlertTriangle, PlusCircle, CalendarRange, FileSpreadsheet, Loader2, Pencil } from 'lucide-react';
+import { Rocket, ArrowRightLeft, Trash2, Users, CalendarPlus, UserPlus, ClipboardList, Star, CalendarClock, CalendarCheck, AlertTriangle, PlusCircle, CalendarRange, FileSpreadsheet, Loader2, Pencil, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import useStore from '../context/store';
 import { canDelete } from './roles';
@@ -35,8 +35,14 @@ export default function CommitteeOverview({ onLaunch, onTransfer, onOpen }) {
   const [saving, setSaving] = useState(false);
   const [editItem, setEditItem] = useState(null); // { oldLabel, label, start, end, is_current }
   const [editSaving, setEditSaving] = useState(false);
+  const [q, setQ] = useState('');
 
   const list = useMemo(() => [...sessions].sort((a, b) => sessionRank(b.label) - sessionRank(a.label)), [sessions]);
+  const filteredList = useMemo(() => {
+    const s = q.trim().toLowerCase();
+    if (!s) return list;
+    return list.filter((item) => item.label.toLowerCase().includes(s) || `${item.members}`.includes(s));
+  }, [list, q]);
   const current = list.find((s) => s.is_current) || list.find((s) => s.members > 0);
   const t = current?.term;
 
@@ -147,11 +153,19 @@ export default function CommitteeOverview({ onLaunch, onTransfer, onOpen }) {
       <Panel className="p-5">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div><h3 className="text-lg text-fg">Committees</h3><p className="text-xs text-muted">Two a year, six months each. You can select which committee is currently displayed on the website.</p></div>
-          <button onClick={onLaunch} className="btn-primary !px-5 !py-2.5 text-xs"><Rocket size={14} /> Launch new committee</button>
+          <div className="flex flex-wrap items-center gap-2">
+            {list.length > 0 && (
+              <div className="relative">
+                <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" />
+                <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search committees…" className={`${inputCls} !w-48 !rounded-full !py-2 pl-9 text-xs`} />
+              </div>
+            )}
+            <button onClick={onLaunch} className="btn-primary !px-5 !py-2.5 text-xs"><Rocket size={14} /> Launch new committee</button>
+          </div>
         </div>
-        {list.length === 0 ? <p className="text-sm text-muted">No committee yet. Launch the first one.</p> : (
+        {list.length === 0 ? <p className="text-sm text-muted">No committee yet. Launch the first one.</p> : filteredList.length === 0 ? <p className="text-sm text-muted">No matching committees.</p> : (
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {list.map((s) => (
+            {filteredList.map((s) => (
               <div key={s.label} className={cn('rounded-2xl border p-4 transition', s.is_current ? 'border-accent bg-accent/5 ring-1 ring-accent/30' : 'border-line')}>
                 <div className="flex items-start justify-between gap-2">
                   <div>

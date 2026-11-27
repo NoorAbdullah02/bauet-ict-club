@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
-import { Check, Download, FileSpreadsheet, Loader2, Megaphone, Pencil, Trash2 } from 'lucide-react';
+import { Check, Download, FileSpreadsheet, Loader2, Megaphone, Pencil, Search, Trash2 } from 'lucide-react';
 import useStore, { api } from '../context/store';
 import { Drawer, inputCls, askConfirm } from './ui';
 import { canDelete } from './roles';
@@ -35,10 +35,11 @@ export default function ContestTeams({ contest, onClose }) {
   const [d, setD] = useState(null);
   const [busy, setBusy] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [q, setQ] = useState('');
   const user = useStore((s) => s.user);
   const id = contest?.id;
   const load = () => api.get(`/contest-teams/admin/${id}`).then((r) => setD(r.data)).catch(() => setD(false));
-  useEffect(() => { setD(null); if (id) load(); }, [id]);
+  useEffect(() => { setD(null); setQ(''); if (id) load(); }, [id]);
 
   const patch = async (t, body) => {
     try { await api.patch(`/contest-teams/admin/team/${t.id}`, body); await load(); return true; }
@@ -60,6 +61,11 @@ export default function ContestTeams({ contest, onClose }) {
   const exportTeams = (format) => saveFile(`/contest-teams/admin/${id}/export`, { format }, `contest-${id}-teams.${format}`);
 
   const teams = d?.teams || [];
+  const filteredTeams = useMemo(() => {
+    const s = q.trim().toLowerCase();
+    if (!s) return teams;
+    return teams.filter((t) => [t.team_name, t.leader_name, t.email, t.phone, t.status, ...(t.members || []).flatMap((m) => [m.name, m.email, m.student_id])].filter(Boolean).some((v) => String(v).toLowerCase().includes(s)));
+  }, [teams, q]);
   return (
     <Drawer open={!!contest} title={`Teams: ${contest?.title || ''}`} onClose={onClose}>
       {d === null && <div className="h-32 animate-pulse rounded-2xl bg-alt" />}
@@ -74,9 +80,16 @@ export default function ContestTeams({ contest, onClose }) {
               : <button onClick={publish} disabled={busy} className="btn-primary !px-4 !py-2 text-xs">{busy ? <Loader2 size={14} className="animate-spin" /> : <Megaphone size={14} />} Publish results</button>}
           </div>
           <p className="mb-4 text-xs text-muted">{d.contest.results_published ? 'The results are public. You can still change places and publish again.' : 'Type each team\'s place (1, 2, 3 ...), then publish. Points go to every team member who gave an e-mail.'}</p>
+          {teams.length > 0 && (
+            <div className="relative mb-4">
+              <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" />
+              <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search team name, leader, email or member…" className={`${inputCls} !rounded-full !py-2 pl-9 text-xs`} />
+            </div>
+          )}
           {teams.length === 0 && <p className="py-8 text-center text-fg2">No team has signed up yet.</p>}
+          {teams.length > 0 && filteredTeams.length === 0 && <p className="py-8 text-center text-fg2">No matching teams.</p>}
           <ul className="space-y-3">
-            {teams.map((t) => (
+            {filteredTeams.map((t) => (
               <li key={t.id} className="rounded-2xl border border-line p-4">
                 <div className="flex items-start gap-3">
                   <div className="min-w-0 flex-1">

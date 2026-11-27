@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
-import { ArrowRightLeft, Loader2 } from 'lucide-react';
+import { ArrowRightLeft, Loader2, Search } from 'lucide-react';
 import Select from '../components/Select';
 import useStore from '../context/store';
 import { Drawer, inputCls } from './ui';
@@ -16,15 +16,27 @@ export default function TransferPeople({ open, onClose, initialFrom = '' }) {
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [mode, setMode] = useState('copy');
+  const [q, setQ] = useState('');
   const [picked, setPicked] = useState(() => new Set());
   const [busy, setBusy] = useState(false);
 
   useEffect(() => { if (open && initialFrom) setFrom(initialFrom); else if (open && !from && ordered[0]) setFrom(ordered[0].label); }, [open, ordered, from, initialFrom]);
-  useEffect(() => { setPicked(new Set()); }, [from]);
+  useEffect(() => { setPicked(new Set()); setQ(''); }, [from]);
 
   const people = useMemo(() => members.filter((m) => m.committee_session === from).sort((a, b) => (a.display_order ?? 99) - (b.display_order ?? 99)), [members, from]);
-  const all = people.length > 0 && people.every((m) => picked.has(m.id));
+  const filtered = useMemo(() => {
+    const s = q.trim().toLowerCase();
+    if (!s) return people;
+    return people.filter((m) => [m.name, m.position, m.department, m.batch].filter(Boolean).some((v) => String(v).toLowerCase().includes(s)));
+  }, [people, q]);
+  const all = filtered.length > 0 && filtered.every((m) => picked.has(m.id));
   const toggle = (id) => setPicked((p) => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const toggleFiltered = () => setPicked((prev) => {
+    const next = new Set(prev);
+    if (all) filtered.forEach((m) => next.delete(m.id));
+    else filtered.forEach((m) => next.add(m.id));
+    return next;
+  });
   const suggestion = useMemo(() => {
     const m = /^(Summer|Winter)\s+(\d{4})/i.exec(from);
     if (!m) return '';
@@ -65,18 +77,26 @@ export default function TransferPeople({ open, onClose, initialFrom = '' }) {
         ))}
       </div>
 
-      <div className="mt-6 flex items-center justify-between">
+      {people.length > 0 && (
+        <div className="relative mt-5">
+          <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Filter members by name or position…" className={`${inputCls} !rounded-full !py-2 pl-9 text-xs`} />
+        </div>
+      )}
+
+      <div className="mt-4 flex items-center justify-between">
         <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-fg2">People ({picked.size} of {people.length})</span>
-        <button type="button" onClick={() => setPicked(all ? new Set() : new Set(people.map((m) => m.id)))} className="text-xs font-semibold text-tech">{all ? 'Clear' : 'Select all'}</button>
+        <button type="button" disabled={!filtered.length} onClick={toggleFiltered} className="text-xs font-semibold text-tech disabled:opacity-40">{all ? 'Clear' : 'Select all'}</button>
       </div>
       <div className="mt-2 space-y-1.5">
-        {people.map((m) => (
+        {filtered.map((m) => (
           <label key={m.id} className={cn('flex cursor-pointer items-center gap-3 rounded-xl border px-3 py-2.5 text-sm transition', picked.has(m.id) ? 'border-accent bg-accent/8' : 'border-line hover:border-muted')}>
             <input type="checkbox" checked={picked.has(m.id)} onChange={() => toggle(m.id)} className="size-4 accent-[#1F4FD8]" />
             <span className="min-w-0 flex-1"><b className="block truncate text-fg">{m.name}</b><span className="block truncate text-xs text-fg2">{m.position}</span></span>
           </label>
         ))}
         {!people.length && <p className="text-sm text-muted">Pick a committee that has people.</p>}
+        {people.length > 0 && !filtered.length && <p className="text-sm text-muted">No matching members.</p>}
       </div>
     </Drawer>
   );
