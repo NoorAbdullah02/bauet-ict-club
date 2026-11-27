@@ -21,10 +21,18 @@ class AdminTrashScreen extends StatefulWidget {
 
 class _AdminTrashScreenState extends State<AdminTrashScreen> {
   late final AppState _state = context.read<AppState>();
+  final TextEditingController _q = TextEditingController();
   List<Map<String, dynamic>> _items = [];
   int _retention = 30;
   bool _loading = true;
   String? _error;
+  String _query = '';
+
+  @override
+  void dispose() {
+    _q.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -107,11 +115,23 @@ class _AdminTrashScreenState extends State<AdminTrashScreen> {
               padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
               child: Align(alignment: Alignment.centerLeft, child: CodeLabel('items are removed for good after $_retention days')),
             ),
+            if (!_loading && _error == null && _items.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                child: AdminSearchBar(
+                  controller: _q,
+                  hint: 'Search trash by title, type…',
+                  onChanged: (v) => setState(() => _query = v),
+                  shown: _items.where((it) => matchesQuery(_query, [it['title'], it['sub'], it['label'], it['type']])).length,
+                  total: _items.length,
+                ),
+              ),
             Expanded(
               child: RefreshIndicator(
                 color: p.tech,
                 onRefresh: _load,
                 child: ListView(
+                  keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
                   padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
                   physics: const AlwaysScrollableScrollPhysics(),
                   children: [
@@ -122,7 +142,11 @@ class _AdminTrashScreenState extends State<AdminTrashScreen> {
                     else if (_items.isEmpty)
                       const EmptyState(icon: Icons.delete_outline_rounded, title: 'Trash is empty')
                     else
-                      for (var i = 0; i < _items.length; i++) _tile(_items[i], p).stagger(i),
+                      for (final filtered in [_items.where((it) => matchesQuery(_query, [it['title'], it['sub'], it['label'], it['type']])).toList()])
+                        if (filtered.isEmpty)
+                          const EmptyState(icon: Icons.search_off_rounded, title: 'No matching items')
+                        else
+                          for (var i = 0; i < filtered.length; i++) _tile(filtered[i], p).stagger(i),
                   ],
                 ),
               ),

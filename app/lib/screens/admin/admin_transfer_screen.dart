@@ -9,6 +9,7 @@ import '../../state/app_state.dart';
 import '../../widgets/common.dart';
 import '../../widgets/form_widgets.dart';
 import 'admin_page.dart';
+import 'admin_widgets.dart';
 
 /// Copy or move people from one committee session to another (for example from Summer 2026 to Winter 2026).
 class AdminTransferScreen extends StatefulWidget {
@@ -21,8 +22,10 @@ class AdminTransferScreen extends StatefulWidget {
 class _AdminTransferScreenState extends State<AdminTransferScreen> {
   late final AppState _state = context.read<AppState>();
   final _to = TextEditingController();
+  final _q = TextEditingController();
   String _from = '';
   String _mode = 'copy';
+  String _query = '';
   final Set<int> _picked = {};
   bool _busy = false;
   String? _error;
@@ -30,6 +33,7 @@ class _AdminTransferScreenState extends State<AdminTransferScreen> {
   @override
   void dispose() {
     _to.dispose();
+    _q.dispose();
     super.dispose();
   }
 
@@ -64,6 +68,7 @@ class _AdminTransferScreenState extends State<AdminTransferScreen> {
     final sessions = _sessions;
     if (_from.isEmpty && sessions.isNotEmpty) _from = sessions.first;
     final people = _state.members.where((m) => m.session == _from).toList()..sort((a, b) => a.order.compareTo(b.order));
+    final filtered = people.where((m) => matchesQuery(_query, [m.name, m.position, m.department, m.batch])).toList();
     return AdminPage(
       title: 'Transfer people',
       children: [
@@ -80,12 +85,22 @@ class _AdminTransferScreenState extends State<AdminTransferScreen> {
           PillChip(label: 'Move', selected: _mode == 'move', onTap: () => setState(() => _mode = 'move')),
         ]),
         const SizedBox(height: 14),
+        if (people.isNotEmpty) ...[
+          AdminSearchBar(
+            controller: _q,
+            hint: 'Filter members by name or position…',
+            onChanged: (v) => setState(() => _query = v),
+            shown: filtered.length,
+            total: people.length,
+          ),
+          const SizedBox(height: 10),
+        ],
         Row(children: [
           Text('${_picked.length} OF ${people.length} CHOSEN', style: monoStyle(context)),
           const Spacer(),
-          TextButton(onPressed: () => setState(() => _picked.length == people.length ? _picked.clear() : _picked.addAll(people.map((m) => m.id))), child: Text(_picked.length == people.length ? 'Clear' : 'Choose all')),
+          TextButton(onPressed: () => setState(() => _picked.length == people.length ? _picked.clear() : _picked.addAll(filtered.map((m) => m.id))), child: Text(_picked.length == people.length ? 'Clear' : 'Choose all')),
         ]),
-        for (final Member m in people)
+        for (final Member m in filtered)
           CheckboxListTile(
             value: _picked.contains(m.id),
             onChanged: (v) => setState(() => v == true ? _picked.add(m.id) : _picked.remove(m.id)),

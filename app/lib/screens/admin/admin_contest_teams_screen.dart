@@ -8,6 +8,7 @@ import '../../state/app_state.dart';
 import '../../widgets/common.dart';
 import '../../widgets/form_widgets.dart';
 import 'admin_page.dart';
+import 'admin_widgets.dart';
 
 /// The teams of one contest: contact details, give places, publish the results (which also gives points).
 class AdminContestTeamsScreen extends StatefulWidget {
@@ -20,10 +21,18 @@ class AdminContestTeamsScreen extends StatefulWidget {
 
 class _AdminContestTeamsScreenState extends State<AdminContestTeamsScreen> {
   late final AppState _state = context.read<AppState>();
+  final TextEditingController _q = TextEditingController();
   Map<String, dynamic>? _d;
   bool _loading = true;
   bool _busy = false;
   String? _error;
+  String _query = '';
+
+  @override
+  void dispose() {
+    _q.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -172,11 +181,32 @@ class _AdminContestTeamsScreenState extends State<AdminContestTeamsScreen> {
             GradientButton(label: 'Publish results', icon: Icons.campaign_rounded, loading: _busy, onPressed: _publish),
           const SizedBox(height: 8),
           Text(published ? 'The results are public. You can still change places and publish again.' : 'Type each team\'s place (1, 2, 3 …), then publish. Points go to every team member who gave an e-mail.', style: bodyStyle(context, size: 12.5, color: p.muted)),
-          const SizedBox(height: 14),
-          if (teams.isEmpty)
-            const EmptyState(icon: Icons.groups_outlined, title: 'No team yet', message: 'Teams show up here when they sign up.')
-          else
-            for (final t in teams)
+          const SizedBox(height: 12),
+          if (teams.isNotEmpty) ...[
+            AdminSearchBar(
+              controller: _q,
+              hint: 'Search team name, leader, email or member…',
+              onChanged: (v) => setState(() => _query = v),
+              shown: teams.where((t) {
+                final mem = (t['members'] is List ? (t['members'] as List).whereType<Map>() : const <Map>[]).map((m) => '${m['name']} ${m['email']} ${m['student_id']}').join(' ');
+                return matchesQuery(_query, [t['team_name'], t['leader_name'], t['email'], t['phone'], mem]);
+              }).length,
+              total: teams.length,
+            ),
+            const SizedBox(height: 12),
+          ],
+          for (final shownTeams in [
+            teams.where((t) {
+              final mem = (t['members'] is List ? (t['members'] as List).whereType<Map>() : const <Map>[]).map((m) => '${m['name']} ${m['email']} ${m['student_id']}').join(' ');
+              return matchesQuery(_query, [t['team_name'], t['leader_name'], t['email'], t['phone'], mem]);
+            }).toList(),
+          ])
+            if (teams.isEmpty)
+              const EmptyState(icon: Icons.groups_outlined, title: 'No team yet', message: 'Teams show up here when they sign up.')
+            else if (shownTeams.isEmpty)
+              const EmptyState(icon: Icons.search_off_rounded, title: 'No matching teams')
+            else
+              for (final t in shownTeams)
               Padding(
                 padding: const EdgeInsets.only(bottom: 12),
                 child: GlassCard(

@@ -174,7 +174,7 @@ class _PickerSheetState extends State<_PickerSheet> {
             padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
             child: Align(alignment: Alignment.centerLeft, child: Text(widget.label, style: displayStyle(context, 22))),
           ),
-          if (widget.options.length > 10)
+          if (widget.options.length > 5)
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
               child: TextField(

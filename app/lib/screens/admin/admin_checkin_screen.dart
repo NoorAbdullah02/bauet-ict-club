@@ -32,14 +32,36 @@ class AdminCheckinScreen extends StatefulWidget {
 class _AdminCheckinScreenState extends State<AdminCheckinScreen> {
   late final AppState _state = context.read<AppState>();
   final _code = TextEditingController();
+  final _q = TextEditingController();
   int? _eventId; // null = any event
   bool _busy = false;
+  bool _loadingRegs = false;
+  String _query = '';
+  List<Map<String, dynamic>> _regs = [];
   final List<_Entry> _log = [];
 
   @override
   void dispose() {
     _code.dispose();
+    _q.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadRegs() async {
+    final eid = _eventId;
+    if (eid == null) {
+      setState(() => _regs = []);
+      return;
+    }
+    setState(() => _loadingRegs = true);
+    try {
+      final rows = await _state.api.eventSignups(eid);
+      if (mounted) setState(() => _regs = rows);
+    } catch (_) {
+      // non-fatal: QR scanner & code entry continue working
+    } finally {
+      if (mounted) setState(() => _loadingRegs = false);
+    }
   }
 
   /// A member card QR (…/card/12?c=M12-AB34CD): say whether the card is genuine. It is not an event ticket, so nobody is checked in.
@@ -142,12 +164,15 @@ class _AdminCheckinScreenState extends State<AdminCheckinScreen> {
                     value: chosen?.title ?? 'Any event',
                     options: ['Any event', ...events.map((e) => e.title)],
                     icon: Icons.event_rounded,
-                    onChanged: (v) => setState(() {
-                      _eventId = null;
-                      for (final e in events) {
-                        if (e.title == v) _eventId = e.id;
-                      }
-                    }),
+                    onChanged: (v) {
+                      setState(() {
+                        _eventId = null;
+                        for (final e in events) {
+                          if (e.title == v) _eventId = e.id;
+                        }
+                      });
+                      _loadRegs();
+                    },
                   ),
                   const SizedBox(height: 14),
                   GradientButton(label: 'Scan QR code', icon: Icons.qr_code_scanner_rounded, onPressed: _busy ? null : _scan),
@@ -163,6 +188,60 @@ class _AdminCheckinScreenState extends State<AdminCheckinScreen> {
                   GhostButton(label: _busy ? 'Checking…' : 'Check in', icon: Icons.how_to_reg_rounded, onPressed: _busy ? null : () => _run(_code.text)),
                 ]),
               ),
+              if (_eventId != null) ...[
+                const SizedBox(height: 16),
+                GlassCard(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Row(children: [
+                      Expanded(child: Text('FIND ATTENDEE BY NAME OR ID', style: monoStyle(context, color: p.tech))),
+                      if (_loadingRegs) const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2)),
+                    ]),
+                    const SizedBox(height: 10),
+                    AdminSearchBar(
+                      controller: _q,
+                      hint: 'Search name, student ID, email or ticket…',
+                      onChanged: (v) => setState(() => _query = v),
+                      shown: _regs.where((r) => matchesQuery(_query, [r['full_name'], r['student_id'], r['email'], r['ticket'], r['phone']])).length,
+                      total: _regs.length,
+                    ),
+                    if (_query.trim().isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      for (final matches in [
+                        _regs.where((r) => matchesQuery(_query, [r['full_name'], r['student_id'], r['email'], r['ticket'], r['phone']])).take(8).toList()
+                      ])
+                        if (matches.isEmpty)
+                          Padding(padding: const EdgeInsets.symmetric(vertical: 6), child: Text('No attendee found for "$_query".', style: bodyStyle(context, size: 13, color: p.muted)))
+                        else
+                          for (final r in matches)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: Row(children: [
+                                Expanded(
+                                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                    Text('${r['full_name'] ?? r['email'] ?? 'Guest'}', maxLines: 1, overflow: TextOverflow.ellipsis, style: bodyStyle(context, weight: FontWeight.w700, size: 14)),
+                                    Text([r['student_id'], r['ticket'], r['email']].where((x) => x != null && '$x'.isNotEmpty).join(' · '), maxLines: 1, overflow: TextOverflow.ellipsis, style: bodyStyle(context, size: 12, color: p.muted)),
+                                  ]),
+                                ),
+                                const SizedBox(width: 8),
+                                if (r['checked_in_at'] != null)
+                                  const Tag('Checked in', color: Color(0xFF10B981))
+                                else if ('${r['ticket'] ?? ''}'.isNotEmpty)
+                                  FilledButton.tonal(
+                                    onPressed: _busy
+                                        ? null
+                                        : () async {
+                                            await _run('${r['ticket']}');
+                                            await _loadRegs();
+                                          },
+                                    child: const Text('Check in'),
+                                  ),
+                              ]),
+                            ),
+                    ],
+                  ]),
+                ),
+              ],
               const SizedBox(height: 22),
               Text('THIS SESSION', style: monoStyle(context)),
               const SizedBox(height: 12),

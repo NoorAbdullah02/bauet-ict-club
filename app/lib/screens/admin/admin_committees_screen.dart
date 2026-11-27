@@ -22,9 +22,17 @@ class AdminCommitteesScreen extends StatefulWidget {
 
 class _AdminCommitteesScreenState extends State<AdminCommitteesScreen> {
   late final AppState _state = context.read<AppState>();
+  final TextEditingController _q = TextEditingController();
   List<Map<String, dynamic>> _rows = [];
   bool _loading = true;
   String? _error;
+  String _query = '';
+
+  @override
+  void dispose() {
+    _q.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -127,11 +135,23 @@ class _AdminCommitteesScreenState extends State<AdminCommitteesScreen> {
                 const AdminThemeButton(),
               ]),
             ),
+            if (!_loading && _error == null && _rows.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+                child: AdminSearchBar(
+                  controller: _q,
+                  hint: 'Search committees by session…',
+                  onChanged: (v) => setState(() => _query = v),
+                  shown: _rows.where((r) => matchesQuery(_query, [r['label']])).length,
+                  total: _rows.length,
+                ),
+              ),
             Expanded(
               child: RefreshIndicator(
                 color: p.tech,
                 onRefresh: _load,
                 child: ListView(
+                  keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
                   padding: const EdgeInsets.fromLTRB(20, 4, 20, 110),
                   physics: const AlwaysScrollableScrollPhysics(),
                   children: [
@@ -142,45 +162,49 @@ class _AdminCommitteesScreenState extends State<AdminCommitteesScreen> {
                     else if (_rows.isEmpty)
                       const EmptyState(icon: Icons.groups_outlined, title: 'No committees yet')
                     else
-                      for (var i = 0; i < _rows.length; i++)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: GlassCard(
-                            padding: const EdgeInsets.all(16),
-                            child: Row(children: [
-                              Icon(Icons.groups_rounded, color: p.accent),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                  Text(_rows[i]['label'].toString(), style: bodyStyle(context, weight: FontWeight.w700, size: 16)),
-                                  if (_rows[i]['term'] is Map) ...[
-                                    const SizedBox(height: 2),
-                                    Text(_termLine(_rows[i]['term']), style: monoStyle(context, size: 10)),
-                                  ],
-                                ]),
-                              ),
-                              Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                                Row(mainAxisSize: MainAxisSize.min, children: [
-                                  if (_rows[i]['is_current'] == true) ...[
-                                    const Tag('Current', color: Color(0xFF34D399)),
-                                    const SizedBox(width: 4),
-                                  ],
-                                  PopupMenuButton<String>(
-                                    tooltip: 'Committee actions',
-                                    padding: EdgeInsets.zero,
-                                    icon: const Icon(Icons.more_vert_rounded, size: 20),
-                                    onSelected: (v) => v == 'edit' ? _edit(_rows[i]) : _setCurrent(_rows[i]),
-                                    itemBuilder: (_) => [
-                                      const PopupMenuItem(value: 'edit', child: Text('Edit committee')),
-                                      if (_rows[i]['is_current'] != true) const PopupMenuItem(value: 'current', child: Text('Set as current')),
-                                    ],
+                      for (final filtered in [_rows.where((r) => matchesQuery(_query, [r['label']])).toList()])
+                        if (filtered.isEmpty)
+                          const EmptyState(icon: Icons.search_off_rounded, title: 'No matching committees')
+                        else
+                          for (var i = 0; i < filtered.length; i++)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: GlassCard(
+                                padding: const EdgeInsets.all(16),
+                                child: Row(children: [
+                                  Icon(Icons.groups_rounded, color: p.accent),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                      Text(filtered[i]['label'].toString(), style: bodyStyle(context, weight: FontWeight.w700, size: 16)),
+                                      if (filtered[i]['term'] is Map) ...[
+                                        const SizedBox(height: 2),
+                                        Text(_termLine(filtered[i]['term']), style: monoStyle(context, size: 10)),
+                                      ],
+                                    ]),
                                   ),
+                                  Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                                    Row(mainAxisSize: MainAxisSize.min, children: [
+                                      if (filtered[i]['is_current'] == true) ...[
+                                        const Tag('Current', color: Color(0xFF34D399)),
+                                        const SizedBox(width: 4),
+                                      ],
+                                      PopupMenuButton<String>(
+                                        tooltip: 'Committee actions',
+                                        padding: EdgeInsets.zero,
+                                        icon: const Icon(Icons.more_vert_rounded, size: 20),
+                                        onSelected: (v) => v == 'edit' ? _edit(filtered[i]) : _setCurrent(filtered[i]),
+                                        itemBuilder: (_) => [
+                                          const PopupMenuItem(value: 'edit', child: Text('Edit committee')),
+                                          if (filtered[i]['is_current'] != true) const PopupMenuItem(value: 'current', child: Text('Set as current')),
+                                        ],
+                                      ),
+                                    ]),
+                                    Text('${filtered[i]['members']} members', style: monoStyle(context, size: 10.5)),
+                                  ]),
                                 ]),
-                                Text('${_rows[i]['members']} members', style: monoStyle(context, size: 10.5)),
-                              ]),
-                            ]),
-                          ).stagger(i),
-                        ),
+                              ).stagger(i),
+                            ),
                   ],
                 ),
               ),

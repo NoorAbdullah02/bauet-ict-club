@@ -49,9 +49,17 @@ class AdminFormsScreen extends StatefulWidget {
 
 class _AdminFormsScreenState extends State<AdminFormsScreen> {
   late final AppState _state = context.read<AppState>();
+  final TextEditingController _q = TextEditingController();
   List<Map<String, dynamic>> _rows = [];
   bool _loading = true;
   String? _error;
+  String _query = '';
+
+  @override
+  void dispose() {
+    _q.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -111,19 +119,32 @@ class _AdminFormsScreenState extends State<AdminFormsScreen> {
   @override
   Widget build(BuildContext context) {
     final p = context.pal;
+    final filtered = _rows.where((f) => matchesQuery(_query, [f['title'], f['slug'], f['description']])).toList();
     return AdminPage(
       title: 'Forms',
       onRefresh: _load,
       actions: [IconButton(tooltip: 'New form', onPressed: _create, icon: const Icon(Icons.add_circle_outline_rounded))],
       children: [
+        if (!_loading && _error == null && _rows.isNotEmpty) ...[
+          AdminSearchBar(
+            controller: _q,
+            hint: 'Search forms by title or /slug…',
+            onChanged: (v) => setState(() => _query = v),
+            shown: filtered.length,
+            total: _rows.length,
+          ),
+          const SizedBox(height: 12),
+        ],
         if (_loading)
           const ShimmerList(count: 3, height: 120)
         else if (_error != null)
           ErrorState(message: _error!, onRetry: _load)
         else if (_rows.isEmpty)
           const EmptyState(icon: Icons.dynamic_form_outlined, title: 'No forms yet', message: 'Tap + to make a feedback form, poll or sign-up sheet.')
+        else if (filtered.isEmpty)
+          const EmptyState(icon: Icons.search_off_rounded, title: 'No matching forms', message: 'Try another keyword.')
         else
-          for (final f in _rows)
+          for (final f in filtered)
             Padding(
               padding: const EdgeInsets.only(bottom: 10),
               child: GlassCard(
@@ -882,12 +903,20 @@ class AdminFormResponsesScreen extends StatefulWidget {
 
 class _AdminFormResponsesScreenState extends State<AdminFormResponsesScreen> {
   late final AppState _state = context.read<AppState>();
+  final TextEditingController _q = TextEditingController();
   List<Map<String, dynamic>> _rows = [];
   List<Q> _fields = [];
   String _title = 'Responses';
   bool _summary = false;
   bool _loading = true;
   String? _error;
+  String _query = '';
+
+  @override
+  void dispose() {
+    _q.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -991,10 +1020,20 @@ class _AdminFormResponsesScreenState extends State<AdminFormResponsesScreen> {
             PillChip(label: 'Summary', selected: _summary, onTap: () => setState(() => _summary = true)),
           ]),
           const SizedBox(height: 12),
+          if (!_summary && _rows.isNotEmpty) ...[
+            AdminSearchBar(
+              controller: _q,
+              hint: 'Search responses by name, email or answers…',
+              onChanged: (v) => setState(() => _query = v),
+              shown: _rows.where((r) => matchesQuery(_query, [r['full_name'], r['email'], r['pay_tran'], r['answers'] is Map ? (r['answers'] as Map).values.join(' ') : ''])).length,
+              total: _rows.length,
+            ),
+            const SizedBox(height: 12),
+          ],
           if (_rows.isEmpty) const EmptyState(icon: Icons.inbox_outlined, title: 'No responses yet', message: 'Share the form link to start collecting answers.'),
           if (_summary && _rows.isNotEmpty) ..._summaryCards(context, p),
           if (!_summary)
-          for (final r in _rows)
+          for (final r in _rows.where((r) => matchesQuery(_query, [r['full_name'], r['email'], r['pay_tran'], r['answers'] is Map ? (r['answers'] as Map).values.join(' ') : ''])))
             Padding(
               padding: const EdgeInsets.only(bottom: 10),
               child: GlassCard(

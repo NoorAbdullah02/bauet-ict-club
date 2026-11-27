@@ -20,12 +20,20 @@ class AdminHomeScreen extends StatefulWidget {
 }
 
 class _AdminHomeScreenState extends State<AdminHomeScreen> {
+  final TextEditingController _q = TextEditingController();
+  String _query = '';
   int _pending = 0;
   int _committee = 0;
   int _general = 0;
   int _messages = 0;
   int _ambassador = 0;
   bool _loading = true;
+
+  @override
+  void dispose() {
+    _q.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -250,238 +258,140 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                 ]).stagger(0),
                 const SizedBox(height: 10),
                 roleCard(state).stagger(0),
-                const SizedBox(height: 22),
-                Row(children: [
-                  stat('Pending', _pending, Icons.hourglass_top_rounded,
-                      const Color(0xFFFFC857)),
-                  const SizedBox(width: 12),
-                  stat('Messages', _messages, Icons.mail_rounded, p.tech),
-                ]).stagger(1),
-                const SizedBox(height: 12),
-                Row(children: [
-                  stat('Committee apps', _committee,
-                      Icons.workspace_premium_rounded, p.accent),
-                  const SizedBox(width: 12),
-                  stat('General apps', _general, Icons.bolt_rounded, p.third),
-                ]).stagger(2),
-                const SizedBox(height: 26),
-                Text('MANAGE EVERYTHING', style: monoStyle(context)),
-                const SizedBox(height: 4),
-                Text(
-                  'The areas your role can open, add to and edit. The pencil marks the ones with an editor.',
-                  style: bodyStyle(context, size: 12.5, color: p.muted),
+                const SizedBox(height: 16),
+                AdminSearchBar(
+                  controller: _q,
+                  hint: 'Search admin sections, members, events…',
+                  onChanged: (v) => setState(() => _query = v),
                 ),
-                const SizedBox(height: 12),
-                if (!_loading && (_committee + _general + _ambassador) > 0)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: GlassCard(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('WHO IS APPLYING',
-                                style: monoStyle(context,
-                                    size: 10, color: p.tech)),
-                            const SizedBox(height: 10),
-                            Center(
-                                child: DonutChart(slices: [
-                              ChartSlice(
-                                  'Committee', _committee, kChartColors[0]),
-                              ChartSlice(
-                                  'Ambassador', _ambassador, kChartColors[1]),
-                              ChartSlice('General', _general, kChartColors[2]),
-                            ])),
-                          ]),
-                    ),
+                const SizedBox(height: 18),
+                if (_query.trim().isEmpty) ...[
+                  Row(children: [
+                    stat('Pending', _pending, Icons.hourglass_top_rounded,
+                        const Color(0xFFFFC857)),
+                    const SizedBox(width: 12),
+                    stat('Messages', _messages, Icons.mail_rounded, p.tech),
+                  ]).stagger(1),
+                  const SizedBox(height: 12),
+                  Row(children: [
+                    stat('Committee apps', _committee,
+                        Icons.workspace_premium_rounded, p.accent),
+                    const SizedBox(width: 12),
+                    stat('General apps', _general, Icons.bolt_rounded, p.third),
+                  ]).stagger(2),
+                  const SizedBox(height: 26),
+                  Text('MANAGE EVERYTHING', style: monoStyle(context)),
+                  const SizedBox(height: 4),
+                  Text(
+                    'The areas your role can open, add to and edit. The pencil marks the ones with an editor.',
+                    style: bodyStyle(context, size: 12.5, color: p.muted),
                   ),
-                group('People and overview'),
-                nav(
-                        'Visitors',
-                        'Who opened the website, by day and week, with IPs',
-                        Icons.insights_rounded,
-                        '/admin/visitors',
-                        c: p.tech,
-                        edit: false)
-                    .stagger(3),
-                nav('Applications', 'Review, approve, select for team',
-                        Icons.assignment_ind_rounded, '/admin/applications',
-                        c: p.third)
-                    .stagger(3),
-                nav('Team members', 'Add and edit committee members',
-                        Icons.groups_rounded, '/admin/data/members')
-                    .stagger(3),
-                nav('Advisors', 'Teachers who guide the club',
-                        Icons.school_rounded, '/admin/data/advisors')
-                    .stagger(3),
-                // committees and transfers are closed to editor logins by the server
-                if (!state.isEditor)
-                  nav('Committees', 'Launch a new semester committee',
-                          Icons.rocket_launch_rounded, '/admin/committees')
-                      .stagger(3),
-                if (!state.isEditor)
-                  nav(
-                          'Transfer people',
-                          'Copy or move people to another committee',
-                          Icons.swap_horiz_rounded,
-                          '/admin/transfer')
-                      .stagger(3),
-                // the activity log and login management are main-admin only
-                if (state.isSuperAdmin)
-                  nav('Team logins', 'Add editor logins',
-                          Icons.manage_accounts_rounded, '/admin/team',
-                          c: p.muted)
-                      .stagger(3),
-                if (state.isSuperAdmin)
-                  nav('Activity log', 'Who changed what', Icons.history_rounded,
-                          '/admin/activity',
-                          c: p.muted, edit: false)
-                      .stagger(3),
-                group('Events and programmes'),
-                nav(
-                        'New event (Event Studio)',
-                        'Details, sign-up, seats and publishing on one page',
-                        Icons.auto_awesome_rounded,
-                        '/admin/event-studio',
-                        c: p.accent)
-                    .stagger(3),
-                nav('Events', 'Add, edit and schedule events',
-                        Icons.event_rounded, '/admin/data/events')
-                    .stagger(3),
-                nav(
-                        'Event sign-ups',
-                        'Who registered, verify payments, waiting list',
-                        Icons.groups_2_rounded,
-                        '/admin/signups',
-                        c: p.accent)
-                    .stagger(3),
-                nav('Event insights', 'Who signed up, who came, the money',
-                        Icons.insights_rounded, '/admin/insights',
-                        c: p.third, edit: false)
-                    .stagger(3),
-                nav(
-                        'Check-in desk',
-                        'Scan or type a ticket code at the entrance',
-                        Icons.qr_code_scanner_rounded,
-                        '/admin/checkin',
-                        c: p.tech)
-                    .stagger(3),
-                nav('Contests', 'Hackathons, teams and results',
-                        Icons.sports_esports_rounded, '/admin/data/contests',
-                        c: p.tech)
-                    .stagger(3),
-                nav(
-                        'Points and badges',
-                        'Give extra points, see the leaderboard',
-                        Icons.emoji_events_rounded,
-                        '/admin/points',
-                        c: p.accent)
-                    .stagger(3),
-                nav(
-                        'Weekly sessions',
-                        'Programming, web and AI sessions shown on Events',
-                        Icons.schedule_rounded,
-                        '/admin/data/weekly_sessions',
-                        c: p.third)
-                    .stagger(3),
-                nav(
-                        'Jobs and internships',
-                        'Post openings, schedule or save as draft',
-                        Icons.work_rounded,
-                        '/admin/data/jobs',
-                        c: p.third)
-                    .stagger(3),
-                group('Content'),
-                nav('Notices', 'Post announcements', Icons.campaign_rounded,
-                        '/admin/data/notices')
-                    .stagger(3),
-                nav('Posts', 'Short articles and updates',
-                        Icons.article_rounded, '/admin/data/posts')
-                    .stagger(3),
-                nav('Gallery', 'Manage photos', Icons.photo_library_rounded,
-                        '/admin/data/gallery')
-                    .stagger(3),
-                nav('Achievements', 'Milestones and awards',
-                        Icons.emoji_events_rounded, '/admin/data/achievements')
-                    .stagger(3),
-                nav('Projects', 'Showcase projects', Icons.code_rounded,
-                        '/admin/data/projects')
-                    .stagger(3),
-                nav('Resources', 'Slides, notes and tutorials',
-                        Icons.local_library_rounded, '/admin/data/resources')
-                    .stagger(3),
-                nav('FAQs', 'Questions and answers', Icons.help_outline_rounded,
-                        '/admin/data/faqs')
-                    .stagger(3),
-                nav('Sponsors', 'Supporters and logos', Icons.handshake_rounded,
-                        '/admin/data/sponsors')
-                    .stagger(3),
-                nav(
-                        'Testimonials',
-                        'What alumni and members say, shown on the home page',
-                        Icons.format_quote_rounded,
-                        '/admin/data/testimonials',
-                        c: p.third)
-                    .stagger(3),
-                nav(
-                        'Site texts and links',
-                        'Hero, about, mission, contact and social links',
-                        Icons.edit_note_rounded,
-                        '/admin/site',
-                        c: p.tech)
-                    .stagger(3),
-                group('Forms, messages and mail'),
-                nav('Forms', 'Build forms, see responses',
-                        Icons.dynamic_form_rounded, '/admin/forms',
-                        c: p.accent)
-                    .stagger(3),
-                nav('Inbox', 'Read and reply to contact messages',
-                        Icons.mail_rounded, '/admin/inbox',
-                        c: p.tech)
-                    .stagger(3),
-                if (!state.isEditor)
-                  nav('Newsletter', 'Email all subscribers',
-                          Icons.campaign_outlined, '/admin/newsletter',
-                          c: p.third)
-                      .stagger(3),
-                nav(
-                        'Subscribers',
-                        'Newsletter emails',
-                        Icons.mark_email_unread_rounded,
-                        '/admin/data/subscribers',
-                        c: p.tech,
-                        edit: false)
-                    .stagger(3),
-                nav('Short links', 'Short links for events and forms',
-                        Icons.link_rounded, '/admin/links')
-                    .stagger(3),
-                if (!state.isEditor)
-                  nav('Downloads', 'Every list as CSV, Excel or JSON',
-                          Icons.download_rounded, '/admin/downloads',
-                          c: p.tech, edit: false)
-                      .stagger(3),
-                group('System'),
-                if (!state.isEditor)
-                  nav('Trash', 'Restore or permanently delete',
-                          Icons.delete_outline_rounded, '/admin/trash',
-                          c: const Color(0xFFEF4444))
-                      .stagger(3),
-                nav(
-                        'Sign-in security',
-                        'Your password, two-step sign-in, other devices',
-                        Icons.shield_rounded,
-                        '/admin/security',
-                        c: p.accent)
-                    .stagger(3),
-                nav(
-                        'Settings',
-                        state.isEditor
-                            ? 'Connection status and app info'
-                            : 'Connection status and demo data',
-                        Icons.settings_rounded,
-                        '/admin/settings',
-                        c: p.muted)
-                    .stagger(3),
+                  const SizedBox(height: 12),
+                  if (!_loading && (_committee + _general + _ambassador) > 0)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: GlassCard(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('WHO IS APPLYING',
+                                  style: monoStyle(context,
+                                      size: 10, color: p.tech)),
+                              const SizedBox(height: 10),
+                              Center(
+                                  child: DonutChart(slices: [
+                                ChartSlice(
+                                    'Committee', _committee, kChartColors[0]),
+                                ChartSlice(
+                                    'Ambassador', _ambassador, kChartColors[1]),
+                                ChartSlice('General', _general, kChartColors[2]),
+                              ])),
+                            ]),
+                      ),
+                    ),
+                ],
+                ...[
+                  for (final sec in <(String, List<(String, String, IconData, String, Color?, bool, bool)>)>[
+                    (
+                      'People and overview',
+                      [
+                        ('Visitors', 'Who opened the website, by day and week, with IPs', Icons.insights_rounded, '/admin/visitors', p.tech, false, true),
+                        ('Applications', 'Review, approve, select for team', Icons.assignment_ind_rounded, '/admin/applications', p.third, true, true),
+                        ('Team members', 'Add and edit committee members', Icons.groups_rounded, '/admin/data/members', null, true, true),
+                        ('Advisors', 'Teachers who guide the club', Icons.school_rounded, '/admin/data/advisors', null, true, true),
+                        ('Committees', 'Launch a new semester committee', Icons.rocket_launch_rounded, '/admin/committees', null, true, !state.isEditor),
+                        ('Transfer people', 'Copy or move people to another committee', Icons.swap_horiz_rounded, '/admin/transfer', null, true, !state.isEditor),
+                        ('Team logins', 'Add editor logins', Icons.manage_accounts_rounded, '/admin/team', p.muted, true, state.isSuperAdmin),
+                        ('Activity log', 'Who changed what', Icons.history_rounded, '/admin/activity', p.muted, false, state.isSuperAdmin),
+                      ]
+                    ),
+                    (
+                      'Events and programmes',
+                      [
+                        ('New event (Event Studio)', 'Details, sign-up, seats and publishing on one page', Icons.auto_awesome_rounded, '/admin/event-studio', p.accent, true, true),
+                        ('Events', 'Add, edit and schedule events', Icons.event_rounded, '/admin/data/events', null, true, true),
+                        ('Event sign-ups', 'Who registered, verify payments, waiting list', Icons.groups_2_rounded, '/admin/signups', p.accent, true, true),
+                        ('Event insights', 'Who signed up, who came, the money', Icons.insights_rounded, '/admin/insights', p.third, false, true),
+                        ('Check-in desk', 'Scan or type a ticket code at the entrance', Icons.qr_code_scanner_rounded, '/admin/checkin', p.tech, true, true),
+                        ('Contests', 'Hackathons, teams and results', Icons.sports_esports_rounded, '/admin/data/contests', p.tech, true, true),
+                        ('Points and badges', 'Give extra points, see the leaderboard', Icons.emoji_events_rounded, '/admin/points', p.accent, true, true),
+                        ('Weekly sessions', 'Programming, web and AI sessions shown on Events', Icons.schedule_rounded, '/admin/data/weekly_sessions', p.third, true, true),
+                        ('Jobs and internships', 'Post openings, schedule or save as draft', Icons.work_rounded, '/admin/data/jobs', p.third, true, true),
+                      ]
+                    ),
+                    (
+                      'Content',
+                      [
+                        ('Notices', 'Post announcements', Icons.campaign_rounded, '/admin/data/notices', null, true, true),
+                        ('Posts', 'Short articles and updates', Icons.article_rounded, '/admin/data/posts', null, true, true),
+                        ('Gallery', 'Manage photos', Icons.photo_library_rounded, '/admin/data/gallery', null, true, true),
+                        ('Achievements', 'Milestones and awards', Icons.emoji_events_rounded, '/admin/data/achievements', null, true, true),
+                        ('Projects', 'Showcase projects', Icons.code_rounded, '/admin/data/projects', null, true, true),
+                        ('Resources', 'Slides, notes and tutorials', Icons.local_library_rounded, '/admin/data/resources', null, true, true),
+                        ('FAQs', 'Questions and answers', Icons.help_outline_rounded, '/admin/data/faqs', null, true, true),
+                        ('Sponsors', 'Supporters and logos', Icons.handshake_rounded, '/admin/data/sponsors', null, true, true),
+                        ('Testimonials', 'What alumni and members say, shown on the home page', Icons.format_quote_rounded, '/admin/data/testimonials', p.third, true, true),
+                        ('Site texts and links', 'Hero, about, mission, contact and social links', Icons.edit_note_rounded, '/admin/site', p.tech, true, true),
+                      ]
+                    ),
+                    (
+                      'Forms, messages and mail',
+                      [
+                        ('Forms', 'Build forms, see responses', Icons.dynamic_form_rounded, '/admin/forms', p.accent, true, true),
+                        ('Inbox', 'Read and reply to contact messages', Icons.mail_rounded, '/admin/inbox', p.tech, true, true),
+                        ('Newsletter', 'Email all subscribers', Icons.campaign_outlined, '/admin/newsletter', p.third, true, !state.isEditor),
+                        ('Subscribers', 'Newsletter emails', Icons.mark_email_unread_rounded, '/admin/data/subscribers', p.tech, false, true),
+                        ('Short links', 'Short links for events and forms', Icons.link_rounded, '/admin/links', null, true, true),
+                        ('Downloads', 'Every list as CSV, Excel or JSON', Icons.download_rounded, '/admin/downloads', p.tech, false, !state.isEditor),
+                      ]
+                    ),
+                    (
+                      'System',
+                      [
+                        ('Trash', 'Restore or permanently delete', Icons.delete_outline_rounded, '/admin/trash', const Color(0xFFEF4444), true, !state.isEditor),
+                        ('Sign-in security', 'Your password, two-step sign-in, other devices', Icons.shield_rounded, '/admin/security', p.accent, true, true),
+                        ('Settings', state.isEditor ? 'Connection status and app info' : 'Connection status and demo data', Icons.settings_rounded, '/admin/settings', p.muted, true, true),
+                      ]
+                    ),
+                  ])
+                    for (final visibleItems in [
+                      sec.$2.where((it) => it.$7 && matchesQuery(_query, [sec.$1, it.$1, it.$2, it.$4])).toList()
+                    ])
+                      if (visibleItems.isNotEmpty) ...[
+                        group(sec.$1),
+                        for (final it in visibleItems)
+                          nav(it.$1, it.$2, it.$3, it.$4, c: it.$5, edit: it.$6).stagger(3),
+                      ],
+                ],
+                if (_query.trim().isNotEmpty) ...[
+                  for (final m in state.members.where((m) => matchesQuery(_query, [m.name, m.position, m.department, m.batch, m.session])).take(5))
+                    nav(m.name, '${m.position} · ${m.session}', Icons.person_rounded, '/admin/data/members', c: p.accent),
+                  for (final ev in state.events.where((e) => matchesQuery(_query, [e.title, e.category, e.location])).take(4))
+                    nav(ev.title, ev.location.isEmpty ? 'Event' : ev.location, Icons.event_rounded, '/admin/data/events', c: p.tech),
+                  for (final n in state.notices.where((n) => matchesQuery(_query, [n.title, n.priority, n.content])).take(3))
+                    nav(n.title, 'Notice · ${n.priority}', Icons.campaign_rounded, '/admin/data/notices', c: p.third),
+                ],
               ],
             ),
           ),

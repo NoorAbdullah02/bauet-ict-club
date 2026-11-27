@@ -21,11 +21,19 @@ class AdminVisitorsScreen extends StatefulWidget {
 
 class _AdminVisitorsScreenState extends State<AdminVisitorsScreen> {
   late final AppState _state = context.read<AppState>();
+  final TextEditingController _q = TextEditingController();
   Map<String, dynamic>? _summary;
   List<Map<String, dynamic>> _visitors = [];
   int _days = 7;
   bool _loading = true;
   String? _error;
+  String _query = '';
+
+  @override
+  void dispose() {
+    _q.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -176,10 +184,24 @@ class _AdminVisitorsScreenState extends State<AdminVisitorsScreen> {
                         ),
                     ]),
                   ),
-                  if (_visitors.isEmpty)
-                    const EmptyState(icon: Icons.public_rounded, title: 'No visitors in this period')
-                  else
-                    for (final v in _visitors.take(200))
+                  if (_visitors.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(8, 2, 8, 10),
+                      child: AdminSearchBar(
+                        controller: _q,
+                        hint: 'Search IP, top page, referrer or device…',
+                        onChanged: (v) => setState(() => _query = v),
+                        shown: _visitors.where((v) => matchesQuery(_query, [v['ip'], v['topPage'], v['referrer'], v['device']])).length,
+                        total: _visitors.length,
+                      ),
+                    ),
+                  for (final shownVisitors in [_visitors.where((v) => matchesQuery(_query, [v['ip'], v['topPage'], v['referrer'], v['device']])).toList()])
+                    if (_visitors.isEmpty)
+                      const EmptyState(icon: Icons.public_rounded, title: 'No visitors in this period')
+                    else if (shownVisitors.isEmpty)
+                      const EmptyState(icon: Icons.search_off_rounded, title: 'No matching visitors')
+                    else
+                      for (final v in shownVisitors.take(200))
                       Padding(
                         padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
                         child: GlassCard(
