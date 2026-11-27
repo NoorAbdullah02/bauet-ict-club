@@ -145,6 +145,14 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
       ok(/Quinlan/.test(await ask('who are the advisors?')), 'assistant: a new advisor is known at once');
       { const r = await ask('any job or internship?'); ok(/Plumbus/.test(r), 'assistant: a new job is known at once', r.slice(0, 160)); }
       ok(/Wumbo/.test(await ask('which contest is open?')), 'assistant: a new contest is known at once');
+      // the newer site sections are wired into the assistant too
+      const ses = await call('POST', '/api/weekly_sessions', { title: 'Zorbaglot Study Circle', day: 'Friday', time: '5:00 PM', place: 'Lab 9' }, T);
+      ok(ses.s === 201 || ses.s === 200, 'weekly session create', ses.j);
+      ok(/Zorbaglot Study Circle/.test(await ask('what weekly sessions do you have?')), 'assistant: a new weekly session is known at once');
+      const ach = await call('POST', '/api/achievements', { title: 'Zorbaglot Gold Medal', description: 'First place at the national round' }, T);
+      ok(ach.s === 201 || ach.s === 200, 'achievement create', ach.j);
+      ok(/Zorbaglot Gold/.test(await ask('what has the club achieved?')), 'assistant: a new achievement is known at once');
+      ok(/gallery/i.test(await ask('show me the gallery')), 'assistant: the photo gallery is known');
     }
     {
       const labels = ((await call('GET', '/api/committees')).j || []).map((x) => x.label);

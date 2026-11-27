@@ -86,6 +86,10 @@ async function sendTelegram({ title, description, fields = [], actionUrl, button
       body: JSON.stringify(payload),
       signal: AbortSignal.timeout(6000),
     });
+    if (!res.ok) {
+      const errText = await res.text().catch(() => '');
+      console.warn(`Telegram alert HTTP ${res.status}:`, errText);
+    }
     return res.ok;
   } catch (err) {
     console.warn('Telegram alert skipped:', err.message);
@@ -134,4 +138,5 @@ async function notifyAdmin({ title, description, fields = [], path, buttons = []
 
 module.exports = {
   notifyAdmin,
+  esc,
 };
