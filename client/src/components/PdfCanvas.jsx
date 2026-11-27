@@ -14,12 +14,18 @@ export default function PdfCanvas({ blob, className = '' }) {
     if (!blob) return undefined;
     let dead = false;
     let doc = null;
+    let worker = null;
     (async () => {
       setState('busy');
       try {
-        const pdfjs = await import('pdfjs-dist');
-        const worker = (await import('pdfjs-dist/build/pdf.worker.min.mjs?url')).default;
-        pdfjs.GlobalWorkerOptions.workerSrc = worker;
+        // the legacy build: pdfjs 6 uses Uint8Array.toHex and other brand-new JS features that
+        // Chrome before 140 and older Safari do not have, so the modern build throws on load
+        const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
+        // a real worker built by Vite: a plain workerSrc URL is served as an ordinary script here,
+        // which makes pdfjs silently fall back to parsing on the main thread
+        const { default: PdfWorker } = await import('pdfjs-dist/legacy/build/pdf.worker.min.mjs?worker');
+        worker = new PdfWorker();
+        pdfjs.GlobalWorkerOptions.workerPort = worker;
         doc = await pdfjs.getDocument({ data: new Uint8Array(await blob.arrayBuffer()) }).promise;
         const page = await doc.getPage(1);
         if (dead) return;
@@ -34,7 +40,7 @@ export default function PdfCanvas({ blob, className = '' }) {
         if (!dead) setState('idle');
       } catch { if (!dead) setState('error'); }
     })();
-    return () => { dead = true; doc?.destroy?.(); };
+    return () => { dead = true; doc?.destroy?.(); worker?.terminate?.(); };
   }, [blob]);
 
   return (
