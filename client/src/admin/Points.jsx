@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Award, Check, Loader2, Pencil, Trash2, X } from 'lucide-react';
+import { Award, Check, Loader2, Pencil, Trash2, X, Search } from 'lucide-react';
 import toast from 'react-hot-toast';
 import useStore, { api } from '../context/store';
 import { Panel, PageTitle, inputCls } from './ui';
@@ -10,6 +10,7 @@ export default function Points() {
   const user = useStore((s) => s.user);
   const [d, setD] = useState(null);
   const [f, setF] = useState({ email: '', name: '', points: '10', reason: '' });
+  const [q, setQ] = useState('');
   const [busy, setBusy] = useState(false);
   const load = () => api.get('/points/admin').then((r) => setD(r.data)).catch(() => setD(false));
   useEffect(() => { load(); }, []);
@@ -26,9 +27,19 @@ export default function Points() {
     catch (ex) { toast.error(ex.response?.data?.error || 'Could not save'); }
   };
   const undo = async (id) => { try { await api.delete(`/points/award/${id}`); toast.success('Award removed'); load(); } catch (ex) { toast.error(ex.response?.data?.error || 'Could not remove'); } };
+  const s = q.trim().toLowerCase();
+  const people = d ? (s ? d.people.filter((p) => `${p.full_name || p.name} ${p.email}`.toLowerCase().includes(s)) : d.people) : [];
+  const awards = d ? (s ? d.awards.filter((a) => `${a.reason} ${a.name || ''} ${a.email}`.toLowerCase().includes(s)) : d.awards) : [];
   return (
     <div>
-      <PageTitle title="Points and badges" sub={`Each event a person is checked in at gives ${d?.per_event || 10} points. Give extra points for helping out or winning.`} />
+      <PageTitle title="Points and badges" sub={`Each event a person is checked in at gives ${d?.per_event || 10} points. Give extra points for helping out or winning.`}>
+        {d && (d.people.length > 0 || d.awards.length > 0) && (
+          <div className="relative">
+            <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" />
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search leaderboard…" className={`${inputCls} !w-52 !rounded-full !py-2 pl-9`} />
+          </div>
+        )}
+      </PageTitle>
       <Panel className="mb-6 p-5">
         <form onSubmit={give} className="grid gap-3 sm:grid-cols-6">
           <input className={`${inputCls} sm:col-span-2`} type="email" placeholder="Person's e-mail" aria-label="E-mail" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} required />
@@ -43,17 +54,17 @@ export default function Points() {
       {d && (
         <div className="grid gap-6 lg:grid-cols-2">
           <Panel className="overflow-hidden">
-            <div className="border-b border-line px-5 py-3 font-mono text-[11px] uppercase tracking-[0.16em] text-muted">Leaderboard ({d.people.length})</div>
-            {d.people.length === 0 ? <p className="p-5 text-sm text-fg2">Nobody has points yet. People get points when they are checked in at an event.</p> : (
-              <table className="w-full text-sm"><tbody>{d.people.slice(0, 50).map((p) => (
+            <div className="border-b border-line px-5 py-3 font-mono text-[11px] uppercase tracking-[0.16em] text-muted">Leaderboard ({people.length})</div>
+            {people.length === 0 ? <p className="p-5 text-sm text-fg2">{s ? 'No matching people.' : 'Nobody has points yet. People get points when they are checked in at an event.'}</p> : (
+              <table className="w-full text-sm"><tbody>{people.slice(0, 50).map((p) => (
                 <tr key={p.email} className="border-b border-line/60 last:border-0"><td className="w-12 px-5 py-2.5 text-muted">#{p.rank}</td><td className="py-2.5"><div className="font-medium text-fg">{p.full_name || p.name}</div><div className="text-xs text-muted">{p.email} · {p.events} events{p.bonus ? ` · ${p.bonus > 0 ? '+' : ''}${p.bonus} bonus` : ''}</div></td><td className="px-5 py-2.5 text-right font-display text-lg text-accent">{p.points}</td></tr>
               ))}</tbody></table>
             )}
           </Panel>
           <Panel className="overflow-hidden">
-            <div className="border-b border-line px-5 py-3 font-mono text-[11px] uppercase tracking-[0.16em] text-muted">Extra points given</div>
-            {d.awards.length === 0 ? <p className="p-5 text-sm text-fg2">No extra points yet.</p> : (
-              <ul>{d.awards.map((a) => (
+            <div className="border-b border-line px-5 py-3 font-mono text-[11px] uppercase tracking-[0.16em] text-muted">Extra points given ({awards.length})</div>
+            {awards.length === 0 ? <p className="p-5 text-sm text-fg2">{s ? 'No matching awards.' : 'No extra points yet.'}</p> : (
+              <ul>{awards.map((a) => (
                 <li key={a.id} className="flex items-center gap-3 border-b border-line/60 px-5 py-2.5 last:border-0">{edit?.id === a.id ? (<>
                   <input className={`${inputCls} !w-20`} type="number" aria-label="Points" value={edit.points} onChange={(e) => setEdit({ ...edit, points: e.target.value })} />
                   <input className={`${inputCls} min-w-0 flex-1`} aria-label="Reason" value={edit.reason} maxLength={120} onChange={(e) => setEdit({ ...edit, reason: e.target.value })} />
