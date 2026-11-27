@@ -520,6 +520,14 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
       const h = (await call('GET', '/api/card/health', undefined, T)).j || {};
       ok(h.otpTable?.ok === true && typeof h.otpTable.rows === 'number' && h.lastError === null, 'the e-mail code table is reachable and healthy', h);
     }
+    // one shared version number: the website and the app poll it and refetch when an admin saved something
+    {
+      const v1 = (await call('GET', '/api/version')).j?.v;
+      ok(typeof v1 === 'number', 'the shared data version is public and numeric', v1);
+      ok((await call('PUT', '/api/settings', { goal: 'Build things together' }, T)).s === 200, 'an admin save succeeds');
+      const v2 = (await call('GET', '/api/version')).j?.v;
+      ok(typeof v2 === 'number' && v2 > v1, 'a save moves the shared version so every device refreshes', { v1, v2 });
+    }
 
     // admin downloads: every list as CSV or JSON, admins only
     ok((await call('GET', '/api/downloads')).s === 401, 'downloading the lists needs a login');

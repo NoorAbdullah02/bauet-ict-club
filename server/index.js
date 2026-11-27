@@ -128,8 +128,21 @@ app.use('/api/event-registrations', require('./routes/eventRegs'));
 app.use('/api/forms', require('./routes/forms'));
 // the assistant reads the live data: forget what it remembered as soon as an admin saves something
 app.use('/api', (req, res, next) => {
-  if (req.method !== 'GET' && req.method !== 'OPTIONS') res.on('finish', () => { if (res.statusCode < 400) require('./utils/knowledge').clear(); });
+  if (req.method !== 'GET' && req.method !== 'OPTIONS') {
+    res.on('finish', () => {
+      if (res.statusCode >= 400) return;
+      require('./utils/knowledge').clear();
+      // every other device (website, app) notices this and refreshes its lists
+      require('./utils/dataVersion').bump();
+    });
+  }
   next();
+});
+
+// Public and tiny: clients poll it and refetch only when the number moved
+app.get('/api/version', async (_req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.json({ v: await require('./utils/dataVersion').get() });
 });
 app.use('/api/search', require('./routes/search'));
 app.use('/api/dataset', require('./routes/dataset'));

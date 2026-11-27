@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -64,15 +66,48 @@ String _titleFor(String loc) {
 }
 
 /// Main scaffold: aurora backdrop, app bar with theme toggle, drawer, bottom nav. The chat assistant is an app-bar icon (no floating button over the page).
-class AppShell extends StatelessWidget {
+class AppShell extends StatefulWidget {
   const AppShell({super.key, required this.location, required this.child});
   final String location;
   final Widget child;
 
   @override
+  State<AppShell> createState() => _AppShellState();
+}
+
+class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    // a change saved on another phone or on the website reaches this app within a minute
+    _timer = Timer.periodic(const Duration(seconds: 60), (_) => _checkForUpdates());
+    _checkForUpdates();
+  }
+
+  void _checkForUpdates() {
+    if (mounted) context.read<AppState>().checkForUpdates();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _checkForUpdates();
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final p = context.pal;
     final state = context.watch<AppState>();
+    final location = widget.location;
     final tabIndex = _tabs.indexWhere((t) => location.startsWith(t.path));
     final isHome = location.startsWith('/home');
     // One centred column for the bar and the page on tablets; phones stay edge to edge.
@@ -147,7 +182,7 @@ class AppShell extends StatelessWidget {
           alignment: Alignment.topCenter,
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: contentWidth),
-            child: child,
+            child: widget.child,
           ),
         ),
         bottomNavigationBar: _GlossNav(
