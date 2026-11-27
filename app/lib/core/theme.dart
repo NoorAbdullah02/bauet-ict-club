@@ -1,3 +1,6 @@
+import 'dart:io' show Platform;
+
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -76,15 +79,43 @@ extension PalContext on BuildContext {
   Pal get pal => Theme.of(this).brightness == Brightness.dark ? Pal.darkPal : Pal.lightPal;
 }
 
+/// Google Fonts load lazily through the engine, and the engine answers with a
+/// "fonts changed" message. In `flutter test` that message can arrive after the
+/// widget tree is gone, which newer Flutter versions report as "An animation is
+/// still running even after the widget tree was disposed". A test run therefore
+/// uses the platform font: nothing is loaded, so no callback is left behind on
+/// any Flutter version.
+final bool _googleFonts = !kIsWeb && !Platform.environment.containsKey('FLUTTER_TEST');
+
+TextStyle _inter({double? fontSize, FontWeight? fontWeight, Color? color, double? height, double? letterSpacing}) => _googleFonts
+    ? GoogleFonts.inter(fontSize: fontSize, fontWeight: fontWeight, color: color, height: height, letterSpacing: letterSpacing)
+    : TextStyle(fontSize: fontSize, fontWeight: fontWeight, color: color, height: height, letterSpacing: letterSpacing);
+
+TextStyle _notoSansBengali({double? fontSize, FontWeight? fontWeight, Color? color, double? height}) => _googleFonts
+    ? GoogleFonts.notoSansBengali(fontSize: fontSize, fontWeight: fontWeight, color: color, height: height)
+    : TextStyle(fontSize: fontSize, fontWeight: fontWeight, color: color, height: height);
+
+TextStyle _spaceGrotesk({double? fontSize, FontWeight? fontWeight, Color? color, double? height, double? letterSpacing}) => _googleFonts
+    ? GoogleFonts.spaceGrotesk(fontSize: fontSize, fontWeight: fontWeight, color: color, height: height, letterSpacing: letterSpacing)
+    : TextStyle(fontSize: fontSize, fontWeight: fontWeight, color: color, height: height, letterSpacing: letterSpacing);
+
+TextStyle _jetBrainsMono({double? fontSize, FontWeight? fontWeight, Color? color, double? letterSpacing}) => _googleFonts
+    ? GoogleFonts.jetBrainsMono(fontSize: fontSize, fontWeight: fontWeight, color: color, letterSpacing: letterSpacing)
+    : TextStyle(fontSize: fontSize, fontWeight: fontWeight, color: color, letterSpacing: letterSpacing);
+
+TextTheme _textThemeOf(TextTheme base) => _googleFonts
+    ? (isBangla ? GoogleFonts.notoSansBengaliTextTheme(base) : GoogleFonts.interTextTheme(base))
+    : base;
+
 /// Display face: Space Grotesk (both themes, for the coder look).
 TextStyle displayStyle(BuildContext context, double size, {FontWeight weight = FontWeight.w700, Color? color, double? height, double? letterSpacing}) {
   final c = color ?? context.pal.fg;
-  if (isBangla) return GoogleFonts.notoSansBengali(fontSize: size, fontWeight: weight, color: c, height: height ?? 1.25);
-  return GoogleFonts.spaceGrotesk(fontSize: size, fontWeight: weight, color: c, height: height ?? 1.08, letterSpacing: letterSpacing ?? -0.5);
+  if (isBangla) return _notoSansBengali(fontSize: size, fontWeight: weight, color: c, height: height ?? 1.25);
+  return _spaceGrotesk(fontSize: size, fontWeight: weight, color: c, height: height ?? 1.08, letterSpacing: letterSpacing ?? -0.5);
 }
 
 TextStyle monoStyle(BuildContext context, {double size = 11, Color? color, FontWeight weight = FontWeight.w500}) {
-  return GoogleFonts.jetBrainsMono(
+  return _jetBrainsMono(
     fontSize: size,
     fontWeight: weight,
     color: color ?? context.pal.muted,
@@ -93,8 +124,8 @@ TextStyle monoStyle(BuildContext context, {double size = 11, Color? color, FontW
 }
 
 TextStyle bodyStyle(BuildContext context, {double size = 14.5, Color? color, FontWeight weight = FontWeight.w400, double height = 1.55}) {
-  if (isBangla) return GoogleFonts.notoSansBengali(fontSize: size, fontWeight: weight, color: color ?? context.pal.fg, height: height);
-  return GoogleFonts.inter(fontSize: size, fontWeight: weight, color: color ?? context.pal.fg, height: height);
+  if (isBangla) return _notoSansBengali(fontSize: size, fontWeight: weight, color: color ?? context.pal.fg, height: height);
+  return _inter(fontSize: size, fontWeight: weight, color: color ?? context.pal.fg, height: height);
 }
 
 ThemeData buildTheme(Pal p) {
@@ -111,7 +142,7 @@ ThemeData buildTheme(Pal p) {
     surface: p.surface,
     onSurface: p.fg,
   );
-  final textTheme = (isBangla ? GoogleFonts.notoSansBengaliTextTheme(base.textTheme) : GoogleFonts.interTextTheme(base.textTheme)).apply(bodyColor: p.fg, displayColor: p.fg);
+  final textTheme = _textThemeOf(base.textTheme).apply(bodyColor: p.fg, displayColor: p.fg);
   OutlineInputBorder border(Color c, [double w = 1]) =>
       OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: c, width: w));
 
@@ -132,26 +163,26 @@ ThemeData buildTheme(Pal p) {
       filled: true,
       fillColor: p.dark ? p.surface : p.alt.withValues(alpha: 0.6),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
-      labelStyle: GoogleFonts.inter(color: p.muted, fontSize: 14),
-      hintStyle: GoogleFonts.inter(color: p.muted.withValues(alpha: 0.7), fontSize: 14),
+      labelStyle: _inter(color: p.muted, fontSize: 14),
+      hintStyle: _inter(color: p.muted.withValues(alpha: 0.7), fontSize: 14),
       border: border(p.line),
       enabledBorder: border(p.line),
       focusedBorder: border(p.tech, 1.6),
       errorBorder: border(const Color(0xFFEF4444)),
       focusedErrorBorder: border(const Color(0xFFEF4444), 1.6),
-      errorStyle: GoogleFonts.inter(color: const Color(0xFFEF4444), fontSize: 12),
+      errorStyle: _inter(color: const Color(0xFFEF4444), fontSize: 12),
     ),
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: p.dark ? p.surface.withValues(alpha: 0.92) : p.surface.withValues(alpha: 0.95),
       indicatorColor: p.accent.withValues(alpha: 0.18),
       elevation: 0,
       height: 68,
-      labelTextStyle: WidgetStatePropertyAll(GoogleFonts.inter(fontSize: 11.5, fontWeight: FontWeight.w600)),
+      labelTextStyle: WidgetStatePropertyAll(_inter(fontSize: 11.5, fontWeight: FontWeight.w600)),
     ),
     snackBarTheme: SnackBarThemeData(
       behavior: SnackBarBehavior.floating,
       backgroundColor: p.dark ? p.alt : p.fg,
-      contentTextStyle: GoogleFonts.inter(color: p.dark ? p.fg : p.bg, fontSize: 13.5),
+      contentTextStyle: _inter(color: p.dark ? p.fg : p.bg, fontSize: 13.5),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
     ),
     bottomSheetTheme: BottomSheetThemeData(
