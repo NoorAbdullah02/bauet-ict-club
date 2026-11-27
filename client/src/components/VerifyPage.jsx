@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
-import { BadgeCheck, Loader2, ShieldX, Download, Linkedin, Copy, Check, Award, ExternalLink, Search, ArrowRight } from 'lucide-react';
+import { BadgeCheck, Loader2, ShieldX, Download, Copy, Check, Award, ExternalLink, Search, ArrowRight } from 'lucide-react';
+import { Linkedin } from '../lib/brandIcons';
 import toast from 'react-hot-toast';
 import { api } from '../context/store';
 import { formalDate } from '../lib/format';

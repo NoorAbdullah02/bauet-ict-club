@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { Facebook, Github, Linkedin, Youtube, Mail, Phone, MapPin, ArrowUp, ArrowUpRight, ArrowRight, Check, Loader2, Smartphone, Heart, Send } from 'lucide-react';
+import { Mail, Phone, MapPin, ArrowUp, ArrowUpRight, ArrowRight, Check, Loader2, Smartphone, Heart, Send } from 'lucide-react';
+import { Facebook, Github, Linkedin, Youtube } from '../lib/brandIcons';
 import useStore, { api } from '../context/store';
 import Logo from './Logo';
 import { useT } from '../lib/i18n';

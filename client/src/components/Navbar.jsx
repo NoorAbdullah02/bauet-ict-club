@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { NavLink, Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, Sun, Moon, Monitor, Shield, ArrowRight, Download, Search, ChevronDown, Briefcase, Globe2, Swords, Trophy, Library, HelpCircle, IdCard, Languages, Users, Calendar, Home, Info, Megaphone, Code2, Image, Award, Mail, GraduationCap, Facebook } from 'lucide-react';
+import { Menu, X, Sun, Moon, Monitor, Shield, ArrowRight, Download, Search, ChevronDown, Briefcase, Globe2, Swords, Trophy, Library, HelpCircle, IdCard, Languages, Users, Calendar, Home, Info, Megaphone, Code2, Image, Award, Mail, GraduationCap } from 'lucide-react';
+import { Facebook } from '../lib/brandIcons';
 import { useShallow } from 'zustand/react/shallow';
 import Logo from './Logo';
 import SearchBox from './SearchBox';

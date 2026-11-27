@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { BadgeCheck, Loader2, Download, Link2, ShieldAlert, Share2, Facebook, Globe, MessageCircle, Send, Mail, Linkedin, Twitter, RefreshCw, User, Shield } from 'lucide-react';
+import { BadgeCheck, Loader2, Download, Link2, ShieldAlert, Share2, Globe, MessageCircle, Send, Mail, RefreshCw, User, Shield } from 'lucide-react';
+import { Facebook, Linkedin, Twitter } from '../lib/brandIcons';
 import toast from 'react-hot-toast';
 import { api } from '../context/store';
 import useStore from '../context/store';

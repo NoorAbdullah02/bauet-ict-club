@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
 import { thumb } from '../lib/img';
 import { motion } from 'framer-motion';
-import { ExternalLink, Github, Rocket, Users } from 'lucide-react';
+import { ExternalLink, Rocket, Users } from 'lucide-react';
+import { Github } from '../lib/brandIcons';
 import { useShallow } from 'zustand/react/shallow';
 import useStore from '../context/store';
 import { cn } from '../lib/cn';
