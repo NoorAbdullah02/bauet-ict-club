@@ -157,4 +157,4 @@ function localAnswer(question, k) {
 /** Forget the cached facts, so the next question sees what the admin just added or changed. */
 function clear() { cache = { at: 0, data: null }; }
 
-module.exports = { load, asPrompt, localAnswer, clear };
+module.exports = { load, asPrompt, localAnswer, clear, shortName };
