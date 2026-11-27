@@ -539,9 +539,9 @@ body.admin-mode .cursor-glow { display: none; }
   html.install-banner .chat-panel { bottom: 10.5rem; }
 }
 
-/* on desktop (>= 1400px) the nav links sit mathematically dead-center between logo and actions */
-@media (min-width: 1400px) {
-  .site-nav { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; column-gap: 1.25rem; }
+/* on laptop/desktop (>= 1240px) the nav links sit mathematically dead-center between logo and actions */
+@media (min-width: 1240px) {
+  .site-nav { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; column-gap: 1rem; }
   .site-nav > .nav-logo { justify-self: start; }
   .site-nav > ul { justify-self: center; }
   .site-nav > .nav-actions { justify-self: end; }

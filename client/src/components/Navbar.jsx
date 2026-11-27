@@ -29,7 +29,7 @@ export const MENU_GROUPS = [
   ['Help', [['/faq', 'FAQ', HelpCircle], ['/data', 'Club data', Library], ['/ticket', 'Find my ticket', IdCard], ['/contact', 'Contact', Mail], ['/my-card', 'My member card', IdCard]]],
 ];
 const MAIN = [['/', 'Home', Home], ['/about', 'About', Info], ['/events', 'Events', Calendar], ['/team', 'Team', Users]];
-const DESKTOP = ['/', '/about', '/events', '/notices', '/projects', '/team', '/gallery', '/contact'];
+const DESKTOP = ['/', '/about', '/events', '/projects', '/team', '/gallery', '/contact'];
 
 /** "More" in the top bar: the pages that do not fit next to the main links. */
 function MoreMenu({ t }) {
@@ -46,7 +46,7 @@ function MoreMenu({ t }) {
   return (
     <li className="relative" data-more>
       <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-haspopup="menu"
-        className={cn('flex items-center gap-1 whitespace-nowrap shrink-0 rounded-full px-2.5 xl:px-3 py-2 text-[13px] font-medium transition-colors', here || open ? 'text-fg' : 'text-fg2 hover:text-fg')}>
+        className={cn('flex items-center gap-1 whitespace-nowrap shrink-0 rounded-full px-3 py-1.5 text-[13px] font-medium transition-colors', here || open ? 'text-fg bg-accent/10' : 'text-fg2 hover:text-fg hover:bg-fg/5')}>
         {t('More')} <ChevronDown size={14} className={cn('transition', open && 'rotate-180')} />
       </button>
       <AnimatePresence>
@@ -64,6 +64,14 @@ function MoreMenu({ t }) {
                   ))}
                 </div>
               ))}
+            </div>
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3">
+              <Link to="/app" role="menuitem" className="inline-flex items-center gap-2 rounded-xl px-2.5 py-1.5 text-xs font-semibold text-accent transition hover:bg-accent/10">
+                <Download size={14} /> {t('Get the app')}
+              </Link>
+              <a href="https://www.facebook.com/bauetictclub" target="_blank" rel="noopener noreferrer" role="menuitem" className="inline-flex items-center gap-2 rounded-xl px-2.5 py-1.5 text-xs font-semibold text-[#1877F2] transition hover:bg-[#1877F2]/10">
+                <Facebook size={14} /> Facebook Page
+              </a>
             </div>
           </motion.div>
         )}
@@ -100,24 +108,24 @@ export default function Navbar() {
     return () => window.removeEventListener('keydown', k);
   }, []);
 
-  const iconBtn = 'grid size-10 lg:size-9 shrink-0 place-items-center rounded-full border border-line bg-surface/60 text-fg2 backdrop-blur transition hover:border-tech hover:text-tech';
+  const iconBtn = 'grid size-10 lg:size-9 shrink-0 place-items-center rounded-full text-fg2 transition hover:bg-fg/6 hover:text-accent max-lg:border max-lg:border-line max-lg:bg-surface/80';
 
   return (
     <>
       <div className="scroll-progress" />
       <motion.header initial={{ y: -90 }} animate={{ y: 0 }} transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
         className="fixed inset-x-0 top-0 z-[100] flex justify-center px-3 pt-3">
-        <nav className={cn('site-nav flex w-full items-center justify-between rounded-full border px-3 py-2 pl-4 transition-all duration-500',
-          scrolled ? 'border-line bg-[var(--glass)] shadow-[var(--shadow-lg)] backdrop-blur-xl backdrop-saturate-150' : 'border-transparent bg-transparent')}>
-          <Link to="/" className="nav-logo flex h-10 lg:h-9 shrink-0 items-center" aria-label="BAUET ICT Club home"><Logo kind="club" height={38} priority /></Link>
+        <nav className={cn('site-nav flex w-full items-center justify-between rounded-full border px-2.5 py-1.5 pl-3.5 transition-all duration-500 backdrop-blur-xl backdrop-saturate-150',
+          scrolled ? 'border-line bg-[var(--glass)] shadow-[var(--shadow-lg)]' : 'border-line/65 bg-surface/65 shadow-[var(--shadow-sm)]')}>
+          <Link to="/" className="nav-logo flex h-10 lg:h-9 shrink-0 items-center" aria-label="BAUET ICT Club home"><Logo kind="club" height={36} priority /></Link>
 
           <ul className="hidden items-center gap-0.5 lg:flex">
             {LINKS.filter((l) => DESKTOP.includes(l.to)).map((l) => (
               <li key={l.to} className="shrink-0">
                 <NavLink to={l.to} end={l.to === '/'}
-                  className={({ isActive }) => cn('relative block whitespace-nowrap rounded-full px-2.5 xl:px-3 py-2 text-[13px] font-medium transition-colors', isActive ? 'text-fg' : 'text-fg2 hover:text-fg')}>
+                  className={({ isActive }) => cn('relative block whitespace-nowrap rounded-full px-3 py-1.5 text-[13px] font-medium transition-colors', isActive ? 'text-fg font-semibold' : 'text-fg2 hover:text-fg hover:bg-fg/5')}>
                   {({ isActive }) => (<>
-                    {isActive && <motion.span layoutId="nav-pill" transition={{ type: 'spring', stiffness: 380, damping: 32 }} className="absolute inset-0 -z-10 rounded-full bg-accent/10 ring-1 ring-accent/30" />}
+                    {isActive && <motion.span layoutId="nav-pill" transition={{ type: 'spring', stiffness: 380, damping: 32 }} className="absolute inset-0 -z-10 rounded-full bg-accent/12 ring-1 ring-accent/25" />}
                     {t(l.label)}
                   </>)}
                 </NavLink>
@@ -126,25 +134,21 @@ export default function Navbar() {
             <MoreMenu t={t} />
           </ul>
 
-          <div className="nav-actions flex shrink-0 items-center gap-2 lg:gap-1.5 whitespace-nowrap">
+          <div className="nav-actions flex shrink-0 items-center gap-1.5 whitespace-nowrap">
             <button
               type="button"
               onClick={() => setSearching(true)}
-              className="flex h-10 w-10 lg:h-9 lg:w-9 xl:w-auto xl:px-3 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-full border border-line bg-surface/60 text-fg2 backdrop-blur transition hover:border-tech hover:text-tech cursor-pointer"
+              className="flex h-10 w-10 lg:h-9 lg:w-9 xl:w-auto xl:px-3 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-full border border-line/80 bg-alt/65 text-fg2 transition hover:border-tech hover:text-tech cursor-pointer"
               aria-label={t('Search the site')}
               title={`${t('Search')} (Ctrl+K)`}
             >
               <Search size={15} className="shrink-0" />
               <kbd className="hidden xl:inline-block font-mono text-[10px] text-muted tracking-tight">Ctrl K</kbd>
             </button>
-            <a href="https://www.facebook.com/bauetictclub" target="_blank" rel="noopener noreferrer" className={cn(iconBtn, 'hidden xl:grid hover:border-[#1877F2] hover:text-[#1877F2]')} aria-label="Official Facebook Page" title="BAUET ICT Club on Facebook">
-              <Facebook size={15} />
-            </a>
             <button onClick={() => setTheme(nextTheme)} className={iconBtn} aria-label={`${themeLabel}. Press to change`} title={`${themeLabel}. Press to change`}>
-              {theme === 'dark' ? <Moon size={15} /> : theme === 'system' ? <Monitor size={15} /> : <Sun size={15} />}
+              {theme === 'dark' ? <Moon size={16} /> : theme === 'system' ? <Monitor size={16} /> : <Sun size={16} />}
             </button>
-            <Link to="/app" className={cn(iconBtn, 'hidden xl:grid')} aria-label="Download the app" title="Download the app"><Download size={15} /></Link>
-            <Link to="/admin" onMouseEnter={() => import("../admin/AdminApp")} className={cn(iconBtn, 'hidden xl:grid')} aria-label="Admin"><Shield size={15} /></Link>
+            <Link to="/admin" onMouseEnter={() => import("../admin/AdminApp")} className={cn(iconBtn, 'hidden xl:grid')} aria-label="Admin" title="Admin Console"><Shield size={16} /></Link>
             <Link to="/join" className="btn-join"><span>{t('Join us')}</span><i><ArrowRight size={14} /></i></Link>
             <button onClick={() => setMobileOpen((o) => !o)} className={cn(iconBtn, 'lg:hidden')} aria-label="Menu">
               {mobileOpen ? <X size={18} /> : <Menu size={18} />}
