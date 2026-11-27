@@ -1,7 +1,7 @@
 const express = require('express');
 const { fail } = require('../utils/http');
 const mail = require('../utils/mailer');
-const { notifyAdmin, esc } = require('../utils/adminAlert');
+const { notifyAdmin, esc: escTg } = require('../utils/adminAlert');
 const exporters = require('../utils/exporters');
 const { sendZip, safe } = require('../utils/zipper');
 const { toCsv } = require('../utils/csv');
@@ -104,7 +104,7 @@ function notify(reg) {
   mail.sendMail({ to: mail.adminAddress(), ...mail.templates.adminNewApplication(reg) });
   notifyAdmin({
     title: `🔔 New ${reg.type === 'committee' ? 'Committee' : reg.type === 'ambassador' ? 'Ambassador' : 'General'} Member Application`,
-    description: `<b>${esc(reg.full_name)}</b> has applied for ${esc(reg.type)} membership${reg.post ? ` (${esc(reg.post)})` : ''}.`,
+    description: `<b>${escTg(reg.full_name)}</b> has applied for ${escTg(reg.type)} membership${reg.post ? ` (${escTg(reg.post)})` : ''}.`,
     path: '/admin/applications',
     callbackButtons: reg.id ? [
       { text: '✅ Instant Approve', callback_data: `appr:${reg.id}` },
