@@ -314,7 +314,8 @@ class Tag extends StatelessWidget {
       decoration: BoxDecoration(color: c.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(99)),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
         if (icon != null) ...[Icon(icon, size: 12, color: c), const SizedBox(width: 4)],
-        Flexible(child: Text(text.toUpperCase(), maxLines: 1, overflow: TextOverflow.ellipsis, style: monoStyle(context, color: c, size: 9.5, weight: FontWeight.w700))),
+        // two lines: a long role like "Assistant Advisor" should read in full inside a narrow card instead of being cut with "…"
+        Flexible(child: Text(text.toUpperCase(), maxLines: 2, textAlign: TextAlign.center, overflow: TextOverflow.ellipsis, style: monoStyle(context, color: c, size: 9.5, weight: FontWeight.w700))),
       ]),
     );
   }
