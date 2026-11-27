@@ -9,7 +9,7 @@ const { tableToPdf, tableToDocx, tableToXlsx } = require('../utils/exporters');
 const forms = require('../utils/forms');
 const { serial } = require('../utils/serial');
 const tickets = require('../utils/tickets');
-const { notifyAdmin } = require('../utils/adminAlert');
+const { notifyAdmin, esc } = require('../utils/adminAlert');
 const ssl = require('../utils/sslcommerz');
 const { sendZip, safe } = require('../utils/zipper');
 const { toCsv } = require('../utils/csv');
@@ -202,8 +202,8 @@ async function register(req, res) {
       mail.sendMail({ to: mail.adminAddress(), ...mail.templates.adminNewSignup(ev, `${who} registered${waitlisted ? ' and joined the waiting list' : ''}${pay?.payment ? ` and paid ${pay.payment.amount} BDT by ${pay.payment.method} (TrxID ${pay.payment.trx_id})` : ''}.`) });
     }
     notifyAdmin({
-      title: `🎟️ New Event Ticket: ${ev.title}`,
-      description: `<b>${col.full_name || 'Attendee'}</b> registered${waitlisted ? ' (Waiting List)' : ''}.`,
+      title: `🎟️ New Event Ticket: ${esc(ev.title)}`,
+      description: `<b>${esc(col.full_name || 'Attendee')}</b> registered${waitlisted ? ' (Waiting List)' : ''}.`,
       path: `/admin/events/${ev.id}/registrations`,
       fields: [
         ['Ticket Code', ticket],

@@ -30,6 +30,10 @@ async function replyTelegram(chatId, text, inlineKeyboard = null) {
       body: JSON.stringify(payload),
       signal: AbortSignal.timeout(6000),
     });
+    if (!res.ok) {
+      const errBody = await res.text().catch(() => '');
+      console.warn(`replyTelegram HTTP ${res.status}:`, errBody);
+    }
     return res.ok;
   } catch (err) {
     console.warn('replyTelegram failed:', err.message);
@@ -102,7 +106,7 @@ router.post('/webhook', async (req, res) => {
       if (regId) {
         try {
           const { rows } = await pool.query(
-            "UPDATE registrations SET status = 'approved', updated_at = NOW() WHERE id = $1 AND deleted_at IS NULL RETURNING *",
+            "UPDATE registrations SET status = 'approved', updated_at = NOW() WHERE id = $1 AND status <> 'approved' AND deleted_at IS NULL RETURNING *",
             [regId]
           );
           if (rows.length) {
@@ -118,10 +122,15 @@ router.post('/webhook', async (req, res) => {
             await answerCallbackQuery(cb.id, `Approved ${reg.full_name}!`);
             await replyTelegram(
               fromChatId,
-              `✅ <b>Application Approved</b>\n• <b>Name:</b> ${reg.full_name}\n• <b>Student ID:</b> <code>${reg.student_id}</code>\n• <b>Type:</b> ${reg.type}\n• <b>Email sent:</b> ${reg.email}`
+              `✅ <b>Application Approved</b>\n• <b>Name:</b> ${esc(reg.full_name)}\n• <b>Student ID:</b> <code>${esc(reg.student_id)}</code>\n• <b>Type:</b> ${esc(reg.type)}\n• <b>Email sent:</b> ${esc(reg.email)}`
             );
           } else {
-            await answerCallbackQuery(cb.id, 'Application not found or already deleted.');
+            const existing = (await pool.query('SELECT full_name, status FROM registrations WHERE id = $1 AND deleted_at IS NULL', [regId])).rows[0];
+            if (existing?.status === 'approved') {
+              await answerCallbackQuery(cb.id, `${existing.full_name} was already approved.`);
+            } else {
+              await answerCallbackQuery(cb.id, 'Application not found or already deleted.');
+            }
           }
         } catch (err) {
           await answerCallbackQuery(cb.id, 'Database update failed.');
@@ -141,11 +150,13 @@ router.post('/webhook', async (req, res) => {
   }
 
   const rawText = msg.text.trim();
-  const command = rawText.split(/\s+/)[0].toLowerCase();
-  const query = rawText.slice(command.length).trim();
+  const rawCmd = rawText.split(/\s+/)[0].toLowerCase();
+  const cmdBase = rawCmd.split('@')[0];
+  const command = cmdBase.startsWith('/') ? cmdBase : (['start', 'help', 'stats', 'pending', 'find', 'events', 'backup'].includes(cmdBase) ? `/${cmdBase}` : rawCmd);
+  const query = rawText.slice(rawCmd.length).trim();
 
   // /start or /help
-  if (command === '/start' || command === '/help' || command.startsWith('/help@')) {
+  if (command === '/start' || command === '/help') {
     const helpMsg = `🤖 <b>BAUET ICT Club Admin Bot</b>
 
 <b>Available commands:</b>
@@ -160,7 +171,7 @@ router.post('/webhook', async (req, res) => {
   }
 
   // /stats
-  if (command === '/stats' || command.startsWith('/stats@')) {
+  if (command === '/stats') {
     try {
       const [membersCount, pendingCount, eventsCount, signupsCount, todayViews] = await Promise.all([
         pool.query("SELECT COUNT(*) AS c FROM members WHERE deleted_at IS NULL"),
@@ -181,13 +192,13 @@ router.post('/webhook', async (req, res) => {
       const buttons = [[{ text: '🔗 Open Admin Console', url: `${baseSiteUrl()}/admin` }]];
       await replyTelegram(chatId, statsMsg, buttons);
     } catch (err) {
-      await replyTelegram(chatId, `⚠️ Could not query stats: ${err.message}`);
+      await replyTelegram(chatId, `⚠️ Could not query stats: ${esc(err.message)}`);
     }
     return;
   }
 
   // /pending
-  if (command === '/pending' || command.startsWith('/pending@')) {
+  if (command === '/pending') {
     try {
       const { rows } = await pool.query(
         "SELECT id, full_name, student_id, type, post, department FROM registrations WHERE status = 'pending' AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 6"
@@ -201,7 +212,7 @@ router.post('/webhook', async (req, res) => {
       await replyTelegram(chatId, `⏳ <b>Pending Applications (${rows.length} showing):</b>`);
 
       for (const r of rows) {
-        const itemMsg = `• <b>${r.full_name}</b> (<code>${r.student_id}</code>)\n  Role: ${r.type}${r.post ? ` · ${r.post}` : ''} | Dept: ${r.department}`;
+        const itemMsg = `• <b>${esc(r.full_name)}</b> (<code>${esc(r.student_id)}</code>)\n  Role: ${esc(r.type)}${r.post ? ` · ${esc(r.post)}` : ''} | Dept: ${esc(r.department)}`;
         const inlineKeyboard = [
           [
             { text: '✅ Approve', callback_data: `ask:${r.id}` },
@@ -211,13 +222,13 @@ router.post('/webhook', async (req, res) => {
         await replyTelegram(chatId, itemMsg, inlineKeyboard);
       }
     } catch (err) {
-      await replyTelegram(chatId, `⚠️ Could not fetch pending applications: ${err.message}`);
+      await replyTelegram(chatId, `⚠️ Could not fetch pending applications: ${esc(err.message)}`);
     }
     return;
   }
 
   // /find <term>
-  if (command === '/find' || command.startsWith('/find@')) {
+  if (command === '/find') {
     if (!query) {
       await replyTelegram(chatId, 'Usage: <code>/find 21020123</code> or <code>/find Tanvir</code>');
       return;
@@ -241,42 +252,42 @@ router.post('/webhook', async (req, res) => {
       ]);
 
       if (!members.rows.length && !regs.rows.length && !tickets.rows.length) {
-        await replyTelegram(chatId, `🔍 No records found for "<b>${query}</b>".`);
+        await replyTelegram(chatId, `🔍 No records found for "<b>${esc(query)}</b>".`);
         return;
       }
 
-      let resText = `🔍 <b>Search results for "${query}":</b>\n`;
+      let resText = `🔍 <b>Search results for "${esc(query)}":</b>\n`;
 
       if (members.rows.length) {
         resText += `\n<b>Club Members:</b>\n`;
         members.rows.forEach((m) => {
-          resText += `• ${m.name} (${m.position}) · <code>${m.student_id || '-'}</code>\n  Card: ${baseSiteUrl()}/card/${m.id}\n`;
+          resText += `• ${esc(m.name)} (${esc(m.position)}) · <code>${esc(m.student_id || '-')}</code>\n  Card: ${baseSiteUrl()}/card/${m.id}\n`;
         });
       }
 
       if (regs.rows.length) {
         resText += `\n<b>Applications:</b>\n`;
         regs.rows.forEach((r) => {
-          resText += `• ${r.full_name} · <code>${r.student_id}</code> [${r.status.toUpperCase()}]\n  Type: ${r.type}${r.post ? ` (${r.post})` : ''}\n`;
+          resText += `• ${esc(r.full_name)} · <code>${esc(r.student_id)}</code> [${esc(String(r.status || '').toUpperCase())}]\n  Type: ${esc(r.type)}${r.post ? ` (${esc(r.post)})` : ''}\n`;
         });
       }
 
       if (tickets.rows.length) {
         resText += `\n<b>Event Tickets:</b>\n`;
         tickets.rows.forEach((t) => {
-          resText += `• ${t.full_name} · Ticket: <code>${t.ticket}</code> [Pay: ${t.pay_status}]\n`;
+          resText += `• ${esc(t.full_name)} · Ticket: <code>${esc(t.ticket)}</code> [Pay: ${esc(t.pay_status)}]\n`;
         });
       }
 
       await replyTelegram(chatId, resText);
     } catch (err) {
-      await replyTelegram(chatId, `⚠️ Search failed: ${err.message}`);
+      await replyTelegram(chatId, `⚠️ Search failed: ${esc(err.message)}`);
     }
     return;
   }
 
   // /events
-  if (command === '/events' || command.startsWith('/events@')) {
+  if (command === '/events') {
     try {
       const { rows } = await pool.query(
         "SELECT id, title, date, location FROM events WHERE deleted_at IS NULL AND date >= CURRENT_DATE ORDER BY date ASC LIMIT 5"
@@ -290,31 +301,34 @@ router.post('/webhook', async (req, res) => {
       let evText = `📅 <b>Upcoming Club Events:</b>\n\n`;
       rows.forEach((e) => {
         const d = new Date(e.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-        evText += `• <b>${e.title}</b>\n  Date: ${d} ${e.location ? `· ${e.location}` : ''}\n  Link: ${baseSiteUrl()}/events/${e.id}\n\n`;
+        evText += `• <b>${esc(e.title)}</b>\n  Date: ${esc(d)} ${e.location ? `· ${esc(e.location)}` : ''}\n  Link: ${baseSiteUrl()}/events/${e.id}\n\n`;
       });
 
       await replyTelegram(chatId, evText.trim());
     } catch (err) {
-      await replyTelegram(chatId, `⚠️ Could not fetch events: ${err.message}`);
+      await replyTelegram(chatId, `⚠️ Could not fetch events: ${esc(err.message)}`);
     }
     return;
   }
 
   // /backup
-  if (command === '/backup' || command.startsWith('/backup@')) {
+  if (command === '/backup') {
     await replyTelegram(chatId, '⏳ Generating fresh database backup, please wait a moment...');
+    const who = esc(msg.from?.username || msg.from?.first_name || 'Admin');
     const result = await sendBackupToTelegram({
-      caption: `📦 <b>Manual Database Backup</b>\nRequested via Telegram by @${msg.from?.username || msg.from?.first_name || 'Admin'}`,
+      caption: `📦 <b>Manual Database Backup</b>\nRequested via Telegram by ${msg.from?.username ? '@' : ''}${who}`,
     });
     if (!result.ok) {
-      await replyTelegram(chatId, `❌ Backup failed: ${result.error}`);
+      await replyTelegram(chatId, `❌ Backup failed: ${esc(result.error)}`);
     }
     return;
   }
 
-  // anything else that looks like a command gets pointed at the guide instead of silence
+  // any other command or plain message gets pointed at the guide instead of silence
   if (command.startsWith('/')) {
     await replyTelegram(chatId, `🤔 I do not know <code>${esc(command)}</code>. Send /help to see everything I can do.`);
+  } else {
+    await replyTelegram(chatId, `👋 Send /help to see available commands (or tap the menu button below).`);
   }
 });
 

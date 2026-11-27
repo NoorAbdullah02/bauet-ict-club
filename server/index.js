@@ -366,13 +366,17 @@ async function start() {
     console.log(`Server running on http://localhost:${PORT}`);
     require('./utils/push').status().then((st) => console.log(`Phone notifications: ${st.enabled ? `ON (Firebase project ${st.project}, ${st.phones} phone${st.phones === 1 ? '' : 's'} registered)` : `OFF (${st.problem})`}`)).catch(() => {});
     const tgToken = process.env.TELEGRAM_BOT_TOKEN?.trim();
+    const tgChatId = process.env.TELEGRAM_CHAT_ID?.trim();
     if (tgToken) {
       const siteUrl = (process.env.PUBLIC_URL || process.env.RENDER_EXTERNAL_URL || 'https://bauet-ict-club.onrender.com').replace(/\/+$/, '');
       const hookUrl = `${siteUrl}/api/telegram/webhook`;
       fetch(`https://api.telegram.org/bot${tgToken}/setWebhook?url=${encodeURIComponent(hookUrl)}`)
         .then((r) => r.json())
-        .then((res) => { if (res.ok) console.log('Telegram Bot webhook: ACTIVE'); })
-        .catch(() => {});
+        .then((res) => {
+          if (res.ok) console.log(`Telegram Bot webhook: ACTIVE (${hookUrl})`);
+          else console.warn('Telegram Bot setWebhook rejected:', res.description || res);
+        })
+        .catch((err) => console.warn('Telegram Bot setWebhook error:', err.message));
       fetch(`https://api.telegram.org/bot${tgToken}/setMyCommands`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -392,6 +396,9 @@ async function start() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ menu_button: { type: 'commands' } }),
       }).catch(() => {});
+      if (!tgChatId) console.warn('Telegram Bot warning: TELEGRAM_CHAT_ID is not set, so bot alerts and replies are disabled.');
+    } else {
+      console.warn('Telegram Bot: OFF (TELEGRAM_BOT_TOKEN is not set in environment)');
     }
     require('./utils/analyticsJobs').start();
     setTimeout(() => { try { require('./routes/eventRegs').processCertQueue(); } catch { /* the queue starts again at the next run */ } }, 20000); // goes on with certificate emails left over from before a restart
