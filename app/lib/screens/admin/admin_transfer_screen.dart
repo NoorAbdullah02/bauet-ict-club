@@ -43,6 +43,14 @@ class _AdminTransferScreenState extends State<AdminTransferScreen> {
     return s;
   }
 
+  String get _suggestion {
+    final m = RegExp(r'^(Summer|Winter)\s+(\d{4})', caseSensitive: false).firstMatch(_from.trim());
+    if (m == null) return '';
+    final y = int.tryParse(m.group(2) ?? '');
+    if (y == null) return '';
+    return m.group(1)!.toLowerCase().contains('summer') ? 'Winter $y' : 'Summer ${y + 1}';
+  }
+
   Future<void> _go() async {
     setState(() {
       _busy = true;
@@ -67,6 +75,12 @@ class _AdminTransferScreenState extends State<AdminTransferScreen> {
     final p = context.pal;
     final sessions = _sessions;
     if (_from.isEmpty && sessions.isNotEmpty) _from = sessions.first;
+    final suggestion = _suggestion;
+    final quickTargets = <String>[
+      if (suggestion.isNotEmpty && suggestion != _from) suggestion,
+      for (final s in sessions)
+        if (s != _from && s != suggestion) s,
+    ].take(4).toList();
     final people = _state.members.where((m) => m.session == _from).toList()..sort((a, b) => a.order.compareTo(b.order));
     final filtered = people.where((m) => matchesQuery(_query, [m.name, m.position, m.department, m.batch])).toList();
     final filteredPicked = filtered.where((m) => _picked.contains(m.id)).length;
@@ -80,6 +94,23 @@ class _AdminTransferScreenState extends State<AdminTransferScreen> {
             })),
         const SizedBox(height: 12),
         AppField(controller: _to, label: 'To committee (e.g. Winter 2027)', icon: Icons.arrow_forward_rounded, onChanged: () => setState(() {})),
+        if (quickTargets.isNotEmpty && _to.text.trim().isEmpty) ...[
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            children: [
+              for (final t in quickTargets)
+                ActionChip(
+                  label: Text('Use $t', style: bodyStyle(context, size: 12, color: p.tech, weight: FontWeight.w600)),
+                  onPressed: () => setState(() {
+                    _to.text = t;
+                    _error = null;
+                  }),
+                ),
+            ],
+          ),
+        ],
         const SizedBox(height: 12),
         Row(children: [
           PillChip(label: 'Copy', selected: _mode == 'copy', onTap: () => setState(() => _mode = 'copy')),

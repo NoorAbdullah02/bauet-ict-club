@@ -76,8 +76,8 @@ class _SearchScreenState extends State<SearchScreen> {
   void _open(Map<String, dynamic> r) {
     final path = '${r['path']}';
     // the bottom-bar pages are tabs (go); detail pages open on top (push)
-    if (path.startsWith('/events/') || path.startsWith('/card/') || path == '/my-card' || path == '/ticket') {
-      context.push(path);
+    if (path.startsWith('/events/') || path.startsWith('/card/') || path == '/my-card' || path == '/tickets' || path == '/ticket') {
+      context.push(path == '/ticket' ? '/tickets' : path);
     } else {
       context.go(path);
     }
@@ -88,6 +88,7 @@ class _SearchScreenState extends State<SearchScreen> {
     'notice': ('Notices', Icons.campaign_rounded),
     'member': ('People', Icons.person_rounded),
     'project': ('Projects', Icons.code_rounded),
+    'job': ('Jobs', Icons.work_rounded),
     'faq': ('Questions', Icons.help_rounded),
     'resource': ('Resources', Icons.local_library_rounded),
     'action': ('Action', Icons.arrow_forward_rounded),
@@ -125,7 +126,7 @@ class _SearchScreenState extends State<SearchScreen> {
                             child: Text('QUICK SHORTCUTS', style: monoStyle(context, size: 10, color: p.muted, weight: FontWeight.w700)),
                           ),
                           _shortcutItem(context, p, Icons.badge_rounded, 'Find My Member Card', 'Lookup verified card with student ID', '/my-card'),
-                          _shortcutItem(context, p, Icons.confirmation_number_rounded, 'Find My Ticket', 'View event registration pass & QR', '/ticket'),
+                          _shortcutItem(context, p, Icons.confirmation_number_rounded, 'Find My Ticket', 'View event registration pass & QR', '/tickets'),
                           _shortcutItem(context, p, Icons.person_add_alt_1_rounded, 'Join Club', 'Apply for Committee, General, or Ambassador', '/join'),
                           _shortcutItem(context, p, Icons.event_available_rounded, 'Upcoming Events', 'Workshops, hackathons & tech talks', '/events'),
                         ],

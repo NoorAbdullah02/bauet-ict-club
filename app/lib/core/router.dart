@@ -143,6 +143,7 @@ GoRouter buildRouter(AppState state) {
       ),
       GoRoute(path: '/contests/:id', pageBuilder: (c, s) => _slide(s, ContestDetailScreen(id: int.tryParse(s.pathParameters['id'] ?? '') ?? 0))),
       GoRoute(path: '/my-card', pageBuilder: (c, s) => _slide(s, const MyCardScreen())),
+      GoRoute(path: '/ticket', redirect: (_, __) => '/tickets'),
       GoRoute(path: '/tickets', pageBuilder: (c, s) => _slide(s, const MyTicketsScreen())),
       GoRoute(path: '/ticket/:code', pageBuilder: (c, s) => _slide(s, TicketScreen(code: s.pathParameters['code'] ?? ''))),
       GoRoute(path: '/verify/:code', pageBuilder: (c, s) => _slide(s, VerifyScreen(code: s.pathParameters['code'] ?? ''))),
