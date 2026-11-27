@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Megaphone, FileText } from 'lucide-react';
 import { motion } from 'framer-motion';
-import CountUp from 'react-countup';
+import CountUp from '../lib/countup';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, CartesianGrid } from 'recharts';
 import { ClipboardList, Users, Calendar, MessageSquare, Crown, ArrowUpRight, Clock, CalendarClock } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';

@@ -2,7 +2,7 @@ import { useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { TypeAnimation } from 'react-type-animation';
-import CountUp from 'react-countup';
+import CountUp from '../lib/countup';
 import { useInView } from 'react-intersection-observer';
 import { ArrowDown, ArrowUpRight, GraduationCap } from 'lucide-react';
 import Backdrop3D from './Backdrop3D';

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import CountUp from 'react-countup';
+import CountUp from '../lib/countup';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar, CartesianGrid } from 'recharts';
 import { Eye, Users, CalendarDays, TrendingUp, TrendingDown, Download, FileSpreadsheet, Search, Smartphone, Monitor, Tablet, Loader2, Globe } from 'lucide-react';
 import { api } from '../context/store';
