@@ -35,7 +35,6 @@ export default function SiteLayout() {
         last = v;
       } catch { /* offline or a sleeping server: try again on the next tick */ }
     };
-    tick();
     const id = setInterval(tick, 45000);
     const onVisible = () => { if (!document.hidden) tick(); };
     document.addEventListener('visibilitychange', onVisible);
@@ -52,7 +51,7 @@ export default function SiteLayout() {
     <>
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[100] focus:rounded-lg focus:bg-surface focus:px-4 focus:py-2 focus:text-sm focus:text-fg focus:shadow-lg">Skip to content</a>
       <Navbar />
-      <motion.main id="main" tabIndex={-1} key={pathname} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.22, ease: 'easeOut' }}>
+      <motion.main id="main" tabIndex={-1} key={pathname} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.12, ease: 'easeOut' }}>
           {/* the page name for screen readers; inside <main> so every page has one landmark that holds its heading */}
           {!OWN_H1.has(pathname) && TITLES[pathname] && <h1 className="sr-only">{TITLES[pathname]}</h1>}
           {/* reserve the full first screen while a page chunk loads, so the footer does not jump (layout shift) when the page appears */}

@@ -57,6 +57,7 @@ class AppState extends ChangeNotifier {
   List<Sponsor> sponsors = [];
   List<Advisor> advisors = [];
   List<WeeklySession> weeklySessions = [];
+  List<Map<String, dynamic>> testimonials = [];
   SiteSettings settings = const SiteSettings();
 
   bool loading = true;
@@ -93,10 +94,39 @@ class AppState extends ChangeNotifier {
       pushOn = _prefs?.getBool('push') ?? true;
       final saved = _prefs?.getStringList('push_topics');
       if (saved != null) pushTopics = saved.where(pushTopicNames.contains).toSet();
+      _hydrateCache();
     } catch (_) {
       // Storage unavailable: continue with defaults.
     }
     if (api.token != null) _refreshAdmin(); // not awaited: the first screen must not wait for it
+  }
+
+  /// Hydrate cached lists immediately on start so Home renders on frame 1 while live data syncs in background.
+  void _hydrateCache() {
+    List<T> cachedList<T>(String key, T Function(Map<String, dynamic>) map) {
+      final raw = _readCache(key);
+      if (raw is! List) return [];
+      return raw.whereType<Map>().map((e) => map(Map<String, dynamic>.from(e))).toList();
+    }
+
+    final ev = cachedList('events', EventItem.fromJson);
+    final mem = cachedList('members', Member.fromJson);
+    if (ev.isEmpty && mem.isEmpty) return;
+
+    events = ev;
+    members = mem;
+    notices = cachedList('notices', NoticeItem.fromJson);
+    gallery = cachedList('gallery', GalleryItem.fromJson);
+    achievements = cachedList('achievements', Achievement.fromJson);
+    projects = cachedList('projects', ProjectItem.fromJson);
+    faqs = cachedList('faqs', FaqItem.fromJson)..sort((a, b) => a.order.compareTo(b.order));
+    sponsors = cachedList('sponsors', Sponsor.fromJson)..sort((a, b) => a.order.compareTo(b.order));
+    advisors = cachedList('advisors', Advisor.fromJson).where((a) => a.active).toList()..sort((a, b) => a.order.compareTo(b.order));
+    weeklySessions = cachedList('weekly_sessions', WeeklySession.fromJson).where((s) => s.active).toList()..sort((a, b) => a.order.compareTo(b.order));
+    testimonials = cachedList('testimonials', (m) => m).where((r) => r['active'] != false).toList();
+    final st = _readCache('settings');
+    if (st is Map) settings = SiteSettings.fromJson(Map<String, dynamic>.from(st));
+    loading = false;
   }
 
   /// Asks the server who this login is now (a role can have changed since the last visit) and ends a session
@@ -183,10 +213,13 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> loadAll({bool fresh = true}) async {
-    loading = true;
+    final hasData = events.isNotEmpty || members.isNotEmpty;
+    if (!hasData) {
+      loading = true;
+      notifyListeners();
+    }
     error = null;
     _usedCache = false;
-    notifyListeners();
     String? firstError;
     Future<void> guard(Future<void> Function() fn) async {
       try {
@@ -223,6 +256,7 @@ class AppState extends ChangeNotifier {
       sponsors = rows('sponsors', Sponsor.fromJson)..sort((a, b) => a.order.compareTo(b.order));
       advisors = rows('advisors', Advisor.fromJson).where((a) => a.active).toList()..sort((a, b) => a.order.compareTo(b.order));
       weeklySessions = rows('weekly_sessions', WeeklySession.fromJson).where((s) => s.active).toList()..sort((a, b) => a.order.compareTo(b.order));
+      testimonials = rows('testimonials', (m) => m).where((r) => r['active'] != false).toList();
       final st = boot['settings'];
       if (st is Map) {
         final map = Map<String, dynamic>.from(st);
@@ -250,6 +284,7 @@ class AppState extends ChangeNotifier {
       guard(() async => sponsors = (await _fetch('sponsors', Sponsor.fromJson, fresh: fresh))..sort((a, b) => a.order.compareTo(b.order))),
       guard(() async => advisors = (await _fetch('advisors', Advisor.fromJson, fresh: fresh)).where((a) => a.active).toList()..sort((a, b) => a.order.compareTo(b.order))),
       guard(() async => weeklySessions = (await _fetch('weekly_sessions', WeeklySession.fromJson, fresh: fresh)).where((s) => s.active).toList()..sort((a, b) => a.order.compareTo(b.order))),
+      guard(() async => testimonials = (await _fetch('testimonials', (m) => m, fresh: fresh)).where((r) => r['active'] != false).toList()),
       guard(() async => settings = SiteSettings.fromJson(await _fetchSettings(fresh: fresh))),
     ]);
     error = firstError;

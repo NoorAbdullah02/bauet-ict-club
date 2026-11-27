@@ -4,6 +4,7 @@ const { destroyImage } = require('../utils/cloud');
 const { isBadInput } = require('../utils/http');
 const { LIVE, maybeTick, isHidden } = require('../utils/schedule');
 const { isAdminRequest } = require('../middleware/auth');
+const publicCache = require('../utils/publicCache');
 
 const IDENT = /^[a-z_][a-z0-9_]*$/;
 
@@ -40,10 +41,16 @@ function createCrudRouter(table, opts = {}) {
 
   router.get('/', ...readGuard, async (req, res) => {
     try {
-      let extra = '';
-      if (scheduled) { maybeTick(); if (!(await isAdminRequest(req))) extra = ` AND ${LIVE}`; }
-      const { rows } = await pool.query(`SELECT * FROM ${table} WHERE deleted_at IS NULL${extra} ORDER BY ${orderCol} ${orderDir}`);
-      res.json(rows);
+      const fetchRows = async (admin) => {
+        let extra = '';
+        if (scheduled) { maybeTick(); if (!admin) extra = ` AND ${LIVE}`; }
+        const { rows } = await pool.query(`SELECT * FROM ${table} WHERE deleted_at IS NULL${extra} ORDER BY ${orderCol} ${orderDir}`);
+        return rows;
+      };
+      if (!readGuard.length) {
+        return await publicCache.serve(`crud:${table}`, req, res, fetchRows, { ttlMs: scheduled ? 30000 : 300000 });
+      }
+      res.json(await fetchRows(true));
     } catch (e) {
       console.error(`${table} list failed:`, e.message);
       res.status(500).json({ error: 'Could not load data' });

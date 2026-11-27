@@ -45,6 +45,7 @@ async function get() {
 /** Called after a successful write: every client sees a new number. */
 function bump() {
   value += 1;
+  try { require('./publicCache').clear(); } catch { /* ignore */ }
   persist();
   return value;
 }

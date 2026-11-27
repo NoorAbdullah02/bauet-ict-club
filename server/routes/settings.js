@@ -1,6 +1,7 @@
 const express = require('express');
 const pool = require('../config/db');
 const { authMiddleware } = require('../middleware/auth');
+const publicCache = require('../utils/publicCache');
 
 const router = express.Router();
 
@@ -22,10 +23,12 @@ const SOCIAL_KEYS = ['fb', 'email', 'phone', 'website', 'li', 'gh', 'yt'];
 const clip = (v, n) => String(v ?? '').trim().slice(0, n); // a box holding only spaces counts as empty
 
 // Public: the site-wide content block (stored as one JSONB row, key = 'site')
-router.get('/', async (_req, res) => {
+router.get('/', async (req, res) => {
   try {
-    const { rows } = await pool.query("SELECT value FROM settings WHERE key = 'site'");
-    res.json(rows[0]?.value || {});
+    await publicCache.serve('settings:site', req, res, async () => {
+      const { rows } = await pool.query("SELECT value FROM settings WHERE key = 'site'");
+      return rows[0]?.value || {};
+    }, { ttlMs: 300000 });
   } catch (e) {
     console.error('Settings read failed:', e.message);
     res.status(500).json({ error: 'Could not load settings' });

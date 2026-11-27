@@ -1,11 +1,12 @@
 // Small service worker: repeat visits load from the phone's own storage, and a friendly page shows when there is no internet.
 // It never stores /api answers, so events, forms and tickets are always fresh.
-const VERSION = 'v2';
+const VERSION = 'v3';
 const STATIC = `static-${VERSION}`;
 const OFFLINE = '/offline.html';
+const PRECACHE = [OFFLINE, '/favicon.png', '/favicon-64.png', '/boot.js', '/manifest.webmanifest'];
 
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(STATIC).then((c) => c.addAll([OFFLINE, '/favicon.png'])).then(() => self.skipWaiting()));
+  e.waitUntil(caches.open(STATIC).then((c) => c.addAll(PRECACHE)).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', (e) => {
@@ -24,8 +25,8 @@ self.addEventListener('fetch', (e) => {
     e.respondWith(fetch(req).catch(() => caches.match(OFFLINE)));
     return;
   }
-  // hashed build files never change under the same name: serve from storage, fetch once
-  if (url.pathname.startsWith('/assets/') || url.pathname === '/favicon.png') {
+  // hashed build files and core shell assets: serve from storage instantaneously
+  if (url.pathname.startsWith('/assets/') || PRECACHE.includes(url.pathname)) {
     e.respondWith(
       caches.open(STATIC).then(async (cache) => {
         const hit = await cache.match(req);
