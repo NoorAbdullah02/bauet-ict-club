@@ -7,6 +7,7 @@ import '../../data/api.dart';
 import '../../state/app_state.dart';
 import '../../widgets/common.dart';
 import 'admin_page.dart';
+import 'admin_widgets.dart';
 
 /// Admin → Downloads: every list the club keeps, as CSV, Excel or JSON, with the phone's share sheet.
 class AdminDownloadsScreen extends StatefulWidget {
@@ -18,8 +19,16 @@ class AdminDownloadsScreen extends StatefulWidget {
 
 class _AdminDownloadsScreenState extends State<AdminDownloadsScreen> {
   late final AppState _state = context.read<AppState>();
+  final TextEditingController _q = TextEditingController();
   List<Map<String, dynamic>>? _rows;
   String? _error;
+  String _query = '';
+
+  @override
+  void dispose() {
+    _q.dispose();
+    super.dispose();
+  }
 
   static const _groups = ['People', 'Events', 'Forms', 'Content', 'System'];
 
@@ -68,6 +77,16 @@ class _AdminDownloadsScreenState extends State<AdminDownloadsScreen> {
           'Every list the club keeps — CSV, Excel or JSON. $total rows in total.',
           style: bodyStyle(context, size: 13, color: p.muted),
         ),
+        if (rows != null && rows.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          AdminSearchBar(
+            controller: _q,
+            hint: 'Search exports by list name or group…',
+            onChanged: (v) => setState(() => _query = v),
+            shown: rows.where((r) => matchesQuery(_query, [r['label'], r['key'], r['group'], r['note']])).length,
+            total: rows.length,
+          ),
+        ],
         const SizedBox(height: 14),
         if (_error != null)
           Padding(
@@ -77,22 +96,26 @@ class _AdminDownloadsScreenState extends State<AdminDownloadsScreen> {
         if (rows == null)
           const ShimmerList(count: 4, height: 76)
         else
-          for (final g in _groups)
-            if (rows.any((r) => r['group'] == g)) ...[
-              Padding(
-                padding: const EdgeInsets.fromLTRB(4, 10, 4, 8),
-                child: Text(g.toString().toUpperCase(), style: monoStyle(context, size: 10, color: p.tech)),
-              ),
-              GlassCard(
-                padding: EdgeInsets.zero,
-                child: Column(children: [
-                  for (final (i, r) in rows.where((r) => r['group'] == g).indexed) ...[
-                    if (i > 0) Divider(height: 1, color: p.line),
-                    _Row(row: r, onGet: (f) => _get(r, f)),
-                  ],
-                ]),
-              ),
-            ],
+          for (final filteredRows in [rows.where((r) => matchesQuery(_query, [r['label'], r['key'], r['group'], r['note']])).toList()])
+            if (filteredRows.isEmpty)
+              const EmptyState(icon: Icons.search_off_rounded, title: 'No matching exports')
+            else
+              for (final g in _groups)
+                if (filteredRows.any((r) => r['group'] == g)) ...[
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(4, 10, 4, 8),
+                    child: Text(g.toString().toUpperCase(), style: monoStyle(context, size: 10, color: p.tech)),
+                  ),
+                  GlassCard(
+                    padding: EdgeInsets.zero,
+                    child: Column(children: [
+                      for (final (i, r) in filteredRows.where((r) => r['group'] == g).indexed) ...[
+                        if (i > 0) Divider(height: 1, color: p.line),
+                        _Row(row: r, onGet: (f) => _get(r, f)),
+                      ],
+                    ]),
+                  ),
+                ],
         const SizedBox(height: 16),
         GlassCard(
           child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
