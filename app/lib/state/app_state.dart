@@ -259,6 +259,30 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  int _dataVersion = 0;
+
+  /// Ask the shared data version; when an admin saved anything (here or on another device) the public
+  /// lists are fetched again quietly, so the app never keeps showing yesterday's content.
+  Future<void> checkForUpdates() async {
+    int v;
+    try {
+      v = await api.dataVersion();
+    } catch (_) {
+      return;
+    }
+    if (_dataVersion == 0) {
+      _dataVersion = v; // first look: the screen already loaded its data
+      return;
+    }
+    if (v == _dataVersion) return;
+    _dataVersion = v;
+    try {
+      await loadAll(fresh: true);
+    } catch (_) {
+      // keep what is on screen; the next check tries again
+    }
+  }
+
   Future<void> reloadMembers() async {
     try {
       members = await _fetch('members', Member.fromJson, fresh: true);

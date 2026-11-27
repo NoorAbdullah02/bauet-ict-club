@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import ChatBot from '../components/ChatBot';
-import useStore from '../context/store';
+import useStore, { api } from '../context/store';
 
 const TITLES = {
   '/': 'BAUET ICT Club | Where Technology Meets Innovation', '/about': 'About', '/events': 'Events', '/notices': 'Notices', '/projects': 'Projects', '/resources': 'Resource library', '/leaderboard': 'Leaderboard', '/contests': 'Contests', '/my-card': 'My member card', '/jobs': 'Jobs and internships', '/jobs/remote': 'Remote jobs',
@@ -21,6 +21,27 @@ export default function SiteLayout() {
   const lang = useStore((st) => st.lang);
   useEffect(() => { document.documentElement.lang = lang === 'bn' ? 'bn' : 'en'; }, [lang]); // screen readers pick the right voice
   useEffect(() => { window.scrollTo({ top: 0, left: 0, behavior: 'instant' }); trackPage(pathname); }, [pathname]);
+  // keep this tab in step with edits made anywhere else (another phone, another browser): one tiny
+  // request every 45 s, and the lists are fetched again only when the shared version number moved
+  useEffect(() => {
+    let last = 0;
+    let stopped = false;
+    const tick = async () => {
+      if (document.hidden) return;
+      try {
+        const { v } = (await api.get('/version')).data || {};
+        if (stopped || typeof v !== 'number') return;
+        if (last && v !== last) await useStore.getState().fetchAll(true);
+        last = v;
+      } catch { /* offline or a sleeping server: try again on the next tick */ }
+    };
+    tick();
+    const id = setInterval(tick, 45000);
+    const onVisible = () => { if (!document.hidden) tick(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => { stopped = true; clearInterval(id); document.removeEventListener('visibilitychange', onVisible); };
+  }, []);
+
   useEffect(() => {
     if (/^\/(events\/\d+|contests\/\d+|f\/[^/]+|ticket\/|verify\/|certificate\/)/.test(pathname)) return; // event and form pages set their own title
     const t = TITLES[pathname.replace(/\/$/, '') || '/'];

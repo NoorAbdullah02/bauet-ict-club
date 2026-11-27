@@ -148,6 +148,13 @@ class Api {
   }
 
   /// Connection status for admin Settings: path is email/status, chat/status or upload/status.
+  /// The shared data version: it changes when an admin saves anything, on this device or any other.
+  Future<int> dataVersion() async {
+    final data = await _send(() => _dio.get('/version', queryParameters: {'_': DateTime.now().millisecondsSinceEpoch}));
+    final v = data is Map ? data['v'] : null;
+    return v is num ? v.toInt() : 0;
+  }
+
   Future<Map<String, dynamic>> serviceStatus(String path) async {
     final data = await _send(() => _dio.get('/$path', options: _auth));
     return data is Map ? Map<String, dynamic>.from(data) : {};
