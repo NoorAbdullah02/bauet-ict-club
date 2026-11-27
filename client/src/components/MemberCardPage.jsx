@@ -253,7 +253,7 @@ function Badge({ m, code, qr, verified, site, fb, flipped }) {
           <div aria-hidden="true" className="absolute bottom-0" style={{ left: '8%', right: '8%', top: '12%', borderRadius: '44% 44% 0 0 / 38% 38% 0 0', background: 'linear-gradient(160deg,#35D989 0%,#38C8F0 55%,#8B5CF6 120%)' }} />
           <div className="absolute bottom-0 overflow-hidden bg-[#0B2A78]/90" style={{ left: '10.5%', right: '10.5%', top: '13.5%', borderRadius: '42% 42% 0 0 / 36% 36% 0 0', WebkitMaskImage: 'linear-gradient(180deg,#000 82%,transparent)', maskImage: 'linear-gradient(180deg,#000 82%,transparent)' }}>
             {m.image_url
-              ? <img src={thumb(m.image_url, 640)} alt={m.name} className="size-full object-cover object-top" />
+              ? <img src={thumb(m.image_url, 640)} alt={m.name} decoding="async" className="size-full object-cover object-top" />
               : <div className="grid size-full place-items-center font-bold text-white/90" style={{ ...condensed, fontSize: c(20) }}>{initials(m.name)}</div>}
           </div>
         </div>

@@ -16,6 +16,7 @@ export default defineConfig({
           // tiny shared helpers: without their own chunk Rollup parks them inside the
           // admin charts chunk, which then drags all of recharts onto the public home page
           if (/[\\/](clsx|tailwind-merge)[\\/]/.test(id)) return 'ui';
+          if (/[\\/]lucide-react[\\/]/.test(id)) return 'icons';
           if (/[\\/](recharts|d3-[a-z-]+|victory-vendor|recharts-scale|decimal\.js-light|internmap)[\\/]/.test(id)) return 'charts'; // admin only
           if (/[\\/](react|react-dom|scheduler|react-router|react-router-dom)[\\/]/.test(id)) return 'react';
         },

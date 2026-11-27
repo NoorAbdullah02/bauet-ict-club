@@ -201,7 +201,7 @@ export default function MemberProfile() {
               <div className="flex flex-col sm:flex-row items-center sm:items-end gap-5 text-center sm:text-left">
                 <div className="group relative size-32 sm:size-36 shrink-0 rounded-3xl border-4 border-surface bg-bg shadow-2xl overflow-hidden ring-4 ring-accent/20">
                   {m.image_url ? (
-                    <img src={thumb(m.image_url, 400)} alt={m.name} className="size-full object-cover object-top" />
+                    <img src={thumb(m.image_url, 400)} alt={m.name} loading="lazy" decoding="async" className="size-full object-cover object-top" />
                   ) : (
                     <div className="grid size-full place-items-center bg-gradient-to-br from-accent/20 to-accent/5 font-display text-4xl font-bold text-accent">
                       {m.name.charAt(0)}

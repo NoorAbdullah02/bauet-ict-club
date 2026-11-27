@@ -18,6 +18,7 @@ const { formalDate, formalTime } = require('./utils/format');
 const { sanitizeForm } = require('./utils/forms');
 const { authMiddleware, isAdminRequest } = require('./middleware/auth');
 const { LIVE, maybeTick, setNotifier } = require('./utils/schedule');
+const publicCache = require('./utils/publicCache');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -48,7 +49,7 @@ app.use(helmet({
   hsts: isProd ? { maxAge: 31536000, includeSubDomains: true } : false,
   referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
 }));
-app.use(compression());
+app.use(compression({ threshold: 512 }));
 
 // browsers only: the site and the admin panel call this API from their own origin. Add other origins (e.g. the mobile web build) via CORS_ORIGINS.
 const defaultOrigins = [
@@ -227,19 +228,30 @@ setNotifier('notices', (r) => { if (!r.expiry_date || String(r.expiry_date).slic
 // One round trip for the whole public site (the website used to make nine separate requests on every first visit).
 PUBLIC_LISTS.push('/bootstrap');
 app.get('/api/bootstrap', async (req, res) => {
-  const list = async (sql) => { try { return (await pool.query(sql)).rows; } catch { return []; } };
-  maybeTick();
-  const live = (await isAdminRequest(req)) ? '' : ` AND ${LIVE}`; // drafts and scheduled posts are for admins only
-  const [events, notices, members, gallery, achievements] = await Promise.all([
-    list(`SELECT * FROM events WHERE deleted_at IS NULL${live} ORDER BY date DESC`),
-    list(`SELECT * FROM notices WHERE deleted_at IS NULL${live} ORDER BY pinned DESC, created_at DESC`),
-    list('SELECT * FROM members WHERE deleted_at IS NULL ORDER BY display_order ASC'),
-    list('SELECT * FROM gallery WHERE deleted_at IS NULL ORDER BY created_at DESC'),
-    list('SELECT * FROM achievements WHERE deleted_at IS NULL ORDER BY date DESC'),
-  ]);
-  const out = { events, notices, members, gallery, achievements, settings: (await list("SELECT value FROM settings WHERE key = 'site'"))[0]?.value || null };
-  await Promise.all(features.filter((f) => f.public).map(async (f) => { out[f.table] = await list(`SELECT * FROM ${f.table} WHERE deleted_at IS NULL${f.scheduled ? live : ''} ORDER BY ${f.orderBy || 'created_at'} ${f.orderDir === 'ASC' ? 'ASC' : 'DESC'}`); }));
-  res.json(out);
+  try {
+    await publicCache.serve('bootstrap', req, res, async (admin) => {
+      const list = async (sql) => { try { return (await pool.query(sql)).rows; } catch { return []; } };
+      maybeTick();
+      const live = admin ? '' : ` AND ${LIVE}`; // drafts and scheduled posts are for admins only
+      const [events, notices, members, gallery, achievements, settingsRows, ...featureRows] = await Promise.all([
+        list(`SELECT * FROM events WHERE deleted_at IS NULL${live} ORDER BY date DESC`),
+        list(`SELECT * FROM notices WHERE deleted_at IS NULL${live} ORDER BY pinned DESC, created_at DESC`),
+        list('SELECT * FROM members WHERE deleted_at IS NULL ORDER BY display_order ASC'),
+        list('SELECT * FROM gallery WHERE deleted_at IS NULL ORDER BY created_at DESC'),
+        list('SELECT * FROM achievements WHERE deleted_at IS NULL ORDER BY date DESC'),
+        list("SELECT value FROM settings WHERE key = 'site'"),
+        ...features.filter((f) => f.public).map((f) =>
+          list(`SELECT * FROM ${f.table} WHERE deleted_at IS NULL${f.scheduled ? live : ''} ORDER BY ${f.orderBy || 'created_at'} ${f.orderDir === 'ASC' ? 'ASC' : 'DESC'}`)
+        ),
+      ]);
+      const out = { events, notices, members, gallery, achievements, settings: settingsRows[0]?.value || null };
+      features.filter((f) => f.public).forEach((f, idx) => { out[f.table] = featureRows[idx]; });
+      return out;
+    }, { ttlMs: 30000 });
+  } catch (e) {
+    console.error('bootstrap failed:', e.message);
+    res.status(500).json({ error: 'Could not load data' });
+  }
 });
 
 // every event has its own page and registration link: /events/ID
@@ -272,12 +284,14 @@ if (process.env.NODE_ENV === 'production') {
   app.use(express.static(path.join(__dirname, '..', 'client', 'dist'), { maxAge: '1h', setHeaders: (res, file) => { if (file.endsWith('.html') || file.endsWith('sw.js')) res.set('Cache-Control', 'no-cache'); } }));
   // The page head is filled in by the server for shared links, because Facebook and WhatsApp do not run JavaScript.
   const INDEX = path.join(__dirname, '..', 'client', 'dist', 'index.html');
+  let indexHtmlCache = null;
+  const getIndexHtml = () => (indexHtmlCache ??= fs.readFileSync(INDEX, 'utf8'));
   const escAttr = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   const page = (req, meta = {}) => {
     const base = origin(req);
     const m = { title: 'BAUET ICT Club', description: 'Where Technology Meets Innovation. Bangladesh Army University of Engineering & Technology, Rajshahi.', image: '/logos/ict-club.png', url: base + req.path, ...meta };
     const abs = (u) => (/^https?:\/\//.test(u) ? u : base + (u.startsWith('/') ? u : `/${u}`));
-    let html = fs.readFileSync(INDEX, 'utf8');
+    let html = getIndexHtml();
     html = html.replace(/<title>[^<]*<\/title>/, `<title>${escAttr(m.title)}</title>`)
       .replace(/(<meta property="og:title" content=")[^"]*(")/, `$1${escAttr(m.title)}$2`)
       .replace(/(<meta property="og:description" content=")[^"]*(")/, `$1${escAttr(m.description)}$2`)
@@ -369,6 +383,7 @@ async function start() {
     console.log('PostgreSQL connected');
     if (!require('./utils/saveImage').cloudinaryReady()) console.warn('⚠  Cloudinary not configured: photos will be stored in server/uploads. Add CLOUDINARY_CLOUD_NAME / API_KEY / API_SECRET to .env.');
     await initDb(); // creates missing tables, seeds committee data and the admin account (safe to repeat)
+    require('./utils/dataVersion').get().catch(() => {});
     require('./routes/trash').purgeExpired().catch((e) => console.warn('Trash purge failed:', e.message));
   } catch (e) {
     // network failures arrive as an AggregateError with an empty message, so show the real codes

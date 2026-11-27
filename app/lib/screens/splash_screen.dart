@@ -26,14 +26,23 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   @override
   void initState() {
     super.initState();
-    // Start fetching content while the intro plays (the app already started it; this reuses that load).
-    context.read<AppState>().ensureLoaded();
-    // Keep the router itself: by the time the intro ends this screen may already be gone, and
-    // looking up an ancestor through a deactivated context is unsafe.
+    final state = context.read<AppState>();
     final router = GoRouter.of(context);
-    _timer = Timer(const Duration(milliseconds: 2600), () {
-      if (mounted) router.go('/home');
-    });
+    final hasCached = state.events.isNotEmpty || state.members.isNotEmpty;
+    final loadFuture = state.ensureLoaded();
+    // Navigate immediately once content is ready (brief 550ms brand beat; max 900ms wait on cold/slow links)
+    if (hasCached) {
+      _timer = Timer(const Duration(milliseconds: 550), () {
+        if (mounted) router.go('/home');
+      });
+    } else {
+      Future.any([
+        Future.wait([loadFuture, Future<void>.delayed(const Duration(milliseconds: 550))]),
+        Future<void>.delayed(const Duration(milliseconds: 950)),
+      ]).then((_) {
+        if (mounted) router.go('/home');
+      });
+    }
   }
 
   @override

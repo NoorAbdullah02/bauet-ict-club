@@ -10,7 +10,6 @@ import '../core/config.dart';
 import '../core/my_tickets.dart';
 import '../core/theme.dart';
 import '../core/utils.dart';
-import '../data/api.dart';
 import '../models/models.dart';
 import '../state/app_state.dart';
 import '../widgets/coder.dart';
@@ -19,36 +18,14 @@ import '../widgets/countdown.dart';
 import '../widgets/newsletter.dart';
 import 'events_screen.dart';
 
-/// "Voices of Impact": quotes from alumni and members, added in Admin → Content → Testimonials.
-class _TestimonialsStrip extends StatefulWidget {
+/// "Voices of Impact": quotes from alumni and members (hydrated via bootstrap, zero extra API calls).
+class _TestimonialsStrip extends StatelessWidget {
   const _TestimonialsStrip();
 
   @override
-  State<_TestimonialsStrip> createState() => _TestimonialsStripState();
-}
-
-class _TestimonialsStripState extends State<_TestimonialsStrip> {
-  List<Map<String, dynamic>> _items = const [];
-
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    try {
-      final rows = await context.read<AppState>().api.list('testimonials');
-      if (!mounted) return;
-      setState(() => _items = rows.where((r) => r['active'] != false).toList());
-    } on ApiException {
-      // no testimonials (or offline): the section stays out of the page
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
-    if (_items.isEmpty) return const SizedBox.shrink();
+    final items = context.select<AppState, List<Map<String, dynamic>>>((s) => s.testimonials);
+    if (items.isEmpty) return const SizedBox.shrink();
     final p = context.pal;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       const Padding(
@@ -61,10 +38,10 @@ class _TestimonialsStripState extends State<_TestimonialsStrip> {
         child: ListView.separated(
           scrollDirection: Axis.horizontal,
           padding: const EdgeInsets.symmetric(horizontal: 20),
-          itemCount: _items.length,
+          itemCount: items.length,
           separatorBuilder: (_, __) => const SizedBox(width: 12),
           itemBuilder: (_, i) {
-            final t = _items[i];
+            final t = items[i];
             final name = '${t['name'] ?? 'Member'}'.trim();
             final photo = '${t['image_url'] ?? ''}'.trim();
             final rating = (t['rating'] is num ? (t['rating'] as num).toInt() : 5).clamp(1, 5);
@@ -78,11 +55,17 @@ class _TestimonialsStripState extends State<_TestimonialsStrip> {
                   Expanded(child: Text('\u201c${t['quote'] ?? ''}\u201d', maxLines: 4, overflow: TextOverflow.ellipsis, style: bodyStyle(context, size: 13))),
                   const SizedBox(height: 10),
                   Row(children: [
-                    CircleAvatar(
-                      radius: 16,
-                      backgroundColor: p.alt,
-                      backgroundImage: photo.isEmpty ? null : NetworkImage(AppConfig.resolve(photo)),
-                      child: photo.isEmpty ? Text(name.isEmpty ? '?' : name[0], style: displayStyle(context, 14, color: p.accent)) : null,
+                    SizedBox(
+                      width: 32,
+                      height: 32,
+                      child: ClipOval(
+                        child: photo.isEmpty
+                            ? ColoredBox(
+                                color: p.alt,
+                                child: Center(child: Text(name.isEmpty ? '?' : name[0], style: displayStyle(context, 14, color: p.accent))),
+                              )
+                            : NetImage(AppConfig.portrait(photo, 120), width: 32, height: 32, fallbackLabel: name),
+                      ),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
@@ -648,7 +631,7 @@ class _AvatarStrip extends StatelessWidget {
                     height: 74,
                     padding: const EdgeInsets.all(2.5),
                     decoration: BoxDecoration(shape: BoxShape.circle, gradient: p.brand),
-                    child: ClipOval(child: NetImage(m.imageUrl, fallbackLabel: m.name)),
+                    child: ClipOval(child: NetImage(AppConfig.portrait(m.imageUrl, 240), width: 70, height: 70, fallbackLabel: m.name)),
                   ),
                   const SizedBox(height: 8),
                   Text(m.name.split(' ').first, maxLines: 1, overflow: TextOverflow.ellipsis, style: bodyStyle(context, size: 12.5, weight: FontWeight.w700)),
@@ -743,7 +726,7 @@ class _MediaReelStrip extends StatelessWidget {
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      NetImage(g.imageUrl, fallbackLabel: g.title),
+                      NetImage(g.imageUrl, width: 240, height: 175, fallbackLabel: g.title),
                       Container(
                         decoration: BoxDecoration(
                           gradient: LinearGradient(

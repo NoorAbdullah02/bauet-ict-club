@@ -84,7 +84,6 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     // a change saved on another phone or on the website reaches this app within a minute
     _timer = Timer.periodic(const Duration(seconds: 60), (_) => _checkForUpdates());
-    _checkForUpdates();
   }
 
   void _checkForUpdates() {

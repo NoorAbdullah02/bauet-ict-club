@@ -30,6 +30,9 @@ async function publishDue() {
     }
   } catch (e) { console.warn('publishDue failed:', e.message); }
   running = false;
+  if (n > 0) {
+    try { require('./dataVersion').bump(); } catch { /* ignore */ }
+  }
   return n;
 }
 /** Called from public list requests: checks at most once a minute, in the background. */

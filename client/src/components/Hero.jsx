@@ -20,8 +20,8 @@ const TAGLINES = [
 ];
 
 const rise = (delay) => ({
-  initial: { opacity: 0, y: 30 }, animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.8, delay, ease: [0.16, 1, 0.3, 1] },
+  initial: { opacity: 0, y: 16 }, animate: { opacity: 1, y: 0 },
+  transition: { duration: 0.45, delay, ease: [0.16, 1, 0.3, 1] },
 });
 
 function Stat({ value, label }) {
@@ -84,29 +84,29 @@ export default function Hero() {
           <span className="sm:hidden">{settings?.heroShort || 'BAUET'}</span>
         </motion.div>
 
-        <motion.h1 initial={{ opacity: 0, y: 26, filter: 'blur(14px)', scale: 0.96 }} animate={{ opacity: 1, y: 0, filter: 'blur(0px)', scale: 1 }}
-          transition={{ duration: 1.1, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
+        <motion.h1 initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.06, ease: [0.16, 1, 0.3, 1] }}
           className="hero-title text-[clamp(3.4rem,11vw,9rem)] font-bold leading-[0.92] text-fg">
           <span className="hero-bauet grad-anim bg-clip-text text-transparent" style={{ backgroundImage: 'var(--grad-text)' }}>BAUET</span>
           <br />
           <span className="hero-ict italic">ICT Club</span>
         </motion.h1>
 
-        <motion.div {...rise(0.5)}
+        <motion.div {...rise(0.1)}
           className="mx-auto mt-8 min-h-[3.25rem] sm:min-h-[2.25rem] h-auto text-lg text-fg2 sm:text-xl">
           <TypeAnimation sequence={sequence} wrapper="span" speed={55} deletionSpeed={70} repeat={Infinity} cursor />
         </motion.div>
 
-        <motion.p {...rise(0.65)} className="mt-3 font-mono text-xs tracking-wider text-muted">
+        <motion.p {...rise(0.14)} className="mt-3 font-mono text-xs tracking-wider text-muted">
           {settings?.heroEstablished || 'Bangladesh · Est. 2019'}
         </motion.p>
 
-        <motion.div {...rise(0.8)} className="mt-10 flex flex-wrap justify-center gap-3">
+        <motion.div {...rise(0.18)} className="mt-10 flex flex-wrap justify-center gap-3">
           <Link className="btn-primary" to="/events">{t('Explore Events')} <ArrowUpRight size={16} /></Link>
           <Link className="btn-outline" to="/join">{t('Join the Club')}</Link>
         </motion.div>
 
-        <motion.div {...rise(1)}
+        <motion.div {...rise(0.22)}
           className="glass-edge mx-auto mt-16 grid max-w-3xl grid-cols-2 divide-line rounded-3xl bg-surface/60 backdrop-blur-md sm:grid-cols-4 sm:divide-x">
           {stats.map((s) => <Stat key={s.label} {...s} />)}
         </motion.div>

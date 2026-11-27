@@ -22,25 +22,40 @@ const savedTheme = (() => { const t = readLS('bauet-theme'); return t === 'dark'
 const savedLang = (() => (readLS('bauet-lang') === 'bn' ? 'bn' : 'en'))();
 if (typeof document !== 'undefined') document.documentElement.setAttribute('lang', savedLang);
 
+const BOOT_CACHE_KEY = 'bauet-boot-v1';
+const readBootCache = () => {
+  try {
+    const raw = readLS(BOOT_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch { return null; }
+};
+const writeBootCache = (snap) => {
+  try { localStorage.setItem(BOOT_CACHE_KEY, JSON.stringify(snap)); } catch { /* quota/private mode */ }
+};
+const cachedBoot = typeof window !== 'undefined' ? readBootCache() : null;
+
 const useStore = create((set, get) => ({
-  events: [],
-  notices: [],
-  members: [],
-  gallery: [],
-  achievements: [],
-  projects: [],
-  faqs: [],
-  sponsors: [],
-  advisors: [],
+  events: cachedBoot?.events || [],
+  notices: cachedBoot?.notices || [],
+  members: cachedBoot?.members || [],
+  gallery: cachedBoot?.gallery || [],
+  achievements: cachedBoot?.achievements || [],
+  projects: cachedBoot?.projects || [],
+  faqs: cachedBoot?.faqs || [],
+  sponsors: cachedBoot?.sponsors || [],
+  advisors: cachedBoot?.advisors || [],
+  testimonials: cachedBoot?.testimonials || [],
   subscribers: [],
   posts: [],
   messages: [],
   registrations: [],
   trash: { items: [], retentionDays: 30 },
   sessions: [],
-  settings: null,
+  settings: cachedBoot?.settings || null,
   user: null,
-  loading: true,
+  loading: !cachedBoot,
   theme: savedTheme,
   resolvedTheme: resolveTheme(savedTheme),
   lang: savedLang,
@@ -69,10 +84,24 @@ const useStore = create((set, get) => ({
       let all = null;
       try { all = (await api.get('/bootstrap', q)).data; } catch { /* older server: use the separate requests below */ }
       if (all) {
-        set({ events: all.events || [], notices: all.notices || [], members: all.members || [], gallery: all.gallery || [], achievements: all.achievements || [], projects: all.projects || [], faqs: all.faqs || [], sponsors: all.sponsors || [], advisors: all.advisors || [], ...(all.settings ? { settings: all.settings } : {}), loading: false });
+        const next = {
+          events: all.events || [],
+          notices: all.notices || [],
+          members: all.members || [],
+          gallery: all.gallery || [],
+          achievements: all.achievements || [],
+          projects: all.projects || [],
+          faqs: all.faqs || [],
+          sponsors: all.sponsors || [],
+          advisors: all.advisors || [],
+          testimonials: all.testimonials || [],
+          ...(all.settings ? { settings: all.settings } : {}),
+        };
+        set({ ...next, loading: false });
+        writeBootCache({ ...next, settings: next.settings || get().settings });
         return;
       }
-      const [events, notices, members, gallery, achievements, settings, projects, faqs, sponsors, advisors] = await Promise.all([
+      const [events, notices, members, gallery, achievements, settings, projects, faqs, sponsors, advisors, testimonials] = await Promise.all([
         api.get('/events', q).catch(() => ({ data: [] })),
         api.get('/notices', q).catch(() => ({ data: [] })),
         api.get('/members', q).catch(() => ({ data: [] })),
@@ -83,8 +112,18 @@ const useStore = create((set, get) => ({
         api.get('/faqs', q).catch(() => ({ data: [] })),
         api.get('/sponsors', q).catch(() => ({ data: [] })),
         api.get('/advisors', q).catch(() => ({ data: [] })),
+        api.get('/testimonials', q).catch(() => ({ data: [] })),
       ]);
-      set({
+      const resolvedSettings = settings.data || {
+        heroTitle: 'BAUET ICT CLUB',
+        heroSub: 'Where Technology Meets Innovation',
+        aboutText: 'BAUET ICT Club is the premier technology club of Bangladesh Army University of Engineering & Technology, Rajshahi.',
+        mission: 'To foster a culture of innovation and technological excellence among BAUET students.',
+        vision: 'To become the leading university tech community in Bangladesh.',
+        goal: 'Bridge the gap between academic knowledge and real-world technology.',
+        socialLinks: { fb: 'https://www.facebook.com/bauetictclub', email: 'ictclubbauet@gmail.com', phone: '01748-269350' },
+      };
+      const snap = {
         events: events.data,
         notices: notices.data,
         members: members.data,
@@ -94,17 +133,11 @@ const useStore = create((set, get) => ({
         faqs: faqs.data,
         sponsors: sponsors.data,
         advisors: advisors.data,
-        settings: settings.data || {
-          heroTitle: 'BAUET ICT CLUB',
-          heroSub: 'Where Technology Meets Innovation',
-          aboutText: 'BAUET ICT Club is the premier technology club of Bangladesh Army University of Engineering & Technology, Rajshahi.',
-          mission: 'To foster a culture of innovation and technological excellence among BAUET students.',
-          vision: 'To become the leading university tech community in Bangladesh.',
-          goal: 'Bridge the gap between academic knowledge and real-world technology.',
-          socialLinks: { fb: 'https://www.facebook.com/bauetictclub', email: 'ictclubbauet@gmail.com', phone: '01748-269350' },
-        },
-        loading: false,
-      });
+        testimonials: testimonials.data,
+        settings: resolvedSettings,
+      };
+      set({ ...snap, loading: false });
+      writeBootCache(snap);
     } catch (e) {
       set({ loading: false });
     }

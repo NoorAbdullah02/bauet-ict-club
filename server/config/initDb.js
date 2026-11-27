@@ -355,6 +355,8 @@ async function initDb() {
       CREATE INDEX IF NOT EXISTS idx_members_session ON members (committee_session, display_order);
       CREATE INDEX IF NOT EXISTS idx_events_date ON events (date);
       CREATE INDEX IF NOT EXISTS idx_notices_pinned ON notices (pinned DESC, created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_gallery_created ON gallery (created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_achievements_date ON achievements (date DESC);
       CREATE INDEX IF NOT EXISTS idx_registrations_status ON registrations (type, status, created_at DESC);
       CREATE INDEX IF NOT EXISTS idx_messages_read ON messages (is_read, created_at DESC);
     `);

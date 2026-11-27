@@ -45,7 +45,7 @@ export default function ContestDetail() {
     <section className="section">
       <div className="container max-w-3xl">
         <Link to="/contests" className="mb-5 inline-flex items-center gap-1.5 text-sm text-fg2 hover:text-accent"><ArrowLeft size={15} /> All contests</Link>
-        {c.image_url && <img src={c.image_url} alt="" className="mb-6 h-56 w-full rounded-3xl object-cover" />}
+        {c.image_url && <img src={c.image_url} alt="" decoding="async" className="mb-6 h-56 w-full rounded-3xl object-cover" />}
         <h1 className="text-[clamp(2rem,5vw,3rem)] leading-tight text-fg">{c.title}</h1>
         <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm text-fg2">
           {c.start_date && <span className="flex items-center gap-2"><Calendar size={15} className="text-accent" /> {formalDate(c.start_date)}</span>}

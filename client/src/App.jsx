@@ -6,43 +6,46 @@ import { useShallow } from 'zustand/react/shallow';
 import useStore from './context/store';
 import Preloader from './components/Preloader';
 import SiteLayout from './layouts/SiteLayout';
+import PageShell from './components/PageShell';
 import Home from './pages/Home';
 import NotFound from './pages/NotFound';
 import InstallPrompt from './components/InstallPrompt';
 
 const AdminApp = lazy(() => import('./admin/AdminApp'));
-const named = (name) => lazy(() => import('./pages/Pages').then((m) => ({ default: m[name] })));
-const AboutPage = named('AboutPage');
-const EventsPage = named('EventsPage');
-const EventDetailPage = named('EventDetailPage');
-const FormPageRoute = named('FormPageRoute');
-const TicketRoute = named('TicketRoute');
-const VerifyRoute = named('VerifyRoute');
-const CertificateRoute = named('CertificateRoute');
-const NoticesPage = named('NoticesPage');
-const TeamPage = named('TeamPage');
-const GalleryPage = named('GalleryPage');
-const AchievementsPage = named('AchievementsPage');
-const ContactPage = named('ContactPage');
-const ProjectsPage = named('ProjectsPage');
-const ResourcesPage = named('ResourcesPage');
-const LeaderboardPage = named('LeaderboardPage');
-const ContestsPage = named('ContestsPage');
-const JobsPage = named('JobsPage');
-const MyCardRoute = named('MyCardRoute');
-const RemoteJobsPage = named('RemoteJobsPage');
-const ContestDetailPage = named('ContestDetailPage');
-const FaqPage = named('FaqPage');
-const ClubDataPage = named('ClubDataPage');
-const TicketFindPage = named('TicketFindPage');
-const JoinHubPage = named('JoinHubPage');
-const JoinCommitteePage = named('JoinCommitteePage');
-const JoinGeneralPage = named('JoinGeneralPage');
-const JoinAmbassadorPage = named('JoinAmbassadorPage');
-const AmbassadorsPage = named('AmbassadorsPage');
-const GetAppPage = named('GetAppPage');
-const MemberCardRoute = named('MemberCardRoute');
-const MemberProfileRoute = named('MemberProfileRoute');
+const page = (loader, pick = 'default') => lazy(() => loader().then((m) => ({
+  default: function WrappedPage(props) { const Comp = m[pick]; return <PageShell><Comp {...props} /></PageShell>; },
+})));
+const AboutPage = page(() => import('./components/About'));
+const EventsPage = page(() => import('./components/Events'));
+const EventDetailPage = page(() => import('./components/EventDetail'));
+const FormPageRoute = page(() => import('./components/FormPage'));
+const TicketRoute = page(() => import('./components/TicketPage'));
+const VerifyRoute = page(() => import('./components/VerifyPage'));
+const CertificateRoute = page(() => import('./components/VerifyPage'), 'CertificateRedirect');
+const NoticesPage = page(() => import('./components/Notices'));
+const TeamPage = page(() => import('./components/Team'));
+const GalleryPage = page(() => import('./components/Gallery'));
+const AchievementsPage = page(() => import('./components/Achievements'));
+const ContactPage = page(() => import('./components/Contact'));
+const ProjectsPage = page(() => import('./components/Projects'));
+const ResourcesPage = page(() => import('./components/Resources'));
+const LeaderboardPage = page(() => import('./components/Leaderboard'));
+const ContestsPage = page(() => import('./components/Contests'));
+const JobsPage = page(() => import('./components/Jobs'));
+const MyCardRoute = page(() => import('./components/MyCardPage'));
+const RemoteJobsPage = page(() => import('./components/Jobs'), 'RemoteJobsPage');
+const ContestDetailPage = page(() => import('./components/ContestDetail'));
+const FaqPage = page(() => import('./components/Faq'));
+const ClubDataPage = page(() => import('./components/ClubData'));
+const TicketFindPage = page(() => import('./components/TicketFind'));
+const JoinHubPage = lazy(() => import('./pages/JoinHub'));
+const JoinCommitteePage = lazy(() => import('./components/join/JoinCommittee'));
+const JoinGeneralPage = lazy(() => import('./components/join/JoinGeneral'));
+const JoinAmbassadorPage = lazy(() => import('./components/join/JoinAmbassador'));
+const AmbassadorsPage = lazy(() => import('./pages/Ambassadors'));
+const GetAppPage = page(() => import('./components/GetApp'));
+const MemberCardRoute = page(() => import('./components/MemberCardPage'));
+const MemberProfileRoute = page(() => import('./components/MemberProfile'));
 
 const Fallback = () => <div className="grid min-h-[60vh] place-items-center"><span className="size-8 animate-spin rounded-full border-2 border-line border-t-accent" /></div>;
 
@@ -53,13 +56,6 @@ export default function App() {
 
   useEffect(() => {
     fetchAll();
-    // warm the page chunk while the browser is idle so route changes feel instant,
-    // but never on a slow or metered connection (it is a 218 kB download)
-    const conn = navigator.connection;
-    if (conn?.saveData || /(^|-)2g$|(^|-)3g$/.test(conn?.effectiveType || '')) return undefined;
-    const warm = () => import('./pages/Pages');
-    const id = 'requestIdleCallback' in window ? requestIdleCallback(warm, { timeout: 2500 }) : setTimeout(warm, 1500);
-    return () => ('cancelIdleCallback' in window ? cancelIdleCallback(id) : clearTimeout(id));
   }, []);
   // the admin console has its own theme (white by default); the public site keeps the visitor's choice
   useEffect(() => {
@@ -67,14 +63,19 @@ export default function App() {
     document.body.classList.toggle('admin-mode', isAdmin);
   }, [theme, adminTheme, isAdmin]);
 
-  // smooth inertial scrolling (site only — the admin console keeps native scrolling)
+  // smooth inertial scrolling (desktop mouse wheel only — phones use native touch inertia; pauses when hidden)
   useEffect(() => {
-    if (isAdmin || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    const lenis = new Lenis({ lerp: 0.16, wheelMultiplier: 1, smoothWheel: true });
-    let raf;
+    if (isAdmin || window.matchMedia('(prefers-reduced-motion: reduce)').matches || window.matchMedia('(pointer: coarse)').matches) return;
+    const lenis = new Lenis({ lerp: 0.18, wheelMultiplier: 1, smoothWheel: true });
+    let raf = 0;
     const loop = (t) => { lenis.raf(t); raf = requestAnimationFrame(loop); };
-    raf = requestAnimationFrame(loop);
-    return () => { cancelAnimationFrame(raf); lenis.destroy(); };
+    const sync = () => {
+      cancelAnimationFrame(raf);
+      if (!document.hidden) raf = requestAnimationFrame(loop);
+    };
+    sync();
+    document.addEventListener('visibilitychange', sync);
+    return () => { document.removeEventListener('visibilitychange', sync); cancelAnimationFrame(raf); lenis.destroy(); };
   }, [isAdmin]);
 
   // scroll-reveal for headers and cards, including ones rendered after data loads

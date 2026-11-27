@@ -1,33 +1,28 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Quote, ChevronLeft, ChevronRight, Star, GraduationCap } from 'lucide-react';
 import { useT } from '../lib/i18n';
-import { api } from '../context/store';
-import { thumb } from '../lib/img';
+import useStore from '../context/store';
+import { portrait } from '../lib/img';
 
 /**
- * "Voices of Impact": what alumni and members say. The rows come from Admin → Content → Testimonials
- * (/api/testimonials); when the club has not added any, the section is left out of the page.
+ * "Voices of Impact": what alumni and members say. Loaded from the bootstrap payload
+ * (/api/bootstrap -> testimonials) so Home makes zero duplicate API requests.
  */
 export default function Testimonials() {
   const t = useT();
-  const [items, setItems] = useState(null);
+  const raw = useStore((s) => s.testimonials);
+  const items = useMemo(() => (Array.isArray(raw) ? raw : []).filter((x) => x.active !== false), [raw]);
   const [idx, setIdx] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
 
   useEffect(() => {
-    api.get('/testimonials')
-      .then((r) => setItems((Array.isArray(r.data) ? r.data : []).filter((x) => x.active !== false)))
-      .catch(() => setItems([]));
-  }, []);
-
-  useEffect(() => {
-    if (isPaused || !items || items.length < 2) return undefined;
+    if (isPaused || items.length < 2) return undefined;
     const timer = setInterval(() => setIdx((prev) => (prev + 1) % items.length), 6000);
     return () => clearInterval(timer);
-  }, [isPaused, items]);
+  }, [isPaused, items.length]);
 
-  if (!items || items.length === 0) return null;
+  if (items.length === 0) return null;
 
   const current = Math.min(idx, items.length - 1);
   const item = items[current];
@@ -79,7 +74,7 @@ export default function Testimonials() {
 
               <div className="mt-8 flex items-center gap-4 border-t border-line pt-6">
                 {item.image_url ? (
-                  <img src={thumb(item.image_url, 300)} alt={name} className="size-14 rounded-full object-cover ring-2 ring-tech/30" />
+                  <img src={portrait(item.image_url, 160)} alt={name} loading="lazy" decoding="async" className="size-14 rounded-full object-cover ring-2 ring-tech/30" />
                 ) : (
                   <div className="grid size-14 place-items-center rounded-full bg-accent/12 font-display text-xl text-accent ring-2 ring-tech/30">{name.charAt(0).toUpperCase()}</div>
                 )}
