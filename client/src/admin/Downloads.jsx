@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Download, FileJson, FileSpreadsheet, Loader2, ShieldAlert, HardDriveDownload } from 'lucide-react';
+import { Download, FileJson, FileSpreadsheet, Loader2, ShieldAlert, HardDriveDownload, Search } from 'lucide-react';
 import useStore, { api } from '../context/store';
 import { Panel, PageTitle, inputCls } from './ui';
 import { saveFile } from '../lib/download';
@@ -23,6 +23,7 @@ export default function Downloads() {
   const [events, setEvents] = useState([]);
   const [forms, setForms] = useState([]);
   const [busy, setBusy] = useState('');
+  const [q, setQ] = useState('');
 
   useEffect(() => {
     api.get('/downloads').then((r) => setRows(r.data)).catch((e) => {
@@ -35,6 +36,12 @@ export default function Downloads() {
 
   const range = useMemo(() => ({ ...(from ? { from } : {}), ...(to ? { to } : {}) }), [from, to]);
   const total = useMemo(() => (rows || []).reduce((n, r) => n + (Number(r.count) || 0), 0), [rows]);
+  const filteredRows = useMemo(() => {
+    const list = rows || [];
+    const s = q.trim().toLowerCase();
+    if (!s) return list;
+    return list.filter((r) => [r.label, r.group, r.key, r.note].filter(Boolean).some((v) => String(v).toLowerCase().includes(s)));
+  }, [rows, q]);
 
   const get = async (section, format) => {
     setBusy(`${section.key}:${format}`);
@@ -51,6 +58,12 @@ export default function Downloads() {
   return (
     <div>
       <PageTitle title="Downloads" sub={`Every list the club keeps — as a spreadsheet (Excel or CSV) or JSON. ${total} rows in total.`}>
+        {rows?.length > 0 && (
+          <div className="relative">
+            <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" />
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search exports…" className={`${inputCls} !w-48 !rounded-full !py-2 pl-9 text-xs`} />
+          </div>
+        )}
         {user?.role === 'superadmin' && (
           <button onClick={() => saveFile('/backup', {}, `bauet-ict-backup-${today()}.zip`)} className="btn-outline !px-4 !py-2.5 text-xs">
             <HardDriveDownload size={14} /> Full backup (ZIP)
@@ -97,13 +110,15 @@ export default function Downloads() {
 
       {rows === null ? (
         <div className="grid place-items-center py-16"><Loader2 className="animate-spin text-muted" /></div>
+      ) : !filteredRows.length ? (
+        <Panel className="mb-6 p-10 text-center text-sm text-muted">{rows.length ? 'No matching exports.' : 'No exports available.'}</Panel>
       ) : (
-        GROUPS.filter((g) => rows.some((r) => r.group === g)).map((group) => (
+        GROUPS.filter((g) => filteredRows.some((r) => r.group === g)).map((group) => (
           <section key={group} className="mb-6">
             <h2 className="mb-2 px-1 font-mono text-[11px] uppercase tracking-[0.18em] text-muted">{group}</h2>
             <Panel className="overflow-hidden">
               <ul className="divide-y divide-line">
-                {rows.filter((r) => r.group === group).map((r) => (
+                {filteredRows.filter((r) => r.group === group).map((r) => (
                   <li key={r.key} className="flex flex-wrap items-center gap-3 px-4 py-3">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 text-sm font-semibold text-fg">
