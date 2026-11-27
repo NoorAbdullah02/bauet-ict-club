@@ -34,13 +34,21 @@ class AdminApplicationsScreen extends StatefulWidget {
 }
 
 class _AdminApplicationsScreenState extends State<AdminApplicationsScreen> {
+  final TextEditingController _q = TextEditingController();
   List<Registration> _all = [];
   bool _loading = true;
   String? _error;
   String _type = 'committee';
   String _status = 'all';
+  String _query = '';
   final Set<int> _sel = {}; // applications ticked for bulk actions
   bool _bulkBusy = false;
+
+  @override
+  void dispose() {
+    _q.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -242,7 +250,8 @@ class _AdminApplicationsScreenState extends State<AdminApplicationsScreen> {
   @override
   Widget build(BuildContext context) {
     final p = context.pal;
-    final list = _all.where((r) => r.type == _type && (_status == 'all' || r.status == _status)).toList();
+    final byTypeAndStatus = _all.where((r) => r.type == _type && (_status == 'all' || r.status == _status)).toList();
+    final list = byTypeAndStatus.where((r) => matchesQuery(_query, [r.fullName, r.studentId, r.department, r.batch, r.phone, r.email, r.post, r.experience, r.note, ...r.interests])).toList();
     return Scaffold(
       body: AuroraBackground(
         child: SafeArea(
@@ -287,7 +296,18 @@ class _AdminApplicationsScreenState extends State<AdminApplicationsScreen> {
                 padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
                 child: _Insights(rows: _all.where((r) => r.type == _type).toList()),
               ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
+            if (!_loading && _error == null && _all.any((r) => r.type == _type))
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+                child: AdminSearchBar(
+                  controller: _q,
+                  hint: 'Search name, student ID, email, post, dept…',
+                  onChanged: (v) => setState(() => _query = v),
+                  shown: list.length,
+                  total: byTypeAndStatus.length,
+                ),
+              ),
             SizedBox(
               height: 40,
               child: ListView(scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 20), children: [

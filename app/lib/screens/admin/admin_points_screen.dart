@@ -8,6 +8,7 @@ import '../../state/app_state.dart';
 import '../../widgets/common.dart';
 import '../../widgets/form_widgets.dart';
 import 'admin_page.dart';
+import 'admin_widgets.dart';
 
 /// Points: who has how many, and a form to give (or take back) extra points.
 class AdminPointsScreen extends StatefulWidget {
@@ -23,6 +24,8 @@ class _AdminPointsScreenState extends State<AdminPointsScreen> {
   final _name = TextEditingController();
   final _points = TextEditingController(text: '10');
   final _reason = TextEditingController();
+  final _q = TextEditingController();
+  String _query = '';
   Map<String, dynamic>? _d;
   bool _loading = true;
   bool _busy = false;
@@ -40,6 +43,7 @@ class _AdminPointsScreenState extends State<AdminPointsScreen> {
     _name.dispose();
     _points.dispose();
     _reason.dispose();
+    _q.dispose();
     super.dispose();
   }
 
@@ -155,56 +159,68 @@ class _AdminPointsScreenState extends State<AdminPointsScreen> {
         else if (_error != null)
           ErrorState(message: _error!, onRetry: _load)
         else ...[
-          Text('LEADERBOARD (${people.length})', style: monoStyle(context)),
-          const SizedBox(height: 10),
-          if (people.isEmpty)
-            const EmptyState(icon: Icons.emoji_events_outlined, title: 'Nobody has points yet', message: 'People get points when they are checked in at an event.')
-          else
-            for (final x in people.take(50))
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: GlassCard(
-                  padding: const EdgeInsets.all(12),
-                  child: Row(children: [
-                    SizedBox(width: 34, child: Text('#${x['rank']}', style: bodyStyle(context, color: p.muted, weight: FontWeight.w700))),
-                    Expanded(
-                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        Text('${x['full_name'] ?? x['name']}', maxLines: 1, overflow: TextOverflow.ellipsis, style: bodyStyle(context, weight: FontWeight.w700)),
-                        Text('${x['email']} · ${x['events']} events${(x['bonus'] ?? 0) != 0 ? ' · ${x['bonus']} bonus' : ''}', maxLines: 1, overflow: TextOverflow.ellipsis, style: bodyStyle(context, size: 12, color: p.muted)),
-                      ]),
-                    ),
-                    Text('${x['points']}', style: displayStyle(context, 22, color: p.accent)),
-                  ]),
+          if (people.isNotEmpty || awards.isNotEmpty) ...[
+            AdminSearchBar(
+              controller: _q,
+              hint: 'Search leaderboard, email or reason…',
+              onChanged: (v) => setState(() => _query = v),
+            ),
+            const SizedBox(height: 14),
+          ],
+          for (final shownPeople in [people.where((x) => matchesQuery(_query, [x['full_name'], x['name'], x['email']])).toList()]) ...[
+            Text('LEADERBOARD (${shownPeople.length})', style: monoStyle(context)),
+            const SizedBox(height: 10),
+            if (shownPeople.isEmpty)
+              const EmptyState(icon: Icons.emoji_events_outlined, title: 'Nobody matches', message: 'Check leaderboard filters or check people in at an event.')
+            else
+              for (final x in shownPeople.take(50))
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: GlassCard(
+                    padding: const EdgeInsets.all(12),
+                    child: Row(children: [
+                      SizedBox(width: 34, child: Text('#${x['rank']}', style: bodyStyle(context, color: p.muted, weight: FontWeight.w700))),
+                      Expanded(
+                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          Text('${x['full_name'] ?? x['name']}', maxLines: 1, overflow: TextOverflow.ellipsis, style: bodyStyle(context, weight: FontWeight.w700)),
+                          Text('${x['email']} · ${x['events']} events${(x['bonus'] ?? 0) != 0 ? ' · ${x['bonus']} bonus' : ''}', maxLines: 1, overflow: TextOverflow.ellipsis, style: bodyStyle(context, size: 12, color: p.muted)),
+                        ]),
+                      ),
+                      Text('${x['points']}', style: displayStyle(context, 22, color: p.accent)),
+                    ]),
+                  ),
                 ),
-              ),
+          ],
           const SizedBox(height: 18),
-          Text('EXTRA POINTS GIVEN', style: monoStyle(context)),
-          const SizedBox(height: 10),
-          if (awards.isEmpty)
-            Text('No extra points yet.', style: bodyStyle(context, color: p.muted))
-          else
-            for (final a in awards)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: GlassCard(
-                  padding: const EdgeInsets.fromLTRB(14, 8, 4, 8),
-                  child: Row(children: [
-                    SizedBox(
-                      width: 52,
-                      child: Text('${(a['points'] as num) > 0 ? '+' : ''}${a['points']}', style: displayStyle(context, 20, color: (a['points'] as num) > 0 ? const Color(0xFF10B981) : const Color(0xFFEF4444))),
-                    ),
-                    Expanded(
-                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        Text('${a['reason']}', maxLines: 1, overflow: TextOverflow.ellipsis, style: bodyStyle(context, weight: FontWeight.w600)),
-                        Text('${a['name'] ?? a['email']}', maxLines: 1, overflow: TextOverflow.ellipsis, style: bodyStyle(context, size: 12, color: p.muted)),
-                      ]),
-                    ),
-                    IconButton(tooltip: 'Edit award', onPressed: () => _editAward(a), icon: Icon(Icons.edit_outlined, color: p.accent)),
-                    if (!_state.isEditor)
-                      IconButton(tooltip: 'Remove award', onPressed: () => _undo((a['id'] as num).toInt()), icon: const Icon(Icons.delete_outline_rounded, color: Color(0xFFEF4444))),
-                  ]),
+          for (final shownAwards in [awards.where((a) => matchesQuery(_query, [a['reason'], a['name'], a['email']])).toList()]) ...[
+            Text('EXTRA POINTS GIVEN (${shownAwards.length})', style: monoStyle(context)),
+            const SizedBox(height: 10),
+            if (shownAwards.isEmpty)
+              Text('No matching extra points.', style: bodyStyle(context, color: p.muted))
+            else
+              for (final a in shownAwards)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: GlassCard(
+                    padding: const EdgeInsets.fromLTRB(14, 8, 4, 8),
+                    child: Row(children: [
+                      SizedBox(
+                        width: 52,
+                        child: Text('${(a['points'] as num) > 0 ? '+' : ''}${a['points']}', style: displayStyle(context, 20, color: (a['points'] as num) > 0 ? const Color(0xFF10B981) : const Color(0xFFEF4444))),
+                      ),
+                      Expanded(
+                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          Text('${a['reason']}', maxLines: 1, overflow: TextOverflow.ellipsis, style: bodyStyle(context, weight: FontWeight.w600)),
+                          Text('${a['name'] ?? a['email']}', maxLines: 1, overflow: TextOverflow.ellipsis, style: bodyStyle(context, size: 12, color: p.muted)),
+                        ]),
+                      ),
+                      IconButton(tooltip: 'Edit award', onPressed: () => _editAward(a), icon: Icon(Icons.edit_outlined, color: p.accent)),
+                      if (!_state.isEditor)
+                        IconButton(tooltip: 'Remove award', onPressed: () => _undo((a['id'] as num).toInt()), icon: const Icon(Icons.delete_outline_rounded, color: Color(0xFFEF4444))),
+                    ]),
+                  ),
                 ),
-              ),
+          ],
         ],
       ],
     );

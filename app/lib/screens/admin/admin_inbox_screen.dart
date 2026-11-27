@@ -20,10 +20,18 @@ class AdminInboxScreen extends StatefulWidget {
 
 class _AdminInboxScreenState extends State<AdminInboxScreen> {
   late final AppState _state = context.read<AppState>();
+  final TextEditingController _q = TextEditingController();
   List<Map<String, dynamic>> _rows = [];
   bool _loading = true;
   String? _error;
   bool _unreadOnly = false;
+  String _query = '';
+
+  @override
+  void dispose() {
+    _q.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -67,12 +75,23 @@ class _AdminInboxScreenState extends State<AdminInboxScreen> {
   @override
   Widget build(BuildContext context) {
     final p = context.pal;
-    final shown = _rows.where((m) => !_unreadOnly || m['is_read'] != true).toList();
+    final byRead = _rows.where((m) => !_unreadOnly || m['is_read'] != true).toList();
+    final shown = byRead.where((m) => matchesQuery(_query, [m['name'], m['email'], m['subject'], m['message']])).toList();
     final unread = _rows.where((m) => m['is_read'] != true).length;
     return AdminPage(
       title: 'Inbox',
       onRefresh: _load,
       children: [
+        if (!_loading && _error == null && _rows.isNotEmpty) ...[
+          AdminSearchBar(
+            controller: _q,
+            hint: 'Search sender, email, subject, message…',
+            onChanged: (v) => setState(() => _query = v),
+            shown: shown.length,
+            total: byRead.length,
+          ),
+          const SizedBox(height: 10),
+        ],
         Row(children: [
           PillChip(label: 'All (${_rows.length})', selected: !_unreadOnly, onTap: () => setState(() => _unreadOnly = false)),
           const SizedBox(width: 10),

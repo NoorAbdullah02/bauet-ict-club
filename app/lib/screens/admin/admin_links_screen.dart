@@ -10,6 +10,7 @@ import '../../data/api.dart';
 import '../../state/app_state.dart';
 import '../../widgets/common.dart';
 import 'admin_page.dart';
+import 'admin_widgets.dart';
 
 /// Short links (/s/code) for events and forms, like forms.gle. Optional custom name; the click count is shown after you make one.
 class AdminLinksScreen extends StatefulWidget {
@@ -21,9 +22,17 @@ class AdminLinksScreen extends StatefulWidget {
 
 class _AdminLinksScreenState extends State<AdminLinksScreen> {
   late final AppState _state = context.read<AppState>();
+  final TextEditingController _q = TextEditingController();
   List<Map<String, dynamic>> _forms = [];
   bool _loading = true;
   final Map<String, String> _made = {}; // path -> short link
+  String _query = '';
+
+  @override
+  void dispose() {
+    _q.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -97,23 +106,33 @@ class _AdminLinksScreenState extends State<AdminLinksScreen> {
   @override
   Widget build(BuildContext context) {
     final events = [..._state.events]..sort((a, b) => (b.date ?? DateTime(2000)).compareTo(a.date ?? DateTime(2000)));
+    final filteredEvents = events.where((e) => matchesQuery(_query, [e.title, e.location, '/events/${e.id}'])).toList();
+    final filteredForms = _forms.where((f) => matchesQuery(_query, [f['title'], f['slug'], '/f/${f['slug']}'])).toList();
     return AdminPage(
       title: 'Short links',
       children: [
         Text('Tap an item to make a short, shareable link. It is copied for you.', style: bodyStyle(context, size: 13, color: context.pal.muted)),
+        const SizedBox(height: 12),
+        AdminSearchBar(
+          controller: _q,
+          hint: 'Search events or forms…',
+          onChanged: (v) => setState(() => _query = v),
+          shown: filteredEvents.length + filteredForms.length,
+          total: events.length + _forms.length,
+        ),
         const SizedBox(height: 14),
         Text('EVENTS', style: monoStyle(context)),
         const SizedBox(height: 10),
-        if (events.isEmpty) const Text('No events yet.'),
-        for (final e in events) _row('/events/${e.id}', e.title, '/events/${e.id}'),
+        if (filteredEvents.isEmpty) const Text('No matching events.'),
+        for (final e in filteredEvents) _row('/events/${e.id}', e.title, '/events/${e.id}'),
         const SizedBox(height: 14),
         Text('FORMS', style: monoStyle(context)),
         const SizedBox(height: 10),
         if (_loading)
           const ShimmerList(count: 2, height: 70)
-        else if (_forms.isEmpty)
-          const Text('No forms yet.'),
-        for (final f in _forms) _row('/f/${f['slug']}', '${f['title']}', '/f/${f['slug']}'),
+        else if (filteredForms.isEmpty)
+          const Text('No matching forms.'),
+        for (final f in filteredForms) _row('/f/${f['slug']}', '${f['title']}', '/f/${f['slug']}'),
       ],
     );
   }

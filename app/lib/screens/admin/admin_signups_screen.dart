@@ -27,11 +27,13 @@ class AdminSignupsScreen extends StatefulWidget {
 
 class _AdminSignupsScreenState extends State<AdminSignupsScreen> {
   late final AppState _state = context.read<AppState>();
+  final TextEditingController _q = TextEditingController();
   int? _eventId;
   List<Map<String, dynamic>> _rows = [];
   bool _loading = false;
   String? _error;
   String _filter = 'All';
+  String _query = '';
   Map<String, dynamic>? _review; // certificates: the saved choice, the final-check data and the stage (draft | review | published)
   bool _sending = false;
   Timer? _poll; // while certificates are being sent, look again every few seconds
@@ -50,6 +52,7 @@ class _AdminSignupsScreenState extends State<AdminSignupsScreen> {
 
   @override
   void dispose() {
+    _q.dispose();
     _poll?.cancel();
     super.dispose();
   }
@@ -355,9 +358,14 @@ class _AdminSignupsScreenState extends State<AdminSignupsScreen> {
     final seated = _rows.where((r) => r['waitlisted'] != true && r['pay_status'] != 'rejected').length;
     final waiting = _rows.where((r) => r['waitlisted'] == true && r['pay_status'] != 'rejected').length;
     final arrived = _rows.where((r) => r['checked_in_at'] != null).length;
-    final shown = _rows.where((r) {
+    final byFilter = _rows.where((r) {
       final s = _statusOf(r);
       return _filter == 'All' || s == _filter || (_filter == 'In' && r['checked_in_at'] != null);
+    }).toList();
+    final shown = byFilter.where((r) {
+      final pay = r['payment'] is Map ? r['payment'] as Map : const {};
+      final ans = r['answers'] is Map ? (r['answers'] as Map).values.join(' ') : '';
+      return matchesQuery(_query, [r['full_name'], r['student_id'], r['email'], r['phone'], r['ticket'], r['pay_tran'], pay['trx_id'], pay['sender'], pay['method'], r['cert_name'], ans]);
     }).toList();
 
     return Scaffold(
@@ -421,6 +429,16 @@ class _AdminSignupsScreenState extends State<AdminSignupsScreen> {
                       Padding(padding: const EdgeInsets.only(right: 10), child: PillChip(label: f == 'In' ? 'Checked in' : f, selected: _filter == f, onTap: () => setState(() => _filter = f))),
                   ]),
                 ),
+                if (_rows.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  AdminSearchBar(
+                    controller: _q,
+                    hint: 'Search name, student ID, email, ticket, TrxID…',
+                    onChanged: (v) => setState(() => _query = v),
+                    shown: shown.length,
+                    total: byFilter.length,
+                  ),
+                ],
                 const SizedBox(height: 14),
                 if (events.isEmpty)
                   const EmptyState(icon: Icons.event_busy_rounded, title: 'No events yet', message: 'Create an event first.')

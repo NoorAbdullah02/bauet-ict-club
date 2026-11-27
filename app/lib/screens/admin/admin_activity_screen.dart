@@ -6,6 +6,7 @@ import '../../data/api.dart';
 import '../../state/app_state.dart';
 import '../../widgets/common.dart';
 import 'admin_page.dart';
+import 'admin_widgets.dart';
 
 /// Activity log: who changed what (main admin only).
 class AdminActivityScreen extends StatefulWidget {
@@ -17,9 +18,17 @@ class AdminActivityScreen extends StatefulWidget {
 
 class _AdminActivityScreenState extends State<AdminActivityScreen> {
   late final AppState _state = context.read<AppState>();
+  final TextEditingController _q = TextEditingController();
   List<Map<String, dynamic>> _rows = [];
   bool _loading = true;
   String? _error;
+  String _query = '';
+
+  @override
+  void dispose() {
+    _q.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -46,18 +55,31 @@ class _AdminActivityScreenState extends State<AdminActivityScreen> {
   @override
   Widget build(BuildContext context) {
     final p = context.pal;
+    final filtered = _rows.where((r) => matchesQuery(_query, [r['username'], r['method'], r['path'], r['status']])).toList();
     return AdminPage(
       title: 'Activity log',
       onRefresh: _load,
       children: [
+        if (!_loading && _error == null && _rows.isNotEmpty) ...[
+          AdminSearchBar(
+            controller: _q,
+            hint: 'Search admin, method, path, status…',
+            onChanged: (v) => setState(() => _query = v),
+            shown: filtered.length,
+            total: _rows.length,
+          ),
+          const SizedBox(height: 12),
+        ],
         if (_loading)
           const ShimmerList(count: 5, height: 70)
         else if (_error != null)
           ErrorState(message: _error!, onRetry: _load)
         else if (_rows.isEmpty)
           const EmptyState(icon: Icons.history_rounded, title: 'Nothing yet', message: 'Changes made by admins show up here.')
+        else if (filtered.isEmpty)
+          const EmptyState(icon: Icons.search_off_rounded, title: 'No matching entries')
         else
-          for (final r in _rows)
+          for (final r in filtered)
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: GlassCard(

@@ -22,11 +22,13 @@ class _AdminTeamScreenState extends State<AdminTeamScreen> {
   late final AppState _state = context.read<AppState>();
   final _user = TextEditingController();
   final _pass = TextEditingController();
+  final _q = TextEditingController();
   List<Map<String, dynamic>> _rows = [];
   bool _loading = true;
   bool _busy = false;
   String? _error;
   String? _formError;
+  String _query = '';
 
   @override
   void initState() {
@@ -38,6 +40,7 @@ class _AdminTeamScreenState extends State<AdminTeamScreen> {
   void dispose() {
     _user.dispose();
     _pass.dispose();
+    _q.dispose();
     super.dispose();
   }
 
@@ -111,9 +114,19 @@ class _AdminTeamScreenState extends State<AdminTeamScreen> {
             ]),
           ),
           const SizedBox(height: 18),
-          Text('LOGINS', style: monoStyle(context)),
+          Text('LOGINS (${_rows.length})', style: monoStyle(context)),
           const SizedBox(height: 10),
-          for (final r in _rows)
+          if (_rows.length > 3) ...[
+            AdminSearchBar(
+              controller: _q,
+              hint: 'Search username or role…',
+              onChanged: (v) => setState(() => _query = v),
+              shown: _rows.where((r) => matchesQuery(_query, [r['username'], r['role']])).length,
+              total: _rows.length,
+            ),
+            const SizedBox(height: 10),
+          ],
+          for (final r in _rows.where((r) => matchesQuery(_query, [r['username'], r['role']])))
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: GlassCard(

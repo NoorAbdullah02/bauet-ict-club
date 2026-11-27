@@ -317,9 +317,18 @@ class AdminCrudScreen extends StatefulWidget {
 }
 
 class _AdminCrudScreenState extends State<AdminCrudScreen> {
+  final TextEditingController _q = TextEditingController();
   List<Map<String, dynamic>> _rows = [];
   bool _loading = true;
   String? _error;
+  String _query = '';
+  String _session = 'All';
+
+  @override
+  void dispose() {
+    _q.dispose();
+    super.dispose();
+  }
 
   TableSpec get _spec => kTables[widget.table] ?? kTables['events']!;
   late final AppState _state = context.read<AppState>();
@@ -423,6 +432,16 @@ class _AdminCrudScreenState extends State<AdminCrudScreen> {
   Widget build(BuildContext context) {
     final p = context.pal;
     final spec = _spec;
+    final sessions = widget.table == 'members'
+        ? (_rows.map((r) => (r['committee_session'] ?? '').toString()).where((s) => s.isNotEmpty).toSet().toList()
+          ..sort((a, b) => sessionRank(b).compareTo(sessionRank(a))))
+        : const <String>[];
+    final filtered = _rows.where((row) {
+      if (widget.table == 'members' && _session != 'All' && (row['committee_session'] ?? '').toString() != _session) {
+        return false;
+      }
+      return matchesQuery(_query, row.values);
+    }).toList();
     return Scaffold(
       floatingActionButton: spec.readOnly
           ? null
@@ -452,11 +471,36 @@ class _AdminCrudScreenState extends State<AdminCrudScreen> {
                 IconButton(tooltip: tr('Refresh'), onPressed: _load, icon: const Icon(Icons.refresh_rounded)),
               ]),
             ),
+            if (!_loading && _error == null && _rows.isNotEmpty) ...[
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+                child: AdminSearchBar(
+                  controller: _q,
+                  hint: 'Search ${spec.title.toLowerCase()}…',
+                  onChanged: (v) => setState(() => _query = v),
+                  shown: filtered.length,
+                  total: _rows.length,
+                ),
+              ),
+              if (sessions.length > 1)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: SizedBox(
+                    height: 38,
+                    child: ListView(scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 20), children: [
+                      Padding(padding: const EdgeInsets.only(right: 8), child: PillChip(label: 'All (${_rows.length})', selected: _session == 'All', onTap: () => setState(() => _session = 'All'))),
+                      for (final s in sessions)
+                        Padding(padding: const EdgeInsets.only(right: 8), child: PillChip(label: s, selected: _session == s, onTap: () => setState(() => _session = s))),
+                    ]),
+                  ),
+                ),
+            ],
             Expanded(
               child: RefreshIndicator(
                 color: p.tech,
                 onRefresh: _load,
                 child: ListView(
+                  keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
                   padding: const EdgeInsets.fromLTRB(20, 4, 20, 110),
                   physics: const AlwaysScrollableScrollPhysics(),
                   children: [
@@ -466,19 +510,21 @@ class _AdminCrudScreenState extends State<AdminCrudScreen> {
                       ErrorState(message: _error!, onRetry: _load)
                     else if (_rows.isEmpty)
                       EmptyState(icon: spec.icon, title: 'Nothing here yet')
+                    else if (filtered.isEmpty)
+                      EmptyState(icon: Icons.search_off_rounded, title: 'No matching ${spec.title.toLowerCase()}', message: 'Try another search word or clear the filter.')
                     else
-                      for (var i = 0; i < _rows.length; i++)
+                      for (var i = 0; i < filtered.length; i++)
                         Padding(
                           padding: const EdgeInsets.only(bottom: 12),
                           child: _RowTile(
                             spec: spec,
-                            row: _rows[i],
-                            onTap: () => spec.readOnly ? _view(_rows[i]) : _openForm(_rows[i]),
-                            onDelete: _state.isEditor ? null : () => _delete(_rows[i]),
+                            row: filtered[i],
+                            onTap: () => spec.readOnly ? _view(filtered[i]) : _openForm(filtered[i]),
+                            onDelete: _state.isEditor ? null : () => _delete(filtered[i]),
                             extra: widget.table == 'events'
-                                ? IconButton(tooltip: 'Sign-up form, payment, certificate', onPressed: () => context.push('/admin/event-form/${_rows[i]['id']}'), icon: Icon(Icons.edit_note_rounded, color: p.accent, size: 24))
+                                ? IconButton(tooltip: 'Sign-up form, payment, certificate', onPressed: () => context.push('/admin/event-form/${filtered[i]['id']}'), icon: Icon(Icons.edit_note_rounded, color: p.accent, size: 24))
                                 : widget.table == 'contests'
-                                    ? IconButton(tooltip: 'Teams and results', onPressed: () => context.push('/admin/contest/${_rows[i]['id']}'), icon: Icon(Icons.groups_rounded, color: p.accent, size: 24))
+                                    ? IconButton(tooltip: 'Teams and results', onPressed: () => context.push('/admin/contest/${filtered[i]['id']}'), icon: Icon(Icons.groups_rounded, color: p.accent, size: 24))
                                     : null,
                           ).stagger(i),
                         ),
