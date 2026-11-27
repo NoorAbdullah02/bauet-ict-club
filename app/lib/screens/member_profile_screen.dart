@@ -173,7 +173,7 @@ class _MemberProfileScreenState extends State<MemberProfileScreen> {
     final awards = stats['awards'] is List ? (stats['awards'] as List).whereType<Map>().toList() : const <Map>[];
     final points = (stats['points'] is num) ? (stats['points'] as num).toInt() : 0;
     final events = (stats['eventsCount'] is num) ? (stats['eventsCount'] as num).toInt() : 0;
-    final photo = AppConfig.resolve(m?['image_url']?.toString());
+    final photo = AppConfig.portrait(m?['image_url']?.toString(), 480);
 
     return Scaffold(
       body: AuroraBackground(

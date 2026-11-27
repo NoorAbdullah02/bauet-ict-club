@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import '../core/config.dart';
 import '../core/theme.dart';
 import '../core/utils.dart';
 import '../data/api.dart';
@@ -150,7 +151,7 @@ class _LeaderCard extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(3),
           decoration: BoxDecoration(shape: BoxShape.circle, gradient: p.brand),
-          child: ClipOval(child: SizedBox(width: 92, height: 92, child: NetImage(member.imageUrl, fallbackLabel: member.name, alignment: _faceFrame))),
+          child: ClipOval(child: SizedBox(width: 92, height: 92, child: NetImage(AppConfig.portrait(member.imageUrl, 230), fallbackLabel: member.name, alignment: _faceFrame))),
         ),
         const SizedBox(width: 18),
         Expanded(
@@ -224,7 +225,7 @@ class _MemberCard extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.all(2.5),
               decoration: BoxDecoration(shape: BoxShape.circle, gradient: p.brand),
-              child: ClipOval(child: NetImage(member.imageUrl, fallbackLabel: member.name, alignment: _faceFrame)),
+              child: ClipOval(child: NetImage(AppConfig.portrait(member.imageUrl, 180), fallbackLabel: member.name, alignment: _faceFrame)),
             ),
           ),
         ),
@@ -299,7 +300,7 @@ class _AdvisorsSection extends StatelessWidget {
                 child: ClipOval(
                   child: a.imageUrl.isEmpty
                       ? Container(color: const Color(0xFF0B2A78), alignment: Alignment.center, child: Text(a.name.trim().isEmpty ? '?' : initialsOf(a.name), style: displayStyle(context, big ? 40 : 30, color: Colors.white)))
-                      : NetImage(a.imageUrl, fit: BoxFit.cover, alignment: _faceFrame),
+                      : NetImage(AppConfig.portrait(a.imageUrl, 230), fit: BoxFit.cover, alignment: _faceFrame),
                 ),
               ),
               const SizedBox(height: 10),

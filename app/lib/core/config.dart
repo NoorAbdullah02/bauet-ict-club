@@ -24,6 +24,16 @@ class AppConfig {
     if (url.startsWith('http://') || url.startsWith('https://')) return url;
     return url.startsWith('/') ? '$origin$url' : '$origin/$url';
   }
+
+  /// A square face crop for round avatars, the same rule the website uses: a group or full-body
+  /// photo would otherwise lose the face inside a 60 dp circle. Cloudinary URLs only; anything
+  /// else (a local upload, a data picture) is returned unchanged.
+  static String portrait(String? url, int size) {
+    final u = resolve(url);
+    if (u.isEmpty || !u.contains('res.cloudinary.com/')) return u;
+    if (RegExp(r'/upload/[^/]*(w_|c_)').hasMatch(u)) return u;
+    return u.replaceFirst('/upload/', '/upload/c_fill,g_auto:faces,w_$size,h_$size,f_auto,q_auto/');
+  }
 }
 
 /// Application posts a committee applicant can pick (mirrors the website).
