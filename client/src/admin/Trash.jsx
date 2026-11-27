@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
-import { RotateCcw, Trash2, Loader2, Calendar, Bell, Users, Image as ImageIcon, Trophy, FileText, MessageSquare, ClipboardList } from 'lucide-react';
+import { RotateCcw, Trash2, Loader2, Calendar, Bell, Users, Image as ImageIcon, Trophy, FileText, MessageSquare, ClipboardList, Search } from 'lucide-react';
 import useStore from '../context/store';
-import { Panel, PageTitle, askConfirm } from './ui';
+import { Panel, PageTitle, askConfirm, inputCls } from './ui';
 import { cn } from '../lib/cn';
 
 const ICONS = { events: Calendar, notices: Bell, members: Users, gallery: ImageIcon, achievements: Trophy, posts: FileText, messages: MessageSquare, registrations: ClipboardList };
@@ -18,11 +18,13 @@ export default function Trash() {
   const [busy, setBusy] = useState(null);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
+  const [q, setQ] = useState('');
 
   useEffect(() => { fetchTrash().catch(() => toast.error('Could not load the trash')).finally(() => setLoading(false)); }, []);
 
   const types = useMemo(() => ['all', ...new Set(trash.items.map((i) => i.type))], [trash.items]);
-  const items = trash.items.filter((i) => filter === 'all' || i.type === filter);
+  const s = q.trim().toLowerCase();
+  const items = trash.items.filter((i) => (filter === 'all' || i.type === filter) && (!s || `${i.title} ${i.sub || ''} ${i.label || ''} ${i.type}`.toLowerCase().includes(s)));
   const key = (i) => `${i.type}:${i.id}`;
 
   const act = async (i, fn, ok) => {
@@ -51,9 +53,17 @@ export default function Trash() {
   return (
     <div>
       <PageTitle title="Trash" sub={`Deleted items are kept for ${trash.retentionDays} days, then removed automatically.`}>
-        <button onClick={empty} disabled={!trash.items.length || busy === 'all'} className="flex items-center gap-2 rounded-full border border-red-500/40 px-5 py-2.5 text-xs font-semibold text-red-500 transition hover:bg-red-500/10 disabled:opacity-40">
-          {busy === 'all' ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />} Empty Trash
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          {trash.items.length > 0 && (
+            <div className="relative">
+              <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" />
+              <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search trash…" className={`${inputCls} !w-48 !rounded-full !py-2 pl-9`} />
+            </div>
+          )}
+          <button onClick={empty} disabled={!trash.items.length || busy === 'all'} className="flex items-center gap-2 rounded-full border border-red-500/40 px-5 py-2.5 text-xs font-semibold text-red-500 transition hover:bg-red-500/10 disabled:opacity-40">
+            {busy === 'all' ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />} Empty Trash
+          </button>
+        </div>
       </PageTitle>
 
       {types.length > 2 && (
@@ -65,8 +75,8 @@ export default function Trash() {
       {loading ? <Loader2 className="animate-spin text-muted" /> : items.length === 0 ? (
         <Panel className="grid place-items-center gap-3 p-16 text-center">
           <span className="grid size-14 place-items-center rounded-2xl bg-alt text-muted"><Trash2 size={24} /></span>
-          <div className="font-display text-xl text-fg">Trash is empty</div>
-          <p className="max-w-xs text-sm text-muted">Anything you delete will appear here so you can restore it.</p>
+          <div className="font-display text-xl text-fg">{s ? 'No matching items' : 'Trash is empty'}</div>
+          <p className="max-w-xs text-sm text-muted">{s ? 'Try another keyword or clear your filter.' : 'Anything you delete will appear here so you can restore it.'}</p>
         </Panel>
       ) : (
         <div className="space-y-3">
