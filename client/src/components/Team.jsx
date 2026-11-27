@@ -302,6 +302,10 @@ export default function Team() {
     );
   }
 
+  // how many people this committee really has: a lone president must not look like an empty page
+  const totalPeople = committee.presidents.length + committee.vps.length + core.length + chiefs.length + execs.length;
+  const soloLeader = committee.presidents.length > 0 && committee.vps.length === 0;
+
   return (
     <section id="team" className="section" ref={ref} style={{ background: 'var(--bg)' }}>
       <style>{`
@@ -377,11 +381,16 @@ export default function Team() {
             {(committee.presidents.length > 0 || committee.vps.length > 0) && (
               <div style={{
                 background: 'linear-gradient(135deg, var(--navy) 0%, var(--navy-light) 50%, var(--navy) 100%)',
-                borderRadius: 24, padding: '36px 24px 32px', marginBottom: 36,
+                borderRadius: 24, padding: soloLeader ? '30px 24px 28px' : '36px 24px 32px',
+                margin: '0 auto 36px', maxWidth: soloLeader ? 620 : 1040,
                 textAlign: 'center', border: '1px solid rgba(var(--accent-rgb),0.25)',
                 position: 'relative', overflow: 'hidden',
+                boxShadow: '0 22px 60px rgba(15,23,60,0.18)',
               }}>
                 <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 60% 80% at 50% 0%, rgba(var(--accent-rgb),0.28), transparent 70%)', pointerEvents: 'none' }} />
+                {/* soft rings so a one-person banner still feels designed, not half-empty */}
+                <div style={{ position: 'absolute', width: 420, height: 420, borderRadius: '50%', border: '1px solid rgba(255,255,255,0.07)', top: -170, left: '50%', transform: 'translateX(-50%)', pointerEvents: 'none' }} />
+                <div style={{ position: 'absolute', width: 620, height: 620, borderRadius: '50%', border: '1px solid rgba(255,255,255,0.05)', top: -270, left: '50%', transform: 'translateX(-50%)', pointerEvents: 'none' }} />
                 <div style={{ position: 'relative' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginBottom: 22 }}>
                     <span style={{ height: 1, width: 44, background: 'rgba(255,255,255,0.22)' }} />
@@ -409,6 +418,13 @@ export default function Team() {
                   </div>
                 </div>
               </div>
+            )}
+
+            {/* a brand-new committee: say so instead of leaving a bare page */}
+            {totalPeople === 1 && (
+              <p style={{ textAlign: 'center', margin: '-14px auto 34px', maxWidth: 460, color: 'var(--fg-muted)', fontSize: 13.5, lineHeight: 1.6 }}>
+                This committee is just getting started — the rest of the team appears here as soon as they are added.
+              </p>
             )}
 
             {/* Core Executives */}
@@ -453,7 +469,7 @@ export default function Team() {
               </div>
             )}
 
-            {filtered.length === 0 && (
+            {totalPeople === 0 && (
               <div style={{ textAlign: 'center', padding: '50px 20px', color: 'var(--fg-muted)' }}>
                 <Users size={36} strokeWidth={1} style={{ marginBottom: 10, opacity: 0.3 }} />
                 <p style={{ fontSize: 14 }}>No members found for this filter.</p>
@@ -461,25 +477,28 @@ export default function Team() {
             )}
 
             {/* Stats Footer */}
-            <div style={{
+            {totalPeople > 1 && (<div style={{
               textAlign: 'center', padding: '18px 20px', borderRadius: 14,
               background: 'var(--bg-alt)', border: '1px solid var(--border)',
             }}>
               <div style={{ display: 'flex', justifyContent: 'center', gap: 28, flexWrap: 'wrap' }}>
-                {allDepts.map(d => (
-                  <div key={d}>
-                    <div style={{ fontSize: 20, fontWeight: 800, color: DEPT_COLORS[d], fontFamily: 'var(--font-mono)' }}>
-                      {committee.members.filter(m => m.dept === d).length}
+                {/* only departments that actually have someone: an empty committee should not show a row of zeros */}
+                {allDepts.map((d) => {
+                  const n = committee.members.filter(m => m.dept === d).length;
+                  if (!n) return null;
+                  return (
+                    <div key={d}>
+                      <div style={{ fontSize: 20, fontWeight: 800, color: DEPT_COLORS[d], fontFamily: 'var(--font-mono)' }}>{n}</div>
+                      <div style={{ fontSize: 10, color: 'var(--fg-muted)' }} title={DEPT_FULL[d]}>{d}</div>
                     </div>
-                    <div style={{ fontSize: 10, color: 'var(--fg-muted)' }} title={DEPT_FULL[d]}>{d}</div>
-                  </div>
-                ))}
+                  );
+                })}
                 <div>
-                  <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--accent)', fontFamily: 'var(--font-mono)' }}>{committee.members.length}</div>
-                  <div style={{ fontSize: 10, color: 'var(--fg-muted)' }}>Total</div>
+                  <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--accent)', fontFamily: 'var(--font-mono)' }}>{totalPeople}</div>
+                  <div style={{ fontSize: 10, color: 'var(--fg-muted)' }}>{totalPeople === 1 ? 'Member' : 'Total'}</div>
                 </div>
               </div>
-            </div>
+            </div>)}
           </motion.div>
         </AnimatePresence>
       </div>
