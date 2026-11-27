@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { thumb } from '../lib/img';
+import { thumb, portrait } from '../lib/img';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Users, Facebook, Github, Linkedin, Shield, Star, Crown, Award, ChevronRight, IdCard, GraduationCap, Mail } from 'lucide-react';
@@ -45,7 +45,7 @@ function getIcon(pos) {
  *  If the picture cannot be loaded the initials take its place instead of an empty circle. */
 function Avatar({ person, size = 48, ring }) {
   const [failed, setFailed] = useState(false);
-  const src = person.image_url ? thumb(person.image_url, Math.round(size * 3)) : '';
+  const src = person.image_url ? portrait(person.image_url, Math.round(size * 2.5)) : '';
   return (
     <div style={{
       position: 'relative', overflow: 'hidden',
