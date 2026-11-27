@@ -1,6 +1,6 @@
 {
-  "build": 144,
+  "build": 196,
   "min": 0,
   "name": "1.0.1",
-  "notes": "Custom domain bauetictclub.eu.org deep links, search shortcuts with student ID member card lookup, committee term lifecycle screens, enhanced ticket security, and offline support."
+  "notes": "Committee terms and member profiles, face-cropped avatars, an assistant that can search the site, and safer member-card codes."
 }
