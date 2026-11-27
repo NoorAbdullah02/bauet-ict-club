@@ -153,6 +153,15 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
       ok(ach.s === 201 || ach.s === 200, 'achievement create', ach.j);
       ok(/Zorbaglot Gold/.test(await ask('what has the club achieved?')), 'assistant: a new achievement is known at once');
       ok(/gallery/i.test(await ask('show me the gallery')), 'assistant: the photo gallery is known');
+      // the lookup tools the model can call read the real database, are admin-only and refuse anything not on the list
+      ok((await call('POST', '/api/chat/tool', { name: 'club_counts' })).s === 401, 'assistant tools need an admin login');
+      ok((await call('POST', '/api/chat/tool', { name: 'drop_tables' }, T)).s === 400, 'an unknown tool is refused');
+      {
+        const r = (await call('POST', '/api/chat/tool', { name: 'club_counts' }, T)).j?.result || {};
+        ok(r.members >= 1 && r.events >= 1 && typeof r.gallery === 'number', 'assistant tools read the database directly', r);
+        const cse = (await call('POST', '/api/chat/tool', { name: 'find_committee', args: { department: 'CSE', limit: 3 } }, T)).j?.result || [];
+        ok(Array.isArray(cse) && cse.length >= 1 && !JSON.stringify(cse).includes('@'), 'assistant tools search public committee rows without leaking e-mails', cse.slice(0, 2));
+      }
     }
     {
       const labels = ((await call('GET', '/api/committees')).j || []).map((x) => x.label);
