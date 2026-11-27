@@ -248,10 +248,11 @@ class _AdvisorsSection extends StatelessWidget {
     final s = context.watch<AppState>().settings;
     final chief = advisors.where((a) => a.designation.toLowerCase().contains('chief')).cast<Advisor?>().firstWhere((_) => true, orElse: () => null);
     final others = advisors.where((a) => a != chief).toList();
-    Widget card(Advisor a, bool big) => GestureDetector(
+    // the width comes from the layout, so a narrow phone never cuts a card off the screen edge
+    Widget card(Advisor a, bool big, double width) => GestureDetector(
                       onTap: () => context.push('/member/a${a.id}'),
           child: Container(
-            width: big ? 270 : 210,
+            width: width,
             padding: EdgeInsets.fromLTRB(14, big ? 20 : 16, 14, 14),
             decoration: BoxDecoration(
               color: p.surface,
@@ -289,18 +290,18 @@ class _AdvisorsSection extends StatelessWidget {
       const SizedBox(height: 4),
       Text(s.pageText('teamAdvisors', 'Guided by experience'), style: displayStyle(context, 24)),
       const SizedBox(height: 14),
-      if (chief != null) Center(child: card(chief, true)),
+      if (chief != null)
+        LayoutBuilder(builder: (context, c) => Center(child: card(chief, true, c.maxWidth < 270 ? c.maxWidth : 270))),
       if (chief != null && others.isNotEmpty) const SizedBox(height: 14),
       if (others.isNotEmpty)
-        SizedBox(
-          height: 236,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: others.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 14),
-            itemBuilder: (context, i) => card(others[i], false),
-          ),
-        ),
+        LayoutBuilder(builder: (context, c) {
+          const gap = 14.0;
+          // 1 card on a small phone, 2 on a phone/tablet, 3 on a wide screen: every card stays fully visible
+          final perRow = c.maxWidth >= 620 ? 3 : (c.maxWidth >= 330 ? 2 : 1);
+          final w = (c.maxWidth - gap * (perRow - 1)) / perRow;
+          // full width, so two cards on a wide screen sit centred under the chief instead of hugging the left edge
+          return SizedBox(width: double.infinity, child: Wrap(alignment: WrapAlignment.center, spacing: gap, runSpacing: gap, children: [for (final a in others) card(a, false, w)]));
+        }),
     ]);
   }
 }
