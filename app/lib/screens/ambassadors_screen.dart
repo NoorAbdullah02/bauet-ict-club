@@ -103,7 +103,13 @@ class _AmbassadorCard extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.all(2.5),
               decoration: BoxDecoration(shape: BoxShape.circle, gradient: p.brand),
-              child: ClipOval(child: NetImage(member.imageUrl, fallbackLabel: member.name)),
+              child: ClipOval(
+                child: NetImage(
+                  AppConfig.portrait(member.imageUrl, 240),
+                  fallbackLabel: member.name,
+                  alignment: const Alignment(0, -0.35),
+                ),
+              ),
             ),
           ),
         ),
