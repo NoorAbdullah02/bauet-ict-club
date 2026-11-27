@@ -69,6 +69,8 @@ class _AdminTransferScreenState extends State<AdminTransferScreen> {
     if (_from.isEmpty && sessions.isNotEmpty) _from = sessions.first;
     final people = _state.members.where((m) => m.session == _from).toList()..sort((a, b) => a.order.compareTo(b.order));
     final filtered = people.where((m) => matchesQuery(_query, [m.name, m.position, m.department, m.batch])).toList();
+    final filteredPicked = filtered.where((m) => _picked.contains(m.id)).length;
+    final allShownPicked = filtered.isNotEmpty && filteredPicked == filtered.length;
     return AdminPage(
       title: 'Transfer people',
       children: [
@@ -98,7 +100,18 @@ class _AdminTransferScreenState extends State<AdminTransferScreen> {
         Row(children: [
           Text('${_picked.length} OF ${people.length} CHOSEN', style: monoStyle(context)),
           const Spacer(),
-          TextButton(onPressed: () => setState(() => _picked.length == people.length ? _picked.clear() : _picked.addAll(filtered.map((m) => m.id))), child: Text(_picked.length == people.length ? 'Clear' : 'Choose all')),
+          TextButton(
+            onPressed: filtered.isEmpty
+                ? null
+                : () => setState(() {
+                      if (allShownPicked) {
+                        _picked.removeAll(filtered.map((m) => m.id));
+                      } else {
+                        _picked.addAll(filtered.map((m) => m.id));
+                      }
+                    }),
+            child: Text(allShownPicked ? 'Clear' : 'Choose all'),
+          ),
         ]),
         for (final Member m in filtered)
           CheckboxListTile(

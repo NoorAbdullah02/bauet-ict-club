@@ -436,11 +436,13 @@ class _AdminCrudScreenState extends State<AdminCrudScreen> {
         ? (_rows.map((r) => (r['committee_session'] ?? '').toString()).where((s) => s.isNotEmpty).toSet().toList()
           ..sort((a, b) => sessionRank(b).compareTo(sessionRank(a))))
         : const <String>[];
+    final activeSession = sessions.contains(_session) ? _session : 'All';
+    final searchKeys = spec.fields.where((f) => f.kind != FieldKind.image).map((f) => f.key).toList();
     final filtered = _rows.where((row) {
-      if (widget.table == 'members' && _session != 'All' && (row['committee_session'] ?? '').toString() != _session) {
+      if (widget.table == 'members' && activeSession != 'All' && (row['committee_session'] ?? '').toString() != activeSession) {
         return false;
       }
-      return matchesQuery(_query, row.values);
+      return matchesQuery(_query, [for (final k in searchKeys) row[k]]);
     }).toList();
     return Scaffold(
       floatingActionButton: spec.readOnly
@@ -488,9 +490,9 @@ class _AdminCrudScreenState extends State<AdminCrudScreen> {
                   child: SizedBox(
                     height: 38,
                     child: ListView(scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 20), children: [
-                      Padding(padding: const EdgeInsets.only(right: 8), child: PillChip(label: 'All (${_rows.length})', selected: _session == 'All', onTap: () => setState(() => _session = 'All'))),
+                      Padding(padding: const EdgeInsets.only(right: 8), child: PillChip(label: 'All (${_rows.length})', selected: activeSession == 'All', onTap: () => setState(() => _session = 'All'))),
                       for (final s in sessions)
-                        Padding(padding: const EdgeInsets.only(right: 8), child: PillChip(label: s, selected: _session == s, onTap: () => setState(() => _session = s))),
+                        Padding(padding: const EdgeInsets.only(right: 8), child: PillChip(label: s, selected: activeSession == s, onTap: () => setState(() => _session = s))),
                     ]),
                   ),
                 ),

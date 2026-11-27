@@ -102,8 +102,10 @@ class _AdminInboxScreenState extends State<AdminInboxScreen> {
           const ShimmerList(count: 3, height: 110)
         else if (_error != null)
           ErrorState(message: _error!, onRetry: _load)
-        else if (shown.isEmpty)
+        else if (_rows.isEmpty)
           const EmptyState(icon: Icons.mark_email_read_outlined, title: 'Inbox is empty', message: 'Messages from the contact form show up here.')
+        else if (shown.isEmpty)
+          const EmptyState(icon: Icons.search_off_rounded, title: 'No matching messages', message: 'Try another search word or switch filter.')
         else
           for (final m in shown)
             Padding(

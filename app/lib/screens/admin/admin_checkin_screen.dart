@@ -106,6 +106,7 @@ class _AdminCheckinScreenState extends State<AdminCheckinScreen> {
         _log.insert(0, r['already'] == true ? _Entry(name, 'Already checked in', true, warn: true) : _Entry(name, 'Checked in · ${person['event'] ?? ''}', true));
         _code.clear();
       });
+      if (_eventId != null) _loadRegs();
     } on ApiException catch (e) {
       if (!mounted) return;
       await _state.handleAuthError(e);

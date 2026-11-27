@@ -385,12 +385,15 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                       ],
                 ],
                 if (_query.trim().isNotEmpty) ...[
-                  for (final m in state.members.where((m) => matchesQuery(_query, [m.name, m.position, m.department, m.batch, m.session])).take(5))
-                    nav(m.name, '${m.position} · ${m.session}', Icons.person_rounded, '/admin/data/members', c: p.accent),
-                  for (final ev in state.events.where((e) => matchesQuery(_query, [e.title, e.category, e.location])).take(4))
-                    nav(ev.title, ev.location.isEmpty ? 'Event' : ev.location, Icons.event_rounded, '/admin/data/events', c: p.tech),
-                  for (final n in state.notices.where((n) => matchesQuery(_query, [n.title, n.priority, n.content])).take(3))
-                    nav(n.title, 'Notice · ${n.priority}', Icons.campaign_rounded, '/admin/data/notices', c: p.third),
+                  for (final mHits in [state.members.where((m) => matchesQuery(_query, [m.name, m.position, m.department, m.batch, m.session])).take(5).toList()])
+                    for (final eHits in [state.events.where((e) => matchesQuery(_query, [e.title, e.category, e.location])).take(4).toList()])
+                      for (final nHits in [state.notices.where((n) => matchesQuery(_query, [n.title, n.priority, n.content])).take(3).toList()])
+                        if (mHits.isNotEmpty || eHits.isNotEmpty || nHits.isNotEmpty) ...[
+                          group('Club records'),
+                          for (final m in mHits) nav(m.name, '${m.position} · ${m.session}', Icons.person_rounded, '/admin/data/members', c: p.accent),
+                          for (final ev in eHits) nav(ev.title, ev.location.isEmpty ? 'Event' : ev.location, Icons.event_rounded, '/admin/data/events', c: p.tech),
+                          for (final n in nHits) nav(n.title, 'Notice · ${n.priority}', Icons.campaign_rounded, '/admin/data/notices', c: p.third),
+                        ],
                 ],
               ],
             ),

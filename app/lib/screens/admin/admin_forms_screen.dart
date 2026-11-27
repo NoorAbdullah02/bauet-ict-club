@@ -1030,10 +1030,18 @@ class _AdminFormResponsesScreenState extends State<AdminFormResponsesScreen> {
             ),
             const SizedBox(height: 12),
           ],
-          if (_rows.isEmpty) const EmptyState(icon: Icons.inbox_outlined, title: 'No responses yet', message: 'Share the form link to start collecting answers.'),
-          if (_summary && _rows.isNotEmpty) ..._summaryCards(context, p),
-          if (!_summary)
-          for (final r in _rows.where((r) => matchesQuery(_query, [r['full_name'], r['email'], r['pay_tran'], r['answers'] is Map ? (r['answers'] as Map).values.join(' ') : ''])))
+          if (_rows.isEmpty)
+            const EmptyState(icon: Icons.inbox_outlined, title: 'No responses yet', message: 'Share the form link to start collecting answers.')
+          else if (_summary)
+            ..._summaryCards(context, p)
+          else
+            for (final shown in [
+              _rows.where((r) => matchesQuery(_query, [r['full_name'], r['email'], r['pay_tran'], r['answers'] is Map ? (r['answers'] as Map).values.join(' ') : ''])).toList()
+            ])
+              if (shown.isEmpty)
+                const EmptyState(icon: Icons.search_off_rounded, title: 'No matching responses', message: 'Try another search term.')
+              else
+                for (final r in shown)
             Padding(
               padding: const EdgeInsets.only(bottom: 10),
               child: GlassCard(
