@@ -24,8 +24,10 @@ export default function InstallPrompt() {
     const handler = (e) => {
       e.preventDefault();
       setDeferredPrompt(e);
-      // Wait 4 seconds after page load before displaying smoothly
-      timer = setTimeout(() => setVisible(true), 4000);
+      // Wait 4 seconds after page load before displaying smoothly (only if still mobile/coarse)
+      timer = setTimeout(() => {
+        if (window.matchMedia('(max-width: 900px), (pointer: coarse)').matches) setVisible(true);
+      }, 4000);
     };
 
     window.addEventListener('beforeinstallprompt', handler);
@@ -57,7 +59,7 @@ export default function InstallPrompt() {
   if (!visible || isAdmin) return null;
 
   return (
-    <div className="fixed bottom-4 left-4 right-4 z-50 mx-auto max-w-md animate-in fade-in slide-in-from-bottom-5 duration-300">
+    <div className="fixed bottom-4 left-4 right-4 z-50 mx-auto max-w-md md:hidden animate-in fade-in slide-in-from-bottom-5 duration-300">
       <div className="flex items-center gap-3.5 rounded-2xl border border-line bg-surface/95 p-3.5 shadow-2xl backdrop-blur-xl ring-1 ring-black/5 dark:ring-white/10 sm:p-4">
         <div className="grid size-11 shrink-0 place-items-center rounded-xl bg-gradient-to-tr from-accent to-tech p-1.5 text-white shadow-md">
           <Logo kind="club" height={28} className="!filter-none" />

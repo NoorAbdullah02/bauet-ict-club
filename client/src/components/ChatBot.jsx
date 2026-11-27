@@ -116,7 +116,7 @@ export default function ChatBot() {
           <motion.section role="dialog" aria-label="ICT Club assistant"
             initial={{ opacity: 0, y: 28, scale: 0.92 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ type: 'spring', stiffness: 260, damping: 26 }} style={{ transformOrigin: 'bottom right' }}
-            className="chat-panel fixed bottom-24 right-6 z-[90] flex h-[34rem] max-h-[calc(100vh-8rem)] w-[24rem] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-[28px] border border-line bg-[var(--glass)] shadow-[var(--shadow-xl)] backdrop-blur-2xl max-sm:bottom-20 max-sm:right-4">
+            className="chat-panel fixed bottom-24 right-6 z-[90] flex h-[34rem] max-h-[calc(100dvh-8rem)] w-[24rem] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-[28px] border border-line bg-[var(--glass)] shadow-[var(--shadow-xl)] backdrop-blur-2xl max-sm:bottom-20 max-sm:right-4">
             <div className="pointer-events-none absolute -top-24 left-1/2 size-64 -translate-x-1/2 rounded-full bg-accent/30 blur-3xl" />
 
             <header className="relative flex items-center gap-3 border-b border-line px-5 py-4">

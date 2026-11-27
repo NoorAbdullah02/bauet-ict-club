@@ -398,13 +398,18 @@ body.admin-mode .cursor-glow { display: none; }
 
 /* Join button: gradient pill with a sliding arrow disc and a soft halo */
 .btn-join {
-  position: relative; display: inline-flex; align-items: center; gap: 10px;
-  padding: 5px 5px 5px 18px; border-radius: 999px; color: #fff; font-size: 13px; font-weight: 600; letter-spacing: 0.01em;
+  position: relative; display: inline-flex; align-items: center; gap: 8px;
+  height: 40px; padding: 4px 4px 4px 16px; border-radius: 999px; color: #fff; font-size: 13px; font-weight: 600; letter-spacing: 0.01em;
+  white-space: nowrap; flex-shrink: 0;
   background: var(--grad-btn); box-shadow: var(--btn-shadow);
   transition: transform 0.35s var(--ease), box-shadow 0.35s var(--ease);
 }
 .btn-join::before { content: ''; position: absolute; inset: -3px; border-radius: inherit; z-index: -1; background: var(--grad-text); opacity: 0; filter: blur(10px); transition: opacity 0.4s; }
-.btn-join i { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: #fff; color: var(--accent); transition: transform 0.4s var(--ease); }
+.btn-join i { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: #fff; color: var(--accent); transition: transform 0.4s var(--ease); flex-shrink: 0; }
+@media (min-width: 1024px) {
+  .btn-join { height: 36px; padding: 3px 3px 3px 14px; gap: 7px; }
+  .btn-join i { width: 30px; height: 30px; }
+}
 .btn-join:hover { transform: translateY(-2px); color: #fff; }
 .btn-join:hover::before { opacity: 0.7; }
 .btn-join:hover i { transform: rotate(-45deg); }
@@ -526,17 +531,17 @@ body.admin-mode .cursor-glow { display: none; }
 @media (prefers-reduced-motion: reduce) { .hero-ict { animation: none; } }
 
 
-/* the header bar: the compact width on laptops, then a little wider on big desktop screens (up to 1400px, never more) */
-.site-nav { max-width: max(72rem, min(87.5rem, 74vw)); }
+/* the header bar: expands smoothly up to 1400px without squeezing 1280-1440 laptops */
+.site-nav { max-width: min(87.5rem, 100%); }
 /* while the install banner is open, the floating chat button and panel sit above it instead of behind it */
 @media (max-width: 639px) {
   html.install-banner .chat-fab { bottom: 7rem; }
   html.install-banner .chat-panel { bottom: 10.5rem; }
 }
 
-/* on very wide screens the links sit exactly in the middle of the bar instead of drifting left */
-@media (min-width: 1880px) {
-  .site-nav { display: grid; grid-template-columns: 1fr auto 1fr; column-gap: 1rem; }
+/* on desktop (>= 1400px) the nav links sit mathematically dead-center between logo and actions */
+@media (min-width: 1400px) {
+  .site-nav { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; column-gap: 1.25rem; }
   .site-nav > .nav-logo { justify-self: start; }
   .site-nav > ul { justify-self: center; }
   .site-nav > .nav-actions { justify-self: end; }
@@ -547,13 +552,13 @@ body.admin-mode .cursor-glow { display: none; }
   header nav { padding-left: 10px !important; padding-right: 6px !important; }
   .nav-logo img { height: 34px !important; width: auto !important; }
   .nav-actions { gap: 6px !important; }
-  .nav-actions .btn-join { padding: 4px 4px 4px 12px; gap: 6px; font-size: 12px; }
-  .nav-actions .btn-join i { width: 28px; height: 28px; }
+  .nav-actions .btn-join { height: 40px; padding: 4px 4px 4px 12px; gap: 6px; font-size: 12px; }
+  .nav-actions .btn-join i { width: 32px; height: 32px; }
 }
 @media (max-width: 350px) {
   .nav-logo img { height: 28px !important; }
   .nav-actions .btn-join span { display: none; }
-  .nav-actions .btn-join { padding: 4px; }
+  .nav-actions .btn-join { width: 40px; height: 40px; padding: 4px; justify-content: center; }
 }
 
 
