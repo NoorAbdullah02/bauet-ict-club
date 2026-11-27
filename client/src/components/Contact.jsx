@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
-import { Mail, Phone, MapPin, Globe, Send, Facebook } from 'lucide-react';
+import { Mail, Phone, MapPin, Globe, Send } from 'lucide-react';
+import { Facebook } from '../lib/brandIcons';
 import toast from 'react-hot-toast';
 import { useShallow } from 'zustand/react/shallow';
 import useStore from '../context/store';
