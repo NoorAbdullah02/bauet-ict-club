@@ -777,6 +777,9 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
       ok(reg?.photo_url === pic, 'the new photo reaches the application row the card and certificate read', reg?.photo_url);
       const members = (await call('GET', '/api/members')).j || [];
       ok(members.find((m) => m.name === 'Photo Porcupine')?.image_url === pic, 'and the Team page keeps the same photo');
+      // a real member (not a stranger) reaches the mail step: asking for a card code must still answer 200
+      const otp = await call('POST', '/api/card/otp/request', { email: 'photoporcupine@example.com' });
+      ok(otp.s === 200 && otp.j?.success === true, 'a member can ask for a card code', otp.j);
     }
 
     // six-month committee terms: a committee serves half a year, then the handover opens
