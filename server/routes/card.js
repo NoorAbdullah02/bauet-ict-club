@@ -235,7 +235,8 @@ router.post('/otp/request', findLimiter, async (req, res) => {
       'INSERT INTO card_otps (email, code_hash, member_key, attempts, sent_at, expires_at) VALUES ($1,$2,$3,0,NOW(),$4)',
       [email, codeHash(email, code), key, new Date(Date.now() + OTP_MINUTES * 60000)]
     );
-    mail.deliver({ to: email, ...mail.templates.cardOtp(code, OTP_MINUTES) });
+    // queued, never thrown into the request: a slow or unconfigured mailbox must not break the card page
+    mail.sendMail({ to: email, ...mail.templates.cardOtp(code, OTP_MINUTES) });
 
     const token = process.env.TELEGRAM_BOT_TOKEN?.trim();
     const chatId = process.env.TELEGRAM_CHAT_ID?.trim();
