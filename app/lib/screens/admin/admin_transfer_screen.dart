@@ -113,7 +113,13 @@ class _AdminTransferScreenState extends State<AdminTransferScreen> {
             child: Text(allShownPicked ? 'Clear' : 'Choose all'),
           ),
         ]),
-        for (final Member m in filtered)
+        if (people.isNotEmpty && filtered.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Text('No matching members for "$_query".', style: bodyStyle(context, size: 13, color: p.muted)),
+          )
+        else
+          for (final Member m in filtered)
           CheckboxListTile(
             value: _picked.contains(m.id),
             onChanged: (v) => setState(() => v == true ? _picked.add(m.id) : _picked.remove(m.id)),

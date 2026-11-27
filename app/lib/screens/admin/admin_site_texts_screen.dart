@@ -8,6 +8,7 @@ import '../../state/app_state.dart';
 import '../../widgets/common.dart';
 import '../../widgets/form_widgets.dart';
 import 'admin_page.dart';
+import 'admin_widgets.dart';
 
 /// The words on the home and about pages and the contact links: the same editor the website admin has under Settings.
 class AdminSiteTextsScreen extends StatefulWidget {
@@ -81,6 +82,8 @@ class _AdminSiteTextsScreenState extends State<AdminSiteTextsScreen> {
     ('yt', 'YouTube link', Icons.link_rounded),
   ];
   final Map<String, TextEditingController> _c = {};
+  final TextEditingController _q = TextEditingController();
+  String _query = '';
   bool _loading = true;
   bool _busy = false;
   String? _error;
@@ -99,6 +102,7 @@ class _AdminSiteTextsScreenState extends State<AdminSiteTextsScreen> {
 
   @override
   void dispose() {
+    _q.dispose();
     for (final c in _c.values) {
       c.dispose();
     }
@@ -158,57 +162,75 @@ class _AdminSiteTextsScreenState extends State<AdminSiteTextsScreen> {
         else if (_error != null)
           ErrorState(message: _error!, onRetry: _load)
         else ...[
-          GlassCard(
-            padding: const EdgeInsets.all(16),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('Words on the pages', style: bodyStyle(context, weight: FontWeight.w800)),
-              const SizedBox(height: 12),
-              for (final t in _texts) ...[
-                AppField(controller: _c[t.$1]!, label: t.$2, icon: t.$3 ? Icons.notes_rounded : Icons.title_rounded, maxLines: t.$3 ? 5 : 1, keyboard: t.$3 ? TextInputType.multiline : null),
-                const SizedBox(height: 12),
-              ],
-            ]),
+          AdminSearchBar(
+            controller: _q,
+            hint: 'Search site fields (hero, about, team, email…)',
+            onChanged: (v) => setState(() => _query = v),
           ),
           const SizedBox(height: 14),
-          GlassCard(
-            padding: const EdgeInsets.all(16),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('Home page, footer and ribbon', style: bodyStyle(context, weight: FontWeight.w800)),
-              Text('Leave a box empty to keep the built-in wording.', style: bodyStyle(context, size: 12.5, color: p.muted)),
-              const SizedBox(height: 12),
-              for (final t in _more) ...[
-                AppField(controller: _c[t.$1]!, label: t.$2, icon: t.$3 ? Icons.notes_rounded : Icons.title_rounded, maxLines: t.$3 ? 5 : 1, keyboard: t.$3 ? TextInputType.multiline : null),
-                const SizedBox(height: 12),
-              ],
-            ]),
-          ),
-          const SizedBox(height: 14),
-          GlassCard(
-            padding: const EdgeInsets.all(16),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('Page headings', style: bodyStyle(context, weight: FontWeight.w800)),
-              Text('About, Gallery, Team, Join and Contact. Leave a box empty to keep the built-in wording.', style: bodyStyle(context, size: 12.5, color: p.muted)),
-              const SizedBox(height: 12),
-              for (final t in _pages) ...[
-                AppField(controller: _c[t.$1]!, label: t.$2, icon: Icons.title_rounded),
-                const SizedBox(height: 12),
-              ],
-            ]),
-          ),
-          const SizedBox(height: 14),
-          GlassCard(
-            padding: const EdgeInsets.all(16),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('Contact and links', style: bodyStyle(context, weight: FontWeight.w800)),
-              Text('Shown in the footer and on the Contact page.', style: bodyStyle(context, size: 12.5, color: p.muted)),
-              const SizedBox(height: 12),
-              for (final l in _links) ...[
-                AppField(controller: _c['social_${l.$1}']!, label: l.$2, icon: l.$3, keyboard: l.$1 == 'email' ? TextInputType.emailAddress : (l.$1 == 'phone' ? TextInputType.phone : TextInputType.url)),
-                const SizedBox(height: 12),
-              ],
-            ]),
-          ),
-          const SizedBox(height: 16),
+          for (final items in [_texts.where((t) => matchesQuery(_query, [t.$1, t.$2, _c[t.$1]!.text])).toList()])
+            if (items.isNotEmpty) ...[
+              GlassCard(
+                padding: const EdgeInsets.all(16),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('Words on the pages', style: bodyStyle(context, weight: FontWeight.w800)),
+                  const SizedBox(height: 12),
+                  for (final t in items) ...[
+                    AppField(controller: _c[t.$1]!, label: t.$2, icon: t.$3 ? Icons.notes_rounded : Icons.title_rounded, maxLines: t.$3 ? 5 : 1, keyboard: t.$3 ? TextInputType.multiline : null),
+                    const SizedBox(height: 12),
+                  ],
+                ]),
+              ),
+              const SizedBox(height: 14),
+            ],
+          for (final items in [_more.where((t) => matchesQuery(_query, [t.$1, t.$2, _c[t.$1]!.text])).toList()])
+            if (items.isNotEmpty) ...[
+              GlassCard(
+                padding: const EdgeInsets.all(16),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('Home page, footer and ribbon', style: bodyStyle(context, weight: FontWeight.w800)),
+                  Text('Leave a box empty to keep the built-in wording.', style: bodyStyle(context, size: 12.5, color: p.muted)),
+                  const SizedBox(height: 12),
+                  for (final t in items) ...[
+                    AppField(controller: _c[t.$1]!, label: t.$2, icon: t.$3 ? Icons.notes_rounded : Icons.title_rounded, maxLines: t.$3 ? 5 : 1, keyboard: t.$3 ? TextInputType.multiline : null),
+                    const SizedBox(height: 12),
+                  ],
+                ]),
+              ),
+              const SizedBox(height: 14),
+            ],
+          for (final items in [_pages.where((t) => matchesQuery(_query, [t.$1, t.$2, _c[t.$1]!.text])).toList()])
+            if (items.isNotEmpty) ...[
+              GlassCard(
+                padding: const EdgeInsets.all(16),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('Page headings', style: bodyStyle(context, weight: FontWeight.w800)),
+                  Text('About, Gallery, Team, Join and Contact. Leave a box empty to keep the built-in wording.', style: bodyStyle(context, size: 12.5, color: p.muted)),
+                  const SizedBox(height: 12),
+                  for (final t in items) ...[
+                    AppField(controller: _c[t.$1]!, label: t.$2, icon: Icons.title_rounded),
+                    const SizedBox(height: 12),
+                  ],
+                ]),
+              ),
+              const SizedBox(height: 14),
+            ],
+          for (final items in [_links.where((l) => matchesQuery(_query, [l.$1, l.$2, _c['social_${l.$1}']!.text])).toList()])
+            if (items.isNotEmpty) ...[
+              GlassCard(
+                padding: const EdgeInsets.all(16),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('Contact and links', style: bodyStyle(context, weight: FontWeight.w800)),
+                  Text('Shown in the footer and on the Contact page.', style: bodyStyle(context, size: 12.5, color: p.muted)),
+                  const SizedBox(height: 12),
+                  for (final l in items) ...[
+                    AppField(controller: _c['social_${l.$1}']!, label: l.$2, icon: l.$3, keyboard: l.$1 == 'email' ? TextInputType.emailAddress : (l.$1 == 'phone' ? TextInputType.phone : TextInputType.url)),
+                    const SizedBox(height: 12),
+                  ],
+                ]),
+              ),
+              const SizedBox(height: 16),
+            ],
           GradientButton(label: 'Save', icon: Icons.save_rounded, loading: _busy, onPressed: _save),
         ],
       ],
