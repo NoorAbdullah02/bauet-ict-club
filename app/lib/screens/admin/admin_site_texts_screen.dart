@@ -39,7 +39,6 @@ class _AdminSiteTextsScreenState extends State<AdminSiteTextsScreen> {
     ('footerCta', 'Footer call-to-action headline', false),
     ('footerAbout', 'Footer about text', true),
     ('contactAddress', 'Club address', false),
-    ('announcementText', 'Announcement ribbon text (when no event or notice is pinned)', true),
   ];
   // headings on the About, Gallery, Team, Join and Contact pages
   static const _pages = [

@@ -186,7 +186,7 @@ const EXTRA = [
   ['heroEstablished', 'Line under the hero headline', 'text'], ['heroTaglines', 'Rotating taglines (one per line)', 'textarea'],
   ['homeIntroTag', 'Home intro label', 'text'], ['homeIntroTitle', 'Home intro headline', 'text'], ['homeIntroText', 'Home intro paragraph', 'textarea'],
   ['footerCta', 'Footer call-to-action headline', 'text'], ['footerAbout', 'Footer about text', 'textarea'],
-  ['contactAddress', 'Club address', 'text'], ['announcementText', 'Announcement ribbon text (when no event or notice is pinned)', 'textarea'],
+  ['contactAddress', 'Club address', 'text'],
 ];
 
 // Headings on the About, Gallery, Team, Join and Contact pages.
@@ -253,7 +253,7 @@ export default function SettingsView() {
         </Panel>
         <Panel className="space-y-4 p-6 xl:col-span-2">
           <div>
-            <h3 className="text-xl text-fg">Home page, footer and ribbon</h3>
+            <h3 className="text-xl text-fg">Home page and footer</h3>
             <p className="mt-1 text-sm text-fg2">The remaining words on the public site. Leave a box empty to keep the built-in wording.</p>
           </div>
           {EXTRA.map(([k, label, type]) => (
