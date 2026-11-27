@@ -102,7 +102,7 @@ const apiLimiter = rateLimit({
 app.use('/api/', apiLimiter);
 
 // public read-only lists are revalidated on every visit (cheap 304 answers), so admin changes appear immediately (admin routes stay uncached)
-const PUBLIC_LISTS = ['/events', '/notices', '/members', '/gallery', '/achievements', '/settings'];
+const PUBLIC_LISTS = ['/events', '/notices', '/members', '/gallery', '/achievements', '/posts', '/settings'];
 app.use('/api', (req, res, next) => {
   if (['GET', 'HEAD'].includes(req.method) && PUBLIC_LISTS.some((p) => req.path === p)) res.set('Cache-Control', 'public, max-age=0, must-revalidate'); // always asks the server, which answers 304 (no body) when nothing changed, so new items show at once
   else res.set('Cache-Control', 'no-store');
