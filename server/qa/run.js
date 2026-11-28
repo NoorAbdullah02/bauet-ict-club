@@ -76,6 +76,15 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
     const h = await call('GET', '/api/health'); ok(h.s === 200 && h.j.db, 'health');
     ok((await call('GET', '/api/bootstrap')).s === 200, 'bootstrap');
     ok((await call('GET', '/api/events')).s === 200, 'events list public');
+    // ---- express 5: req.body is undefined when a request carries no body, and a bare '*' route no longer works ----
+    ok((await call('POST', '/api/messages')).s === 400, 'a POST with no body answers 400, not 500');
+    ok((await call('POST', '/api/messages', {})).s === 400, 'a POST with an empty JSON body answers 400 too');
+    if (require('fs').existsSync(path.join(__dirname, '../../client/dist/index.html'))) {
+      for (const route of ['/events/1', '/a/deep/link/that/does/not/exist']) {
+        const page = await call('GET', route);
+        ok(page.s === 200 && /<div id="root"/.test(page.t), `the website answers ${route} with the app page`);
+      }
+    }
     ok((await call('POST', '/api/events', { title: 'x' })).s === 401, 'writes need login');
     ok((await call('POST', '/api/auth/login', { username: 'admin', password: 'nope' })).s === 401, 'wrong password rejected');
     ok((await call('POST', '/api/auth/login', undefined, undefined, '{bad json')).s === 400, 'broken JSON gives 400');
