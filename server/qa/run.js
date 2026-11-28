@@ -845,6 +845,41 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
       ok((await fetch(`${B}/api/upload/remove-bg`, { method: 'POST', headers: { authorization: `Bearer ${T}` }, body: form(png) })).status === 400, 'background removal needs Cloudinary configured');
     }
 
+    // ---- an application with a photo: /api/registrations/photo is the applicant's own multer path (JPG/PNG, 3 MB) ----
+    {
+      const fs = require('fs');
+      const jpg = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46]), Buffer.alloc(120)]);
+      const photoForm = (bytes, type = 'image/jpeg', name = 'photo.jpg') => { const fd = new FormData(); fd.append('photo', new Blob([bytes], { type }), name); return fd; };
+      const uploadPhoto = (body) => fetch(`${B}/api/registrations/photo`, { method: 'POST', body });
+      const applicant = (over) => ({ type: 'committee', batch: '23', department: 'CSE', gender: 'Female', interests: [], experience: 'Beginner', post: 'General Member', ...over });
+      // disk mode
+      const disk = await uploadPhoto(photoForm(jpg));
+      const diskUrl = (await disk.json().catch(() => null))?.url || '';
+      ok(disk.status === 200 && /^\/uploads\/[a-f0-9]{24}\.jpg$/.test(diskUrl), 'an applicant photo is stored on disk when Cloudinary is off', { status: disk.status, diskUrl });
+      const file = diskUrl ? path.join(__dirname, '..', 'uploads', path.basename(diskUrl)) : '';
+      ok(!!file && fs.existsSync(file), 'the applicant photo really lands in server/uploads');
+      const diskApply = await call('POST', '/api/registrations', applicant({ full_name: 'Disk Dina', student_id: 'DD2401', phone: '01712340001', email: 'diskdina@example.com', photo_url: diskUrl }));
+      ok(diskApply.s === 201, 'an application with that photo is accepted', diskApply.j);
+      if (file) fs.unlinkSync(file);
+      ok((await uploadPhoto(photoForm(Buffer.from('not a picture'), 'text/plain', 'notes.txt'))).status === 400, 'a file that is not a JPG or PNG is refused');
+      ok((await uploadPhoto(photoForm(Buffer.concat([jpg, Buffer.alloc(3 * 1024 * 1024)]), 'image/jpeg', 'big.jpg'))).status === 400, 'a photo over 3 MB is refused');
+      ok((await uploadPhoto(new FormData())).status === 400, 'a photo upload without a file answers 400');
+      // cloud mode: the harness answers in place of Cloudinary
+      const ctrl = (p, method = 'POST') => fetch(`http://127.0.0.1:${Number(PORT) + 1}${p}`, { method });
+      await ctrl('/cloudinary/on');
+      await ctrl('/cloudinary/reset');
+      const cloud = await uploadPhoto(photoForm(jpg));
+      const cloudUrl = (await cloud.json().catch(() => null))?.url || '';
+      ok(cloud.status === 200 && /^https:\/\/res\.cloudinary\.com\/qa-cloud\/image\/upload\/.+\.webp$/.test(cloudUrl), 'with Cloudinary on the applicant photo goes to the cloud', { status: cloud.status, cloudUrl });
+      const sent = (await (await ctrl('/cloudinary/calls', 'GET')).json()).find((c) => c.kind === 'stream');
+      ok(!!sent && sent.folder === `bauet-ict-club/applicants/${new Date().getFullYear()}` && sent.format === 'webp', 'the applicant photo becomes a webp in the applicants folder', sent);
+      const cloudApply = await call('POST', '/api/registrations', applicant({ full_name: 'Cloud Cora', student_id: 'CC2402', phone: '01712340002', email: 'cloudcora@example.com', photo_url: cloudUrl }));
+      ok(cloudApply.s === 201, 'an application with a cloud photo from our own account is accepted', cloudApply.j);
+      const foreign = await call('POST', '/api/registrations', applicant({ full_name: 'Foreign Farid', student_id: 'FF2403', gender: 'Male', phone: '01712340003', email: 'foreignfarid@example.com', photo_url: 'https://res.cloudinary.com/someone-else/image/upload/x.webp' }));
+      ok(foreign.s === 400 && foreign.j?.fields?.photo_url === 'Invalid photo', 'a photo from another Cloudinary account is refused', foreign.j);
+      await ctrl('/cloudinary/off');
+    }
+
     // six-month committee terms: a committee serves half a year, then the handover opens
     {
       const list = (await call('GET', '/api/committees')).j || [];

@@ -38,13 +38,14 @@ const upload = { single: () => (req, res, next) => uploader(req, res, (err) => (
   ? res.status(400).json({ error: err.code === 'LIMIT_FILE_SIZE' ? 'Photo must be under 3MB' : 'Upload a JPG or PNG photo' })
   : next())) };
 
-// photos must come from this club's own storage (local uploads) or its own Cloudinary cloud, never from another account
-const CLOUD = String(process.env.CLOUDINARY_CLOUD_NAME || '').trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+// photos must come from this club's own storage (local uploads) or its own Cloudinary cloud, never from another account.
+// the cloud name is read per call: the qa suite switches Cloudinary on and off inside one run
 const photoOk = (u) => {
   const url = String(u || '').trim();
   if (!url) return true;
   if (/^\/uploads\/[a-f0-9]{24}\.(jpg|png|webp)$/.test(url)) return true;
-  return !!CLOUD && new RegExp(`^https://res\\.cloudinary\\.com/${CLOUD}/`).test(url);
+  const cloud = String(process.env.CLOUDINARY_CLOUD_NAME || '').trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return !!cloud && new RegExp(`^https://res\\.cloudinary\\.com/${cloud}/`).test(url);
 };
 
 const ordinal = (n) => `${n}${[11, 12, 13].includes(n % 100) ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' }[n % 10] || 'th')}`;
