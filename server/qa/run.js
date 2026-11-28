@@ -900,6 +900,30 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
       await cloudControl('/off');
     }
 
+    // ---- the same cleanup for pictures kept on our own disk (utils/cloud.js, disk branch) ----
+    {
+      fs.mkdirSync(UPLOADS, { recursive: true });
+      const makeFile = () => {
+        const name = require('crypto').randomBytes(12).toString('hex');
+        const file = path.join(UPLOADS, `${name}.webp`);
+        fs.writeFileSync(file, Buffer.from('RIFF\0\0\0\0WEBP'));
+        return { url: `/uploads/${name}.webp`, file };
+      };
+      const a = makeFile();
+      const rowA = await call('POST', '/api/gallery', { title: 'Disk Cleanup One', image_url: a.url }, T);
+      ok(rowA.s === 201 && fs.existsSync(a.file), 'a gallery row points at a picture on our disk');
+      ok((await call('PUT', `/api/gallery/${rowA.j.id}`, { title: 'Disk Cleanup One', image_url: '/logos/ict-club.webp' }, T)).s === 200, 'the row moves to another picture');
+      await new Promise((r) => setTimeout(r, 400));
+      ok(!fs.existsSync(a.file), 'the replaced picture is deleted from server/uploads');
+      const b = makeFile();
+      const rowB = await call('POST', '/api/gallery', { title: 'Disk Cleanup Trash', image_url: b.url }, T);
+      ok(rowB.s === 201 && (await call('DELETE', `/api/gallery/${rowB.j.id}`, undefined, T)).s === 200, 'the row goes to the trash');
+      ok(fs.existsSync(b.file), 'the picture stays while the row is only in the trash');
+      const forever = await call('DELETE', `/api/trash/gallery/${rowB.j.id}`, undefined, T);
+      ok(forever.s === 200 && forever.j?.file?.where === 'disk', 'emptying it removes the row for good', forever.j);
+      ok(!fs.existsSync(b.file), 'and its picture is deleted from server/uploads');
+    }
+
     // six-month committee terms: a committee serves half a year, then the handover opens
     {
       const list = (await call('GET', '/api/committees')).j || [];
