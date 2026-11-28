@@ -1,6 +1,7 @@
 // `npm run qa` — starts the real server on an in-memory database and checks the important flows end to end. No accounts or internet needed.
 const { spawn } = require('child_process');
 const path = require('path');
+const fs = require('fs');
 const PORT = process.env.QA_PORT || '5099';
 const B = `http://127.0.0.1:${PORT}`;
 const feedHits = { remotive: 0, remoteok: 0 };
@@ -11,9 +12,16 @@ const call = async (method, url, body, token, raw) => {
   const text = await r.text(); let json = null; try { json = JSON.parse(text); } catch { /* not json */ }
   return { s: r.status, j: json, t: text };
 };
+// ---- helpers the route tests share: the form a browser would send, the file saved on disk, and the suite's Cloudinary control ----
+const fileForm = (field, bytes, type = 'image/png', name = 'photo.png') => { const fd = new FormData(); fd.append(field, new Blob([bytes], { type }), name); return fd; };
+const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
+const UPLOADS = path.join(__dirname, '..', 'uploads');
+const savedFile = (url) => path.join(UPLOADS, path.basename(String(url || '')));
+const cloudControl = (route, method = 'POST') => fetch(`http://127.0.0.1:${Number(PORT) + 1}${route}`, { method });
+const cloudCalls = async () => (await cloudControl('/cloudinary/calls', 'GET')).json();
+
 /** The ready-made forms the website ships, read from the client source so a broken one cannot go unnoticed. */
 function readyTemplates() {
-  const fs = require('fs');
   const { DEFAULT_FIELDS } = require('../utils/forms');
   const option = (key) => DEFAULT_FIELDS.find((f) => f.key === key).options;
   const src = fs.readFileSync(path.join(__dirname, '../../client/src/lib/formTemplates.js'), 'utf8')
@@ -801,83 +809,74 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
 
     // ---- multer 2: the real photo upload (memory storage, 25 MB limit, disk when Cloudinary is not configured) ----
     {
-      const fs = require('fs');
-      const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
-      const form = (bytes, name = 'photo.png') => { const fd = new FormData(); fd.append('image', new Blob([bytes], { type: 'image/png' }), name); return fd; };
       const send = (body) => fetch(`${B}/api/upload?kind=avatar`, { method: 'POST', headers: T ? { authorization: `Bearer ${T}` } : {}, body });
-      ok((await fetch(`${B}/api/upload?kind=avatar`, { method: 'POST', body: form(png) })).status === 401, 'uploading a photo needs an admin login');
-      const up = await send(form(png));
+      ok((await fetch(`${B}/api/upload?kind=avatar`, { method: 'POST', body: fileForm('image', PNG) })).status === 401, 'uploading a photo needs an admin login');
+      const up = await send(fileForm('image', PNG));
       const saved = await up.json().catch(() => null);
       ok(up.status === 200 && /^\/uploads\/[a-f0-9]{24}\.png$/.test(saved?.url || ''), 'an admin uploads a real picture and gets its url', { status: up.status, saved });
-      const file = saved?.url ? path.join(__dirname, '..', 'uploads', path.basename(saved.url)) : '';
+      const file = saved?.url ? savedFile(saved.url) : '';
       ok(!!file && fs.existsSync(file), 'the picture is written to disk when Cloudinary is not configured');
       if (file) fs.unlinkSync(file); // the suite leaves no files behind
       const empty = new FormData(); empty.append('kind', 'avatar');
       ok((await send(empty)).status === 400, 'an upload with no file answers 400');
       const huge = Buffer.alloc(25 * 1024 * 1024 + 1024); huge.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
-      ok((await send(form(huge, 'huge.png'))).status === 413, 'a picture over 25 MB is refused with 413');
+      ok((await send(fileForm('image', huge, 'image/png', 'huge.png'))).status === 413, 'a picture over 25 MB is refused with 413');
       // the cloud branch: the harness answers in place of Cloudinary, so the club's real account is never touched
-      const ctrl = (p, method = 'POST') => fetch(`http://127.0.0.1:${Number(PORT) + 1}${p}`, { method });
-      ok((await ctrl('/cloudinary/on')).ok, 'the cloud upload stand-in answers');
-      await ctrl('/cloudinary/reset');
-      const dir = path.join(__dirname, '..', 'uploads');
-      const before = fs.existsSync(dir) ? fs.readdirSync(dir).length : 0;
-      const cloudUp = await fetch(`${B}/api/upload?kind=avatar&area=committees&scope=Summer 2026`, { method: 'POST', headers: { authorization: `Bearer ${T}` }, body: form(png) });
+      ok((await cloudControl('/cloudinary/on')).ok, 'the cloud upload stand-in answers');
+      await cloudControl('/cloudinary/reset');
+      const before = fs.existsSync(UPLOADS) ? fs.readdirSync(UPLOADS).length : 0;
+      const cloudUp = await fetch(`${B}/api/upload?kind=avatar&area=committees&scope=Summer 2026`, { method: 'POST', headers: { authorization: `Bearer ${T}` }, body: fileForm('image', PNG) });
       const cloud = await cloudUp.json().catch(() => null);
       ok(cloudUp.status === 200 && /^https:\/\/res\.cloudinary\.com\/qa-cloud\/image\/upload\/.+\.webp$/.test(cloud?.url || ''), 'with Cloudinary configured the picture is stored in the cloud', { status: cloudUp.status, cloud });
-      const calls = await (await ctrl('/cloudinary/calls', 'GET')).json();
+      const calls = await cloudCalls();
       const sent = calls.find((c) => c.kind === 'stream');
       ok(!!sent && sent.folder === 'bauet-ict-club/committees/summer-2026' && sent.format === 'webp', 'the picture becomes a webp in the committee folder', sent);
-      ok(!!sent && sent.bytes === png.length, 'the whole picture reaches Cloudinary', { sent: sent?.bytes, size: png.length });
-      ok((fs.existsSync(dir) ? fs.readdirSync(dir).length : 0) === before, 'nothing is written to disk in the cloud mode');
+      ok(!!sent && sent.bytes === PNG.length, 'the whole picture reaches Cloudinary', { sent: sent?.bytes, size: PNG.length });
+      ok((fs.existsSync(UPLOADS) ? fs.readdirSync(UPLOADS).length : 0) === before, 'nothing is written to disk in the cloud mode');
       const st = await call('GET', '/api/upload/status', undefined, T);
       ok(st.j?.provider === 'cloudinary' && st.j?.ok === true, 'the Settings page sees the cloud connection', st.j);
       // /api/upload/remove-bg: Cloudinary's AI cut-out
-      const cutOut = await fetch(`${B}/api/upload/remove-bg`, { method: 'POST', headers: { authorization: `Bearer ${T}` }, body: form(png) });
+      const cutOut = await fetch(`${B}/api/upload/remove-bg`, { method: 'POST', headers: { authorization: `Bearer ${T}` }, body: fileForm('image', PNG) });
       const cut = await cutOut.json().catch(() => null);
       ok(cutOut.status === 200 && /^https:\/\/res\.cloudinary\.com\/qa-cloud\/image\/upload\/.+\.webp$/.test(cut?.url || '') && !!cut?.public_id, 'background removal returns the cut-out picture', { status: cutOut.status, cut });
-      const bg = (await (await ctrl('/cloudinary/calls', 'GET')).json()).find((c) => c.kind === 'upload');
+      const bg = (await cloudCalls()).find((c) => c.kind === 'upload');
       ok(!!bg && bg.folder === 'bauet-ict-club/people' && bg.background_removal === 'cloudinary_ai', 'background removal asks Cloudinary for the AI cut-out', bg);
-      const notPicture = new FormData(); notPicture.append('image', new Blob([Buffer.from('not a picture')], { type: 'text/plain' }), 'notes.txt');
-      ok((await fetch(`${B}/api/upload/remove-bg`, { method: 'POST', headers: { authorization: `Bearer ${T}` }, body: notPicture })).status === 400, 'background removal refuses a file that is not a picture');
+      ok((await fetch(`${B}/api/upload/remove-bg`, { method: 'POST', headers: { authorization: `Bearer ${T}` }, body: fileForm('image', Buffer.from('not a picture'), 'text/plain', 'notes.txt') })).status === 400, 'background removal refuses a file that is not a picture');
       ok((await fetch(`${B}/api/upload/remove-bg`, { method: 'POST', headers: { authorization: `Bearer ${T}` } })).status === 400, 'background removal without a file answers 400');
-      await ctrl('/cloudinary/off');
-      ok((await fetch(`${B}/api/upload/remove-bg`, { method: 'POST', headers: { authorization: `Bearer ${T}` }, body: form(png) })).status === 400, 'background removal needs Cloudinary configured');
+      await cloudControl('/cloudinary/off');
+      ok((await fetch(`${B}/api/upload/remove-bg`, { method: 'POST', headers: { authorization: `Bearer ${T}` }, body: fileForm('image', PNG) })).status === 400, 'background removal needs Cloudinary configured');
     }
 
     // ---- an application with a photo: /api/registrations/photo is the applicant's own multer path (JPG/PNG, 3 MB) ----
     {
-      const fs = require('fs');
       const jpg = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46]), Buffer.alloc(120)]);
-      const photoForm = (bytes, type = 'image/jpeg', name = 'photo.jpg') => { const fd = new FormData(); fd.append('photo', new Blob([bytes], { type }), name); return fd; };
       const uploadPhoto = (body) => fetch(`${B}/api/registrations/photo`, { method: 'POST', body });
       const applicant = (over) => ({ type: 'committee', batch: '23', department: 'CSE', gender: 'Female', interests: [], experience: 'Beginner', post: 'General Member', ...over });
       // disk mode
-      const disk = await uploadPhoto(photoForm(jpg));
+      const disk = await uploadPhoto(fileForm('photo', jpg, 'image/jpeg', 'photo.jpg'));
       const diskUrl = (await disk.json().catch(() => null))?.url || '';
       ok(disk.status === 200 && /^\/uploads\/[a-f0-9]{24}\.jpg$/.test(diskUrl), 'an applicant photo is stored on disk when Cloudinary is off', { status: disk.status, diskUrl });
-      const file = diskUrl ? path.join(__dirname, '..', 'uploads', path.basename(diskUrl)) : '';
+      const file = diskUrl ? savedFile(diskUrl) : '';
       ok(!!file && fs.existsSync(file), 'the applicant photo really lands in server/uploads');
       const diskApply = await call('POST', '/api/registrations', applicant({ full_name: 'Disk Dina', student_id: 'DD2401', phone: '01712340001', email: 'diskdina@example.com', photo_url: diskUrl }));
       ok(diskApply.s === 201, 'an application with that photo is accepted', diskApply.j);
       if (file) fs.unlinkSync(file);
-      ok((await uploadPhoto(photoForm(Buffer.from('not a picture'), 'text/plain', 'notes.txt'))).status === 400, 'a file that is not a JPG or PNG is refused');
-      ok((await uploadPhoto(photoForm(Buffer.concat([jpg, Buffer.alloc(3 * 1024 * 1024)]), 'image/jpeg', 'big.jpg'))).status === 400, 'a photo over 3 MB is refused');
+      ok((await uploadPhoto(fileForm('photo', Buffer.from('not a picture'), 'text/plain', 'notes.txt'))).status === 400, 'a file that is not a JPG or PNG is refused');
+      ok((await uploadPhoto(fileForm('photo', Buffer.concat([jpg, Buffer.alloc(3 * 1024 * 1024)]), 'image/jpeg', 'big.jpg'))).status === 400, 'a photo over 3 MB is refused');
       ok((await uploadPhoto(new FormData())).status === 400, 'a photo upload without a file answers 400');
       // cloud mode: the harness answers in place of Cloudinary
-      const ctrl = (p, method = 'POST') => fetch(`http://127.0.0.1:${Number(PORT) + 1}${p}`, { method });
-      await ctrl('/cloudinary/on');
-      await ctrl('/cloudinary/reset');
-      const cloud = await uploadPhoto(photoForm(jpg));
+      await cloudControl('/cloudinary/on');
+      await cloudControl('/cloudinary/reset');
+      const cloud = await uploadPhoto(fileForm('photo', jpg, 'image/jpeg', 'photo.jpg'));
       const cloudUrl = (await cloud.json().catch(() => null))?.url || '';
       ok(cloud.status === 200 && /^https:\/\/res\.cloudinary\.com\/qa-cloud\/image\/upload\/.+\.webp$/.test(cloudUrl), 'with Cloudinary on the applicant photo goes to the cloud', { status: cloud.status, cloudUrl });
-      const sent = (await (await ctrl('/cloudinary/calls', 'GET')).json()).find((c) => c.kind === 'stream');
+      const sent = (await cloudCalls()).find((c) => c.kind === 'stream');
       ok(!!sent && sent.folder === `bauet-ict-club/applicants/${new Date().getFullYear()}` && sent.format === 'webp', 'the applicant photo becomes a webp in the applicants folder', sent);
       const cloudApply = await call('POST', '/api/registrations', applicant({ full_name: 'Cloud Cora', student_id: 'CC2402', phone: '01712340002', email: 'cloudcora@example.com', photo_url: cloudUrl }));
       ok(cloudApply.s === 201, 'an application with a cloud photo from our own account is accepted', cloudApply.j);
       const foreign = await call('POST', '/api/registrations', applicant({ full_name: 'Foreign Farid', student_id: 'FF2403', gender: 'Male', phone: '01712340003', email: 'foreignfarid@example.com', photo_url: 'https://res.cloudinary.com/someone-else/image/upload/x.webp' }));
       ok(foreign.s === 400 && foreign.j?.fields?.photo_url === 'Invalid photo', 'a photo from another Cloudinary account is refused', foreign.j);
-      await ctrl('/cloudinary/off');
+      await cloudControl('/cloudinary/off');
     }
 
     // six-month committee terms: a committee serves half a year, then the handover opens
