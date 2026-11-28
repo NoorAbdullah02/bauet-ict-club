@@ -832,7 +832,17 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
       ok((fs.existsSync(dir) ? fs.readdirSync(dir).length : 0) === before, 'nothing is written to disk in the cloud mode');
       const st = await call('GET', '/api/upload/status', undefined, T);
       ok(st.j?.provider === 'cloudinary' && st.j?.ok === true, 'the Settings page sees the cloud connection', st.j);
+      // /api/upload/remove-bg: Cloudinary's AI cut-out
+      const cutOut = await fetch(`${B}/api/upload/remove-bg`, { method: 'POST', headers: { authorization: `Bearer ${T}` }, body: form(png) });
+      const cut = await cutOut.json().catch(() => null);
+      ok(cutOut.status === 200 && /^https:\/\/res\.cloudinary\.com\/qa-cloud\/image\/upload\/.+\.webp$/.test(cut?.url || '') && !!cut?.public_id, 'background removal returns the cut-out picture', { status: cutOut.status, cut });
+      const bg = (await (await ctrl('/cloudinary/calls', 'GET')).json()).find((c) => c.kind === 'upload');
+      ok(!!bg && bg.folder === 'bauet-ict-club/people' && bg.background_removal === 'cloudinary_ai', 'background removal asks Cloudinary for the AI cut-out', bg);
+      const notPicture = new FormData(); notPicture.append('image', new Blob([Buffer.from('not a picture')], { type: 'text/plain' }), 'notes.txt');
+      ok((await fetch(`${B}/api/upload/remove-bg`, { method: 'POST', headers: { authorization: `Bearer ${T}` }, body: notPicture })).status === 400, 'background removal refuses a file that is not a picture');
+      ok((await fetch(`${B}/api/upload/remove-bg`, { method: 'POST', headers: { authorization: `Bearer ${T}` } })).status === 400, 'background removal without a file answers 400');
       await ctrl('/cloudinary/off');
+      ok((await fetch(`${B}/api/upload/remove-bg`, { method: 'POST', headers: { authorization: `Bearer ${T}` }, body: form(png) })).status === 400, 'background removal needs Cloudinary configured');
     }
 
     // six-month committee terms: a committee serves half a year, then the handover opens
