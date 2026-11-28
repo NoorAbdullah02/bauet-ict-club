@@ -18,6 +18,7 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR
 const UPLOADS = path.join(__dirname, '..', 'uploads');
 const savedFile = (url) => path.join(UPLOADS, path.basename(String(url || '')));
 const cloudControl = (route, method = 'POST') => fetch(`http://127.0.0.1:${Number(PORT) + 1}${route}`, { method });
+const control = async (route) => (await fetch(`http://127.0.0.1:${Number(PORT) + 1}${route}`)).json().catch(() => ({}));
 const cloudCalls = async () => (await cloudControl('/cloudinary/calls', 'GET')).json();
 
 /** The ready-made forms the website ships, read from the client source so a broken one cannot go unnoticed. */
@@ -922,6 +923,36 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
       const forever = await call('DELETE', `/api/trash/gallery/${rowB.j.id}`, undefined, T);
       ok(forever.s === 200 && forever.j?.file?.where === 'disk', 'emptying it removes the row for good', forever.j);
       ok(!fs.existsSync(b.file), 'and its picture is deleted from server/uploads');
+    }
+
+    // ---- the 20-day retention: what is trashed longer than that is swept away on boot, row and file both ----
+    {
+      fs.mkdirSync(UPLOADS, { recursive: true });
+      const shoot = () => {
+        const name = require('crypto').randomBytes(12).toString('hex');
+        const file = path.join(UPLOADS, `${name}.webp`);
+        fs.writeFileSync(file, Buffer.from('RIFF\0\0\0\0WEBP'));
+        return { url: `/uploads/${name}.webp`, file };
+      };
+      const trashIt = async (title, shot) => {
+        const row = await call('POST', '/api/gallery', { title, image_url: shot.url }, T);
+        const gone = row.s === 201 ? await call('DELETE', `/api/gallery/${row.j.id}`, undefined, T) : { s: 0 };
+        ok(row.s === 201 && gone.s === 200 && fs.existsSync(shot.file), `"${title}" goes to the trash with its picture still on disk`, { row: row.s, del: gone.s });
+        return row.j?.id;
+      };
+      const waiting = shoot();
+      const oldId = await trashIt('Purge Me', waiting);
+      const fresh = shoot();
+      const freshId = await trashIt('Keep Me', fresh);
+      const aged = await control(`/trash/age?table=gallery&id=${oldId}&days=21`);
+      ok(aged.ok === true && aged.rows === 1, 'one trashed row can be backdated past the retention window', aged);
+      await control('/trash/purge');
+      const trash = (await call('GET', '/api/trash', undefined, T)).j || {};
+      ok(trash.retentionDays === 20, 'the trash says it keeps things for 20 days', trash.retentionDays);
+      const ids = (trash.items || []).filter((i) => i.type === 'gallery').map((i) => i.id);
+      ok(!ids.includes(oldId) && !fs.existsSync(waiting.file), 'a photo trashed 21 days ago is purged: the row and its file are gone', { id: oldId, file: fs.existsSync(waiting.file) });
+      ok(ids.includes(freshId) && fs.existsSync(fresh.file), 'a photo trashed today survives the purge, row and file', { id: freshId, file: fs.existsSync(fresh.file) });
+      ok((await call('DELETE', `/api/trash/gallery/${freshId}`, undefined, T)).s === 200 && !fs.existsSync(fresh.file), 'the surviving photo can still be removed by hand');
     }
 
     // six-month committee terms: a committee serves half a year, then the handover opens

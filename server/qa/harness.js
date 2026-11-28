@@ -58,6 +58,27 @@ http.createServer((req, res) => {
   else if (pathname === '/cloudinary/off') Object.assign(process.env, { CLOUDINARY_CLOUD_NAME: '', CLOUDINARY_API_KEY: '', CLOUDINARY_API_SECRET: '' });
   else if (pathname === '/cloudinary/reset') cloudCalls.length = 0;
   else if (pathname === '/cloudinary/calls') { res.setHeader('content-type', 'application/json'); return res.end(JSON.stringify(cloudCalls)); }
+  else if (pathname === '/trash/age') {
+    // backdate one trashed row so the retention sweep has something it must remove
+    const q = new URL(req.url, 'http://qa').searchParams;
+    const table = q.get('table') || '';
+    const days = Math.max(0, Math.floor(Number(q.get('days')) || 0));
+    const rowId = Math.floor(Number(q.get('id')) || 0);
+    const tables = ['events', 'notices', 'members', 'gallery', 'achievements', 'posts', 'event_registrations', 'messages', 'registrations'];
+    res.setHeader('content-type', 'application/json');
+    if (!tables.includes(table) || !rowId) { res.statusCode = 400; return res.end(JSON.stringify({ ok: false, error: 'unknown table or id' })); }
+    return require(path.join(__dirname, '..', 'config', 'db'))
+      .query(`UPDATE ${table} SET deleted_at = NOW() - INTERVAL '${days} days' WHERE id = $1`, [rowId])
+      .then((r) => res.end(JSON.stringify({ ok: true, rows: r.rowCount })))
+      .catch((e) => { res.statusCode = 500; res.end(JSON.stringify({ ok: false, error: e.message })); });
+  }
+  else if (pathname === '/trash/purge') {
+    // the same sweep the server runs on boot, so the suite can check the row and its file both go
+    res.setHeader('content-type', 'application/json');
+    return require(path.join(__dirname, '..', 'routes', 'trash')).purgeExpired()
+      .then(() => res.end('{"ok":true}'))
+      .catch((e) => { res.statusCode = 500; res.end(JSON.stringify({ ok: false, error: e.message })); });
+  }
   res.setHeader('content-type', 'application/json');
   res.end('{"ok":true}');
 }).listen(CONTROL_PORT, '127.0.0.1');
