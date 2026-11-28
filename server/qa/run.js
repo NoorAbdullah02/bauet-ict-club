@@ -879,6 +879,27 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
       await cloudControl('/cloudinary/off');
     }
 
+    // ---- the picture is deleted on Cloudinary when no row uses it any more (utils/cloud.js) ----
+    {
+      await cloudControl('/cloudinary/on');
+      await cloudControl('/cloudinary/reset');
+      const old = 'https://res.cloudinary.com/qa-cloud/image/upload/v1795000000/bauet-ict-club/gallery/old-shot.webp';
+      const fresh = 'https://res.cloudinary.com/qa-cloud/image/upload/bauet-ict-club/gallery/new-shot.webp';
+      const one = await call('POST', '/api/gallery', { title: 'Cloud Cleanup One', image_url: old }, T);
+      const two = await call('POST', '/api/gallery', { title: 'Cloud Cleanup Two', image_url: old }, T);
+      ok(one.s === 201 && two.s === 201, 'two gallery rows can point at the same cloud picture', { one: one.s, two: two.s });
+      ok((await call('PUT', `/api/gallery/${one.j.id}`, { title: 'Cloud Cleanup One', image_url: fresh }, T)).s === 200, 'a row moves to a new picture');
+      await new Promise((r) => setTimeout(r, 400)); // the old picture is cleaned up after the answer is sent
+      let calls = await cloudCalls();
+      ok(!calls.some((c) => c.kind === 'destroy'), 'a picture another row still uses is kept');
+      ok((await call('PUT', `/api/gallery/${two.j.id}`, { title: 'Cloud Cleanup Two', image_url: fresh }, T)).s === 200, 'the last row moves to the new picture');
+      await new Promise((r) => setTimeout(r, 400));
+      calls = await cloudCalls();
+      const gone = calls.filter((c) => c.kind === 'destroy');
+      ok(gone.length === 1 && gone[0].public_id === 'bauet-ict-club/gallery/old-shot', 'the unused picture is deleted with the right public id', gone);
+      await cloudControl('/off');
+    }
+
     // six-month committee terms: a committee serves half a year, then the handover opens
     {
       const list = (await call('GET', '/api/committees')).j || [];
