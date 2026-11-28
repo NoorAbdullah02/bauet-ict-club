@@ -799,6 +799,25 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
       ok(otp.s === 200 && otp.j?.success === true, 'a member can ask for a card code', otp.j);
     }
 
+    // ---- multer 2: the real photo upload (memory storage, 25 MB limit, disk when Cloudinary is not configured) ----
+    {
+      const fs = require('fs');
+      const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
+      const form = (bytes, name = 'photo.png') => { const fd = new FormData(); fd.append('image', new Blob([bytes], { type: 'image/png' }), name); return fd; };
+      const send = (body) => fetch(`${B}/api/upload?kind=avatar`, { method: 'POST', headers: T ? { authorization: `Bearer ${T}` } : {}, body });
+      ok((await fetch(`${B}/api/upload?kind=avatar`, { method: 'POST', body: form(png) })).status === 401, 'uploading a photo needs an admin login');
+      const up = await send(form(png));
+      const saved = await up.json().catch(() => null);
+      ok(up.status === 200 && /^\/uploads\/[a-f0-9]{24}\.png$/.test(saved?.url || ''), 'an admin uploads a real picture and gets its url', { status: up.status, saved });
+      const file = saved?.url ? path.join(__dirname, '..', 'uploads', path.basename(saved.url)) : '';
+      ok(!!file && fs.existsSync(file), 'the picture is written to disk when Cloudinary is not configured');
+      if (file) fs.unlinkSync(file); // the suite leaves no files behind
+      const empty = new FormData(); empty.append('kind', 'avatar');
+      ok((await send(empty)).status === 400, 'an upload with no file answers 400');
+      const huge = Buffer.alloc(25 * 1024 * 1024 + 1024); huge.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+      ok((await send(form(huge, 'huge.png'))).status === 413, 'a picture over 25 MB is refused with 413');
+    }
+
     // six-month committee terms: a committee serves half a year, then the handover opens
     {
       const list = (await call('GET', '/api/committees')).j || [];

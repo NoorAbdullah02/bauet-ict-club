@@ -11,5 +11,6 @@ Object.assign(process.env, {
   JWT_SECRET: 'qa-fixed-secret-for-the-regression-check-1234567890', CRON_SECRET: 'qa-cron-secret-123456',
   DATABASE_URL: 'postgres://qa', BREVO_API_KEY: process.env.QA_BREVO_KEY || '', SMTP_HOST: '',
 });
-delete process.env.CLOUDINARY_CLOUD_NAME;
+// empty, not deleted: dotenv would put the real .env keys back, and the suite must never upload to the club's Cloudinary account
+process.env.CLOUDINARY_CLOUD_NAME = ''; process.env.CLOUDINARY_API_KEY = ''; process.env.CLOUDINARY_API_SECRET = '';
 require(path.join(__dirname, '..', 'index.js'));
