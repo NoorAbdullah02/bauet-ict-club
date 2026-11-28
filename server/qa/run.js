@@ -816,6 +816,23 @@ const fill = (fields, i) => Object.fromEntries(fields.filter((f) => f.type !== '
       ok((await send(empty)).status === 400, 'an upload with no file answers 400');
       const huge = Buffer.alloc(25 * 1024 * 1024 + 1024); huge.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
       ok((await send(form(huge, 'huge.png'))).status === 413, 'a picture over 25 MB is refused with 413');
+      // the cloud branch: the harness answers in place of Cloudinary, so the club's real account is never touched
+      const ctrl = (p, method = 'POST') => fetch(`http://127.0.0.1:${Number(PORT) + 1}${p}`, { method });
+      ok((await ctrl('/cloudinary/on')).ok, 'the cloud upload stand-in answers');
+      await ctrl('/cloudinary/reset');
+      const dir = path.join(__dirname, '..', 'uploads');
+      const before = fs.existsSync(dir) ? fs.readdirSync(dir).length : 0;
+      const cloudUp = await fetch(`${B}/api/upload?kind=avatar&area=committees&scope=Summer 2026`, { method: 'POST', headers: { authorization: `Bearer ${T}` }, body: form(png) });
+      const cloud = await cloudUp.json().catch(() => null);
+      ok(cloudUp.status === 200 && /^https:\/\/res\.cloudinary\.com\/qa-cloud\/image\/upload\/.+\.webp$/.test(cloud?.url || ''), 'with Cloudinary configured the picture is stored in the cloud', { status: cloudUp.status, cloud });
+      const calls = await (await ctrl('/cloudinary/calls', 'GET')).json();
+      const sent = calls.find((c) => c.kind === 'stream');
+      ok(!!sent && sent.folder === 'bauet-ict-club/committees/summer-2026' && sent.format === 'webp', 'the picture becomes a webp in the committee folder', sent);
+      ok(!!sent && sent.bytes === png.length, 'the whole picture reaches Cloudinary', { sent: sent?.bytes, size: png.length });
+      ok((fs.existsSync(dir) ? fs.readdirSync(dir).length : 0) === before, 'nothing is written to disk in the cloud mode');
+      const st = await call('GET', '/api/upload/status', undefined, T);
+      ok(st.j?.provider === 'cloudinary' && st.j?.ok === true, 'the Settings page sees the cloud connection', st.j);
+      await ctrl('/cloudinary/off');
     }
 
     // six-month committee terms: a committee serves half a year, then the handover opens
